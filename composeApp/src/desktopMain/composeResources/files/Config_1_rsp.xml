@@ -1,0 +1,1040 @@
+<?xml version="1.0" standalone="yes"?>
+<DSAutoResponse xmlns="http://tempuri.org/DSAutoResponse.xsd">
+  <KnownTransaction>
+    <ID>2</ID>
+    <MTI>0200</MTI>
+    <ProCode>*</ProCode>
+    <Description>sale</Description>
+  </KnownTransaction>
+  <KnownTransaction>
+    <ID>6</ID>
+    <MTI>0400</MTI>
+    <ProCode>*</ProCode>
+    <Description>void,reversal</Description>
+  </KnownTransaction>
+  <KnownTransaction>
+    <ID>7</ID>
+    <MTI>0800</MTI>
+    <ProCode>*</ProCode>
+    <Description>logon</Description>
+  </KnownTransaction>
+  <KnownTransaction>
+    <ID>9</ID>
+    <MTI>0520</MTI>
+    <ProCode>910000</ProCode>
+    <Description>cut off</Description>
+  </KnownTransaction>
+  <KnownTransaction>
+    <ID>10</ID>
+    <MTI>0320</MTI>
+    <ProCode>*</ProCode>
+    <Description>Upload</Description>
+  </KnownTransaction>
+  <KnownTransaction>
+    <ID>11</ID>
+    <MTI>0220</MTI>
+    <ProCode>*</ProCode>
+    <Description>Adjust</Description>
+  </KnownTransaction>
+  <KnownTransaction>
+    <ID>12</ID>
+    <MTI>0520</MTI>
+    <ProCode>*</ProCode>
+    <Description>settle</Description>
+  </KnownTransaction>
+  <KnownTransaction>
+    <ID>13</ID>
+    <MTI>0100</MTI>
+    <ProCode>370000</ProCode>
+    <Description>Check Card Request</Description>
+  </KnownTransaction>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>4</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>37</Field>
+    <Data>[RAND]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>38</Field>
+    <Data>654321</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>4</Field>
+    <Data>000000100000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>37</Field>
+    <Data>123456789012</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>38</Field>
+    <Data>654321</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>37</Field>
+    <Data>[RAND]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>38</Field>
+    <Data>654321</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>38</Field>
+    <Data>000000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>8</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>8</TxnID>
+    <Field>39</Field>
+    <Data>95</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>8</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>10</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>10</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>10</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>11</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>11</TxnID>
+    <Field>4</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>11</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>11</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>11</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>42</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>5</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>24</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>37</Field>
+    <Data>[RAND]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>7</Field>
+    <Data>[TIME]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>9</TxnID>
+    <Field>15</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>24</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>7</Field>
+    <Data>[TIME]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>4</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>12</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>6</TxnID>
+    <Field>49</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>12</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>49</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>7</Field>
+    <Data>[TIME]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>10</TxnID>
+    <Field>4</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>10</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>10</TxnID>
+    <Field>12</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>10</TxnID>
+    <Field>37</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>5</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>15</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>7</Field>
+    <Data>[TIME]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>3</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>4</TxnID>
+    <Field>49</Field>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>7</Field>
+    <Data>[TIME]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>11</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>12</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>37</Field>
+    <Data>[RAND]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>39</Field>
+    <Data>000</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>41</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>55</Field>
+    <Data>8A023030</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>4</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>55</Field>
+    <Data>8A023030</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>7</Field>
+    <Data>[TIME]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>37</Field>
+    <Data>[RAND]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>7</TxnID>
+    <Field>42</Field>
+    <Data>[SV]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>13</TxnID>
+    <Field>48</Field>
+    <Data>3830323030355375706572383033303037424E4436383638</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>12</TxnID>
+    <Field>37</Field>
+    <Data>[RAND]</Data>
+  </FieldsResponded>
+  <FieldsResponded>
+    <TxnID>2</TxnID>
+    <Field>54</Field>
+    <Data>[RAND]</Data>
+  </FieldsResponded>
+  <Settings>
+    <Name>TestSettings</Name>
+    <Value>&lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&gt;
+&lt;SOAP-ENV:Body&gt;
+&lt;a1:TestSettings id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_TestTrans href="#ref-3"/&gt;
+&lt;/a1:TestSettings&gt;
+&lt;SOAP-ENC:Array id="ref-3" SOAP-ENC:arrayType="a1:TestTrans[10]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-4"/&gt;
+&lt;item href="#ref-5"/&gt;
+&lt;item href="#ref-6"/&gt;
+&lt;item href="#ref-7"/&gt;
+&lt;item href="#ref-8"/&gt;
+&lt;item href="#ref-9"/&gt;
+&lt;item href="#ref-10"/&gt;
+&lt;item href="#ref-11"/&gt;
+&lt;item href="#ref-12"/&gt;
+&lt;item href="#ref-13"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;a1:TestTrans id="ref-4" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-14"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-5" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-15"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-6" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-16"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-7" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-17"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-8" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-18"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-9" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-19"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-10" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-20"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-11" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-21"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-12" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-22"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;a1:TestTrans id="ref-13" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Name xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_Field href="#ref-23"/&gt;
+&lt;/a1:TestTrans&gt;
+&lt;SOAP-ENC:Array id="ref-14" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-24"/&gt;
+&lt;item href="#ref-25"/&gt;
+&lt;item href="#ref-26"/&gt;
+&lt;item href="#ref-27"/&gt;
+&lt;item href="#ref-28"/&gt;
+&lt;item href="#ref-29"/&gt;
+&lt;item href="#ref-30"/&gt;
+&lt;item href="#ref-31"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-15" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-32"/&gt;
+&lt;item href="#ref-33"/&gt;
+&lt;item href="#ref-34"/&gt;
+&lt;item href="#ref-35"/&gt;
+&lt;item href="#ref-36"/&gt;
+&lt;item href="#ref-37"/&gt;
+&lt;item href="#ref-38"/&gt;
+&lt;item href="#ref-39"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-16" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-40"/&gt;
+&lt;item href="#ref-41"/&gt;
+&lt;item href="#ref-42"/&gt;
+&lt;item href="#ref-43"/&gt;
+&lt;item href="#ref-44"/&gt;
+&lt;item href="#ref-45"/&gt;
+&lt;item href="#ref-46"/&gt;
+&lt;item href="#ref-47"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-17" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-48"/&gt;
+&lt;item href="#ref-49"/&gt;
+&lt;item href="#ref-50"/&gt;
+&lt;item href="#ref-51"/&gt;
+&lt;item href="#ref-52"/&gt;
+&lt;item href="#ref-53"/&gt;
+&lt;item href="#ref-54"/&gt;
+&lt;item href="#ref-55"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-18" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-56"/&gt;
+&lt;item href="#ref-57"/&gt;
+&lt;item href="#ref-58"/&gt;
+&lt;item href="#ref-59"/&gt;
+&lt;item href="#ref-60"/&gt;
+&lt;item href="#ref-61"/&gt;
+&lt;item href="#ref-62"/&gt;
+&lt;item href="#ref-63"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-19" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-64"/&gt;
+&lt;item href="#ref-65"/&gt;
+&lt;item href="#ref-66"/&gt;
+&lt;item href="#ref-67"/&gt;
+&lt;item href="#ref-68"/&gt;
+&lt;item href="#ref-69"/&gt;
+&lt;item href="#ref-70"/&gt;
+&lt;item href="#ref-71"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-20" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-72"/&gt;
+&lt;item href="#ref-73"/&gt;
+&lt;item href="#ref-74"/&gt;
+&lt;item href="#ref-75"/&gt;
+&lt;item href="#ref-76"/&gt;
+&lt;item href="#ref-77"/&gt;
+&lt;item href="#ref-78"/&gt;
+&lt;item href="#ref-79"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-21" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-80"/&gt;
+&lt;item href="#ref-81"/&gt;
+&lt;item href="#ref-82"/&gt;
+&lt;item href="#ref-83"/&gt;
+&lt;item href="#ref-84"/&gt;
+&lt;item href="#ref-85"/&gt;
+&lt;item href="#ref-86"/&gt;
+&lt;item href="#ref-87"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-22" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-88"/&gt;
+&lt;item href="#ref-89"/&gt;
+&lt;item href="#ref-90"/&gt;
+&lt;item href="#ref-91"/&gt;
+&lt;item href="#ref-92"/&gt;
+&lt;item href="#ref-93"/&gt;
+&lt;item href="#ref-94"/&gt;
+&lt;item href="#ref-95"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;SOAP-ENC:Array id="ref-23" SOAP-ENC:arrayType="a1:CField[8]" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;item href="#ref-96"/&gt;
+&lt;item href="#ref-97"/&gt;
+&lt;item href="#ref-98"/&gt;
+&lt;item href="#ref-99"/&gt;
+&lt;item href="#ref-100"/&gt;
+&lt;item href="#ref-101"/&gt;
+&lt;item href="#ref-102"/&gt;
+&lt;item href="#ref-103"/&gt;
+&lt;/SOAP-ENC:Array&gt;
+&lt;a1:CField id="ref-24" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-25" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-26" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-27" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-28" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-29" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-30" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-31" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-32" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-33" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-34" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-35" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-36" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-37" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-38" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-39" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-40" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-41" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-42" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-43" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-44" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-45" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-46" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-47" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-48" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-49" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-50" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-51" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-52" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-53" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-54" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-55" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-56" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-57" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-58" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-59" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-60" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-61" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-62" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-63" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-64" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-65" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-66" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-67" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-68" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-69" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-70" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-71" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-72" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-73" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-74" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-75" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-76" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-77" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-78" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-79" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-80" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-81" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-82" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-83" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-84" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-85" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-86" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-87" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-88" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-89" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-90" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-91" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-92" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-93" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-94" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-95" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-96" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-97" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-98" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-99" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-100" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-101" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-102" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;a1:CField id="ref-103" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;m_Value xsi:type="xsd:string" xsi:null="1"/&gt;
+&lt;m_FieldNumber xsi:type="xsd:int"&gt;-1&lt;/m_FieldNumber&gt;
+&lt;m_Condition xsi:type="a1:Conditions" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;Equal&lt;/m_Condition&gt;
+&lt;/a1:CField&gt;
+&lt;/SOAP-ENV:Body&gt;
+&lt;/SOAP-ENV:Envelope&gt;
+</Value>
+  </Settings>
+  <Settings>
+    <Name>HostSimulatorSetting</Name>
+    <Value>&lt;SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:clr="http://schemas.microsoft.com/soap/encoding/clr/1.0" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&gt;
+&lt;SOAP-ENV:Body&gt;
+&lt;a1:HostSimulatorSettings id="ref-1" xmlns:a1="http://schemas.microsoft.com/clr/nsassem/TI.SecurityGateway/TI.SecurityGateway"&gt;
+&lt;UseAscii xsi:type="xsd:boolean"&gt;true&lt;/UseAscii&gt;
+&lt;DontUseTPDU xsi:type="xsd:boolean"&gt;true&lt;/DontUseTPDU&gt;
+&lt;RespondIfDontRecognize xsi:type="xsd:boolean"&gt;false&lt;/RespondIfDontRecognize&gt;
+&lt;UseCustomizedMessage xsi:type="xsd:boolean"&gt;false&lt;/UseCustomizedMessage&gt;
+&lt;IgnoreHeaderLength xsi:type="xsd:int"&gt;1&lt;/IgnoreHeaderLength&gt;
+&lt;FixedResponseHeader id="ref-3" xsi:type="SOAP-ENC:string"&gt;&lt;/FixedResponseHeader&gt;
+&lt;IsMetfoneMessage xsi:type="xsd:boolean"&gt;false&lt;/IsMetfoneMessage&gt;
+&lt;/a1:HostSimulatorSettings&gt;
+&lt;/SOAP-ENV:Body&gt;
+&lt;/SOAP-ENV:Envelope&gt;
+</Value>
+  </Settings>
+</DSAutoResponse>
