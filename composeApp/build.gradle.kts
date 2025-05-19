@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.pluginSerialization)
 }
 
 kotlin {
@@ -52,7 +53,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "in.aicortex.iso8583studio.MainKt"
+        mainClass = "in.aicortex.iso8583studio.ISO8583Studio"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

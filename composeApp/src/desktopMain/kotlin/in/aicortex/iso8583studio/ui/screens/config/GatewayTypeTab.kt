@@ -94,7 +94,7 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                 ) {
                     Text("Modified date", modifier = Modifier.width(100.dp))
                     Text(
-                        config.createDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
+                        config.createDate.toString(),
                         modifier = Modifier.weight(1f).border(1.dp, Color.LightGray).padding(8.dp)
                     )
                 }

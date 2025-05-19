@@ -10,6 +10,8 @@ jdbc = "3.40.0.0"
 koin = "3.3.2"
 nettyVersion = "4.1.24.Final"
 jaxVersion = "2.3.1"
+pluginSerializer="2.1.21"
+jvmVersion="2.1.21"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -38,3 +40,5 @@ composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "com
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jvmVersion" }
+pluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "pluginSerializer" }

@@ -1150,18 +1150,18 @@ class GatewayClient {
         return processedInput
     }
 
-    fun writeParsedDataToLog(input: ByteArray?) {
-        input ?: return
+    fun writeParsedDataToLog(input: ByteArray?): Iso8583Data? {
+        input ?: return null
 
         if (gatewayHandler?.configuration?.advanceOptions?.isPartialEncryption() == true) {
-            return
+            return null
         }
 
         try {
             if ((gatewayHandler?.configuration?.logOptions
                     ?: LoggingOption.NONE.value) and LoggingOption.PARSED_DATA.value <= LoggingOption.NONE.value
             ) {
-                return
+                return null
             }
 
             val iso8583Data = gatewayHandler?.configuration?.gwBitTemplate?.let { Iso8583Data(it,gatewayHandler?.configuration!!) }
@@ -1183,6 +1183,7 @@ class GatewayClient {
 
             writeServerLog("PARSED MESSAGE\r\n${iso8583Data?.logFormat()}")
 
+            return iso8583Data
         } catch (ex: Exception) {
             writeServerLog("ERROR WHEN PARSING DATA \r\n${ex}")
 
@@ -1193,6 +1194,7 @@ class GatewayClient {
                 )
             }
         }
+        return null
     }
 
     fun writeServerLog(s: String) {

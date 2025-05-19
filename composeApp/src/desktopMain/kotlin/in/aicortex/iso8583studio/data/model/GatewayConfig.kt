@@ -2,8 +2,10 @@ package `in`.aicortex.iso8583studio.data.model
 
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.BitTemplate
+import `in`.aicortex.iso8583studio.ui.screens.config.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import nl.adaptivity.xmlutil.serialization.XML
 import org.jetbrains.compose.resources.Resource
 import java.io.File
@@ -14,7 +16,13 @@ import java.security.MessageDigest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.crypto.Cipher
+import kotlin.math.log
 
+@Serializable
+data class Something(
+    val id: Int = 1,
+    var str: String="Data"
+)
 /**
  * Gateway configuration class
  */
@@ -38,7 +46,7 @@ data class GatewayConfig(
     var iv: ByteArray? = null,
     var checkSignature: SignatureChecking = SignatureChecking.NONE,
     var description: String = "",
-    var createDate: LocalDateTime = LocalDateTime.now(),
+    var createDate: Long = System.currentTimeMillis(),
     var createBy: String = "",
     var clientID: String = "",
     var locationID: String = "",
@@ -47,6 +55,11 @@ data class GatewayConfig(
     var doNotUseHeader: Boolean = false,
     var bitmapInAscii: Boolean = false,
     var respondIfUnrecognized: Boolean = false,
+    var metfoneMesage: Boolean = false,
+    var notUpdateScreen: Boolean = false,
+    var customizeMessage: Boolean = false,
+    var ignoreRequestHeader: Int = 5,
+    var fixedResponseHeader: ByteArray? = null,
     var maxConcurrentConnection: Int = 100,
     var cipherMode: CipherMode = CipherMode.CBC,
     var enable: Boolean = false,
@@ -63,9 +76,10 @@ data class GatewayConfig(
     var keyExpireAfter: Int = 0,
     var addNewClientWhenLoadKEK: Boolean = false,
     var advancedOptions: AdvancedOptions? = null,
-    var _logFileName: String = "logs.txt",
+    private var _logFileName: String = "logs.txt",
     var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
-    var serverConnectionType: ConnectionType = ConnectionType.TCP_IP
+    var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,
+    var simulatedTransactions: List<Transaction> = emptyList()
 ) {
 
 
@@ -190,19 +204,152 @@ data class GatewayConfig(
             return XML.decodeFromString<GatewayConfig>(xmlString)
         }
     }
-
-    /**
-     * Write configuration to file
-     */
-    fun write(filename: String) {
+    fun export(): String {
         try {
-            File(filename).outputStream().use { fileOut ->
-                ObjectOutputStream(fileOut).use { objectOut ->
-                    objectOut.writeObject(this)
-                }
+            var name = "Iso8583Studio"
+            var file = File("${name}.cfg")
+            var number: Int? = 0
+            while(file.exists()){
+                name.plus(1)
+                file = File("${name}($number).cfg")
             }
+
+            val xmlConfig = XML.encodeToString(this)
+
+            file.writeText(xmlConfig)
+            return file.absolutePath
         } catch (e: Exception) {
             // Ignore write errors
+           return e.message ?: "Unable to export"
         }
+
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as GatewayConfig
+
+        if (id != other.id) return false
+        if (serverPort != other.serverPort) return false
+        if (destinationPort != other.destinationPort) return false
+        if (maxLogSizeInMB != other.maxLogSizeInMB) return false
+        if (transactionTimeOut != other.transactionTimeOut) return false
+        if (logOptions != other.logOptions) return false
+        if (createDate != other.createDate) return false
+        if (acceptClientListOnly != other.acceptClientListOnly) return false
+        if (doNotUseHeader != other.doNotUseHeader) return false
+        if (bitmapInAscii != other.bitmapInAscii) return false
+        if (respondIfUnrecognized != other.respondIfUnrecognized) return false
+        if (maxConcurrentConnection != other.maxConcurrentConnection) return false
+        if (enable != other.enable) return false
+        if (autoRestartAfter != other.autoRestartAfter) return false
+        if (nccRule != other.nccRule) return false
+        if (terminateWhenError != other.terminateWhenError) return false
+        if (monitorPort != other.monitorPort) return false
+        if (waitToRestart != other.waitToRestart) return false
+        if (allowLoadKEK != other.allowLoadKEK) return false
+        if (allowWrongParsedData != other.allowWrongParsedData) return false
+        if (keyExpireAfter != other.keyExpireAfter) return false
+        if (addNewClientWhenLoadKEK != other.addNewClientWhenLoadKEK) return false
+        if (name != other.name) return false
+        if (cipherType != other.cipherType) return false
+        if (destinationServer != other.destinationServer) return false
+        if (gatewayType != other.gatewayType) return false
+        if (transmissionType != other.transmissionType) return false
+        if (serverAddress != other.serverAddress) return false
+        if (textEncoding != other.textEncoding) return false
+        if (messageLengthType != other.messageLengthType) return false
+        if (!privateKey.contentEquals(other.privateKey)) return false
+        if (!iv.contentEquals(other.iv)) return false
+        if (checkSignature != other.checkSignature) return false
+        if (description != other.description) return false
+        if (createBy != other.createBy) return false
+        if (clientID != other.clientID) return false
+        if (locationID != other.locationID) return false
+        if (!password.contentEquals(other.password)) return false
+        if (cipherMode != other.cipherMode) return false
+        if (monitorAddress != other.monitorAddress) return false
+        if (hashAlgorithm != other.hashAlgorithm) return false
+        if (!gwBitTemplate.contentEquals(other.gwBitTemplate)) return false
+        if (advancedOptions != other.advancedOptions) return false
+        if (_logFileName != other._logFileName) return false
+        if (destinationConnectionType != other.destinationConnectionType) return false
+        if (serverConnectionType != other.serverConnectionType) return false
+        if (simulatedTransactions != other.simulatedTransactions) return false
+        if (addNewClientWhenLoadKek != other.addNewClientWhenLoadKek) return false
+        if (advanceOptions != other.advanceOptions) return false
+        if (!bitTemplate.contentEquals(other.bitTemplate)) return false
+        if (transmission != other.transmission) return false
+        if (logFileName != other.logFileName) return false
+        if (metfoneMesage != other.metfoneMesage) return false
+        if (notUpdateScreen != other.notUpdateScreen) return false
+        if (customizeMessage != other.customizeMessage) return false
+        if (ignoreRequestHeader != other.ignoreRequestHeader) return false
+        if (fixedResponseHeader != other.fixedResponseHeader) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id
+        result = 31 * result + serverPort
+        result = 31 * result + destinationPort
+        result = 31 * result + maxLogSizeInMB
+        result = 31 * result + transactionTimeOut
+        result = 31 * result + logOptions
+        result = 31 * result + createDate.hashCode()
+        result = 31 * result + acceptClientListOnly.hashCode()
+        result = 31 * result + doNotUseHeader.hashCode()
+        result = 31 * result + bitmapInAscii.hashCode()
+        result = 31 * result + respondIfUnrecognized.hashCode()
+        result = 31 * result + maxConcurrentConnection
+        result = 31 * result + enable.hashCode()
+        result = 31 * result + autoRestartAfter
+        result = 31 * result + nccRule.hashCode()
+        result = 31 * result + terminateWhenError.hashCode()
+        result = 31 * result + monitorPort
+        result = 31 * result + waitToRestart
+        result = 31 * result + allowLoadKEK.hashCode()
+        result = 31 * result + allowWrongParsedData.hashCode()
+        result = 31 * result + keyExpireAfter
+        result = 31 * result + addNewClientWhenLoadKEK.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + cipherType.hashCode()
+        result = 31 * result + destinationServer.hashCode()
+        result = 31 * result + gatewayType.hashCode()
+        result = 31 * result + transmissionType.hashCode()
+        result = 31 * result + serverAddress.hashCode()
+        result = 31 * result + textEncoding.hashCode()
+        result = 31 * result + messageLengthType.hashCode()
+        result = 31 * result + (privateKey?.contentHashCode() ?: 0)
+        result = 31 * result + (iv?.contentHashCode() ?: 0)
+        result = 31 * result + checkSignature.hashCode()
+        result = 31 * result + description.hashCode()
+        result = 31 * result + createBy.hashCode()
+        result = 31 * result + clientID.hashCode()
+        result = 31 * result + locationID.hashCode()
+        result = 31 * result + (password?.contentHashCode() ?: 0)
+        result = 31 * result + cipherMode.hashCode()
+        result = 31 * result + monitorAddress.hashCode()
+        result = 31 * result + hashAlgorithm.hashCode()
+        result = 31 * result + (gwBitTemplate?.contentHashCode() ?: 0)
+        result = 31 * result + (advancedOptions?.hashCode() ?: 0)
+        result = 31 * result + _logFileName.hashCode()
+        result = 31 * result + destinationConnectionType.hashCode()
+        result = 31 * result + serverConnectionType.hashCode()
+        result = 31 * result + simulatedTransactions.hashCode()
+        result = 31 * result + addNewClientWhenLoadKek.hashCode()
+        result = 31 * result + advanceOptions.hashCode()
+        result = 31 * result + bitTemplate.contentHashCode()
+        result = 31 * result + transmission.hashCode()
+        result = 31 * result + logFileName.hashCode()
+        result = 31 * result + metfoneMesage.hashCode()
+        result = 31 * result + notUpdateScreen.hashCode()
+        result = 31 * result + customizeMessage.hashCode()
+        result = 31 * result + ignoreRequestHeader.hashCode()
+        result = 31 * result + fixedResponseHeader.contentHashCode()
+        return result
     }
 }

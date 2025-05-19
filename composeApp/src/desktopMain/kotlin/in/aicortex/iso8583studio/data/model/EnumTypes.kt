@@ -1,11 +1,13 @@
 package `in`.aicortex.iso8583studio.data.model
 
+import kotlinx.serialization.Serializable
 import java.nio.charset.Charset
 
 
 /**
  * Enumeration for gateway types
  */
+@Serializable
 enum class GatewayType {
     SERVER,
     CLIENT,
@@ -15,6 +17,7 @@ enum class GatewayType {
 /**
  * Enumeration for transmission types
  */
+@Serializable
 enum class TransmissionType {
     SYNCHRONOUS,
     ASYNCHRONOUS
@@ -23,6 +26,7 @@ enum class TransmissionType {
 /**
  * Enumeration for connection types
  */
+@Serializable
 enum class ConnectionType {
     TCP_IP,
     COM,
@@ -32,6 +36,7 @@ enum class ConnectionType {
 /**
  * Enumeration for cipher types
  */
+@Serializable
 enum class CipherType {
     DES,
     TRIPLE_DES,
@@ -40,11 +45,13 @@ enum class CipherType {
     AES_256,
     RSA
 }
+@Serializable
 enum class CipherMode { ECB, CBC, CFB, OFB, CTS }
 
 /**
  * Enum for message length type
  */
+@Serializable
 enum class MessageLengthType(val value: Int) {
     BCD(0),
     NONE(3),
@@ -60,6 +67,7 @@ enum class MessageLengthType(val value: Int) {
 /**
  * Enumeration for special features
  */
+@Serializable
 enum class SpecialFeature {
     None,
     SimpleEncryptionForProxy,
@@ -73,6 +81,7 @@ enum class SpecialFeature {
 /**
  * Enumeration for special features
  */
+@Serializable
 enum class MessageEncoding(name: String?=null) {
     ASCII,
     BigEndianUnicode,
@@ -84,6 +93,7 @@ enum class MessageEncoding(name: String?=null) {
 }
 
 
+@Serializable
 enum class ParsingFeature{
     NONE,
     InASCII
@@ -93,6 +103,7 @@ enum class ParsingFeature{
 /**
  * Enum for verification errors
  */
+@Serializable
 enum class VerificationError {
     TIMEOUT,
     INVALID_NII,
@@ -117,6 +128,7 @@ enum class VerificationError {
 /**
  * Enum for logging options
  */
+@Serializable
 enum class LoggingOption(val value: Int) {
     NONE(0),
     SIMPLE(1),
@@ -130,6 +142,7 @@ enum class LoggingOption(val value: Int) {
 /**
  * Enum for signature checking modes
  */
+@Serializable
 enum class SignatureChecking {
     NONE,
     ONE_PASSWORD,
@@ -139,6 +152,7 @@ enum class SignatureChecking {
 /**
  * Enum for transaction status
  */
+@Serializable
 enum class TransactionStatus {
     NONE,
     RECEIVED_REQUEST,
@@ -152,6 +166,7 @@ enum class TransactionStatus {
 /**
  * Enum for gateway message types
  */
+@Serializable
 enum class GatewayMessageType(val value: Int) {
     NORMAL_REQUEST(256),
     NORMAL_RESPONSE(272),
@@ -172,21 +187,25 @@ enum class GatewayMessageType(val value: Int) {
 }
 
 // Enums to replace the C# enums
+@Serializable
 enum class BitLength {
     FIXED, LLVAR, LLLVAR
 }
 
+@Serializable
 enum class BitType {
     BCD, BINARY, AN, ANS, NOT_SPECIFIC
 }
 
 // Update AddtionalOption to include all options from the original code
+@Serializable
 enum class AddtionalOption {
     None,
     HideAll,
     Hide12DigitsOfTrack2
 }
 
+@Serializable
 enum class ActionWhenDisconnect{
     DisconnectFromSourceOnly,
     DisconnectFromDestOnly,
@@ -194,6 +213,7 @@ enum class ActionWhenDisconnect{
     NoDisconnect,
 }
 
+@Serializable
 enum class EMVShowOption(val value: Int){
     None(0),
     Len(1),
@@ -203,6 +223,7 @@ enum class EMVShowOption(val value: Int){
     BITS(16), // 0x00000010
 }
 
+@Serializable
 enum class ObscureType{
     None,
     ReplacedByEncryptedData,
@@ -212,6 +233,7 @@ enum class ObscureType{
 
 
 
+@Serializable
 enum class GWHeaderTAG(val value: UShort) {
     TAG_START_INDICATOR(13398u),    // 0x3456
     TAG_END_INDICATOR(22136u),      // 0x5678
@@ -247,10 +269,12 @@ enum class GWHeaderTAG(val value: UShort) {
     }
 }
 
+@Serializable
 enum class HashAlgorithm {
     SHA1, MD5
 }
 
+@Serializable
 enum class EDialupStatus {
     Nothing,
     Dialing,
@@ -259,6 +283,7 @@ enum class EDialupStatus {
 }
 
 @ExperimentalUnsignedTypes
+@Serializable
 enum class CKM(val value: Long) {
     RSA_PKCS_KEY_PAIR_GEN(0L),
     RSA_PKCS(1L),

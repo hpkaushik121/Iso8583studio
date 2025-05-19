@@ -16,11 +16,11 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
-fun GatewayConfiguration(navigationController: NavigationController) {
+fun GatewayConfiguration(navigationController: NavigationController,
+                         appState: GatewayConfigurationState) {
 
     // Create navigation controller
-    val navigationController = remember { NavigationController() }
-    val appState by navigationController.state.collectAsState()
+
     when (val screen = navigationController.currentScreen) {
         is Screen.GatewayType -> selectTab(navigationController = navigationController,
             appState = appState,

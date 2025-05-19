@@ -97,6 +97,7 @@ fun HostSimulator(
     // Simulating the timer_tick effect
     gw.onReceiveFromSource{ client,request ->
         rawRequest = IsoUtil.bytesToHexString(request)
+
         return@onReceiveFromSource request
     }
     gw.beforeWriteLog {
@@ -330,7 +331,7 @@ fun HostSimulator(
                 }
                 2 -> {
                     // Settings Tab (Known Transactions)
-                    ISO8583SettingsScreen()
+                    ISO8583SettingsScreen(gw = gw)
                     // This would contain the dataGridView for KnownTransaction and FieldsResponded
                 }
                 3 -> {

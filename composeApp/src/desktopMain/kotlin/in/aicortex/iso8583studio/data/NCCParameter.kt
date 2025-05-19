@@ -2,6 +2,7 @@ package `in`.aicortex.iso8583studio.data
 
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import java.net.Socket
 
 /**

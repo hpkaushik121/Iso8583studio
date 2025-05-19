@@ -3,8 +3,9 @@ package `in`.aicortex.iso8583studio.data
 import `in`.aicortex.iso8583studio.data.model.AddtionalOption
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
+import kotlinx.serialization.Serializable
 
-
+@Serializable
 data class BitSpecific(
     var bitNumber: Byte = 0,
     var bitLength: BitLength = BitLength.FIXED,

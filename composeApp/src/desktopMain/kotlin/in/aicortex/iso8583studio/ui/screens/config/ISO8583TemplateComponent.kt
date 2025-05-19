@@ -60,11 +60,11 @@ fun Iso8583TemplateScreen(config: GatewayConfig) {
     var useAscii by remember { mutableStateOf(config.bitmapInAscii) }
     var dontUseTPDU by remember { mutableStateOf(config.doNotUseHeader) }
     var respondIfUnrecognized by remember { mutableStateOf(config.respondIfUnrecognized) }
-    var metfoneMessage by remember { mutableStateOf(false) }
-    var notUpdateScreen by remember { mutableStateOf(false) }
-    var customizedMessage by remember { mutableStateOf(false) }
-    var ignoreHeaderLength by remember { mutableStateOf("5") }
-    var fixedResponseHeader by remember { mutableStateOf("") }
+    var metfoneMessage by remember { mutableStateOf(config.metfoneMesage) }
+    var notUpdateScreen by remember { mutableStateOf(config.notUpdateScreen) }
+    var customizedMessage by remember { mutableStateOf(config.customizeMessage ) }
+    var ignoreHeaderLength by remember { mutableStateOf(config.ignoreRequestHeader.toString()) }
+    var fixedResponseHeader by remember { mutableStateOf(config.fixedResponseHeader ?: byteArrayOf()) }
 
     Row(
         modifier = Modifier
@@ -179,6 +179,12 @@ fun Iso8583TemplateScreen(config: GatewayConfig) {
                     config.doNotUseHeader = dontUseTPDU
                     config.bitmapInAscii = useAscii
                     config.respondIfUnrecognized = respondIfUnrecognized
+                    config.metfoneMesage = metfoneMessage
+                    config.notUpdateScreen = notUpdateScreen
+                    config.customizeMessage = customizedMessage
+                    config.ignoreRequestHeader = ignoreHeaderLength.toIntOrNull() ?: 5
+                    config.fixedResponseHeader = fixedResponseHeader
+
                 },
                 modifier = Modifier.align(Alignment.Start)
             ) {
@@ -550,10 +556,10 @@ fun AdvancedOptionsCard(
 fun CustomizedMessageCard(
     customizedMessage: Boolean,
     ignoreHeaderLength: String,
-    fixedResponseHeader: String,
+    fixedResponseHeader: ByteArray,
     onCustomizedMessageChange: (Boolean) -> Unit,
     onIgnoreHeaderLengthChange: (String) -> Unit,
-    onFixedResponseHeaderChange: (String) -> Unit
+    onFixedResponseHeaderChange: (ByteArray) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -610,10 +616,13 @@ fun CustomizedMessageCard(
                     text = "Fixed response Header",
                     modifier = Modifier.width(150.dp)
                 )
-
+                var fixedResponseHeader by remember { mutableStateOf(IsoUtil.bcdToString(fixedResponseHeader)) }
                 TextField(
                     value = fixedResponseHeader,
-                    onValueChange = onFixedResponseHeaderChange,
+                    onValueChange = {
+                        fixedResponseHeader = it
+                        onFixedResponseHeaderChange(IsoUtil.stringToBCD(it,ignoreHeaderLength.toInt()))
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
