@@ -57,7 +57,7 @@ fun Iso8583TemplateScreen(config: GatewayConfig) {
     var bitNumberToAdd by remember { mutableStateOf("88") }
 
     // Advanced options state
-    var useAscii by remember { mutableStateOf(config.bitmapInAscii) }
+    var useAscii by remember { mutableStateOf(config.lengthInAscii) }
     var dontUseTPDU by remember { mutableStateOf(config.doNotUseHeader) }
     var respondIfUnrecognized by remember { mutableStateOf(config.respondIfUnrecognized) }
     var metfoneMessage by remember { mutableStateOf(config.metfoneMesage) }
@@ -177,7 +177,7 @@ fun Iso8583TemplateScreen(config: GatewayConfig) {
             Button(
                 onClick = {
                     config.doNotUseHeader = dontUseTPDU
-                    config.bitmapInAscii = useAscii
+                    config.lengthInAscii = useAscii
                     config.respondIfUnrecognized = respondIfUnrecognized
                     config.metfoneMesage = metfoneMessage
                     config.notUpdateScreen = notUpdateScreen

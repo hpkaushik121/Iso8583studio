@@ -1,6 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens
 
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Path
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.navigation.Screen
@@ -74,7 +75,11 @@ fun GatewayConfiguration(navigationController: NavigationController,
         )
         is Screen.HostSimulator -> HostSimulatorScreen(
             config = appState.currentConfig,
-            onBack = { navigationController.goBack() }
+            onBack = { navigationController.goBack() },
+            onError = appState.resultDialogInterface!!,
+            onSaveClick = {
+                appState.save()
+            }
         )
     }
 }

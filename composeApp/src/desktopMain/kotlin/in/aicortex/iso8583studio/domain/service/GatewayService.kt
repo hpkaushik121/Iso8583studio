@@ -1,14 +1,12 @@
 package `in`.aicortex.iso8583studio.domain.service
 
+import androidx.compose.runtime.Composable
 import `in`.aicortex.iso8583studio.data.GatewayClient
+import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.KeyManagement
 import `in`.aicortex.iso8583studio.data.PermanentConnection
-import `in`.aicortex.iso8583studio.data.model.ConnectionStatus
+import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
-import `in`.aicortex.iso8583studio.data.model.GatewayType
-import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDateTime
 
 /**
@@ -108,17 +106,19 @@ interface GatewayService {
     /**
      * Add callback for error handling
      */
-    fun onError(callback: suspend (Exception) -> Unit)
+    fun showError(item:@Composable () -> Unit)
+
+    fun setShowErrorListener(resultDialogInterface: ResultDialogInterface)
 
     /**
      * Add callback for data sent event
      */
-    fun onSentFormattedData(callback: suspend (GatewayClient) -> Unit)
+    fun onSentFormattedData(callback: suspend (Iso8583Data?, ByteArray?) -> Unit)
 
     /**
      * Add callback for data received event
      */
-    fun onReceivedFormattedData(callback: suspend (GatewayClient) -> Unit)
+    fun onReceivedFormattedData(callback: suspend (Iso8583Data?) -> Unit)
 
     /**
      * Add callback for before receive event

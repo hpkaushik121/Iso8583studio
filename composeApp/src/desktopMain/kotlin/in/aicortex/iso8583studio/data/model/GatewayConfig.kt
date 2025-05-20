@@ -5,18 +5,11 @@ import `in`.aicortex.iso8583studio.data.BitTemplate
 import `in`.aicortex.iso8583studio.ui.screens.config.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import nl.adaptivity.xmlutil.serialization.XML
-import org.jetbrains.compose.resources.Resource
+import nl.adaptivity.xmlutil.serialization.XmlKeyName
 import java.io.File
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
-import java.nio.charset.Charset
-import java.security.MessageDigest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import javax.crypto.Cipher
-import kotlin.math.log
 
 @Serializable
 data class Something(
@@ -38,22 +31,22 @@ data class GatewayConfig(
     var transmissionType: TransmissionType = TransmissionType.SYNCHRONOUS,
     var maxLogSizeInMB: Int = 10,
     var transactionTimeOut: Int = 30,
-    var logOptions: Int = 0,
+    var logOptions: Int = LoggingOption.PARSED_DATA.value,
     var serverAddress: String = "",
     var textEncoding: MessageEncoding = MessageEncoding.ASCII,
     var messageLengthType: MessageLengthType = MessageLengthType.BCD,
-    var privateKey: ByteArray? = null,
-    var iv: ByteArray? = null,
+    var privateKey: ByteArray? = byteArrayOf(),
+    var iv: ByteArray? = byteArrayOf(),
     var checkSignature: SignatureChecking = SignatureChecking.NONE,
     var description: String = "",
     var createDate: Long = System.currentTimeMillis(),
     var createBy: String = "",
     var clientID: String = "",
     var locationID: String = "",
-    var password: ByteArray? = null,
+    var password: ByteArray? = byteArrayOf(),
     var acceptClientListOnly: Boolean = false,
     var doNotUseHeader: Boolean = false,
-    var bitmapInAscii: Boolean = false,
+    var lengthInAscii: Boolean = false,
     var respondIfUnrecognized: Boolean = false,
     var metfoneMesage: Boolean = false,
     var notUpdateScreen: Boolean = false,
@@ -63,6 +56,7 @@ data class GatewayConfig(
     var maxConcurrentConnection: Int = 100,
     var cipherMode: CipherMode = CipherMode.CBC,
     var enable: Boolean = false,
+    var enableEncDecTransmission: Boolean = false,
     var autoRestartAfter: Int = 0,
     var nccRule: Boolean = true,
     var terminateWhenError: Boolean = false,
@@ -71,14 +65,14 @@ data class GatewayConfig(
     var waitToRestart: Int = 300,
     var hashAlgorithm: HashAlgorithm = HashAlgorithm.SHA1,
     var allowLoadKEK: Boolean = false,
-    var gwBitTemplate: Array<BitSpecific>? = null,
+    private var gwBitTemplate: Array<BitSpecific>? = null,
     var allowWrongParsedData: Boolean = false,
     var keyExpireAfter: Int = 0,
     var addNewClientWhenLoadKEK: Boolean = false,
     var advancedOptions: AdvancedOptions? = null,
     private var _logFileName: String = "logs.txt",
-    var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
-    var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,
+    @XmlKeyName(value = "destinationConnectionType") var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
+    @XmlKeyName(value = "serverConnectionType") var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,
     var simulatedTransactions: List<Transaction> = emptyList()
 ) {
 
@@ -204,26 +198,7 @@ data class GatewayConfig(
             return XML.decodeFromString<GatewayConfig>(xmlString)
         }
     }
-    fun export(): String {
-        try {
-            var name = "Iso8583Studio"
-            var file = File("${name}.cfg")
-            var number: Int? = 0
-            while(file.exists()){
-                name.plus(1)
-                file = File("${name}($number).cfg")
-            }
 
-            val xmlConfig = XML.encodeToString(this)
-
-            file.writeText(xmlConfig)
-            return file.absolutePath
-        } catch (e: Exception) {
-            // Ignore write errors
-           return e.message ?: "Unable to export"
-        }
-
-    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -240,7 +215,7 @@ data class GatewayConfig(
         if (createDate != other.createDate) return false
         if (acceptClientListOnly != other.acceptClientListOnly) return false
         if (doNotUseHeader != other.doNotUseHeader) return false
-        if (bitmapInAscii != other.bitmapInAscii) return false
+        if (lengthInAscii != other.lengthInAscii) return false
         if (respondIfUnrecognized != other.respondIfUnrecognized) return false
         if (maxConcurrentConnection != other.maxConcurrentConnection) return false
         if (enable != other.enable) return false
@@ -302,7 +277,7 @@ data class GatewayConfig(
         result = 31 * result + createDate.hashCode()
         result = 31 * result + acceptClientListOnly.hashCode()
         result = 31 * result + doNotUseHeader.hashCode()
-        result = 31 * result + bitmapInAscii.hashCode()
+        result = 31 * result + lengthInAscii.hashCode()
         result = 31 * result + respondIfUnrecognized.hashCode()
         result = 31 * result + maxConcurrentConnection
         result = 31 * result + enable.hashCode()

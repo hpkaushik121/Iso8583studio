@@ -52,7 +52,7 @@ data class Transaction(
     val mti: String,
     val proCode: String,
     val description: String,
-    @Transient val fields: Iso8583Data? = null
+    val fields: MutableList<BitAttribute>? = null
 )
 
 @Composable
@@ -191,13 +191,13 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
 
                     // Fields list
                     if (selectedTransaction != null) {
-                        if (!selectedTransaction!!.fields!!.bitAttributes.none { it.isSet == true }) {
+                        if (!selectedTransaction!!.fields!!.none { it.isSet }) {
                             LazyColumn(
                                 state = rememberLazyListState(),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                items(selectedTransaction!!.fields!!.bitAttributes.size) { index ->
-                                    val field = selectedTransaction?.fields?.bitAttributes[index]
+                                items(selectedTransaction!!.fields!!.size) { index ->
+                                    val field = selectedTransaction?.fields?.get(index)
                                     val fieldKey = "$${index + 1}"
 
                                     // State for edited fields
@@ -208,15 +208,15 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
                                             fieldNumber = index + 1,
                                             data = fieldEditStates[fieldKey],
                                             onDataChange = { newValue ->
-                                                selectedTransaction?.fields?.bitAttributes[index] =
-                                                    newValue!!
+                                                selectedTransaction?.fields?.set(index,
+                                                    newValue!!)
                                                 fieldEditStates[fieldKey] = newValue
                                             },
                                             onDescriptionChange = { newValue ->
                                                 descriptionEditStates[fieldKey] = newValue
                                             },
                                             onRemove = {
-                                                selectedTransaction?.fields?.bitAttributes[index]?.isSet =
+                                                selectedTransaction?.fields?.get(index)?.isSet =
                                                     false
                                                 fieldAvailableStates[fieldKey] = false
                                             }
@@ -262,8 +262,7 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
                             AddBitSpecificDialog(
                                 gw = gw,
                                 onSave = { bit ->
-                                    selectedTransaction!!.fields!!
-                                        .packBit(bit.bitNumber.toInt().absoluteValue,"")
+                                    selectedTransaction!!.fields!!?.get(bit.bitNumber.toInt().absoluteValue)?.updateBit(bit.bitNumber.toInt().absoluteValue,"")
                                     fieldAvailableStates["${bit.bitNumber.toInt().absoluteValue + 1}"]  = true
                                     showAddBitSpecificDialog = false
                                 },
@@ -429,7 +428,7 @@ private fun AddTransactionDialog(
                             mti = mtiValue,
                             proCode = proCode,
                             description = "",
-                            fields = Iso8583Data(config = gw.configuration)
+                            fields = Iso8583Data(config = gw.configuration).bitAttributes.toMutableList()
                         )
                     )
                 }

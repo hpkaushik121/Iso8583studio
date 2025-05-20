@@ -414,11 +414,11 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
             ) {
                 Text("Message Length Type", modifier = Modifier.width(150.dp))
                 var expanded by remember { mutableStateOf(false) }
-                val lengthTypes = listOf("BCD", "Hex HL", "Hex LH")
+                val lengthTypes = MessageLengthType.values()
 
                 Box {
                     Button(onClick = { expanded = true }) {
-                        Text(lengthTypes[config.messageLengthType.ordinal])
+                        Text(config.messageLengthType.name)
                     }
                     DropdownMenu(
                         expanded = expanded,
@@ -426,10 +426,10 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                     ) {
                         lengthTypes.forEachIndexed { index, type ->
                             DropdownMenuItem(onClick = {
-                                onConfigChange(config.copy(messageLengthType = MessageLengthType.values()[index]))
+                                onConfigChange(config.copy(messageLengthType = type))
                                 expanded = false
                             }) {
-                                Text(type)
+                                Text(MessageLengthType.values()[index].name)
                             }
                         }
                     }

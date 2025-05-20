@@ -5,7 +5,9 @@ import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
+import `in`.aicortex.iso8583studio.data.model.ParsingFeature
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import kotlinx.serialization.Serializable
 import java.io.InputStream
 import java.net.Socket
 import java.nio.charset.Charset
@@ -15,7 +17,23 @@ import java.time.temporal.ChronoUnit
 /**
  * Kotlin implementation of Iso8583Data for handling ISO 8583 financial messages
  */
-class Iso8583Data(config: GatewayConfig) {
+@Serializable
+data class Iso8583Data(
+    val config: GatewayConfig,
+    private var m_MessageType: String = "0200",
+    protected var m_BitAttributes: Array<BitAttribute> = Array(MAX_BITS) { BitAttribute() },
+    private var m_TPDU: TPDU = TPDU(),
+    private var buffer:ByteArray = ByteArray(MAX_PACKAGE_SIZE),
+    private var m_PackageSize: Int = 0,
+    private var m_LastBitError: Int = 0,
+    var messageLength: Int = 0,
+    private var m_BitmapInAscii: Boolean = false,
+    var hasHeader: Boolean = true,
+    private var m_LengthInAsc: Boolean = false,
+    var emvShowOptions: EMVShowOption = EMVShowOption.None
+
+
+) {
     companion object {
         const val MAX_PACKAGE_SIZE = 10024
         const val MAX_BITS = 128
@@ -23,25 +41,17 @@ class Iso8583Data(config: GatewayConfig) {
         val aboutUs: String = "Sourabh Kaushik, sk@aicortex.in"
     }
 
-    private var m_MessageType: String = "0200"
-    protected var m_BitAttributes: Array<BitAttribute> = Array(MAX_BITS) { BitAttribute() }
-    private var m_TPDU = TPDU()
-    private var buffer = ByteArray(MAX_PACKAGE_SIZE)
-    private var m_PackageSize: Int = 0
-    private var m_LastBitError: Int = 0
-    var messageLength: Int = 0
-    private var m_BitmapInAscii: Boolean = false
-    var hasHeader: Boolean = true
-    private var m_LengthInAsc: Boolean = false
-    var emvShowOptions: EMVShowOption = EMVShowOption.None
-
     var lengthInAsc: Boolean
         get() = m_LengthInAsc
-        set(value) { m_LengthInAsc = value }
+        set(value) {
+            m_LengthInAsc = value
+        }
 
     var bitmapInAscii: Boolean
         get() = m_BitmapInAscii
-        set(value) { m_BitmapInAscii = value }
+        set(value) {
+            m_BitmapInAscii = value
+        }
 
 
     /**
@@ -71,27 +81,30 @@ class Iso8583Data(config: GatewayConfig) {
     /**
      * Default constructor
      */
-    init{
+    init {
         m_TPDU = TPDU()
         m_BitAttributes = BitTemplate.getGeneralTemplate()
         hasHeader = !config.doNotUseHeader
-        bitmapInAscii = config.bitmapInAscii
+        bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
+        lengthInAsc = config.lengthInAscii
     }
 
     /**
      * Constructor with bit template
      */
-    constructor(template: Array<BitSpecific>,config: GatewayConfig): this(config) {
+    constructor(template: Array<BitSpecific>, config: GatewayConfig) : this(config) {
         m_TPDU = TPDU()
         m_BitAttributes = BitTemplate.getBitAttributeArray(template)
         hasHeader = !config.doNotUseHeader
-        bitmapInAscii = config.bitmapInAscii
-
+        bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
+        lengthInAsc = config.lengthInAscii
     }
 
     var bitAttributes: Array<BitAttribute>
         get() = m_BitAttributes
-        set(value) { m_BitAttributes = value }
+        set(value) {
+            m_BitAttributes = value
+        }
 
     val tpduHeader: TPDU
         get() = m_TPDU
@@ -107,6 +120,7 @@ class Iso8583Data(config: GatewayConfig) {
                 m_BitAttributes[index].length = value.length
                 m_BitAttributes[index].data = IsoUtil.stringToAsc(value)
             }
+
             BitType.BCD -> {
                 m_BitAttributes[index].length = if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
                     value.length
@@ -115,10 +129,12 @@ class Iso8583Data(config: GatewayConfig) {
                 }
                 m_BitAttributes[index].data = IsoUtil.stringToBCD(value, (m_BitAttributes[index].length + 1) / 2)
             }
+
             BitType.BINARY -> {
                 m_BitAttributes[index].length = (value.length + 1) / 2
                 m_BitAttributes[index].data = IsoUtil.stringToBCD(value, m_BitAttributes[index].length)
             }
+
             else -> {}
         }
 
@@ -128,11 +144,13 @@ class Iso8583Data(config: GatewayConfig) {
                     throw Exception("Field ${index + 1}'s length > 99 !!")
                 }
             }
+
             BitLength.LLLVAR -> {
                 if (m_BitAttributes[index].length > 999) {
                     throw Exception("Field ${index + 1}'s length > 999 !!")
                 }
             }
+
             else -> {}
         }
 
@@ -167,7 +185,6 @@ class Iso8583Data(config: GatewayConfig) {
     }
 
 
-
     /**
      * Set a bit to active or inactive
      */
@@ -186,12 +203,14 @@ class Iso8583Data(config: GatewayConfig) {
 
     var messageType: String
         get() = m_MessageType
-        set(value) { m_MessageType = value }
+        set(value) {
+            m_MessageType = value
+        }
 
     /**
      * Pack message with no length type
      */
-    fun pack(): ByteArray = pack(MessageLengthType.NONE)
+    fun pack(): ByteArray = pack(config.messageLengthType)
 
     /**
      * Pack message with specified length type
@@ -246,6 +265,7 @@ class Iso8583Data(config: GatewayConfig) {
                     BitLength.FIXED -> {
                         m_BitAttributes[i].data?.copyInto(buffer, m_PackageSize)
                     }
+
                     BitLength.LLVAR -> {
                         if (m_LengthInAsc) {
                             // ASCII representation of length
@@ -260,6 +280,7 @@ class Iso8583Data(config: GatewayConfig) {
                             m_BitAttributes[i].data?.copyInto(buffer, m_PackageSize)
                         }
                     }
+
                     BitLength.LLLVAR -> {
                         if (m_LengthInAsc) {
                             // ASCII representation of length
@@ -292,12 +313,14 @@ class Iso8583Data(config: GatewayConfig) {
                 // Return the buffer directly
                 buffer.copyOfRange(0, m_PackageSize)
             }
+
             MessageLengthType.STRING_4 -> {
                 // Insert 4-character string length
                 val lenStr = (m_PackageSize - 4).toString().padStart(4, '0')
                 lenStr.toByteArray(Charset.defaultCharset()).copyInto(buffer, 0)
                 buffer.copyOfRange(0, m_PackageSize)
             }
+
             else -> {
                 // Insert binary length
                 IsoUtil.intToMessageLength(m_PackageSize - 2, lengthType).copyInto(buffer, 0)
@@ -326,7 +349,8 @@ class Iso8583Data(config: GatewayConfig) {
                     this[1]?.data?.let { secondaryBitmap ->
                         val bitPos = (i - 64) / 8
                         val bitIndex = (i - 64) % 8
-                        secondaryBitmap[bitPos] = (secondaryBitmap[bitPos].toInt() or bitValues[bitIndex].toInt()).toByte()
+                        secondaryBitmap[bitPos] =
+                            (secondaryBitmap[bitPos].toInt() or bitValues[bitIndex].toInt()).toByte()
                     }
                 } else {
                     // Set bit in primary bitmap
@@ -442,10 +466,10 @@ class Iso8583Data(config: GatewayConfig) {
             // Binary bitmap format
             if ((input[position].toInt() and 0x80) > 0) {
                 // Secondary bitmap exists
-                analyzeBitmap(input.copyOfRange(position, position + 16))
+                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 16))
             } else {
                 // Only primary bitmap
-                analyzeBitmap(input.copyOfRange(position, position + 8))
+                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 8))
             }
             position += 8
         }
@@ -462,6 +486,7 @@ class Iso8583Data(config: GatewayConfig) {
                     BitLength.FIXED -> {
                         m_BitAttributes[i].length = m_BitAttributes[i].maxLength
                     }
+
                     BitLength.LLVAR -> {
                         if (m_LengthInAsc) {
                             // Length in ASCII format (2 characters)
@@ -476,6 +501,7 @@ class Iso8583Data(config: GatewayConfig) {
                             position += 1
                         }
                     }
+
                     BitLength.LLLVAR -> {
                         if (m_LengthInAsc) {
                             // Length in ASCII format (3 characters)
@@ -500,6 +526,7 @@ class Iso8583Data(config: GatewayConfig) {
                         buffer.copyInto(m_BitAttributes[i].data!!, 0, position, position + m_BitAttributes[i].length)
                         position += m_BitAttributes[i].length
                     }
+
                     BitType.BCD -> {
                         // BCD numeric data
                         val dataLength = (m_BitAttributes[i].length + 1) / 2
@@ -507,12 +534,14 @@ class Iso8583Data(config: GatewayConfig) {
                         buffer.copyInto(m_BitAttributes[i].data!!, 0, position, position + dataLength)
                         position += dataLength
                     }
+
                     BitType.BINARY -> {
                         // Binary data
                         m_BitAttributes[i].data = ByteArray(m_BitAttributes[i].length)
                         buffer.copyInto(m_BitAttributes[i].data!!, 0, position, position + m_BitAttributes[i].length)
                         position += m_BitAttributes[i].length
                     }
+
                     else -> {}
                 }
             }
@@ -560,9 +589,11 @@ class Iso8583Data(config: GatewayConfig) {
                 // Handle EMV fields if needed
                 if ((i == 54 || i == 55) && emvShowOptions != EMVShowOption.None) {
                     m_BitAttributes[i].data?.let {
-                        sb.append(EMVAnalyzer.getFullDescription(
-                            it,emvShowOptions
-                        ))
+                        sb.append(
+                            EMVAnalyzer.getFullDescription(
+                                it, emvShowOptions
+                            )
+                        )
                     }
                 }
             }
@@ -570,11 +601,12 @@ class Iso8583Data(config: GatewayConfig) {
 
         return sb.toString()
     }
-    fun getValue(index: Int) : String? {
+
+    fun getValue(index: Int): String? {
         val bitAttribute = bitAttributes[index]
         return try {
             bitAttribute.getValue()
-        }catch (e: Exception){
+        } catch (e: Exception) {
             ""
         }
     }
@@ -584,14 +616,68 @@ class Iso8583Data(config: GatewayConfig) {
      */
     val lastBitError: Int
         get() = m_LastBitError
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Iso8583Data
+
+        if (m_PackageSize != other.m_PackageSize) return false
+        if (m_LastBitError != other.m_LastBitError) return false
+        if (messageLength != other.messageLength) return false
+        if (m_BitmapInAscii != other.m_BitmapInAscii) return false
+        if (hasHeader != other.hasHeader) return false
+        if (m_LengthInAsc != other.m_LengthInAsc) return false
+        if (config != other.config) return false
+        if (m_MessageType != other.m_MessageType) return false
+        if (!m_BitAttributes.contentEquals(other.m_BitAttributes)) return false
+        if (m_TPDU != other.m_TPDU) return false
+        if (!buffer.contentEquals(other.buffer)) return false
+        if (emvShowOptions != other.emvShowOptions) return false
+        if (lengthInAsc != other.lengthInAsc) return false
+        if (bitmapInAscii != other.bitmapInAscii) return false
+        if (lastBitError != other.lastBitError) return false
+        if (!bitAttributes.contentEquals(other.bitAttributes)) return false
+        if (tpduHeader != other.tpduHeader) return false
+        if (messageType != other.messageType) return false
+        if (!rawMessage.contentEquals(other.rawMessage)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = m_PackageSize
+        result = 31 * result + m_LastBitError
+        result = 31 * result + messageLength
+        result = 31 * result + m_BitmapInAscii.hashCode()
+        result = 31 * result + hasHeader.hashCode()
+        result = 31 * result + m_LengthInAsc.hashCode()
+        result = 31 * result + config.hashCode()
+        result = 31 * result + m_MessageType.hashCode()
+        result = 31 * result + m_BitAttributes.contentHashCode()
+        result = 31 * result + m_TPDU.hashCode()
+        result = 31 * result + buffer.contentHashCode()
+        result = 31 * result + emvShowOptions.hashCode()
+        result = 31 * result + lengthInAsc.hashCode()
+        result = 31 * result + bitmapInAscii.hashCode()
+        result = 31 * result + lastBitError
+        result = 31 * result + bitAttributes.contentHashCode()
+        result = 31 * result + tpduHeader.hashCode()
+        result = 31 * result + messageType.hashCode()
+        result = 31 * result + rawMessage.contentHashCode()
+        return result
+    }
 }
-fun BitAttribute.updateBit(index: Int,value: String){
+
+fun BitAttribute.updateBit(index: Int, value: String) {
 
     when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
             length = value.length
             data = IsoUtil.stringToAsc(value)
         }
+
         BitType.BCD -> {
             length = if (lengthAttribute != BitLength.FIXED) {
                 value.length
@@ -600,10 +686,12 @@ fun BitAttribute.updateBit(index: Int,value: String){
             }
             data = IsoUtil.stringToBCD(value, (length + 1) / 2)
         }
+
         BitType.BINARY -> {
             length = (value.length + 1) / 2
             data = IsoUtil.stringToBCD(value, length)
         }
+
         else -> {}
     }
 
@@ -613,11 +701,13 @@ fun BitAttribute.updateBit(index: Int,value: String){
                 throw Exception("Field ${index + 1}'s length > 99 !!")
             }
         }
+
         BitLength.LLLVAR -> {
             if (length > 999) {
                 throw Exception("Field ${index + 1}'s length > 999 !!")
             }
         }
+
         else -> {}
     }
 

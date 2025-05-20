@@ -1,12 +1,14 @@
 package `in`.aicortex.iso8583studio.data
 
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import kotlinx.serialization.Serializable
 
 /**
  * Kotlin implementation of TPDU (Transport Protocol Data Unit) for ISO 8583 messages
  */
-class TPDU {
-    var id: TPDUType = TPDUType.Transactions
+@Serializable
+data class TPDU(
+    var id: TPDUType = TPDUType.Transactions,
 
     var rawTPDU: ByteArray = byteArrayOf(
         0x60.toByte(), // 96 decimal
@@ -15,6 +17,8 @@ class TPDU {
         0x00.toByte(),
         0x00.toByte()
     )
+) {
+
 
     /**
      * Destination Address getter/setter (bytes 1-2 of TPDU)
@@ -70,5 +74,27 @@ class TPDU {
          * About Us information
          */
         val aboutUs: String = "Sourabh Kaushik, sk@aicortex.in"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as TPDU
+
+        if (id != other.id) return false
+        if (!rawTPDU.contentEquals(other.rawTPDU)) return false
+        if (destAddr != other.destAddr) return false
+        if (origAddr != other.origAddr) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + rawTPDU.contentHashCode()
+        result = 31 * result + destAddr
+        result = 31 * result + origAddr
+        return result
     }
 }

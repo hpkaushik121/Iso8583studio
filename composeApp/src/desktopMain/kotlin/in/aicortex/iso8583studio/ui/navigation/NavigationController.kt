@@ -111,7 +111,7 @@ class NavigationController {
 
     fun saveAllConfigs() {
         // In a real app, this would save to disk/database
-        println("Saving all configurations: ${_state.value.configList.value.size} configs")
+        _state.value.save()
     }
 
     // Key management methods

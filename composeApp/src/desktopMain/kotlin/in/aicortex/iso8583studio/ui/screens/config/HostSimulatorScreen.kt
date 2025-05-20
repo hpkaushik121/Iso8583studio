@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,23 +21,19 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ExposedDropdownMenuBox
 import androidx.compose.material.ExposedDropdownMenuDefaults
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
-import androidx.compose.material.TopAppBar
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,13 +43,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.data.Iso8583Data
+import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.rememberIsoCoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.util.Random
-
 
 
 /**
@@ -68,12 +62,12 @@ fun HostSimulator(
     onSaveClick: () -> Unit = {}
 ) {
     var isStarted by remember { mutableStateOf(false) }
-    var transactionCount by remember { mutableStateOf(0) }
-    var bytesOutgoing by remember { mutableStateOf(0) }
-    var bytesIncoming by remember { mutableStateOf(0) }
-    var connectionCount by remember { mutableStateOf(0) }
+    var transactionCount by remember { mutableStateOf("0") }
+    var bytesOutgoing by remember { mutableStateOf(gw.bytesOutgoing) }
+    var bytesIncoming by remember { mutableStateOf(gw.bytesIncoming) }
+    var connectionCount by remember { mutableStateOf(gw.connectionCount) }
     var isHoldMessage by remember { mutableStateOf(false) }
-    var holdMessageTime by remember { mutableStateOf("0") }
+    var holdMessageTime by remember { mutableStateOf("60") }
     var useAscii by remember { mutableStateOf(false) }
     var dontUseTPDU by remember { mutableStateOf(false) }
     var respondIfDontRecognize by remember { mutableStateOf(false) }
@@ -91,15 +85,33 @@ fun HostSimulator(
     var logText by remember { mutableStateOf("") }
 
     var waitingRemain by remember { mutableStateOf("0") }
-    var sendHoldMessage by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
+    var sendHoldMessage by remember { mutableStateOf(true) }
+    val coroutineScope = rememberIsoCoroutineScope(gw)
 
     // Simulating the timer_tick effect
-    gw.onReceiveFromSource{ client,request ->
+    gw.onReceiveFromSource { client, request ->
         rawRequest = IsoUtil.bytesToHexString(request)
 
         return@onReceiveFromSource request
     }
+
+    gw.onReceivedFormattedData {
+        request = it?.logFormat() ?: ""
+    }
+
+    gw.onSentFormattedData { iso,byte->
+        response = iso?.logFormat() ?: ""
+        rawResponse = IsoUtil.bytesToHexString(byte ?: byteArrayOf())
+    }
+
+
+    gw.beforeReceive {
+        if (isHoldMessage) {
+            waitingRemain = "0"
+            sendHoldMessage = false
+        }
+    }
+
     gw.beforeWriteLog {
         logText += it + "\n"
     }
@@ -113,9 +125,11 @@ fun HostSimulator(
                     delay(1000)
                     if (sendHoldMessage) break
                 }
+                waitingRemain = "0"
                 if (!sendHoldMessage) {
                     // Would send the message here in real implementation
                     sendHoldMessage = true
+                    gw.sendHoldMessage?.invoke()
                 }
             }
         }
@@ -136,7 +150,14 @@ fun HostSimulator(
                 .padding(16.dp)
         ) {
             TabRow(selectedTabIndex = selectedTabIndex) {
-                listOf("Iso8583 TXN", "Log", "Settings", "Iso8583 Template", "Unit Test", "Unsolicited Message").forEachIndexed { index, title ->
+                listOf(
+                    "Iso8583 TXN",
+                    "Log",
+                    "Settings",
+                    "Iso8583 Template",
+                    "Unit Test",
+                    "Unsolicited Message"
+                ).forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTabIndex == index,
                         onClick = { selectedTabIndex = index },
@@ -168,11 +189,11 @@ fun HostSimulator(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Button(
                                     onClick = {
-                                        coroutineScope.launch {
-                                            if(!isStarted){
+                                        coroutineScope.launchSafely {
+                                            if (!isStarted) {
                                                 gw.start()
                                                 isStarted = true
-                                            }else{
+                                            } else {
                                                 gw.stop()
                                                 isStarted = false
                                             }
@@ -203,11 +224,17 @@ fun HostSimulator(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Checkbox(
                                     checked = isHoldMessage,
-                                    onCheckedChange = { isHoldMessage = it }
+                                    onCheckedChange = {
+                                        isHoldMessage = it
+                                    gw.holdMessage = it
+                                    }
                                 )
                                 Text("Hold Message")
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(waitingRemain)
+                                if(waitingRemain != "0") {
+                                    Text(waitingRemain)
+                                }
+
                                 Spacer(modifier = Modifier.width(8.dp))
                                 OutlinedTextField(
                                     value = holdMessageTime,
@@ -217,7 +244,13 @@ fun HostSimulator(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Button(
-                                    onClick = { sendHoldMessage = true }
+                                    onClick = {
+                                        sendHoldMessage = true
+                                        waitingRemain = "0"
+                                        coroutineScope.launchSafely {
+                                            gw.sendHoldMessage?.invoke()
+                                        }
+                                    }
                                 ) {
                                     Text("Send")
                                 }
@@ -276,6 +309,7 @@ fun HostSimulator(
                         }
                     }
                 }
+
                 1 -> {
                     // Log Tab
                     Column(modifier = Modifier.fillMaxSize()) {
@@ -329,11 +363,13 @@ fun HostSimulator(
                         }
                     }
                 }
+
                 2 -> {
                     // Settings Tab (Known Transactions)
                     ISO8583SettingsScreen(gw = gw)
                     // This would contain the dataGridView for KnownTransaction and FieldsResponded
                 }
+
                 3 -> {
                     // Iso8583 Template Tab
                     Column(modifier = Modifier.fillMaxSize()) {
@@ -351,10 +387,12 @@ fun HostSimulator(
                         }
                     }
                 }
+
                 4 -> {
                     // Unit Test Tab
                     Text("Unit Test Tab - Test Configuration and Results would go here")
                 }
+
                 5 -> {
                     var rawMessageBytes by remember { mutableStateOf(byteArrayOf()) }
                     var rawMessageString by remember { mutableStateOf("") }
@@ -487,7 +525,7 @@ fun HostSimulator(
                                 }
                             }
 
-                            if(showCreateIsoDialog){
+                            if (showCreateIsoDialog) {
                                 Iso8583EditorDialog(
                                     gw = gw,
                                     onDismiss = {
@@ -524,7 +562,9 @@ private fun StatisticRow(label: String, value: String) {
 @Composable
 fun HostSimulatorScreen(
     config: GatewayConfig?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSaveClick: () -> Unit,
+    onError:  ResultDialogInterface?=null,
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -538,11 +578,13 @@ fun HostSimulatorScreen(
                 .padding(8.dp),
             contentAlignment = Alignment.Center
         ) {
+            val gw = GatewayServiceImpl(config!!)
+            if (onError != null) {
+                gw.setShowErrorListener(onError)
+            }
             HostSimulator(
-                gw = GatewayServiceImpl(config!!),
-                onSaveClick = {
-
-                }
+                gw = gw,
+                onSaveClick = onSaveClick
             )
         }
 

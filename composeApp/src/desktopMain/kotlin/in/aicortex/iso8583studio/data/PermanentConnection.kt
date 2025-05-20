@@ -1,6 +1,7 @@
 package `in`.aicortex.iso8583studio.data
 
 
+import `in`.aicortex.iso8583studio.IsoCoroutine
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
@@ -29,7 +30,7 @@ import kotlin.time.Duration.Companion.seconds
  * PermanentConnection class for maintaining a persistent connection to a host
  */
 class PermanentConnection(
-    private val gatewayHandler: GatewayService,
+    private val gatewayHandler: GatewayServiceImpl,
     private val hostIp: String,
     internal val port: Int,
     private val nii: Int
@@ -39,7 +40,7 @@ class PermanentConnection(
     private var currentNii = 0
     private var connectionNumber = 0
     private var isRunning = false
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private val coroutineScope = IsoCoroutine(gatewayHandler)
     private val connectionMutex = Mutex()
 
     private val listMessagesReceived = ConcurrentHashMap<Int, MessageForSourceNii>()
@@ -58,7 +59,7 @@ class PermanentConnection(
 
     fun start() {
         isRunning = true
-        coroutineScope.launch {
+        coroutineScope.launchSafely {
             processPermanentConnection()
         }
     }
@@ -82,7 +83,7 @@ class PermanentConnection(
                     isConnected = true
 
                     // Start receiving data from the socket
-                    coroutineScope.launch {
+                    coroutineScope.launchSafely {
                         receiveFromDestination()
                     }
                 } catch (e: Exception) {

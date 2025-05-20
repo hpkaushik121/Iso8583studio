@@ -1,8 +1,10 @@
 package `in`.aicortex.iso8583studio.domain.service
 
+import androidx.compose.runtime.Composable
 import `in`.aicortex.iso8583studio.EncrDecrHandler
 import `in`.aicortex.iso8583studio.data.DialHandler
 import `in`.aicortex.iso8583studio.data.GatewayClient
+import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.KeyManagement
 import `in`.aicortex.iso8583studio.data.PartialISO8583Encryption
 import `in`.aicortex.iso8583studio.data.PermanentConnection
@@ -11,56 +13,35 @@ import `in`.aicortex.iso8583studio.data.SSLTcpClient
 import `in`.aicortex.iso8583studio.data.model.ActionWhenDisconnect
 import `in`.aicortex.iso8583studio.data.model.CipherMode
 import `in`.aicortex.iso8583studio.data.model.CipherType
-import `in`.aicortex.iso8583studio.data.model.ConnectionStatus
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
-import `in`.aicortex.iso8583studio.data.model.GatewayStatistics
 import `in`.aicortex.iso8583studio.data.model.GatewayType
-import `in`.aicortex.iso8583studio.data.model.MessageEncoding
 import `in`.aicortex.iso8583studio.data.model.SignatureChecking
 import `in`.aicortex.iso8583studio.data.model.SpecialFeature
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.data.model.UnauthorizedAccessException
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.repository.GatewayConfigRepository
 import `in`.aicortex.iso8583studio.domain.utils.isIpMatched
-import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
-import io.netty.bootstrap.ServerBootstrap
-import io.netty.channel.Channel
-import io.netty.channel.EventLoopGroup
-import kotlinx.coroutines.CoroutineScope
+import `in`.aicortex.iso8583studio.IsoCoroutine
+import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable.isActive
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
-import java.net.SocketAddress
 import java.nio.charset.Charset
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -78,6 +59,7 @@ class GatewayServiceImpl : GatewayService {
     private var sslServerSocket: ServerSocket? = null
     private var serverJob: Job? = null
     private var monitorJob: Job? = null
+    var holdMessage: Boolean = false
 
     private val activeClients = mutableListOf<GatewayClient>()
     private val clientsMutex = Mutex()
@@ -110,6 +92,8 @@ class GatewayServiceImpl : GatewayService {
     private var startTime: LocalDateTime? = null
     private var stopTime: LocalDateTime? = null
 
+    private var resultDialogInterface: ResultDialogInterface? = null
+
     private var _endeService: KeyManagement? = null
     override val endeService: KeyManagement
         get() {
@@ -119,18 +103,19 @@ class GatewayServiceImpl : GatewayService {
             return _endeService!!
         }
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val coroutineScope = IsoCoroutine(this)
 
     // Callback lists
-    private val errorCallbacks = mutableListOf<suspend (Exception) -> Unit>()
-    private val sentFormattedDataCallbacks = mutableListOf<suspend (GatewayClient) -> Unit>()
-    private val receivedFormattedDataCallbacks = mutableListOf<suspend (GatewayClient) -> Unit>()
+    private val errorCallbacks : (() -> @Composable () -> Unit)? = null
+    private val sentFormattedDataCallbacks = mutableListOf<suspend (Iso8583Data?, ByteArray?) -> Unit>()
+    private val receivedFormattedDataCallbacks = mutableListOf<suspend (Iso8583Data?) -> Unit>()
     private val beforeReceiveCallbacks = mutableListOf<suspend (GatewayClient) -> Unit>()
     private val clientErrorCallbacks = mutableListOf<suspend (GatewayClient) -> Unit>()
     private val beforeWriteLogCallbacks = mutableListOf<suspend (String) -> Unit>()
     private val adminResponseCallbacks = mutableListOf<suspend (GatewayClient, ByteArray) -> ByteArray?>()
     private val receiveFromSourceCallbacks = mutableListOf<suspend (GatewayClient, ByteArray) -> ByteArray>()
     private val receiveFromDestCallbacks = mutableListOf<suspend (GatewayClient, ByteArray) -> ByteArray>()
+    var sendHoldMessage: (suspend () -> Unit)?=null
 
     constructor() {
         // Default constructor
@@ -201,7 +186,7 @@ class GatewayServiceImpl : GatewayService {
 
         // Start monitor thread if configured
         if (configuration.monitorAddress.isNotBlank()) {
-            monitorJob = coroutineScope.launch {
+            monitorJob = coroutineScope.launchSafely {
                 doSendToMonitor()
             }
         }
@@ -219,7 +204,7 @@ class GatewayServiceImpl : GatewayService {
 
         // Start server thread based on connection type
         started.store(true)
-        serverJob = coroutineScope.launch {
+        serverJob = coroutineScope.launchSafely {
             doListener()
         }
     }
@@ -365,7 +350,7 @@ class GatewayServiceImpl : GatewayService {
 
         client.locationID = configuration.locationID
         client.onError = {
-            CoroutineScope(Dispatchers.IO).launch {
+            coroutineScope.launchSafely {
                 clientError(it)
             }
         }
@@ -373,15 +358,15 @@ class GatewayServiceImpl : GatewayService {
         // Add callback event handlers
         clientErrorCallbacks.forEach { callback ->
             client.onError = {
-                CoroutineScope(Dispatchers.IO).launch {
+                coroutineScope.launchSafely {
                     callback(it)
                 }
             }
         }
 
         receivedFormattedDataCallbacks.forEach { callback ->
-            client.onReceivedFormattedData= {
-                CoroutineScope(Dispatchers.IO).launch {
+            client.onReceivedFormattedData = {
+                coroutineScope.launchSafely {
                     callback(it)
                 }
             }
@@ -389,16 +374,16 @@ class GatewayServiceImpl : GatewayService {
 
         beforeReceiveCallbacks.forEach { callback ->
             client.beforeReceive = {
-                CoroutineScope(Dispatchers.IO).launch {
+                coroutineScope.launchSafely {
                     callback(it)
                 }
             }
         }
 
         sentFormattedDataCallbacks.forEach { callback ->
-            client.onSentFormattedData= {
-                CoroutineScope(Dispatchers.IO).launch {
-                    callback(it)
+            client.onSentFormattedData= { i ,b ->
+                coroutineScope.launchSafely {
+                    callback(i,b)
                 }
             }
         }
@@ -722,9 +707,7 @@ class GatewayServiceImpl : GatewayService {
                     writeLog("GATEWAY ERROR $e")
 
                     // Call error callbacks
-                    errorCallbacks.forEach { callback ->
-                        callback(e)
-                    }
+                    errorCallbacks?.invoke()
 
                     delay(3000)
                 }
@@ -1079,15 +1062,19 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Event handlers
      */
-    override fun onError(callback: suspend (Exception) -> Unit) {
-        errorCallbacks.add(callback)
+    override fun showError(item:@Composable () -> Unit) {
+       resultDialogInterface?.onError(item)
     }
 
-    override fun onSentFormattedData(callback: suspend (GatewayClient) -> Unit) {
+    override fun setShowErrorListener(resultDialogInterface: ResultDialogInterface) {
+        this.resultDialogInterface = resultDialogInterface
+    }
+
+    override fun onSentFormattedData(callback: suspend (Iso8583Data?, ByteArray?) -> Unit) {
         sentFormattedDataCallbacks.add(callback)
     }
 
-    override fun onReceivedFormattedData(callback: suspend (GatewayClient) -> Unit) {
+    override fun onReceivedFormattedData(callback: suspend (Iso8583Data?) -> Unit) {
         receivedFormattedDataCallbacks.add(callback)
     }
 
