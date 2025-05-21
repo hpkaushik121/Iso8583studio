@@ -1,16 +1,14 @@
 package `in`.aicortex.iso8583studio.ui.screens
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Path
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.navigation.Screen
 import `in`.aicortex.iso8583studio.ui.screens.config.AdvancedOptionsTab
 import `in`.aicortex.iso8583studio.ui.screens.config.GatewayTypeTab
-import `in`.aicortex.iso8583studio.ui.screens.config.HostSimulatorScreen
-import `in`.aicortex.iso8583studio.ui.screens.config.KeysSettingTab
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.LogSettingsTab
-import `in`.aicortex.iso8583studio.ui.screens.config.MonitorScreen
+import `in`.aicortex.iso8583studio.ui.screens.monitor.MonitorScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.TabContainer
 import `in`.aicortex.iso8583studio.ui.screens.config.TransmissionSettingsTab
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -43,17 +41,10 @@ fun GatewayConfiguration(navigationController: NavigationController,
                     }
                 }
             })
-        is Screen.KeySettings -> selectTab(navigationController = navigationController,
-            appState = appState,
-            index = 2,
-            content = {
-                KeysSettingTab(keysList = emptyList()) { updatedKeys ->
-//                    navigationController.updateKeys(updatedKeys)
-                }
-            })
+
         is Screen.LogSettings -> selectTab(navigationController = navigationController,
             appState = appState,
-            index = 3,
+            index = 2,
             content = {
                 appState.currentConfig?.let { config ->
                     LogSettingsTab(config = config) { updatedConfig ->
@@ -63,7 +54,7 @@ fun GatewayConfiguration(navigationController: NavigationController,
             })
         is Screen.AdvancedOptions -> selectTab(navigationController = navigationController,
             appState = appState,
-            index = 4,
+            index = 3,
             content = {
                 appState.currentConfig?.let { config ->
                     AdvancedOptionsTab()
@@ -81,6 +72,14 @@ fun GatewayConfiguration(navigationController: NavigationController,
                 appState.save()
             }
         )
+        is Screen.KeySettings -> selectTab(navigationController = navigationController,
+            appState = appState,
+            index = 4,
+            content = {
+//                KeysSettingTab(keysList = emptyList()) { updatedKeys ->
+//                    navigationController.updateKeys(updatedKeys)
+//                }
+            })
     }
 }
 

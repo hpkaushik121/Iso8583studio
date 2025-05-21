@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio
+package `in`.aicortex.iso8583studio.data
 
 import `in`.aicortex.iso8583studio.data.model.CipherMode
 import `in`.aicortex.iso8583studio.data.model.CipherType

@@ -4,7 +4,6 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,9 +16,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.WindowState
+import `in`.aicortex.iso8583studio.data.ExceptionHandler
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
-import `in`.aicortex.iso8583studio.data.model.GatewayConfig
-import `in`.aicortex.iso8583studio.di.appModule
 import `in`.aicortex.iso8583studio.domain.FileImporter
 import `in`.aicortex.iso8583studio.domain.ImportResult
 import `in`.aicortex.iso8583studio.domain.utils.ExportResult
@@ -28,9 +26,6 @@ import `in`.aicortex.iso8583studio.ui.AppTheme
 import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import nl.adaptivity.xmlutil.serialization.XML
-import org.koin.core.context.startKoin
 
 enum class DialogType{
     SUCCESS,ERROR,NONE
@@ -79,7 +74,9 @@ class ISO8583Studio {
                                         )
                                         if(file is ExportResult.Success){
                                             appState.resultDialogInterface?.onSuccess { Text("Exported successfully!") }
-                                        }else{
+                                        }else if (file is ExportResult.Cancelled){
+                                            println("Import cancelled")
+                                        } else{
                                             appState.resultDialogInterface?.onError { Text((file as ExportResult.Error).message)}
                                         }
                                     }
@@ -98,7 +95,9 @@ class ISO8583Studio {
                                         )
                                         if(file is ImportResult.Success){
                                             appState.resultDialogInterface?.onSuccess { Text("Imported successfully!") }
-                                        }else{
+                                        }else if (file is ImportResult.Cancelled){
+                                            println("Import cancelled")
+                                        } else{
                                             appState.resultDialogInterface?.onError { Text((file as ImportResult.Error).message)}
                                         }
                                     }

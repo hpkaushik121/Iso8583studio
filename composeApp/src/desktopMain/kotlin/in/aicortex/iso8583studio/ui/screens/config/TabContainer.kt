@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
@@ -51,7 +52,7 @@ import java.awt.Cursor
 fun TabContainer(
     appState: GatewayConfigurationState,
     selectedTab: Int,
-    tabTitles: List<String> = listOf("Gateway Type", "Transmission Settings", "Keys Setting", "Log Settings", "Advanced Options"),
+    tabTitles: List<String> = listOf("Gateway Type", "Transmission Settings", /*"Keys Setting",*/ "Log Settings", "Advanced Options"),
     onTabSelected: (Int) -> Unit,
     onSelectConfig: (Int) -> Unit,
     onAddConfig: () -> Unit,
@@ -68,7 +69,7 @@ fun TabContainer(
     var isResizing by remember { mutableStateOf(false) }
 
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Surface(modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colors.surface)) {
         Row(modifier = Modifier.fillMaxSize()) {
             // Left panel - Available channels
             Box(
@@ -79,9 +80,7 @@ fun TabContainer(
                     .border(1.dp, Color.Gray)
             ) {
                 Column(modifier = Modifier.padding(8.dp)) {
-                    Text("Available channels", style = MaterialTheme.typography.h6)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Names", style = MaterialTheme.typography.body1)
+                    Text("Available channels")
 
                     // List of configs
                     Column(
@@ -96,7 +95,7 @@ fun TabContainer(
                                 onClick = { onSelectConfig(index) },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = if (index == appState.selectedConfigIndex) Color.LightGray else Color.White
+                                    backgroundColor = if (index == appState.selectedConfigIndex) MaterialTheme.colors.primary else Color.Black.copy(alpha = 0.8f)
                                 )
                             ) {
                                 Text(config.name)

@@ -7,6 +7,7 @@ import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.ascToString
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToString
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bytesToHexString
 import kotlinx.serialization.Serializable
+import org.springframework.context.annotation.Description
 import java.nio.charset.Charset
 
 @Serializable
@@ -18,6 +19,11 @@ class BitAttribute {
     private var m_BitType: BitType = BitType.NOT_SPECIFIC
     private var m_IsSet: Boolean = false
     private var m_Option: AddtionalOption = AddtionalOption.None
+    private var m_description: String = ""
+
+    var description: String
+        get() = m_description
+        set(value) {m_description = value}
 
     var isSet: Boolean
         get() = m_IsSet
@@ -49,6 +55,8 @@ class BitAttribute {
     var additionalOption: AddtionalOption
         get() = m_Option
         set(value) { m_Option = value }
+
+
 
     fun getString(): String {
         if (m_Data == null)

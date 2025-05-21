@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio.ui.screens.config
+package `in`.aicortex.iso8583studio.ui.screens.hostSimulator
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,12 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Card
-import androidx.compose.material.Checkbox
 import androidx.compose.material.Divider
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ExposedDropdownMenuBox
-import androidx.compose.material.ExposedDropdownMenuDefaults
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -38,24 +32,12 @@ import androidx.compose.ui.window.Dialog
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import androidx.compose.material.TextField
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.data.BitAttribute
-import `in`.aicortex.iso8583studio.data.BitSpecific
-import `in`.aicortex.iso8583studio.data.BitTemplate
-import `in`.aicortex.iso8583studio.data.TPDU
-import `in`.aicortex.iso8583studio.data.getValue
-import `in`.aicortex.iso8583studio.data.model.BitLength
-import `in`.aicortex.iso8583studio.data.model.BitType
-import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
-import org.jetbrains.exposed.v1.core.Index
 
 /**
  * Main composable for ISO8583 message editor dialog
@@ -106,6 +88,7 @@ fun Iso8583EditorDialog(
             ) {
                 // Header section with TPDU and MTI
                 Iso8583Header(
+                    gw = gw,
                     message = message.value,
                     onMessageTypeChanged = {
                         message.value.apply {
@@ -114,7 +97,7 @@ fun Iso8583EditorDialog(
                     },
                     onTpduChanged = {
                         message.value.apply {
-                            tpduHeader.rawTPDU = IsoUtil.stringToBcd(it, it.length)
+                            tpduHeader.rawTPDU = IsoUtil.stringToBcd(it, it.length/2)
                         }
                     },
                     onUseSmartlinkChanged = { useSmartlink ->
@@ -189,6 +172,7 @@ fun Iso8583EditorDialog(
  */
 @Composable
 private fun Iso8583Header(
+    gw: GatewayServiceImpl,
     message: Iso8583Data,
     onMessageTypeChanged: (String) -> Unit,
     onTpduChanged: (String) -> Unit,
@@ -200,27 +184,30 @@ private fun Iso8583Header(
             .padding(bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // TPDU Field
-        Text("TPDU")
-        Spacer(modifier = Modifier.width(8.dp))
-        var tpdu by remember { mutableStateOf("") }
-        LaunchedEffect(Unit) {
-            tpdu = IsoUtil.bcdToString(message.tpduHeader.rawTPDU)
-        }
-        TextField(
-            value = tpdu,
-            onValueChange = {
-                if (it.length <= 10){
-                    tpdu = it
-                    onTpduChanged(it)
-                }
-            },
-            modifier = Modifier.width(120.dp),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
+        if(!gw.configuration.doNotUseHeader){
+            // TPDU Field
+            Text("TPDU")
+            Spacer(modifier = Modifier.width(8.dp))
+            var tpdu by remember { mutableStateOf("") }
+            LaunchedEffect(Unit) {
+                tpdu = IsoUtil.bcdToString(message.tpduHeader.rawTPDU)
+            }
+            TextField(
+                value = tpdu,
+                onValueChange = {
+                    if (it.length <= 10){
+                        tpdu = it
+                        onTpduChanged(it)
+                    }
+                },
+                modifier = Modifier.width(120.dp),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
 
-        Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+        }
+
         var messageType by remember { mutableStateOf("") }
         LaunchedEffect(Unit) {
             messageType = message.messageType.toString()

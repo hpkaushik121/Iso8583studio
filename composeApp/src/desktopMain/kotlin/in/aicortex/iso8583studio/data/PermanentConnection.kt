@@ -1,30 +1,21 @@
 package `in`.aicortex.iso8583studio.data
 
 
-import `in`.aicortex.iso8583studio.IsoCoroutine
-import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
-import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.service.GatewayService
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable.isActive
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.net.Socket
-import java.net.SocketException
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * PermanentConnection class for maintaining a persistent connection to a host

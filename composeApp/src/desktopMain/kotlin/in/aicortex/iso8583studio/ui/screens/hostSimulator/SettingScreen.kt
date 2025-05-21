@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio.ui.screens.config
+package `in`.aicortex.iso8583studio.ui.screens.hostSimulator
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Button
 import androidx.compose.material.Card
+import androidx.compose.material.Divider
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -39,9 +40,7 @@ import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import java.util.Random
 import kotlin.math.absoluteValue
 
@@ -56,7 +55,8 @@ data class Transaction(
 )
 
 @Composable
-fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
+fun ISO8583SettingsScreen( gw: GatewayServiceImpl,
+                           onSaveClick: () -> Unit) {
     val transactions = remember {
         (gw.configuration.simulatedTransactions ).toMutableStateList()
     }
@@ -80,7 +80,6 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
             Card(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
                     .padding(end = 8.dp),
                 elevation = 4.dp
             ) {
@@ -120,6 +119,7 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
                                 isSelected = selectedTransaction?.id == transactions[i].id,
                                 onClick = { selectedTransaction = it }
                             )
+                            Divider()
                         }
                     }
 
@@ -149,6 +149,7 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
                                     add(it)
                                 }
                                 showAddTransactionDialog = false
+                                onSaveClick()
                             },
                             gw = gw
                         )
@@ -253,6 +254,7 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
                             Button(
                                 onClick = {
                                    gw.configuration.simulatedTransactions = transactions
+                                    onSaveClick()
                                 }
                             ) {
                                 Text("Save")
@@ -262,7 +264,7 @@ fun ISO8583SettingsScreen( gw: GatewayServiceImpl) {
                             AddBitSpecificDialog(
                                 gw = gw,
                                 onSave = { bit ->
-                                    selectedTransaction!!.fields!!?.get(bit.bitNumber.toInt().absoluteValue)?.updateBit(bit.bitNumber.toInt().absoluteValue,"")
+                                    selectedTransaction!!.fields!![bit.bitNumber.toInt().absoluteValue].updateBit(bit.bitNumber.toInt().absoluteValue,"")
                                     fieldAvailableStates["${bit.bitNumber.toInt().absoluteValue + 1}"]  = true
                                     showAddBitSpecificDialog = false
                                 },
@@ -457,7 +459,7 @@ private fun TransactionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = { onClick(transaction) })
-            .background(if (isSelected) MaterialTheme.colors.primary else Color.Transparent)
+            .background(if (isSelected) MaterialTheme.colors.primary.copy(alpha = 0.6f) else Color.Transparent)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -494,7 +496,7 @@ private fun FieldRow(
     ) {
         // Field number
         Text(
-            text = fieldNumber.toString(),
+            text = (fieldNumber-1).toString(),
             modifier = Modifier.weight(0.15f)
         )
 

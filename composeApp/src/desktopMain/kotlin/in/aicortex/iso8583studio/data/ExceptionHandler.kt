@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio
+package `in`.aicortex.iso8583studio.data
 
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable

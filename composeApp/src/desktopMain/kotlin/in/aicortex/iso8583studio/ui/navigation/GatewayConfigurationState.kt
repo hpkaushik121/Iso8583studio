@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
 import nl.adaptivity.xmlutil.serialization.XML
 import java.io.File
 import java.nio.file.Files
-
+private var isLoaded = false
 /**
  * Application state for the Gateway Configuration
  */
@@ -24,7 +24,7 @@ data class GatewayConfigurationState(
     var panelWidth: Dp = 300.dp,
     var connectionStatus: ConnectionStatus? = null
 ) {
-    private var isLoaded = false
+
     private val name = "Iso8583Studio"
     fun export(): String {
         try {

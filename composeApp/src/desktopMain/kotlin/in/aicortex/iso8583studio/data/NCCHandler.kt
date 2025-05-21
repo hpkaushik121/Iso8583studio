@@ -1,11 +1,8 @@
-package `in`.aicortex.iso8583studio
+package `in`.aicortex.iso8583studio.data
 
 
-import `in`.aicortex.iso8583studio.data.NCCParameter
-import `in`.aicortex.iso8583studio.data.PermanentConnection
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import java.net.Socket
 
 class NCCHandler(private val m_NCCParameters: Array<NCCParameter>?) {
     private var m_ANY_NII: NCCParameter? = null

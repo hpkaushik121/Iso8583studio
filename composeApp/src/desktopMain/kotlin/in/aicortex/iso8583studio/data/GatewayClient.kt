@@ -1,9 +1,5 @@
 package `in`.aicortex.iso8583studio.data
 
-import `in`.aicortex.iso8583studio.ISO8583Studio
-import `in`.aicortex.iso8583studio.NCCHandler
-import `in`.aicortex.iso8583studio.data.model.AddtionalOption
-import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.model.CipherType
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
 import `in`.aicortex.iso8583studio.data.model.EDialupStatus
@@ -12,7 +8,6 @@ import `in`.aicortex.iso8583studio.data.model.GatewayMessageType
 import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.model.LoggingOption
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
-import `in`.aicortex.iso8583studio.data.model.ParsingFeature
 import `in`.aicortex.iso8583studio.data.model.SignatureChecking
 import `in`.aicortex.iso8583studio.data.model.SpecialFeature
 import `in`.aicortex.iso8583studio.data.model.TransactionStatus
@@ -20,23 +15,20 @@ import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToBin
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToString
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bytesCopy
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.getBytesFromBytes
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.intToMessageLength
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.messageLengthToInt
-import `in`.aicortex.iso8583studio.IsoCoroutine
+import `in`.aicortex.iso8583studio.domain.service.SimulatedResponse
 import kotlinx.coroutines.launch
 import java.net.Socket
 import java.net.SocketException
-import java.nio.charset.Charset
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.random.Random
 
 class GatewayClient {
     private var m_FirstConnection: Socket? = null
@@ -610,24 +602,7 @@ class GatewayClient {
                 }else{
                     val dataRequest = receive(firstConnection)
                     m_Request?.readMessage = dataRequest?.first
-                    val response = Iso8583Data(
-                        template = gatewayHandler?.configuration?.bitTemplate!!,
-                        config = gatewayHandler?.configuration!!
-                    )
-                    response.messageType = dataRequest?.second?.messageType?.toIntOrNull()?.plus(10)!!.toString()
-
-                    response.packBit(3,dataRequest.second?.bitAttributes[2]?.data!!)
-                    response.packBit(11,dataRequest.second?.bitAttributes[10]?.data!!)
-                    response.packBit(37, Random.nextLong(111111111111L,999999999999L).toString())
-                    response.packBit(38,"654321")
-                    response.packBit(39,"000")
-                    response.packBit(41,dataRequest.second?.bitAttributes[40]?.data!!)
-                    response.packBit(24,dataRequest.second?.bitAttributes[23]?.data!!)
-                    response.packBit(4,dataRequest.second?.bitAttributes[3]?.data!!)
-                    response.packBit(12,dataRequest.second?.bitAttributes[11]?.data!!)
-                    response.packBit(49,dataRequest.second?.bitAttributes[48]?.data!!)
-                    response.packBit(7,dataRequest.second?.bitAttributes[6]?.data!!)
-                    response.packBit(55,"8A023030")
+                    val response = SimulatedResponse(dataRequest,gatewayHandler!!.configuration)
                     if (gatewayHandler?.holdMessage == false){
                         send(response.pack(), true)
                     }else{
@@ -737,7 +712,7 @@ class GatewayClient {
 
     suspend fun send(input: ByteArray?, isFirst: Boolean) {
         input ?: return
-        val iso = writeParsedDataToLog(input)
+        val iso = parseData(input)
 
 
         if (isFirst) {
@@ -873,8 +848,8 @@ class GatewayClient {
             )
         }
 
-        writeDataToLog("RECEIVED MESSAGE FROM COMPORT${message.size} BYTES ", message)
-        writeParsedDataToLog(message)
+        writeServerLog("RECEIVED MESSAGE FROM COMPORT${message.size} BYTES ")
+        parseData(message)
 
         destinationNII = bcdToBin(getBytesFromBytes(message, 3, 2))
 
@@ -966,15 +941,15 @@ class GatewayClient {
             status = TransactionStatus.RECEIVED_RESPONSE
         }
 
-        writeDataToLog(
+        writeServerLog(
             if (client == sslIncoming)
                 "RECEIVED MESSAGE FROM SOURCE "
             else
                 "RECEIVED MESSAGE FROM DESTINATION ${input.size} BYTES ",
-            input
+
         )
 
-        writeParsedDataToLog(input)
+        parseData(input)
 
         if (client == sslIncoming) {
             m_BytesReceiveFromSource += input.size
@@ -1101,7 +1076,7 @@ class GatewayClient {
                 ).copyInto(result, 0)
 
                 bytesCopy(result, encrypted, 2, 0, encrypted.size)
-                val iso = writeParsedDataToLog(result)
+                val iso = parseData(result)
                 return Pair(result,iso)
             } else if (gatewayHandler?.configuration?.advanceOptions?.specialFeature == SpecialFeature.SimpleDecryptionForProxy) {
                 val decrypted = gatewayHandler?.simpleEncryptionForProxy?.decrypt(
@@ -1121,7 +1096,7 @@ class GatewayClient {
                 ).copyInto(result, 0)
 
                 bytesCopy(result, decrypted, 2, 2, result.size - 2)
-                val iso = writeParsedDataToLog(result)
+                val iso = parseData(result)
                 return Pair(result,iso)
             } else {
                 destinationNII = bcdToBin(getBytesFromBytes(processedInput, 3, 2))
@@ -1148,7 +1123,7 @@ class GatewayClient {
                 ).copyInto(result, 0)
 
                 bytesCopy(result, decrypted, 2, 2, result.size - 2)
-                val iso = writeParsedDataToLog(result)
+                val iso = parseData(result)
                 return Pair(result,iso)
             } else if (gatewayHandler?.configuration?.advanceOptions?.specialFeature == SpecialFeature.SimpleDecryptionForProxy) {
                 val encrypted = gatewayHandler?.simpleEncryptionForProxy?.encrypt(processedInput)
@@ -1161,20 +1136,19 @@ class GatewayClient {
                 ).copyInto(result, 0)
 
                 bytesCopy(result, encrypted, 2, 0, encrypted.size)
-                val iso = writeParsedDataToLog(result)
+                val iso = parseData(result)
                 return Pair(result,iso)
             }
         }
 
-        writeDataToLog(
+        writeServerLog(
             if (client == firstConnection)
                 "RECEIVED MESSAGE FROM SOURCE "
             else
                 "RECEIVED MESSAGE FROM DESTINATION ${processedInput.size} BYTES ",
-            processedInput
         )
 
-        val formattedData = writeParsedDataToLog(processedInput)
+        val formattedData = parseData(processedInput)
 
         onReceivedFormattedData?.invoke(formattedData)
 
@@ -1193,7 +1167,7 @@ class GatewayClient {
         return Pair(processedInput,formattedData)
     }
 
-    fun writeParsedDataToLog(input: ByteArray?): Iso8583Data? {
+    fun parseData(input: ByteArray?): Iso8583Data? {
         input ?: return null
 
         if (gatewayHandler?.configuration?.advanceOptions?.isPartialEncryption() == true) {
@@ -1237,93 +1211,6 @@ class GatewayClient {
         }
     }
 
-    fun writeDataToLog(s: String, receivedData: ByteArray?) {
-        if ((gatewayHandler?.configuration?.logOptions
-                ?: LoggingOption.NONE.value) and LoggingOption.SIMPLE.value > LoggingOption.NONE.value
-        ) {
-            writeServerLog(s)
-        }
-
-        if (gatewayHandler?.configuration?.advanceOptions?.isPartialEncryption() == true) {
-            return
-        }
-
-        // Find index of bit with hide option
-        var index = 0
-        while (index < (gatewayHandler?.configuration?.bitTemplate?.size ?: 0) &&
-            gatewayHandler?.configuration?.bitTemplate?.get(index)?.addtionalOption != AddtionalOption.Hide12DigitsOfTrack2
-        ) {
-            index++
-        }
-
-        if (index < (gatewayHandler?.configuration?.bitTemplate?.size ?: 0) &&
-            receivedData != null &&
-            (gatewayHandler?.configuration?.logOptions
-                ?: LoggingOption.NONE.value) and LoggingOption.PARSED_DATA.value > LoggingOption.NONE.value
-        ) {
-
-            if ((gatewayHandler?.configuration?.logOptions
-                    ?: LoggingOption.NONE.value) and LoggingOption.RAW_DATA.value > LoggingOption.NONE.value
-            ) {
-                try {
-                    val iso8583Data =
-                        gatewayHandler?.configuration?.bitTemplate?.let { Iso8583Data(it,gatewayHandler!!.configuration) }
-                    iso8583Data?.lengthInAsc =
-                        gatewayHandler?.configuration?.advanceOptions?.parsingFeature == ParsingFeature.InASCII
-
-                    if (iso8583Data?.lengthInAsc == true) {
-                        iso8583Data.bitAttributes.forEach { bitAttribute ->
-                            if (bitAttribute.typeAtribute == BitType.BCD) {
-                                bitAttribute.typeAtribute = BitType.ANS
-                            }
-                        }
-                    }
-
-                    iso8583Data?.unpack(receivedData, 2, receivedData.size - 2)
-
-                    // Hide sensitive data
-                    iso8583Data?.get(2)?.isSet = false
-                    iso8583Data?.get(35)?.isSet = false
-                    iso8583Data?.get(52)?.isSet = false
-                    iso8583Data?.get(55)?.isSet = false
-
-                    iso8583Data?.pack()?.let {
-                        writeServerLog(
-                            "==================BINANRY MODE:===================\r\n${
-                                IsoUtil.bytesToHexString(it, 32, false)
-                            }"
-                        )
-                    }
-
-                    return
-                } catch (ex: Exception) {
-                    return
-                }
-            }
-        }
-
-        receivedData ?: return
-
-        if ((gatewayHandler?.configuration?.logOptions
-                ?: LoggingOption.NONE.value) and LoggingOption.RAW_DATA.value > LoggingOption.NONE.value
-        ) {
-            writeServerLog(
-                "==================BINANRY MODE:===================\r\n${
-                    IsoUtil.bytesToHexString(receivedData, 32, false)
-                }"
-            )
-        }
-
-        if ((gatewayHandler?.configuration?.logOptions
-                ?: LoggingOption.NONE.value) and LoggingOption.TEXT_DATA.value > LoggingOption.NONE.value
-        ) {
-            writeServerLog(
-                "==================TEXT MODE:====================== \r\n${
-                    String(receivedData, Charset.forName(gatewayHandler?.configuration?.getEncoding()))
-                }"
-            )
-        }
-    }
 
     private suspend fun checkIfCustomRequest(input: ByteArray): ByteArray {
         cancelSend = false
@@ -1449,8 +1336,8 @@ class GatewayClient {
 
             eResponseData?.rawMessage = response
 
-            writeDataToLog("RECEIVED MESSAGE FROM DESTINATION ${response.size} BYTES ", response)
-            writeParsedDataToLog(response)
+            writeServerLog("RECEIVED MESSAGE FROM DESTINATION ${response.size} BYTES ")
+            parseData(response)
 
             initResponse()
             sendFormatedData()
@@ -1591,7 +1478,7 @@ class GatewayClient {
                         }
 
                         if (!cancelSend) {
-                            writeParsedDataToLog(customInput)
+                            parseData(customInput)
                         }
                     }
 
@@ -1601,9 +1488,8 @@ class GatewayClient {
                 m_BytesReceiveFromSource += input.size
 
                 if (!cancelSend && gatewayHandler?.configuration?.gatewayType == GatewayType.PROXY) {
-                    writeDataToLog(
+                    writeServerLog(
                         "RECEIVED FROM SOURCE AND SENT TO DESTINATION ${input.size} BYTES",
-                        input
                     )
                 }
 
@@ -1695,11 +1581,10 @@ class GatewayClient {
                 }
 
                 m_BytesReceiveFromDestination += input.size
-                writeDataToLog(
+                writeServerLog(
                     "RECEIVED FROM DESTINATION AND SENT TO SOURCE ${input.size} BYTES",
-                    input
                 )
-                writeParsedDataToLog(input)
+                parseData(input)
 
                 when (gatewayHandler?.configuration?.gatewayType) {
                     GatewayType.SERVER -> {
@@ -2020,7 +1905,7 @@ class GatewayClient {
             writeServerLog("SEND ENCRYPTED MESSAGE TO SERVER INSTANCE: ${encryptedData.size} BYTES ")
             status = TransactionStatus.SENT_TO_DESTINATION
         }
-        onSentFormattedData?.invoke(writeParsedDataToLog(dataToSend?.rawMessage),dataToSend?.rawMessage)
+        onSentFormattedData?.invoke(parseData(dataToSend?.rawMessage),dataToSend?.rawMessage)
     }
 
     fun receiveFormattedData() {
@@ -2162,7 +2047,7 @@ class GatewayClient {
                 writeServerLog("CHECKING MESSAGE AUTHENTICATION CODE (MAC) OK...")
             }
 
-            writeDataToLog("MESSAGE WAS DECRYPTED. RAW MESSAGE: ", dataReceived.rawMessage)
+            writeServerLog("MESSAGE WAS DECRYPTED. RAW MESSAGE: ")
 
         }
 
@@ -2170,7 +2055,7 @@ class GatewayClient {
             status = TransactionStatus.AUTHENTICATED
         }
 
-        onReceivedFormattedData?.invoke(writeParsedDataToLog(dataReceived.rawMessage))
+        onReceivedFormattedData?.invoke(parseData(dataReceived.rawMessage))
     }
 
     fun respondIso8583ErrorAndThrowException(
@@ -2209,8 +2094,8 @@ class GatewayClient {
         firstConnection?.getOutputStream()?.write(responseData)
 
         writeServerLog(log)
-        writeDataToLog("RESPOND TO SOURCE...", responseData)
-
+        writeServerLog("RESPOND TO SOURCE...",)
+        parseData(responseData)
         if ((gatewayHandler?.configuration?.logOptions
                 ?: LoggingOption.NONE.value) and LoggingOption.PARSED_DATA.value > LoggingOption.NONE.value
         ) {

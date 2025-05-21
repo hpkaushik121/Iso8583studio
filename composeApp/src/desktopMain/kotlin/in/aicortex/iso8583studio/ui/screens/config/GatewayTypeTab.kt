@@ -12,6 +12,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
+import `in`.aicortex.iso8583studio.domain.utils.Utils
 import org.springframework.security.crypto.codec.Hex
 import java.time.format.DateTimeFormatter
 
@@ -94,7 +95,7 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                 ) {
                     Text("Modified date", modifier = Modifier.width(100.dp))
                     Text(
-                        config.createDate.toString(),
+                        Utils.formatDate(config.createDate),
                         modifier = Modifier.weight(1f).border(1.dp, Color.LightGray).padding(8.dp)
                     )
                 }

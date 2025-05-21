@@ -2,12 +2,11 @@ package `in`.aicortex.iso8583studio.data.model
 
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.BitTemplate
-import `in`.aicortex.iso8583studio.ui.screens.config.Transaction
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XML
 import nl.adaptivity.xmlutil.serialization.XmlKeyName
-import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 

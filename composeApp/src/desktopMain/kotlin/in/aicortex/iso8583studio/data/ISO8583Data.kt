@@ -83,7 +83,7 @@ data class Iso8583Data(
      */
     init {
         m_TPDU = TPDU()
-        m_BitAttributes = BitTemplate.getGeneralTemplate()
+        m_BitAttributes = BitTemplate.getBitAttributeArray(config.bitTemplate)
         hasHeader = !config.doNotUseHeader
         bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
         lengthInAsc = config.lengthInAscii
@@ -95,6 +95,17 @@ data class Iso8583Data(
     constructor(template: Array<BitSpecific>, config: GatewayConfig) : this(config) {
         m_TPDU = TPDU()
         m_BitAttributes = BitTemplate.getBitAttributeArray(template)
+        hasHeader = !config.doNotUseHeader
+        bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
+        lengthInAsc = config.lengthInAscii
+    }
+
+    /**
+     * Constructor with bit template
+     */
+    constructor(template: Array<BitAttribute>, config: GatewayConfig) : this(config) {
+        m_TPDU = TPDU()
+        m_BitAttributes = template
         hasHeader = !config.doNotUseHeader
         bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
         lengthInAsc = config.lengthInAscii
@@ -112,12 +123,17 @@ data class Iso8583Data(
     /**
      * Pack a string value into a specified bit
      */
-    fun packBit(bitNumber: Int, value: String) {
+    fun packBit(bitNumber: Int, dataString: String) {
         val index = bitNumber - 1
-
+        var  value = dataString
         when (m_BitAttributes[index].typeAtribute) {
             BitType.AN, BitType.ANS -> {
-                m_BitAttributes[index].length = value.length
+                m_BitAttributes[index].length = if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
+                    value.length
+                } else {
+                    value = value.padStart(m_BitAttributes[index].maxLength,'0')
+                    m_BitAttributes[index].maxLength
+                }
                 m_BitAttributes[index].data = IsoUtil.stringToAsc(value)
             }
 
@@ -125,13 +141,19 @@ data class Iso8583Data(
                 m_BitAttributes[index].length = if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
                     value.length
                 } else {
+                    value = value.padStart(m_BitAttributes[index].maxLength,'0')
                     m_BitAttributes[index].maxLength
                 }
                 m_BitAttributes[index].data = IsoUtil.stringToBCD(value, (m_BitAttributes[index].length + 1) / 2)
             }
 
             BitType.BINARY -> {
-                m_BitAttributes[index].length = (value.length + 1) / 2
+                m_BitAttributes[index].length = if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
+                    (value.length + 1) / 2
+                } else {
+                    value = value.padStart(m_BitAttributes[index].maxLength,'0')
+                    m_BitAttributes[index].maxLength
+                }
                 m_BitAttributes[index].data = IsoUtil.stringToBCD(value, m_BitAttributes[index].length)
             }
 
@@ -670,11 +692,16 @@ data class Iso8583Data(
     }
 }
 
-fun BitAttribute.updateBit(index: Int, value: String) {
-
+fun BitAttribute.updateBit(index: Int, dataString: String) {
+    var value = dataString
     when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
-            length = value.length
+            length = if (lengthAttribute != BitLength.FIXED) {
+                value.length
+            } else {
+                value = value.padStart(maxLength,'0')
+                maxLength
+            }
             data = IsoUtil.stringToAsc(value)
         }
 
@@ -682,13 +709,19 @@ fun BitAttribute.updateBit(index: Int, value: String) {
             length = if (lengthAttribute != BitLength.FIXED) {
                 value.length
             } else {
+                value = value.padStart(maxLength,'0')
                 maxLength
             }
             data = IsoUtil.stringToBCD(value, (length + 1) / 2)
         }
 
         BitType.BINARY -> {
-            length = (value.length + 1) / 2
+            length = if (lengthAttribute != BitLength.FIXED) {
+                (value.length + 1) / 2
+            } else {
+                value = value.padStart(maxLength,'0')
+                maxLength
+            }
             data = IsoUtil.stringToBCD(value, length)
         }
 

@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.domain.service
 
 import androidx.compose.runtime.Composable
-import `in`.aicortex.iso8583studio.EncrDecrHandler
+import `in`.aicortex.iso8583studio.data.EncrDecrHandler
 import `in`.aicortex.iso8583studio.data.DialHandler
 import `in`.aicortex.iso8583studio.data.GatewayClient
 import `in`.aicortex.iso8583studio.data.Iso8583Data
@@ -23,7 +23,7 @@ import `in`.aicortex.iso8583studio.data.model.UnauthorizedAccessException
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.utils.isIpMatched
-import `in`.aicortex.iso8583studio.IsoCoroutine
+import `in`.aicortex.iso8583studio.data.IsoCoroutine
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -92,7 +92,7 @@ class GatewayServiceImpl : GatewayService {
     private var startTime: LocalDateTime? = null
     private var stopTime: LocalDateTime? = null
 
-    private var resultDialogInterface: ResultDialogInterface? = null
+    var resultDialogInterface: ResultDialogInterface? = null
 
     private var _endeService: KeyManagement? = null
     override val endeService: KeyManagement

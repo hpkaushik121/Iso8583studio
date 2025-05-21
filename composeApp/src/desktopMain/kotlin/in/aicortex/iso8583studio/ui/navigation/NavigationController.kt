@@ -39,9 +39,9 @@ class NavigationController {
         when (index) {
             0 -> navigateTo(Screen.GatewayType)
             1 -> navigateTo(Screen.TransmissionSettings)
-            2 -> navigateTo(Screen.KeySettings)
-            3 -> navigateTo(Screen.LogSettings)
-            4 -> navigateTo(Screen.AdvancedOptions)
+//            2 -> navigateTo(Screen.KeySettings)
+            2 -> navigateTo(Screen.LogSettings)
+            3 -> navigateTo(Screen.AdvancedOptions)
         }
     }
 
@@ -58,13 +58,10 @@ class NavigationController {
         val newConfig = GatewayConfig(
             id = Random.nextInt(),
             name = "Config_${_state.value.configList.value.size + 1}")
-        _state.update {
-            val newList = it.configList.value + newConfig
-            it.apply {
-                configList.value = newList
-                selectedConfigIndex = newList.size - 1
-            }
-        }
+        val newList = _state.value.configList.value + newConfig
+        _state.value.configList.value = newList
+        _state.value.selectedConfigIndex = newList.size -1
+
         // Navigate to Gateway Type tab when creating a new config
         selectTab(0)
     }

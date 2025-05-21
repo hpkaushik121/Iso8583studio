@@ -1,8 +1,9 @@
-package `in`.aicortex.iso8583studio.ui.screens.config
+package `in`.aicortex.iso8583studio.ui.screens.hostSimulator
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,8 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Checkbox
@@ -50,7 +53,8 @@ import kotlin.math.absoluteValue
  * Main composable for ISO8583 Template tab
  */
 @Composable
-fun Iso8583TemplateScreen(config: GatewayConfig) {
+fun Iso8583TemplateScreen(config: GatewayConfig,
+                          onSaveClick:() -> Unit) {
     var bitTemplates by remember { mutableStateOf(config.bitTemplate) }
     var selectedBit by remember { mutableStateOf<BitSpecific?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -84,111 +88,123 @@ fun Iso8583TemplateScreen(config: GatewayConfig) {
         )
 
         // Right side - Controls and settings
-        Column(
+
+        Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .padding(start = 16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            // Advanced options group
-            AdvancedOptionsCard(
-                useAscii = useAscii,
-                dontUseTPDU = dontUseTPDU,
-                respondIfUnrecognized = respondIfUnrecognized,
-                metfoneMessage = metfoneMessage,
-                notUpdateScreen = notUpdateScreen,
-                onUseAsciiChange = { useAscii = it },
-                onDontUseTPDUChange = {
-                    dontUseTPDU = it
-                },
-                onRespondIfUnrecognizedChange = { respondIfUnrecognized = it },
-                onMetfoneMessageChange = { metfoneMessage = it },
-                onNotUpdateScreenChange = { notUpdateScreen = it }
-            )
+            Column(
+                modifier = Modifier
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Customized message group
-            CustomizedMessageCard(
-                customizedMessage = customizedMessage,
-                ignoreHeaderLength = ignoreHeaderLength,
-                fixedResponseHeader = fixedResponseHeader,
-                onCustomizedMessageChange = { customizedMessage = it },
-                onIgnoreHeaderLengthChange = { ignoreHeaderLength = it },
-                onFixedResponseHeaderChange = { fixedResponseHeader = it }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Bit manipulation controls
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                    .fillMaxHeight()
+                    .padding(start = 16.dp)
             ) {
-                Text(
-                    text = "Bit number",
-                    modifier = Modifier.padding(end = 8.dp)
+                // Advanced options group
+                AdvancedOptionsCard(
+                    useAscii = useAscii,
+                    dontUseTPDU = dontUseTPDU,
+                    respondIfUnrecognized = respondIfUnrecognized,
+                    metfoneMessage = metfoneMessage,
+                    notUpdateScreen = notUpdateScreen,
+                    onUseAsciiChange = { useAscii = it },
+                    onDontUseTPDUChange = {
+                        dontUseTPDU = it
+                    },
+                    onRespondIfUnrecognizedChange = { respondIfUnrecognized = it },
+                    onMetfoneMessageChange = { metfoneMessage = it },
+                    onNotUpdateScreenChange = { notUpdateScreen = it }
                 )
 
-                TextField(
-                    value = bitNumberToAdd,
-                    onValueChange = { bitNumberToAdd = it },
-                    modifier = Modifier.width(80.dp),
-                    singleLine = true
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Customized message group
+                CustomizedMessageCard(
+                    customizedMessage = customizedMessage,
+                    ignoreHeaderLength = ignoreHeaderLength,
+                    fixedResponseHeader = fixedResponseHeader,
+                    onCustomizedMessageChange = { customizedMessage = it },
+                    onIgnoreHeaderLengthChange = { ignoreHeaderLength = it },
+                    onFixedResponseHeaderChange = { fixedResponseHeader = it }
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = {
-                        val bitNo = bitNumberToAdd.toIntOrNull() ?: return@Button
-                        // Check if bit already exists
-                        if (bitTemplates.none { it.bitNumber.toInt().absoluteValue == bitNo }) {
-                            val newBit = BitSpecific(
-                                bitNo = bitNo.toUByte().toByte(),
-                                bitLenAtrr = BitLength.LLVAR,
-                                bitTypeAtrr = BitType.ANS,
-                                maxLen = 999
-                            )
-                            // Add to list in sorted order
-                            val newList = (bitTemplates + newBit).sortedBy { it.bitNumber }
-                            bitTemplates = newList.sortedBy { it.bitNumber.toInt().absoluteValue }.toTypedArray()
+                // Bit manipulation controls
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Bit number",
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+
+                    TextField(
+                        value = bitNumberToAdd,
+                        onValueChange = { bitNumberToAdd = it },
+                        modifier = Modifier.width(80.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            val bitNo = bitNumberToAdd.toIntOrNull() ?: return@Button
+                            // Check if bit already exists
+                            if (bitTemplates.none { it.bitNumber.toInt().absoluteValue == bitNo }) {
+                                val newBit = BitSpecific(
+                                    bitNo = bitNo.toUByte().toByte(),
+                                    bitLenAtrr = BitLength.LLVAR,
+                                    bitTypeAtrr = BitType.ANS,
+                                    maxLen = 999
+                                )
+                                // Add to list in sorted order
+                                val newList = (bitTemplates + newBit).sortedBy { it.bitNumber }
+                                bitTemplates =
+                                    newList.sortedBy { it.bitNumber.toInt().absoluteValue }
+                                        .toTypedArray()
+                            }
                         }
+                    ) {
+                        Text("Add")
                     }
-                ) {
-                    Text("Add")
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            val bitNo = bitNumberToAdd.toIntOrNull() ?: return@Button
+                            bitTemplates =
+                                bitTemplates.filter { it.bitNumber.toInt().absoluteValue != bitNo }
+                                    .toTypedArray()
+                        }
+                    ) {
+                        Text("Delete")
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.weight(1f))
 
+                // Save button
                 Button(
                     onClick = {
-                        val bitNo = bitNumberToAdd.toIntOrNull() ?: return@Button
-                        bitTemplates = bitTemplates.filter { it.bitNumber.toInt().absoluteValue != bitNo }.toTypedArray()
-                    }
+                        config.doNotUseHeader = dontUseTPDU
+                        config.lengthInAscii = useAscii
+                        config.respondIfUnrecognized = respondIfUnrecognized
+                        config.metfoneMesage = metfoneMessage
+                        config.notUpdateScreen = notUpdateScreen
+                        config.customizeMessage = customizedMessage
+                        config.ignoreRequestHeader = ignoreHeaderLength.toIntOrNull() ?: 5
+                        config.fixedResponseHeader = fixedResponseHeader
+                        onSaveClick()
+                    },
+                    modifier = Modifier.align(Alignment.Start)
                 ) {
-                    Text("Delete")
+                    Text("Save")
                 }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Save button
-            Button(
-                onClick = {
-                    config.doNotUseHeader = dontUseTPDU
-                    config.lengthInAscii = useAscii
-                    config.respondIfUnrecognized = respondIfUnrecognized
-                    config.metfoneMesage = metfoneMessage
-                    config.notUpdateScreen = notUpdateScreen
-                    config.customizeMessage = customizedMessage
-                    config.ignoreRequestHeader = ignoreHeaderLength.toIntOrNull() ?: 5
-                    config.fixedResponseHeader = fixedResponseHeader
-
-                },
-                modifier = Modifier.align(Alignment.Start)
-            ) {
-                Text("Save")
             }
         }
     }
@@ -241,26 +257,32 @@ fun BitTemplatePropertyGrid(
                 // Bit number
                 Text(
                     text = "Bit No. ",
-                    modifier = Modifier,
+                    modifier = Modifier.weight(.1f),
                     fontWeight = FontWeight.Bold
                 )
 
                 // Type
                 Text(
                     text = "Format Type",
-                    modifier = Modifier
+                    modifier = Modifier.weight(.2f)
                 )
 
                 // Length
                 Text(
                     text = "Length Type",
-                    modifier = Modifier
+                    modifier = Modifier.weight(.2f)
                 )
 
                 // Max length
                 Text(
                     text = "Max Length",
-                    modifier = Modifier
+                    modifier = Modifier.weight(.1f)
+                )
+
+                // Description
+                Text(
+                    text = "Description",
+                    modifier = Modifier.weight(.4f)
                 )
 
             }
@@ -301,26 +323,32 @@ fun BitPropertyRow(
         // Bit number
         Text(
             text = "Bit ${bit.bitNumber.toInt().absoluteValue}",
-            modifier = Modifier,
+            modifier = Modifier.weight(.1f),
             fontWeight = FontWeight.Bold
         )
 
         // Type
         Text(
             text = bit.bitType.name,
-            modifier = Modifier
+            modifier = Modifier.weight(.2f)
         )
 
         // Length
         Text(
             text = bit.bitLength.name,
-            modifier = Modifier
+            modifier = Modifier.weight(.2f)
         )
 
         // Max length
         Text(
             text = bit.maxLength.toString(),
-            modifier = Modifier
+            modifier = Modifier.weight(.1f)
+        )
+
+        // Description
+        Text(
+            text = bit.description,
+            modifier = Modifier.weight(.4f)
         )
 
     }

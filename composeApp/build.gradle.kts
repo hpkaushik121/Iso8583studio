@@ -37,7 +37,11 @@ kotlin {
             implementation(libs.jaxb.api)
             implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.2")
+            // Add Material icons for desktop
+            implementation("org.jetbrains.compose.material:material-icons-extended:1.5.11")
 
+            // Make sure you have the core Material library as well
+            implementation("org.jetbrains.compose.material:material:1.5.11")
             implementation("com.fazecast:jSerialComm:2.7.0")
         }
         commonTest.dependencies {
