@@ -22,11 +22,10 @@ import `in`.aicortex.iso8583studio.ui.AppTheme
 import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.components.StatusBadge
+import `in`.aicortex.iso8583studio.ui.screens.about.AboutDialog
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
-import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 
 enum class DialogType {
     SUCCESS, ERROR, NONE
@@ -59,6 +58,7 @@ class ISO8583Studio {
                     title = "ISO8583Studio",
                     state = windowState
                 ) {
+                    var showAboutDialog by remember { mutableStateOf(false) }
                     MenuBar {
                         Menu(
                             text = "File"
@@ -160,8 +160,20 @@ class ISO8583Studio {
                                         }
                                     }
                                 }
+
+                            }
+                            Item("About") {
+                                showAboutDialog = true
+                            }
+                            Item("Quit") {
+                                exitApplication()
                             }
                         }
+                    }
+                    if(showAboutDialog){
+                        AboutDialog(onCloseRequest = {
+                            showAboutDialog = false
+                        })
                     }
 
                     var showErrorDialog by remember { mutableStateOf<Pair<DialogType, @Composable (() -> Unit)>?>(null) }
