@@ -35,14 +35,11 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.netty.all)
             implementation(libs.jaxb.api)
-            implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.2")
-            // Add Material icons for desktop
-            implementation("org.jetbrains.compose.material:material-icons-extended:1.5.11")
-
-            // Make sure you have the core Material library as well
-            implementation("org.jetbrains.compose.material:material:1.5.11")
-            implementation("com.fazecast:jSerialComm:2.7.0")
+            implementation(libs.serializer)
+            implementation(libs.kotlinx.serializer)
+            implementation(libs.material.icons)
+            implementation(libs.material)
+            implementation(libs.serial.comms)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -55,14 +52,59 @@ kotlin {
 }
 
 
+
 compose.desktop {
     application {
         mainClass = "in.aicortex.iso8583studio.ISO8583Studio"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "in.aicortex.iso8583studio"
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
+
+            packageName = "ISO8583Studio"
             packageVersion = "1.0.0"
+            description = "ISO8583 Message Processing Studio"
+            copyright = "© 2025 AICortex. All rights reserved."
+            vendor = "AICortex"
+
+            // Windows specific configuration
+            windows {
+                // Set the icon for Windows
+                iconFile.set(project.file("resources/windows/app.ico"))
+                // Additional Windows configuration
+                menuGroup = packageName
+                // Generate a unique UUID for your application (use a UUID generator)
+                upgradeUuid = "18159995-d967-4cd2-8885-77bfa97cfa9f"
+                dirChooser = true
+                perUserInstall = true
+                shortcut = true
+                menuGroup = packageName
+            }
+
+            // macOS specific configuration
+            macOS {
+
+                // Set the icon for macOS
+                iconFile.set(project.file("resources/mac/app.icns"))
+                // Additional macOS settings
+                bundleID = "in.aicortex.iso8583studio"
+                appCategory = "public.app-category.developer-tools"
+                // Configure DMG options if needed
+                dmgPackageVersion = packageVersion
+                signing {
+                    sign.set(false) // Set to true when you have a signing identity for distribution
+                    // identity.set("Developer ID Application: YourName (TeamID)")
+                }
+            }
+
+            // Linux specific configuration
+            linux {
+                // Set the icon for Linux
+                iconFile.set(project.file("resources/linus/app.png"))
+                // Additional Linux settings
+                shortcut = true
+                debMaintainer = "support@aicortex.in"
+                menuGroup = "Development"
+            }
         }
     }
 }

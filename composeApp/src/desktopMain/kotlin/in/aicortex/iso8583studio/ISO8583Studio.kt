@@ -8,10 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
-import androidx.compose.ui.window.MenuBar
 import `in`.aicortex.iso8583studio.data.ExceptionHandler
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.domain.FileImporter
@@ -19,12 +19,14 @@ import `in`.aicortex.iso8583studio.domain.ImportResult
 import `in`.aicortex.iso8583studio.domain.utils.ExportResult
 import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.ui.AppTheme
-import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
-import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
-import `in`.aicortex.iso8583studio.ui.components.StatusBadge
-import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.ErrorRed
+import `in`.aicortex.iso8583studio.ui.SuccessGreen
+import `in`.aicortex.iso8583studio.ui.components.StatusBadge
+import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
+import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
+import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 
 enum class DialogType {
     SUCCESS, ERROR, NONE
@@ -50,11 +52,12 @@ class ISO8583Studio {
             }
             val isoCoroutine = rememberCoroutineScope()
 
+
             AppTheme {
                 Window(
                     onCloseRequest = ::exitApplication,
                     title = "ISO8583Studio",
-                    state = windowState,
+                    state = windowState
                 ) {
                     MenuBar {
                         Menu(

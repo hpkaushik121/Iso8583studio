@@ -55,50 +55,50 @@ fun MonitorScreen(
     var bytesSent by remember { mutableStateOf(14224L) }
 
     // Add periodic updates for demonstration
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(3000)
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-            val random = Random()
-
-            when (random.nextInt(4)) {
-                0 -> {
-                    mockLogs.add(0, LogEntry(timestamp, "Received heartbeat signal", LogLevel.INFO))
-                }
-                1 -> {
-                    mockLogs.add(0, LogEntry(timestamp, "Received transaction request: 0200", LogLevel.TRANSACTION))
-                    mockLogs.add(0, LogEntry(timestamp, "Transaction approved: 000000", LogLevel.SUCCESS))
-                    transactionCount++
-                }
-                2 -> {
-                    if (random.nextBoolean()) {
-                        mockLogs.add(0, LogEntry(timestamp, "New client connected: 192.168.1.${random.nextInt(100)}", LogLevel.INFO))
-                        activeConnections++
-                        connectionCount++
-                    } else {
-                        mockLogs.add(0, LogEntry(timestamp, "Client disconnected", LogLevel.INFO))
-                        if (activeConnections > 0) activeConnections--
-                    }
-                }
-                3 -> {
-                    if (random.nextBoolean()) {
-                        mockLogs.add(0, LogEntry(timestamp, "Connection timeout with client", LogLevel.WARNING))
-                    } else {
-                        mockLogs.add(0, LogEntry(timestamp, "Failed to parse message: Invalid format", LogLevel.ERROR))
-                    }
-                }
-            }
-
-            // Update traffic stats
-            bytesReceived += random.nextInt(1000)
-            bytesSent += random.nextInt(500)
-
-            // Keep log size manageable
-            if (mockLogs.size > 100) {
-                mockLogs.removeAt(mockLogs.size - 1)
-            }
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        while (true) {
+//            delay(3000)
+//            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+//            val random = Random()
+//
+//            when (random.nextInt(4)) {
+//                0 -> {
+//                    mockLogs.add(0, LogEntry(timestamp, "Received heartbeat signal", LogLevel.INFO))
+//                }
+//                1 -> {
+//                    mockLogs.add(0, LogEntry(timestamp, "Received transaction request: 0200", LogLevel.TRANSACTION))
+//                    mockLogs.add(0, LogEntry(timestamp, "Transaction approved: 000000", LogLevel.SUCCESS))
+//                    transactionCount++
+//                }
+//                2 -> {
+//                    if (random.nextBoolean()) {
+//                        mockLogs.add(0, LogEntry(timestamp, "New client connected: 192.168.1.${random.nextInt(100)}", LogLevel.INFO))
+//                        activeConnections++
+//                        connectionCount++
+//                    } else {
+//                        mockLogs.add(0, LogEntry(timestamp, "Client disconnected", LogLevel.INFO))
+//                        if (activeConnections > 0) activeConnections--
+//                    }
+//                }
+//                3 -> {
+//                    if (random.nextBoolean()) {
+//                        mockLogs.add(0, LogEntry(timestamp, "Connection timeout with client", LogLevel.WARNING))
+//                    } else {
+//                        mockLogs.add(0, LogEntry(timestamp, "Failed to parse message: Invalid format", LogLevel.ERROR))
+//                    }
+//                }
+//            }
+//
+//            // Update traffic stats
+//            bytesReceived += random.nextInt(1000)
+//            bytesSent += random.nextInt(500)
+//
+//            // Keep log size manageable
+//            if (mockLogs.size > 100) {
+//                mockLogs.removeAt(mockLogs.size - 1)
+//            }
+//        }
+//    }
 
     Scaffold(
         topBar = {

@@ -248,7 +248,7 @@ fun TabContainer(
                                 change.consume()
                                 // Update the width based on drag
                                 leftPanelWidth = (leftPanelWidth + dragAmount.x.toDp())
-                                    .coerceIn(250.dp, 400.dp) // Set min and max width
+                                    .coerceIn(350.dp, 600.dp) // Set min and max width
                                 appState.panelWidth = leftPanelWidth
                             }
                         )

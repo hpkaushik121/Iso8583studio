@@ -21,7 +21,7 @@ data class GatewayConfigurationState(
     var resultDialogInterface: ResultDialogInterface? = null,
     var selectedConfigIndex: Int = -1,
     val selectedTabIndex: Int = 0,
-    var panelWidth: Dp = 300.dp,
+    var panelWidth: Dp = 340.dp,
     var connectionStatus: ConnectionStatus? = null
 ) {
 

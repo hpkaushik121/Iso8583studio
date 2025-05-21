@@ -12,6 +12,11 @@ nettyVersion = "4.1.24.Final"
 jaxVersion = "2.3.1"
 pluginSerializer="2.1.21"
 jvmVersion="2.1.21"
+xmlUtil="0.91.0"
+kotlinSerializer="1.6.2"
+materialIcons="1.6.2"
+material="1.6.2"
+serialComms="2.7.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -28,12 +33,17 @@ exposed-crypt = { module = "org.jetbrains.exposed:exposed-crypt", version.ref = 
 exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposedVersion"}
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposedVersion"}
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposedVersion"}
+kotlinx-serializer = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinSerializer"}
 
 exposed-json = { module = "org.jetbrains.exposed:exposed-json", version.ref = "exposedVersion"}
 exposed-money = { module = "org.jetbrains.exposed:exposed-money", version.ref = "exposedVersion"}
 exposed-spring-boot-starter = { module = "org.jetbrains.exposed:exposed-spring-boot-starter", version.ref = "exposedVersion"}
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "jdbc"}
 jaxb-api = { module = "javax.xml.bind:jaxb-api", version.ref = "jaxVersion"}
+serializer = { module = "io.github.pdvrieze.xmlutil:serialization", version.ref = "xmlUtil"}
+material-icons = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIcons"}
+material = { module = "org.jetbrains.compose.material:material", version.ref = "material"}
+serial-comms = { module = "com.fazecast:jSerialComm", version.ref = "serialComms"}
 
 [plugins]
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
