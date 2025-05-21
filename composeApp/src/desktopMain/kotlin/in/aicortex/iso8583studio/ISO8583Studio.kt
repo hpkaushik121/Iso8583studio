@@ -1,21 +1,17 @@
 package `in`.aicortex.iso8583studio
 
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.application
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.MenuBar
+import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.MenuBar
 import `in`.aicortex.iso8583studio.data.ExceptionHandler
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.domain.FileImporter
@@ -25,10 +21,13 @@ import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.ui.AppTheme
 import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
+import `in`.aicortex.iso8583studio.ui.components.StatusBadge
+import `in`.aicortex.iso8583studio.ui.SuccessGreen
+import `in`.aicortex.iso8583studio.ui.ErrorRed
 import kotlinx.coroutines.launch
 
-enum class DialogType{
-    SUCCESS,ERROR,NONE
+enum class DialogType {
+    SUCCESS, ERROR, NONE
 }
 
 class ISO8583Studio {
@@ -46,10 +45,11 @@ class ISO8583Studio {
             val appState by navigationController.state.collectAsState()
             val windowState = remember {
                 WindowState(
-                    size = DpSize(width = 1800.dp, height = 768.dp),
+                    size = DpSize(width = 1800.dp, height = 800.dp),
                 )
             }
             val isoCoroutine = rememberCoroutineScope()
+
             AppTheme {
                 Window(
                     onCloseRequest = ::exitApplication,
@@ -70,17 +70,44 @@ class ISO8583Studio {
                                             fileName = "ISO8583Studio",
                                             fileExtension = "cfg",
                                             fileContent = appState.export().toByteArray(),
-                                            fileDescription = "File"
+                                            fileDescription = "Configuration File"
                                         )
-                                        if(file is ExportResult.Success){
-                                            appState.resultDialogInterface?.onSuccess { Text("Exported successfully!") }
-                                        }else if (file is ExportResult.Cancelled){
-                                            println("Import cancelled")
-                                        } else{
-                                            appState.resultDialogInterface?.onError { Text((file as ExportResult.Error).message)}
+                                        when (file) {
+                                            is ExportResult.Success -> {
+                                                appState.resultDialogInterface?.onSuccess {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        StatusBadge(
+                                                            text = "SUCCESS",
+                                                            color = SuccessGreen,
+                                                            modifier = Modifier.padding(bottom = 8.dp)
+                                                        )
+                                                        Text("Configuration exported successfully!")
+                                                    }
+                                                }
+                                            }
+                                            is ExportResult.Cancelled -> {
+                                                println("Export cancelled")
+                                            }
+                                            is ExportResult.Error -> {
+                                                appState.resultDialogInterface?.onError {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        StatusBadge(
+                                                            text = "ERROR",
+                                                            color = ErrorRed,
+                                                            modifier = Modifier.padding(bottom = 8.dp)
+                                                        )
+                                                        Text((file as ExportResult.Error).message)
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
-
                                 }
                                 Item(
                                     text = "Import"
@@ -93,18 +120,47 @@ class ISO8583Studio {
                                                 appState.import(file)
                                             }
                                         )
-                                        if(file is ImportResult.Success){
-                                            appState.resultDialogInterface?.onSuccess { Text("Imported successfully!") }
-                                        }else if (file is ImportResult.Cancelled){
-                                            println("Import cancelled")
-                                        } else{
-                                            appState.resultDialogInterface?.onError { Text((file as ImportResult.Error).message)}
+                                        when (file) {
+                                            is ImportResult.Success -> {
+                                                appState.resultDialogInterface?.onSuccess {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        StatusBadge(
+                                                            text = "SUCCESS",
+                                                            color = SuccessGreen,
+                                                            modifier = Modifier.padding(bottom = 8.dp)
+                                                        )
+                                                        Text("Configuration imported successfully!")
+                                                    }
+                                                }
+                                            }
+                                            is ImportResult.Cancelled -> {
+                                                println("Import cancelled")
+                                            }
+                                            is ImportResult.Error -> {
+                                                appState.resultDialogInterface?.onError {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        StatusBadge(
+                                                            text = "ERROR",
+                                                            color = ErrorRed,
+                                                            modifier = Modifier.padding(bottom = 8.dp)
+                                                        )
+                                                        Text((file as ImportResult.Error).message)
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+
                     var showErrorDialog by remember { mutableStateOf<Pair<DialogType, @Composable (() -> Unit)>?>(null) }
 
                     appState.resultDialogInterface = object : ResultDialogInterface {
@@ -115,49 +171,62 @@ class ISO8583Studio {
                         override fun onSuccess(item: @Composable (() -> Unit)) {
                             showErrorDialog = Pair(DialogType.SUCCESS, item)
                         }
-
                     }
+
                     if (showErrorDialog?.first == DialogType.ERROR) {
                         AlertDialog(
                             onDismissRequest = { showErrorDialog = null },
-                            confirmButton = { Button(
-                                onClick = {
-                                    showErrorDialog = null
+                            confirmButton = {
+                                Button(
+                                    onClick = { showErrorDialog = null },
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = MaterialTheme.colors.primary
+                                    )
+                                ) {
+                                    Text("OK")
                                 }
-                            ) {
-                                Text("Ok")
-                            } },
-                            title = { Text("Error!") },
+                            },
+                            title = {
+                                Text(
+                                    "Error",
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
                             text = showErrorDialog!!.second,
-
-
-                            )
-
+                            shape = MaterialTheme.shapes.medium,
+                            backgroundColor = MaterialTheme.colors.surface
+                        )
                     }
 
                     if (showErrorDialog?.first == DialogType.SUCCESS) {
                         AlertDialog(
                             onDismissRequest = { showErrorDialog = null },
-                            confirmButton = { Button(
-                                onClick = {
-                                    showErrorDialog = null
+                            confirmButton = {
+                                Button(
+                                    onClick = { showErrorDialog = null },
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = MaterialTheme.colors.primary
+                                    )
+                                ) {
+                                    Text("OK")
                                 }
-                            ) {
-                                Text("Ok")
-                            } },
-                            title = { Text("Success!") },
+                            },
+                            title = {
+                                Text(
+                                    "Success",
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
                             text = showErrorDialog!!.second,
-
-
-                            )
-
+                            shape = MaterialTheme.shapes.medium,
+                            backgroundColor = MaterialTheme.colors.surface
+                        )
                     }
 
                     GatewayConfiguration(
                         navigationController,
                         appState
                     )
-
                 }
             }
         }

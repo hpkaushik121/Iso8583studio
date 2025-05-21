@@ -32,6 +32,9 @@ data class GatewayConfig(
     var transactionTimeOut: Int = 30,
     var logOptions: Int = LoggingOption.PARSED_DATA.value,
     var serverAddress: String = "",
+    var baudRate: String = "",
+    var serialPort: String = "",
+    var dialupNumber: String = "",
     var textEncoding: MessageEncoding = MessageEncoding.ASCII,
     var messageLengthType: MessageLengthType = MessageLengthType.BCD,
     var privateKey: ByteArray? = byteArrayOf(),
@@ -261,6 +264,9 @@ data class GatewayConfig(
         if (notUpdateScreen != other.notUpdateScreen) return false
         if (customizeMessage != other.customizeMessage) return false
         if (ignoreRequestHeader != other.ignoreRequestHeader) return false
+        if (serialPort != other.serialPort) return false
+        if (baudRate != other.baudRate) return false
+        if (dialupNumber != other.dialupNumber) return false
         if (fixedResponseHeader != other.fixedResponseHeader) return false
 
         return true
@@ -323,6 +329,9 @@ data class GatewayConfig(
         result = 31 * result + notUpdateScreen.hashCode()
         result = 31 * result + customizeMessage.hashCode()
         result = 31 * result + ignoreRequestHeader.hashCode()
+        result = 31 * result + serialPort.hashCode()
+        result = 31 * result + baudRate.hashCode()
+        result = 31 * result + dialupNumber.hashCode()
         result = 31 * result + fixedResponseHeader.contentHashCode()
         return result
     }

@@ -1,47 +1,28 @@
 package `in`.aicortex.iso8583studio.ui.screens.config
 
-import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Tab
-import androidx.compose.material.TabRow
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
 import java.awt.Cursor
 
@@ -52,7 +33,7 @@ import java.awt.Cursor
 fun TabContainer(
     appState: GatewayConfigurationState,
     selectedTab: Int,
-    tabTitles: List<String> = listOf("Gateway Type", "Transmission Settings", /*"Keys Setting",*/ "Log Settings", "Advanced Options"),
+    tabTitles: List<String> = listOf("Gateway Type", "Transmission Settings", "Log Settings", "Advanced Options"),
     onTabSelected: (Int) -> Unit,
     onSelectConfig: (Int) -> Unit,
     onAddConfig: () -> Unit,
@@ -62,86 +43,192 @@ fun TabContainer(
     onOpenHostSimulator: () -> Unit,
     content: @Composable () -> Unit
 ) {
-
     // State for the left panel width
     var leftPanelWidth by remember { mutableStateOf(appState.panelWidth) }
     // State for tracking if user is currently resizing
     var isResizing by remember { mutableStateOf(false) }
 
-
-    Surface(modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colors.surface)) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colors.background
+    ) {
         Row(modifier = Modifier.fillMaxSize()) {
             // Left panel - Available channels
-            Box(
+            Card(
                 modifier = Modifier
                     .width(leftPanelWidth)
                     .fillMaxHeight()
-                    .padding(8.dp)
-                    .border(1.dp, Color.Gray)
+                    .padding(12.dp),
+                elevation = 2.dp,
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Column(modifier = Modifier.padding(8.dp)) {
-                    Text("Available channels")
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Header
+                    Text(
+                        "Available Channels",
+                        style = MaterialTheme.typography.h6,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                    // List of configs
-                    Column(
+                    // List of configs in scrollable container
+                    Card(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
-                            .border(1.dp, Color.LightGray)
-                            .padding(4.dp)
+                            .fillMaxWidth(),
+                        elevation = 0.dp,
+                        backgroundColor = MaterialTheme.colors.surface.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
-                        appState.configList.value.forEachIndexed { index, config ->
-                            Button(
-                                onClick = { onSelectConfig(index) },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = if (index == appState.selectedConfigIndex) MaterialTheme.colors.primary else Color.Black.copy(alpha = 0.8f)
-                                )
-                            ) {
-                                Text(config.name)
+                        val scrollState = rememberScrollState()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                                .verticalScroll(scrollState),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            appState.configList.value.forEachIndexed { index, config ->
+                                val isSelected = index == appState.selectedConfigIndex
+                                Button(
+                                    onClick = { onSelectConfig(index) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    elevation = ButtonDefaults.elevation(
+                                        defaultElevation = if (isSelected) 4.dp else 0.dp,
+                                        pressedElevation = 4.dp
+                                    ),
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = if (isSelected) MaterialTheme.colors.primary else MaterialTheme.colors.surface,
+                                        contentColor = if (isSelected) Color.White else MaterialTheme.colors.onSurface
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = "Selected",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
+                                        Text(
+                                            config.name,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
 
-                    // Buttons for config management
+                    // Config management buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(onClick = { onAddConfig() }) {
-                            Text("Add new")
+                        Button(
+                            onClick = { onAddConfig() },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colors.primary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add new",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Add New")
                         }
 
-                        Button(onClick = { onDeleteConfig() }) {
+                        Button(
+                            onClick = { onDeleteConfig() },
+                            modifier = Modifier.weight(1f),
+                            enabled = appState.selectedConfigIndex >= 0,
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colors.error
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text("Delete")
                         }
                     }
 
                     Button(
                         onClick = { onSaveAllConfigs() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.primary
+                        )
                     ) {
-                        Text("Save all")
+                        Icon(
+                            imageVector = Icons.Default.Save,
+                            contentDescription = "Save All",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save All")
                     }
 
-                    // Monitor and Host Simulator buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Button(
-                            onClick = { onOpenMonitor() },
-                            enabled = appState.currentConfig != null
-                        ) {
-                            Text("Monitor")
-                        }
+                    Divider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = BorderLight
+                    )
 
-                        Button(
-                            onClick = { onOpenHostSimulator() },
-                            enabled = appState.currentConfig != null
-                        ) {
-                            Text("Host Simulator")
-                        }
+                    // Monitor and Host Simulator buttons
+                    Text(
+                        "Tools",
+                        style = MaterialTheme.typography.subtitle1,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Button(
+                        onClick = { onOpenMonitor() },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = appState.currentConfig != null,
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.primaryVariant
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MonitorHeart,
+                            contentDescription = "Monitor",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Monitor")
+                    }
+
+                    Button(
+                        onClick = { onOpenHostSimulator() },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = appState.currentConfig != null,
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.secondary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Router,
+                            contentDescription = "Host Simulator",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Host Simulator")
                     }
                 }
             }
@@ -151,7 +238,7 @@ fun TabContainer(
                 modifier = Modifier
                     .width(8.dp)
                     .fillMaxHeight()
-                    .background(Color.LightGray)
+                    .background(Color.Transparent)
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragStart = { isResizing = true },
@@ -161,7 +248,7 @@ fun TabContainer(
                                 change.consume()
                                 // Update the width based on drag
                                 leftPanelWidth = (leftPanelWidth + dragAmount.x.toDp())
-                                    .coerceIn(300.dp, 800.dp) // Set min and max width
+                                    .coerceIn(250.dp, 400.dp) // Set min and max width
                                 appState.panelWidth = leftPanelWidth
                             }
                         )
@@ -174,80 +261,133 @@ fun TabContainer(
                         .align(Alignment.Center)
                         .width(4.dp)
                         .height(32.dp)
+                        .shadow(1.dp, RoundedCornerShape(2.dp))
                         .background(
-                            color = if (isResizing) MaterialTheme.colors.primary else Color.Gray,
+                            color = if (isResizing) MaterialTheme.colors.primary else BorderLight,
                             shape = RoundedCornerShape(2.dp)
                         )
                 )
             }
-            if(appState.configList.value.isNotEmpty()){
-                // Right panel - Configuration
-                Box(
+
+            // Right panel - Configuration
+            if(appState.configList.value.isNotEmpty()) {
+                Card(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .padding(8.dp)
-                        .border(1.dp, Color.Gray)
+                        .padding(12.dp),
+                    elevation = 2.dp,
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text("Configuration", style = MaterialTheme.typography.h6)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "Configuration: ${appState.currentConfig?.name}",
+                            style = MaterialTheme.typography.h6,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
 
-                        // Tab selection
-                        TabRow(selectedTabIndex = selectedTab) {
+                        // Tab selection with improved styling
+                        TabRow(
+                            selectedTabIndex = selectedTab,
+                            backgroundColor = MaterialTheme.colors.surface,
+                            contentColor = MaterialTheme.colors.primary,
+                            divider = {
+                                Divider(
+                                    color = BorderLight,
+                                    thickness = 1.dp
+                                )
+                            }
+                        ) {
                             tabTitles.forEachIndexed { index, title ->
                                 Tab(
                                     selected = selectedTab == index,
                                     onClick = { onTabSelected(index) },
-                                    text = { Text(title) }
+                                    text = {
+                                        Text(
+                                            title,
+                                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    selectedContentColor = MaterialTheme.colors.primary,
+                                    unselectedContentColor = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                                 )
                             }
                         }
 
-                        // Tab content
+                        // Tab content with scrolling
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
+                                .padding(top = 16.dp)
                         ) {
-                            BoxWithConstraints(
-                                modifier = Modifier.fillMaxSize()
+                            val scrollState = rememberScrollState()
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(scrollState)
                             ) {
-                                val scrollState = rememberScrollState()
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .verticalScroll(scrollState)
-                                ) {
-                                    content()
-                                    // Add some bottom padding to ensure content isn't cut off
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                }
-
-                                // Optional: Add a vertical scrollbar
-                                VerticalScrollbar(
-                                    modifier = Modifier.align(Alignment.CenterEnd),
-                                    adapter = rememberScrollbarAdapter(scrollState)
-                                )
+                                content()
                             }
                         }
                     }
                 }
-            }else{
-                // Right panel - Empty when no config selected
-                Box(
+            } else {
+                // Empty state when no config selected
+                Card(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .padding(8.dp)
-                        .border(1.dp, Color.Gray),
-                    contentAlignment = Alignment.Center
+                        .padding(12.dp),
+                    elevation = 2.dp,
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Select a configuration or create a new one")
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colors.primary.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "No Configuration Selected",
+                                style = MaterialTheme.typography.h6,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Create a new configuration or select an existing one",
+                                style = MaterialTheme.typography.body1,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = { onAddConfig() },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = MaterialTheme.colors.primary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Add",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Create New Configuration")
+                            }
+                        }
+                    }
                 }
             }
-
-
         }
     }
 }
