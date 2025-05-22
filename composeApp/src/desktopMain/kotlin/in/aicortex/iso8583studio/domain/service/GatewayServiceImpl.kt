@@ -613,6 +613,7 @@ class GatewayServiceImpl : GatewayService {
                     ConnectionType.TCP_IP -> processTcpIp()
                     ConnectionType.COM -> processRs232()
                     ConnectionType.DIAL_UP -> processRs232()
+                    ConnectionType.REST -> processRest()
                 }
             } catch (e: Exception) {
                 // Handle errors
@@ -713,6 +714,12 @@ class GatewayServiceImpl : GatewayService {
                 }
             }
         }
+    }
+    /**
+     * Process REST connections
+     */
+    private suspend fun processRest() {
+        // Implement REST processing logic here
     }
 
     /**

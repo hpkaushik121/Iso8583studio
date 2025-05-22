@@ -72,6 +72,7 @@ data class GatewayConfig(
     var keyExpireAfter: Int = 0,
     var addNewClientWhenLoadKEK: Boolean = false,
     var advancedOptions: AdvancedOptions? = null,
+    var restConfiguration: RestConfiguration? = null,
     private var _logFileName: String = "logs.txt",
     @XmlKeyName(value = "destinationConnectionType") var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
     @XmlKeyName(value = "serverConnectionType") var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,

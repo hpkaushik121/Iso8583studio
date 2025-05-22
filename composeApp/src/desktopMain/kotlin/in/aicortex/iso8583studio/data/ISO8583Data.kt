@@ -7,6 +7,7 @@ import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.ParsingFeature
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.domain.utils.PlaceholderProcessor
 import kotlinx.serialization.Serializable
 import java.io.InputStream
 import java.net.Socket
@@ -693,13 +694,16 @@ data class Iso8583Data(
 }
 
 fun BitAttribute.updateBit(index: Int, dataString: String) {
+
     var value = dataString
     when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
             length = if (lengthAttribute != BitLength.FIXED) {
                 value.length
             } else {
-                value = value.padStart(maxLength,'0')
+                if(!PlaceholderProcessor.holdersList.contains(dataString)){
+                    value = value.padStart(maxLength,'0')
+                }
                 maxLength
             }
             data = IsoUtil.stringToAsc(value)
@@ -709,7 +713,9 @@ fun BitAttribute.updateBit(index: Int, dataString: String) {
             length = if (lengthAttribute != BitLength.FIXED) {
                 value.length
             } else {
-                value = value.padStart(maxLength,'0')
+                if(!PlaceholderProcessor.holdersList.contains(dataString)){
+                    value = value.padStart(maxLength,'0')
+                }
                 maxLength
             }
             data = IsoUtil.stringToBCD(value, (length + 1) / 2)
@@ -719,7 +725,9 @@ fun BitAttribute.updateBit(index: Int, dataString: String) {
             length = if (lengthAttribute != BitLength.FIXED) {
                 (value.length + 1) / 2
             } else {
-                value = value.padStart(maxLength,'0')
+                if(!PlaceholderProcessor.holdersList.contains(dataString)){
+                    value = value.padStart(maxLength,'0')
+                }
                 maxLength
             }
             data = IsoUtil.stringToBCD(value, length)

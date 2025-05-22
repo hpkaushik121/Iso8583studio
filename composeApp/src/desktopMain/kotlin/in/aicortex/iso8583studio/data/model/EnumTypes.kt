@@ -30,7 +30,8 @@ enum class TransmissionType {
 enum class ConnectionType {
     TCP_IP,
     COM,
-    DIAL_UP
+    DIAL_UP,
+    REST
 }
 
 /**
@@ -525,3 +526,22 @@ enum class CKM(val value: Long) {
         fun fromValue(value: Long): CKM? = values().find { it.value == value }
     }
 }
+@Serializable
+data class HttpHeader(
+    val name: String,
+    val value: String
+)
+@Serializable
+enum class HttpMethod {
+    GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+}
+
+@Serializable
+data class RestConfiguration(
+    val url: String = "",
+    val method: HttpMethod = HttpMethod.POST,
+    val headers: List<HttpHeader> = emptyList(),
+    val contentType: String = "application/json",
+    val timeout: Int = 30,
+    val retryCount: Int = 3
+)

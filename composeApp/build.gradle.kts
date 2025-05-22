@@ -40,6 +40,8 @@ kotlin {
             implementation(libs.material.icons)
             implementation(libs.material)
             implementation(libs.serial.comms)
+            implementation("org.jetbrains.kotlin:kotlin-script-util:1.8.22")
+            implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:2.1.21")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

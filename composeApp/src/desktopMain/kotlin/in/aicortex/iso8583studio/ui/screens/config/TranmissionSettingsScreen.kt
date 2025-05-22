@@ -1,24 +1,31 @@
 package `in`.aicortex.iso8583studio.ui.screens.config
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.data.model.GatewayType
+import `in`.aicortex.iso8583studio.data.model.HttpMethod
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
+import `in`.aicortex.iso8583studio.data.model.RestConfiguration
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
+
 
 /**
  * Transmission Settings tab - Second tab in the Security Gateway configuration
- * Contains network and connection settings
+ * Contains network and connection settings including REST API support
  */
 @Composable
 fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Unit) {
@@ -73,168 +80,227 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
             }
         }
 
-        // Incoming Connection section
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        // Incoming Connection section (only for SERVER and PROXY)
+        if (config.gatewayType == GatewayType.SERVER || config.gatewayType == GatewayType.PROXY) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = 2.dp,
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    "Incoming Connection",
-                    style = MaterialTheme.typography.h6,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Connection type selection
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    RadioButton(
-                        selected = config.serverConnectionType == ConnectionType.TCP_IP,
-                        onClick = {
-                            onConfigChange(config.copy(serverConnectionType = ConnectionType.TCP_IP))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
-                        )
+                    Text(
+                        "Incoming Connection",
+                        style = MaterialTheme.typography.h6,
+                        fontWeight = FontWeight.Bold
                     )
-                    Text("TCP/IP", modifier = Modifier.padding(start = 8.dp))
 
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    RadioButton(
-                        selected = config.serverConnectionType == ConnectionType.COM,
-                        onClick = {
-                            onConfigChange(config.copy(serverConnectionType = ConnectionType.COM))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
+                    // Connection type selection
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = config.serverConnectionType == ConnectionType.TCP_IP,
+                            onClick = {
+                                onConfigChange(config.copy(serverConnectionType = ConnectionType.TCP_IP))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
                         )
-                    )
-                    Text("RS232", modifier = Modifier.padding(start = 8.dp))
+                        Text("TCP/IP", modifier = Modifier.padding(start = 8.dp))
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
-                    RadioButton(
-                        selected = config.serverConnectionType == ConnectionType.DIAL_UP,
-                        onClick = {
-                            onConfigChange(config.copy(serverConnectionType = ConnectionType.DIAL_UP))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
+                        RadioButton(
+                            selected = config.serverConnectionType == ConnectionType.COM,
+                            onClick = {
+                                onConfigChange(config.copy(serverConnectionType = ConnectionType.COM))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
                         )
-                    )
-                    Text("DIAL UP", modifier = Modifier.padding(start = 8.dp))
-                }
+                        Text("RS232", modifier = Modifier.padding(start = 8.dp))
 
-                // Connection type specific settings
-                when (config.serverConnectionType) {
-                    ConnectionType.TCP_IP -> {
-                        TcpIpSettings(
-                            address = config.serverAddress,
-                            port = config.serverPort.toString(),
-                            onAddressChange = { onConfigChange(config.copy(serverAddress = it)) },
-                            onPortChange = {
-                                val port = it.toIntOrNull() ?: config.serverPort
-                                onConfigChange(config.copy(serverPort = port))
-                            }
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        RadioButton(
+                            selected = config.serverConnectionType == ConnectionType.DIAL_UP,
+                            onClick = {
+                                onConfigChange(config.copy(serverConnectionType = ConnectionType.DIAL_UP))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
                         )
+                        Text("DIAL UP", modifier = Modifier.padding(start = 8.dp))
                     }
-                    ConnectionType.COM -> {
-                        ComSettings(
-                            comPort = config.serialPort,
-                            baudRate = config.baudRate,
-                            onComPortChange = { onConfigChange(config.copy(serialPort = it)) },
-                            onBaudRateChange = {
-                                onConfigChange(config.copy(baudRate = it))
-                            }
-                        )
-                    }
-                    ConnectionType.DIAL_UP -> {
-                        DialUpSettings(
-                            phoneNumber = config.dialupNumber,
-                            onPhoneNumberChange = { onConfigChange(config.copy(dialupNumber = it)) }
-                        )
+
+                    // Connection type specific settings
+                    when (config.serverConnectionType) {
+                        ConnectionType.TCP_IP -> {
+                            TcpIpSettings(
+                                address = config.serverAddress,
+                                port = config.serverPort.toString(),
+                                onAddressChange = { onConfigChange(config.copy(serverAddress = it)) },
+                                onPortChange = {
+                                    val port = it.toIntOrNull() ?: config.serverPort
+                                    onConfigChange(config.copy(serverPort = port))
+                                }
+                            )
+                        }
+
+                        ConnectionType.COM -> {
+                            ComSettings(
+                                comPort = config.serialPort,
+                                baudRate = config.baudRate,
+                                onComPortChange = { onConfigChange(config.copy(serialPort = it)) },
+                                onBaudRateChange = { onConfigChange(config.copy(baudRate = it)) }
+                            )
+                        }
+
+                        ConnectionType.DIAL_UP -> {
+                            DialUpSettings(
+                                phoneNumber = config.dialupNumber,
+                                onPhoneNumberChange = { onConfigChange(config.copy(dialupNumber = it)) }
+                            )
+                        }
+
+                        else -> { /* Handle other connection types if needed */
+                        }
                     }
                 }
             }
         }
 
-        // Outgoing Connection section
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        // Outgoing Connection section (only for PROXY and CLIENT)
+        if (config.gatewayType == GatewayType.PROXY || config.gatewayType == GatewayType.CLIENT) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = 2.dp,
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    "Outgoing Connection",
-                    style = MaterialTheme.typography.h6,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Connection type selection
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    RadioButton(
-                        selected = config.destinationConnectionType == ConnectionType.TCP_IP,
-                        onClick = {
-                            onConfigChange(config.copy(destinationConnectionType = ConnectionType.TCP_IP))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
-                        )
+                    Text(
+                        "Outgoing Connection",
+                        style = MaterialTheme.typography.h6,
+                        fontWeight = FontWeight.Bold
                     )
-                    Text("TCP/IP", modifier = Modifier.padding(start = 8.dp))
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    // Connection type selection with REST option
 
-                    RadioButton(
-                        selected = config.destinationConnectionType == ConnectionType.COM,
-                        onClick = {
-                            onConfigChange(config.copy(destinationConnectionType = ConnectionType.COM))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = config.destinationConnectionType == ConnectionType.TCP_IP,
+                            onClick = {
+                                onConfigChange(config.copy(destinationConnectionType = ConnectionType.TCP_IP))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
                         )
-                    )
-                    Text("RS232", modifier = Modifier.padding(start = 8.dp))
+                        Text("TCP/IP", modifier = Modifier.padding(start = 8.dp))
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
 
-                    RadioButton(
-                        selected = config.destinationConnectionType == ConnectionType.DIAL_UP,
-                        onClick = {
-                            onConfigChange(config.copy(destinationConnectionType = ConnectionType.DIAL_UP))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
+                        RadioButton(
+                            selected = config.destinationConnectionType == ConnectionType.COM,
+                            onClick = {
+                                onConfigChange(config.copy(destinationConnectionType = ConnectionType.COM))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
                         )
-                    )
-                    Text("DIAL UP", modifier = Modifier.padding(start = 8.dp))
-                }
+                        Text("RS232", modifier = Modifier.padding(start = 8.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        RadioButton(
+                            selected = config.destinationConnectionType == ConnectionType.DIAL_UP,
+                            onClick = {
+                                onConfigChange(config.copy(destinationConnectionType = ConnectionType.DIAL_UP))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
+                        )
+                        Text("DIAL UP", modifier = Modifier.padding(start = 8.dp))
 
-                // Connection type specific settings
-                if (config.destinationConnectionType == ConnectionType.TCP_IP) {
-                    TcpIpSettings(
-                        address = config.destinationServer,
-                        port = config.destinationPort.toString(),
-                        onAddressChange = { onConfigChange(config.copy(destinationServer = it)) },
-                        onPortChange = {
-                            val port = it.toIntOrNull() ?: config.destinationPort
-                            onConfigChange(config.copy(destinationPort = port))
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        RadioButton(
+                            selected = config.destinationConnectionType == ConnectionType.REST,
+                            onClick = {
+                                onConfigChange(config.copy(destinationConnectionType = ConnectionType.REST))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
+                        )
+                        Text("REST API", modifier = Modifier.padding(start = 8.dp))
+                    }
+
+
+                    // Connection type specific settings
+                    when (config.destinationConnectionType) {
+                        ConnectionType.TCP_IP -> {
+                            TcpIpSettings(
+                                address = config.destinationServer,
+                                port = config.destinationPort.toString(),
+                                onAddressChange = { onConfigChange(config.copy(destinationServer = it)) },
+                                onPortChange = {
+                                    val port = it.toIntOrNull() ?: config.destinationPort
+                                    onConfigChange(config.copy(destinationPort = port))
+                                }
+                            )
                         }
-                    )
+
+                        ConnectionType.COM -> {
+//                            ComSettings(
+//                                comPort = config.destinationSerialPort ?: "",
+//                                baudRate = config.destinationBaudRate ?: "",
+//                                onComPortChange = {
+//                                    // You'll need to add destinationSerialPort to GatewayConfig
+//                                    // onConfigChange(config.copy(destinationSerialPort = it))
+//                                },
+//                                onBaudRateChange = {
+//                                    // You'll need to add destinationBaudRate to GatewayConfig
+//                                    // onConfigChange(config.copy(destinationBaudRate = it))
+//                                }
+//                            )
+                        }
+
+                        ConnectionType.DIAL_UP -> {
+//                            DialUpSettings(
+//                                phoneNumber = config.destinationDialupNumber ?: "",
+//                                onPhoneNumberChange = {
+//                                    // You'll need to add destinationDialupNumber to GatewayConfig
+//                                    // onConfigChange(config.copy(destinationDialupNumber = it))
+//                                }
+//                            )
+                        }
+
+                        // Uncomment when REST is added to ConnectionType enum
+
+                        ConnectionType.REST -> {
+                            RestSettings(
+                                restConfig = config.restConfiguration ?: RestConfiguration(),
+                                onRestConfigChange = { newRestConfig ->
+                                    onConfigChange(config.copy(restConfiguration = newRestConfig))
+                                }
+                            )
+                        }
+
+                    }
                 }
             }
         }
@@ -370,6 +436,100 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
     }
 }
 
+// REST Settings Component
+@Composable
+private fun RestSettings(
+    restConfig: RestConfiguration,
+    onRestConfigChange: (RestConfiguration) -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colors.surface.copy(alpha = 0.7f),
+        border = ButtonDefaults.outlinedBorder
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                "REST API Configuration",
+                style = MaterialTheme.typography.subtitle1,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colors.primary
+            )
+
+            // URL Configuration
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "URL",
+                    modifier = Modifier.width(100.dp),
+                    style = MaterialTheme.typography.body1,
+                    fontWeight = FontWeight.Medium
+                )
+                OutlinedTextField(
+                    value = restConfig.url,
+                    onValueChange = { onRestConfigChange(restConfig.copy(url = it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("https://api.example.com/endpoint") },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = MaterialTheme.colors.primary,
+                        cursorColor = MaterialTheme.colors.primary
+                    )
+                )
+            }
+
+            // HTTP Method Selection
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "HTTP Method",
+                    modifier = Modifier.width(100.dp),
+                    style = MaterialTheme.typography.body1,
+                    fontWeight = FontWeight.Medium
+                )
+
+                var methodExpanded by remember { mutableStateOf(false) }
+
+                Box {
+                    OutlinedButton(
+                        onClick = { methodExpanded = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            backgroundColor = Color.Transparent,
+                            contentColor = MaterialTheme.colors.onSurface
+                        )
+                    ) {
+                        Text(restConfig.method.name)
+                    }
+
+                    DropdownMenu(
+                        expanded = methodExpanded,
+                        onDismissRequest = { methodExpanded = false }
+                    ) {
+                        HttpMethod.values().forEach { method ->
+                            DropdownMenuItem(onClick = {
+                                onRestConfigChange(restConfig.copy(method = method))
+                                methodExpanded = false
+                            }) {
+                                Text(method.name)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper Components
 @Composable
 private fun TcpIpSettings(
     address: String,
@@ -464,7 +624,8 @@ private fun ComSettings(
                 )
 
                 var expanded by remember { mutableStateOf(false) }
-                val comPorts = listOf("COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9")
+                val comPorts =
+                    listOf("COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9")
 
                 Box {
                     OutlinedButton(
@@ -504,7 +665,8 @@ private fun ComSettings(
                 )
 
                 var expanded by remember { mutableStateOf(false) }
-                val baudRates = listOf("115200", "9600", "14400", "19200", "28800", "38400", "57600")
+                val baudRates =
+                    listOf("115200", "9600", "14400", "19200", "28800", "38400", "57600")
 
                 Box {
                     OutlinedButton(
@@ -514,7 +676,7 @@ private fun ComSettings(
                             contentColor = MaterialTheme.colors.onSurface
                         )
                     ) {
-                        Text(baudRate)
+                        Text(baudRate.ifEmpty { "Select baud rate" })
                     }
 
                     DropdownMenu(
