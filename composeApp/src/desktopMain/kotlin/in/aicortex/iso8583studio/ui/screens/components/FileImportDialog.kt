@@ -36,6 +36,7 @@ import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -142,7 +143,7 @@ fun FileImportDialog(
                     ImportOptionsSection(
                         importConfig = importConfig,
                         onConfigChange = { importConfig = it },
-                        hasExistingConfig = true
+                        hasExistingConfig = gatewayConfig.formatMappingConfig.fieldMappings.isNotEmpty()
                     )
                 }
 
@@ -588,9 +589,9 @@ private fun ActionButtonsSection(
         Button(
             onClick = onImport,
             modifier = Modifier.weight(1f),
-            enabled = !isImporting &&
+            enabled = (!isImporting &&
                     importConfig.validationState is ImportValidationState.Valid &&
-                    (importConfig.overwriteExisting || true), // Adjust logic based on requirements
+                    importConfig.overwriteExisting ), // Adjust logic based on requirements
             shape = RoundedCornerShape(8.dp)
         ) {
             if (isImporting) {

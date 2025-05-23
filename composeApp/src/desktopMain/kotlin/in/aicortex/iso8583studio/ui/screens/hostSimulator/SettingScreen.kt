@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,10 +26,13 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -338,11 +343,14 @@ fun ISO8583SettingsScreen(
                         if (showAddBitSpecificDialog) {
                             AddBitSpecificDialog(
                                 gw = gw,
-                                onSave = { bit ->
-                                    selectedTransaction!!.fields!![bit.bitNumber.toInt().absoluteValue-1].updateBit( "")
-                                    fieldAvailableStates["${bit.bitNumber.toInt().absoluteValue-1}"] =
-                                        true
-                                    showAddBitSpecificDialog = false
+                                onSave = { bitNumbersAdded ->
+                                    bitNumbersAdded.forEach { bit ->
+                                        selectedTransaction!!.fields!![bit.bitNumber.toInt().absoluteValue-1].updateBit( "")
+                                        fieldAvailableStates["${bit.bitNumber.toInt().absoluteValue-1}"] =
+                                            true
+                                        showAddBitSpecificDialog = false
+                                    }
+
                                 },
                                 onDismiss = {
                                     showAddBitSpecificDialog = false
@@ -673,35 +681,182 @@ private fun DeleteConfirmationDialog(
 
 @Composable
 private fun AddBitSpecificDialog(
-    onSave: (BitSpecific) -> Unit,
+    onSave: (List<BitSpecific>) -> Unit, // Changed to accept a list
     onDismiss: () -> Unit,
     gw: GatewayConfig
 ) {
-    var bitSpecific by remember { mutableStateOf<BitSpecific?>(null) }
+    // Changed to support multiple selections
+    var selectedBitSpecifics by remember { mutableStateOf(setOf<BitSpecific>()) }
+    var multiSelectMode by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Filter bits based on search query
+    val filteredBits = remember(searchQuery, gw.bitTemplate) {
+        if (searchQuery.isBlank()) {
+            gw.bitTemplate
+        } else {
+            gw.bitTemplate.filter { bit ->
+                // Search in bit number, description, and data type
+                bit.bitNumber.toString().contains(searchQuery, ignoreCase = true) ||
+                        bit.description.contains(searchQuery, ignoreCase = true) == true ||
+                        bit.bitType.name.contains(searchQuery, ignoreCase = true) == true
+            }.toTypedArray()
+        }
+    }
+
     AlertDialog(
         containerColor = MaterialTheme.colors.surface,
         textContentColor = MaterialTheme.colors.onSurface,
         titleContentColor = MaterialTheme.colors.onSurface,
         onDismissRequest = onDismiss,
-        title = { Text("Add Field") },
+        title = {
+            Column {
+                Text("Add Field${if (selectedBitSpecifics.size > 1) "s" else ""}")
+                if (selectedBitSpecifics.isNotEmpty()) {
+                    Text(
+                        text = "${selectedBitSpecifics.size} field${if (selectedBitSpecifics.size > 1) "s" else ""} selected",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.primary
+                    )
+                }
+
+                // Multi-select toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Multi-select mode",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                    )
+                    androidx.compose.material.Switch(
+                        checked = multiSelectMode,
+                        onCheckedChange = {
+                            multiSelectMode = it
+                            if (!it) {
+                                // When turning off multi-select, keep only the first selected item
+                                selectedBitSpecifics = selectedBitSpecifics.take(1).toSet()
+                            }
+                        },
+                        colors = androidx.compose.material.SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colors.primary
+                        )
+                    )
+                }
+            }
+        },
         text = {
-            LazyColumn {
-                items(gw.bitTemplate.size) { index ->
-                    val bit = gw.bitTemplate[index]
-                    Column(
-                        modifier = Modifier
-                            .background(
-                                color = if (bitSpecific?.bitNumber == bit.bitNumber) {
-                                    MaterialTheme.colors.primary
-                                } else {
-                                    MaterialTheme.colors.surface
-                                }
-                            )
-                    ) {
+            Column {
+                // Search bar
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    placeholder = { Text("Search by bit number, description, or type...") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear search",
+                                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    colors = androidx.compose.material.TextFieldDefaults.textFieldColors(
+                        backgroundColor = MaterialTheme.colors.surface,
+                        focusedIndicatorColor = MaterialTheme.colors.primary
+                    )
+                )
+
+                // Results count
+                if (searchQuery.isNotEmpty()) {
+                    Text(
+                        text = "${filteredBits.size} of ${gw.bitTemplate.size} fields found",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
+                // Fields list
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(filteredBits.size) { index ->
+                        val bit = filteredBits[index]
+                        val isSelected = selectedBitSpecifics.contains(bit)
+
                         BitPropertyRow(
-                            bit = bit
-                        ) {
-                            bitSpecific = bit
+                            bit = bit,
+                            isSelected = isSelected,
+                            multiSelectMode = multiSelectMode,
+                            searchQuery = searchQuery, // Pass search query for highlighting
+                            onClick = {
+                                selectedBitSpecifics = if (multiSelectMode) {
+                                    // Multi-select mode: toggle selection
+                                    if (isSelected) {
+                                        selectedBitSpecifics - bit
+                                    } else {
+                                        selectedBitSpecifics + bit
+                                    }
+                                } else {
+                                    // Single select mode: replace selection
+                                    if (isSelected) {
+                                        emptySet() // Deselect if already selected
+                                    } else {
+                                        setOf(bit) // Select only this item
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    // Show message when no results found
+                    if (filteredBits.isEmpty() && searchQuery.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                                    )
+                                    Text(
+                                        text = "No fields found",
+                                        style = MaterialTheme.typography.h6,
+                                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                    )
+                                    Text(
+                                        text = "Try adjusting your search terms",
+                                        style = MaterialTheme.typography.body2,
+                                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -710,10 +865,13 @@ private fun AddBitSpecificDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    bitSpecific?.let {  onSave(it)}
-                }
+                    if (selectedBitSpecifics.isNotEmpty()) {
+                        onSave(selectedBitSpecifics.toList())
+                    }
+                },
+                enabled = selectedBitSpecifics.isNotEmpty()
             ) {
-                Text("Add")
+                Text("Add ${if (selectedBitSpecifics.size > 1) "${selectedBitSpecifics.size} Fields" else "Field"}")
             }
         },
         dismissButton = {
@@ -722,6 +880,148 @@ private fun AddBitSpecificDialog(
             }
         }
     )
+}
+
+@Composable
+private fun BitPropertyRow(
+    bit: BitSpecific,
+    isSelected: Boolean = false,
+    multiSelectMode: Boolean = false,
+    searchQuery: String = "",
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .background(
+                if (isSelected) MaterialTheme.colors.primary.copy(alpha = 0.1f)
+                else Color.Transparent
+            )
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Selection indicator
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(
+                    color = if (isSelected) {
+                        MaterialTheme.colors.primary
+                    } else {
+                        MaterialTheme.colors.onSurface.copy(alpha = 0.2f)
+                    },
+                    shape = if (multiSelectMode) RoundedCornerShape(4.dp) else androidx.compose.foundation.shape.CircleShape
+                )
+                .padding(2.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Text(
+                    text = "✓",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            // Highlighted bit number
+            HighlightedText(
+                text = "Bit ${bit.bitNumber}",
+                searchQuery = searchQuery,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface
+            )
+
+            // Highlighted description
+            HighlightedText(
+                text = bit.description ?: "No description",
+                searchQuery = searchQuery,
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+            )
+
+            // Highlighted type and length info
+            HighlightedText(
+                text = "Type: ${bit.bitType.name}, Length: ${bit.maxLength}",
+                searchQuery = searchQuery,
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+            )
+        }
+
+        // Visual indicator for multi-select mode
+        if (multiSelectMode) {
+            Icon(
+                imageVector = Icons.Default.CheckBox,
+                contentDescription = "Multi-select enabled",
+                tint = MaterialTheme.colors.primary.copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HighlightedText(
+    text: String,
+    searchQuery: String,
+    color: Color = MaterialTheme.colors.onSurface,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.body2,
+    fontWeight: FontWeight? = null
+) {
+    if (searchQuery.isBlank()) {
+        Text(
+            text = text,
+            color = color,
+            style = style,
+            fontWeight = fontWeight
+        )
+    } else {
+        val startIndex = text.indexOf(searchQuery, ignoreCase = true)
+        if (startIndex >= 0) {
+            val endIndex = startIndex + searchQuery.length
+            val beforeMatch = text.substring(0, startIndex)
+            val match = text.substring(startIndex, endIndex)
+            val afterMatch = text.substring(endIndex)
+
+            Row {
+                Text(
+                    text = beforeMatch,
+                    color = color,
+                    style = style,
+                    fontWeight = fontWeight
+                )
+                Text(
+                    text = match,
+                    color = MaterialTheme.colors.primary,
+                    style = style,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.background(
+                        MaterialTheme.colors.primary.copy(alpha = 0.1f),
+                        RoundedCornerShape(2.dp)
+                    ).padding(horizontal = 2.dp)
+                )
+                Text(
+                    text = afterMatch,
+                    color = color,
+                    style = style,
+                    fontWeight = fontWeight
+                )
+            }
+        } else {
+            Text(
+                text = text,
+                color = color,
+                style = style,
+                fontWeight = fontWeight
+            )
+        }
+    }
 }
 
 @Composable

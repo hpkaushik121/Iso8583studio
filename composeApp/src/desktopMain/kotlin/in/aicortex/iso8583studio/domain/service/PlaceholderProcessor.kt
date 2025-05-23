@@ -40,7 +40,10 @@ object PlaceholderProcessor {
                     requestTransaction = requestTransaction?.getOrNull(index)
                 )
 
-                fieldCopy.updateBit(processedValue)
+                processedValue?.let { fieldCopy.updateBit(it) } ?: run {
+                    fieldCopy.isSet = false
+                    fieldCopy.data = null
+                }
             } else {
                 fieldCopy.isSet = false
                 fieldCopy.data = null
@@ -59,7 +62,7 @@ object PlaceholderProcessor {
         fieldIndex: Int,
         maxLength: Int,
         requestTransaction: BitAttribute?
-    ): String {
+    ): String? {
         return when {
             originalValue.equals("[SV]", ignoreCase = true) -> {
                 processSourceValue(fieldIndex, requestTransaction)
@@ -80,9 +83,9 @@ object PlaceholderProcessor {
     private fun processSourceValue(
         fieldIndex: Int,
         requestTransaction: BitAttribute?
-    ): String {
+    ): String? {
         if (requestTransaction?.data == null) {
-            return "[SV]" // Return original if no request available
+            return null // Return original if no request available
         }
 
         val requestFields = requestTransaction.data

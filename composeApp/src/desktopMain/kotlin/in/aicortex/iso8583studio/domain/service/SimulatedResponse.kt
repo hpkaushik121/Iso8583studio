@@ -15,7 +15,7 @@ class SimulatedResponse(
         val transaction = config.simulatedTransactions.firstOrNull {
             it.mti == dataRequest?.second?.messageType && (
                     it.proCode == dataRequest.second?.getValue(
-                        3
+                       2
                     ) || it.proCode == "*"
                     )
         }?.copy()

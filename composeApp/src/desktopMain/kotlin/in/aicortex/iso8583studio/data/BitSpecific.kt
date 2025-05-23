@@ -50,7 +50,7 @@ private val descriptionMap = mapOf<Int, String>(
     40 to "Service restriction code",
     41 to "Card acceptor terminal identification",
     42 to "Card acceptor identification code",
-    43 to "Card acceptor name/location (1–25 card acceptor name or automated teller machine (ATM) location, 26-38 city name, 39-40 country code)",
+    43 to "Card acceptor name/location",
     44 to "Additional response data",
     45 to "Track 1 data",
     46 to "Additional data (ISO)",

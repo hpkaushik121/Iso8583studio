@@ -82,56 +82,47 @@ fun FileExportComponent(
                 .fillMaxWidth()
                 .height(400.dp)
                 .clip(shape = RoundedCornerShape(8.dp))
-                .verticalScroll(scrollState),
+                ,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // Main content area
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+            // Left Panel - Export Settings
+            Card(
+                modifier = Modifier
+                    .width(700.dp)
+                    .heightIn(min = 400.dp),
+                elevation = 8.dp,
+                shape = RoundedCornerShape(12.dp)
             ) {
-                // Left Panel - Export Settings
-                Card(
+                Column(
                     modifier = Modifier
-                        .width(500.dp)
-                        .heightIn(min = 300.dp),
-                    elevation = 8.dp,
-                    shape = RoundedCornerShape(12.dp)
+                        .fillMaxSize()
+                        .padding(20.dp).verticalScroll(scrollState)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp)
-                    ) {
-                        ExportSettingsPanel(
-                            exportConfig = exportConfig,
-                            onConfigChange = { exportConfig = it },
-                            bitTemplates = bitTemplates,
-                            onExportClick = {
-                                coroutineScope.launch {
-                                    isExporting = true
-                                    exportStatus = null
-                                    try {
-                                        val result = performExport(exportConfig, bitTemplates)
-                                        exportStatus = "Export successful: $result"
-                                        onExportComplete(result)
-                                    } catch (e: Exception) {
-                                        exportStatus = "Export failed: ${e.message}"
-                                    } finally {
-                                        isExporting = false
-                                    }
+                    ExportSettingsPanel(
+                        exportConfig = exportConfig,
+                        onConfigChange = { exportConfig = it },
+                        bitTemplates = bitTemplates,
+                        onExportClick = {
+                            coroutineScope.launch {
+                                isExporting = true
+                                exportStatus = null
+                                try {
+                                    val result = performExport(exportConfig, bitTemplates)
+                                    exportStatus = "Export successful: $result"
+                                    onExportComplete(result)
+                                } catch (e: Exception) {
+                                    exportStatus = "Export failed: ${e.message}"
+                                } finally {
+                                    isExporting = false
                                 }
-                            },
-                            isExporting = isExporting,
-                            exportButtonScale = exportButtonScale
-                        )
-                    }
+                            }
+                        },
+                        isExporting = isExporting,
+                        exportButtonScale = exportButtonScale
+                    )
                 }
-
             }
-
 
             // Status Bar with scale animation
             if(exportStatus != null) {
@@ -417,7 +408,7 @@ private fun generateJsonConfig(bitTemplates: Array<BitSpecific>, config: ExportC
         val comment = if (config.includeComments) " # ${bit.description}" else ""
 
         """$indent"$fieldNum": {
-${indent}  "key": "field$fieldNum.value"
+${indent}  "key": "field$fieldNum"
 ${indent}}$comment"""
     }
 
