@@ -9,16 +9,17 @@ A professional desktop application for ISO8583 financial transaction processing,
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [User Interface](#user-interface)
-- [Advanced Features](#advanced-features)
-- [API Reference](#api-reference)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+- [Overview](#-overview)
+- [Features](#-features)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Configuration](#-configuration)
+- [User Interface](#-user-interface)
+- [Advanced Features](#-advanced-features)
+- [API Reference](#-api-reference)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+
 
 ## 🎯 Overview
 
