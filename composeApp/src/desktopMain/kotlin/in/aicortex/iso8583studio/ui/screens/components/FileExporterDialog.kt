@@ -80,9 +80,8 @@ fun FileExportComponent(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .height(400.dp)
-                .clip(shape = RoundedCornerShape(8.dp))
-                ,
+                .height(700.dp)
+                .clip(shape = RoundedCornerShape(8.dp)),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
@@ -90,70 +89,103 @@ fun FileExportComponent(
             Card(
                 modifier = Modifier
                     .width(700.dp)
-                    .heightIn(min = 400.dp),
+                    .heightIn(min = 600.dp),
                 elevation = 8.dp,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(20.dp).verticalScroll(scrollState)
+                        .padding(20.dp)
                 ) {
                     ExportSettingsPanel(
                         exportConfig = exportConfig,
                         onConfigChange = { exportConfig = it },
                         bitTemplates = bitTemplates,
-                        onExportClick = {
-                            coroutineScope.launch {
-                                isExporting = true
-                                exportStatus = null
-                                try {
-                                    val result = performExport(exportConfig, bitTemplates)
-                                    exportStatus = "Export successful: $result"
-                                    onExportComplete(result)
-                                } catch (e: Exception) {
-                                    exportStatus = "Export failed: ${e.message}"
-                                } finally {
-                                    isExporting = false
-                                }
-                            }
-                        },
-                        isExporting = isExporting,
-                        exportButtonScale = exportButtonScale
                     )
-                }
-            }
 
-            // Status Bar with scale animation
-            if(exportStatus != null) {
-                Card(
-                    backgroundColor = if (exportStatus?.contains("successful") == true)
-                        Color.Green.copy(alpha = 0.1f) else Color.Red.copy(alpha = 0.1f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .scale(statusCardScale),
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
+
+                    // Status Bar with scale animation
+                    if (exportStatus != null) {
+                        Card(
+                            backgroundColor = if (exportStatus?.contains("successful") == true)
+                                Color.Green.copy(alpha = 0.1f) else Color.Red.copy(alpha = 0.1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .scale(statusCardScale),
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (exportStatus?.contains("successful") == true)
+                                        Icons.Default.CheckCircle else Icons.Default.Error,
+                                    contentDescription = null,
+                                    tint = if (exportStatus?.contains("successful") == true)
+                                        Color.Green.copy(alpha = 0.8f) else Color.Red.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = exportStatus ?: "",
+                                    color = if (exportStatus?.contains("successful") == true)
+                                        Color.Green.copy(alpha = 0.8f) else Color.Red.copy(alpha = 0.8f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Action Buttons
+
                     Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = if (exportStatus?.contains("successful") == true)
-                                Icons.Default.CheckCircle else Icons.Default.Error,
-                            contentDescription = null,
-                            tint = if (exportStatus?.contains("successful") == true)
-                                Color.Green.copy(alpha = 0.8f) else Color.Red.copy(alpha = 0.8f),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = exportStatus ?: "",
-                            color = if (exportStatus?.contains("successful") == true)
-                                Color.Green.copy(alpha = 0.8f) else Color.Red.copy(alpha = 0.8f),
-                            fontWeight = FontWeight.Medium
-                        )
+
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    isExporting = true
+                                    exportStatus = null
+                                    try {
+                                        val result = performExport(exportConfig, bitTemplates)
+                                        exportStatus = "Export successful: $result"
+                                        onExportComplete(result)
+                                    } catch (e: Exception) {
+                                        exportStatus = "Export failed: ${e.message}"
+                                    } finally {
+                                        isExporting = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .scale(exportButtonScale),
+                            enabled = !isExporting && exportConfig.fileName.isNotBlank(),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = ButtonDefaults.elevation(6.dp)
+                        ) {
+                            if (isExporting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colors.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.FileDownload, contentDescription = null)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (isExporting) "Exporting..." else "Export",
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -170,9 +202,6 @@ fun ExportSettingsPanel(
     exportConfig: ExportConfig,
     onConfigChange: (ExportConfig) -> Unit,
     bitTemplates: Array<BitSpecific>,
-    onExportClick: () -> Unit,
-    isExporting: Boolean,
-    exportButtonScale: Float = 1f
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -184,196 +213,166 @@ fun ExportSettingsPanel(
             color = MaterialTheme.colors.primary
         )
 
-        // Animated sections
 
         // Format Selection
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Export Format", fontWeight = FontWeight.Medium, fontSize = 16.sp)
-                var formatExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = formatExpanded,
-                    onExpandedChange = { formatExpanded = it }
-                ) {
-                    TextField(
-                        readOnly = true,
-                        value = exportConfig.format.displayName,
-                        onValueChange = { },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = formatExpanded)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = TextFieldDefaults.textFieldColors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = formatExpanded,
-                        onDismissRequest = { formatExpanded = false }
-                    ) {
-                        CodeFormat.values().forEach { format ->
-                            DropdownMenuItem(
-                                text = { Text(format.displayName) },
-                                onClick = {
-                                    onConfigChange(exportConfig.copy(format = format))
-                                    formatExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-
-        // File Name
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("File Name", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState())
+        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)){
+            Text("Export Format", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+            var formatExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = formatExpanded,
+                onExpandedChange = { formatExpanded = it }
+            ) {
                 TextField(
-                    value = exportConfig.fileName,
-                    onValueChange = { onConfigChange(exportConfig.copy(fileName = it)) },
+                    readOnly = true,
+                    value = exportConfig.format.displayName,
+                    onValueChange = { },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = formatExpanded)
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Enter file name") },
                     shape = RoundedCornerShape(8.dp),
                     colors = TextFieldDefaults.textFieldColors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     )
                 )
+                ExposedDropdownMenu(
+                    expanded = formatExpanded,
+                    onDismissRequest = { formatExpanded = false }
+                ) {
+                    CodeFormat.values().forEach { format ->
+                        DropdownMenuItem(
+                            text = { Text(format.displayName) },
+                            onClick = {
+                                onConfigChange(exportConfig.copy(format = format))
+                                formatExpanded = false
+                            }
+                        )
+                    }
+                }
             }
+        }
+
+
+        // File Name
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("File Name", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+            TextField(
+                value = exportConfig.fileName,
+                onValueChange = { onConfigChange(exportConfig.copy(fileName = it)) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Enter file name") },
+                shape = RoundedCornerShape(8.dp),
+                colors = TextFieldDefaults.textFieldColors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+        }
 
 
         // Export Path
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Export Path", fontWeight = FontWeight.Medium, fontSize = 16.sp)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextField(
-                        value = exportConfig.exportPath,
-                        onValueChange = { onConfigChange(exportConfig.copy(exportPath = it)) },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Select export directory") },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = TextFieldDefaults.textFieldColors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Export Path", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextField(
+                    value = exportConfig.exportPath,
+                    onValueChange = { onConfigChange(exportConfig.copy(exportPath = it)) },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Select export directory") },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.textFieldColors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
                     )
-                    Button(
-                        onClick = {
-                            val selectedPath = selectDirectory()
-                            if (selectedPath != null) {
-                                onConfigChange(exportConfig.copy(exportPath = selectedPath))
-                            }
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = ButtonDefaults.elevation(4.dp)
-                    ) {
-                        Icon(Icons.Default.Folder, contentDescription = null)
-                    }
+                )
+                Button(
+                    onClick = {
+                        val selectedPath = selectDirectory()
+                        if (selectedPath != null) {
+                            onConfigChange(exportConfig.copy(exportPath = selectedPath))
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = ButtonDefaults.elevation(4.dp)
+                ) {
+                    Icon(Icons.Default.Folder, contentDescription = null)
                 }
             }
+        }
 
 
         // Options
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Export Options", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Export Options", fontWeight = FontWeight.Medium, fontSize = 16.sp)
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = exportConfig.includeComments,
-                        onCheckedChange = { onConfigChange(exportConfig.copy(includeComments = it)) },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colors.primary
-                        )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = exportConfig.includeComments,
+                    onCheckedChange = { onConfigChange(exportConfig.copy(includeComments = it)) },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colors.primary
                     )
-                    Text("Include comments and documentation", fontSize = 14.sp)
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = exportConfig.prettyFormat,
-                        onCheckedChange = { onConfigChange(exportConfig.copy(prettyFormat = it)) },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colors.primary
-                        )
-                    )
-                    Text("Pretty format (indented)", fontSize = 14.sp)
-                }
+                )
+                Text("Include comments and documentation", fontSize = 14.sp)
             }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = exportConfig.prettyFormat,
+                    onCheckedChange = { onConfigChange(exportConfig.copy(prettyFormat = it)) },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colors.primary
+                    )
+                )
+                Text("Pretty format (indented)", fontSize = 14.sp)
+            }
+        }
 
 
         // Export Information
 
-            Card(
-                backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.1f),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                elevation = 2.dp
+        Card(
+            backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.1f),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            elevation = 2.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Export Information",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colors.primary
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Fields to export: ${bitTemplates.size}", fontSize = 14.sp)
-                    Text("Format: ${exportConfig.format.displayName}", fontSize = 14.sp)
-                    Text("Output file: ${exportConfig.fileName}.${getFileExtension(exportConfig.format)}", fontSize = 14.sp)
-                }
+                Text(
+                    text = "Export Information",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colors.primary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Fields to export: ${bitTemplates.size}", fontSize = 14.sp)
+                Text("Format: ${exportConfig.format.displayName}", fontSize = 14.sp)
+                Text(
+                    "Output file: ${exportConfig.fileName}.${getFileExtension(exportConfig.format)}",
+                    fontSize = 14.sp
+                )
             }
+        }
+        }
 
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Action Buttons
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-
-                Button(
-                    onClick = onExportClick,
-                    modifier = Modifier
-                        .weight(1f)
-                        .scale(exportButtonScale),
-                    enabled = !isExporting && exportConfig.fileName.isNotBlank(),
-                    shape = RoundedCornerShape(8.dp),
-                    elevation = ButtonDefaults.elevation(6.dp)
-                ) {
-                    if (isExporting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colors.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(Icons.Default.FileDownload, contentDescription = null)
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (isExporting) "Exporting..." else "Export",
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
 
     }
 }
