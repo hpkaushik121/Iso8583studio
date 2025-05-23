@@ -2,8 +2,7 @@ package `in`.aicortex.iso8583studio.domain.service
 
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
-import `in`.aicortex.iso8583studio.domain.utils.PlaceholderProcessor
-import kotlin.random.Random
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 
 class SimulatedResponse(
     val dataRequest: Pair<ByteArray?, Iso8583Data?>?,
@@ -19,11 +18,11 @@ class SimulatedResponse(
                         3
                     ) || it.proCode == "*"
                     )
-        }
+        }?.copy()
         transaction?.let {
-            val processedTransaction = PlaceholderProcessor.processPlaceholders(it, dataRequest?.second?.bitAttributes)
+            val processedTransaction = PlaceholderProcessor.processPlaceholders(it.fields!!.toTypedArray(), dataRequest?.second?.bitAttributes)
             val response = Iso8583Data(
-                template = processedTransaction.fields!!.toTypedArray(),
+                template = processedTransaction,
                 config = config
             )
             response.messageType =

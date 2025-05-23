@@ -197,7 +197,7 @@ private fun Iso8583Data.unpackFromJson(jsonString: String, config: FormatMapping
 
         fieldValue?.let {
             val bitIndex = fieldNum.toInt() - 1
-            this[bitIndex + 1]?.updateBit(bitIndex, it)
+            this[bitIndex + 1]?.updateBit( it)
         }
     }
 }
@@ -274,7 +274,7 @@ private fun Iso8583Data.unpackFromXml(xmlString: String, config: FormatMappingCo
 
         fieldValue?.let {
             val bitIndex = fieldNum.toInt() - 1
-            this[bitIndex + 1]?.updateBit(bitIndex, it)
+            this[bitIndex + 1]?.updateBit( it)
         }
     }
 }
@@ -324,7 +324,7 @@ private fun Iso8583Data.unpackFromKeyValue(kvString: String, config: FormatMappi
         val key = mapping.key ?: "F$fieldNum"
         dataMap[key]?.let { value ->
             val bitIndex = fieldNum.toInt() - 1
-            this[bitIndex + 1]?.updateBit(bitIndex, value)
+            this[bitIndex + 1]?.updateBit( value)
         }
     }
 }

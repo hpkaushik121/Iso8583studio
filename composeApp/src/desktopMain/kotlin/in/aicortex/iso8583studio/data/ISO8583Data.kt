@@ -8,9 +8,7 @@ import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.ParsingFeature
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
-import `in`.aicortex.iso8583studio.domain.utils.PlaceholderProcessor
-import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
-import `in`.aicortex.iso8583studio.domain.utils.MtiMapping
+import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.utils.packWithFormat
 import `in`.aicortex.iso8583studio.domain.utils.unpackFromFormat
 import kotlinx.serialization.Serializable
@@ -37,7 +35,6 @@ data class Iso8583Data(
     var hasHeader: Boolean = true,
     private var m_LengthInAsc: Boolean = false,
     var emvShowOptions: EMVShowOption = EMVShowOption.None
-
 
 ) {
     companion object {
@@ -684,7 +681,7 @@ data class Iso8583Data(
                         if (m_LengthInAsc) {
                             // Length in ASCII format (3 characters)
                             val lenStr = String(buffer, position, 3, Charset.defaultCharset())
-                            m_BitAttributes[i].length = lenStr.toInt()
+                            m_BitAttributes[i].length = lenStr.toIntOrNull() ?: 0
                             position += 3
                         } else {
                             // Length in BCD format (2 bytes)
@@ -742,7 +739,7 @@ data class Iso8583Data(
     }
 }
 
-fun BitAttribute.updateBit(index: Int, dataString: String) {
+fun BitAttribute.updateBit(dataString: String) {
 
     var value = dataString
     when (typeAtribute) {
@@ -788,13 +785,13 @@ fun BitAttribute.updateBit(index: Int, dataString: String) {
     when (lengthAttribute) {
         BitLength.LLVAR -> {
             if (length > 99) {
-                throw Exception("Field ${index + 1}'s length > 99 !!")
+                throw Exception("Field's length > 99 !!")
             }
         }
 
         BitLength.LLLVAR -> {
             if (length > 999) {
-                throw Exception("Field ${index + 1}'s length > 999 !!")
+                throw Exception("Field's length > 999 !!")
             }
         }
 
@@ -809,12 +806,20 @@ fun BitAttribute.getValue(): String? {
 
     return when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
-            IsoUtil.ascToString(data!!)
+            var data = IsoUtil.ascToString(data!!)
+            if(!PlaceholderProcessor.holdersList.contains(data)){
+                data = data.padStart(maxLength,'0')
+            }
+            data
         }
 
         BitType.BCD,
         BitType.BINARY -> {
-            IsoUtil.bcdToString(data!!)
+            val data = IsoUtil.bcdToString(data!!)
+            if(!PlaceholderProcessor.holdersList.contains(data)){
+                data.padStart(maxLength,'0')
+            }
+            data
         }
 
         else -> {

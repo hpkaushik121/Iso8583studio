@@ -1,6 +1,7 @@
 package `in`.aicortex.iso8583studio.domain.service
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import `in`.aicortex.iso8583studio.data.EncrDecrHandler
 import `in`.aicortex.iso8583studio.data.DialHandler
 import `in`.aicortex.iso8583studio.data.GatewayClient
@@ -61,7 +62,7 @@ class GatewayServiceImpl : GatewayService {
     private var monitorJob: Job? = null
     var holdMessage: Boolean = false
 
-    private val activeClients = mutableListOf<GatewayClient>()
+    internal val activeClients = mutableListOf<GatewayClient>()
     private val clientsMutex = Mutex()
 
     internal val permanentConnections = ConcurrentHashMap<Int, PermanentConnection>()
@@ -106,15 +107,14 @@ class GatewayServiceImpl : GatewayService {
     private val coroutineScope = IsoCoroutine(this)
 
     // Callback lists
-    private val errorCallbacks : (() -> @Composable () -> Unit)? = null
-    private val sentFormattedDataCallbacks = mutableListOf<suspend (Iso8583Data?, ByteArray?) -> Unit>()
-    private val receivedFormattedDataCallbacks = mutableListOf<suspend (Iso8583Data?) -> Unit>()
-    private val beforeReceiveCallbacks = mutableListOf<suspend (GatewayClient) -> Unit>()
-    private val clientErrorCallbacks = mutableListOf<suspend (GatewayClient) -> Unit>()
-    private val beforeWriteLogCallbacks = mutableListOf<suspend (String) -> Unit>()
-    private val adminResponseCallbacks = mutableListOf<suspend (GatewayClient, ByteArray) -> ByteArray?>()
-    private val receiveFromSourceCallbacks = mutableListOf<suspend (GatewayClient, ByteArray) -> ByteArray>()
-    private val receiveFromDestCallbacks = mutableListOf<suspend (GatewayClient, ByteArray) -> ByteArray>()
+    private var errorCallbacks : (() -> @Composable () -> Unit)? = null
+    private var sentFormattedDataCallbacks:suspend (Iso8583Data?, ByteArray?) -> Unit = { _, _ -> }
+    private var receivedFormattedDataCallbacks:suspend (Iso8583Data?) -> Unit = {}
+    private var beforeReceiveCallbacks:suspend (GatewayClient) -> Unit = {}
+    private var beforeWriteLogCallbacks: suspend (String) -> Unit = {}
+    private var adminResponseCallbacks :suspend (GatewayClient, ByteArray) -> ByteArray? = { _, _ -> null }
+    private var receiveFromSourceCallbacks:suspend (GatewayClient, ByteArray) -> ByteArray = { _, _ -> ByteArray(0) }
+    private var receiveFromDestCallbacks:suspend (GatewayClient, ByteArray) -> ByteArray = {  _, _ -> ByteArray(0) }
     var sendHoldMessage: (suspend () -> Unit)?=null
 
     constructor() {
@@ -355,52 +355,30 @@ class GatewayServiceImpl : GatewayService {
             }
         }
 
-        // Add callback event handlers
-        clientErrorCallbacks.forEach { callback ->
-            client.onError = {
-                coroutineScope.launchSafely {
-                    callback(it)
-                }
+        client.onReceivedFormattedData = {
+            coroutineScope.launchSafely {
+                receivedFormattedDataCallbacks(it)
             }
         }
 
-        receivedFormattedDataCallbacks.forEach { callback ->
-            client.onReceivedFormattedData = {
-                coroutineScope.launchSafely {
-                    callback(it)
-                }
+        client.beforeReceive = {
+            coroutineScope.launchSafely {
+                beforeReceiveCallbacks(it)
             }
         }
 
-        beforeReceiveCallbacks.forEach { callback ->
-            client.beforeReceive = {
-                coroutineScope.launchSafely {
-                    callback(it)
-                }
+        client.onSentFormattedData= { i ,b ->
+            coroutineScope.launchSafely {
+                sentFormattedDataCallbacks(i,b)
             }
         }
 
-        sentFormattedDataCallbacks.forEach { callback ->
-            client.onSentFormattedData= { i ,b ->
-                coroutineScope.launchSafely {
-                    callback(i,b)
-                }
-            }
+        client.onAdminResponse = { cl, data ->
+            adminResponseCallbacks(cl, data)
         }
+        client.onReceiveFromSource = { client, data -> receiveFromSourceCallbacks(client, data) }
 
-        adminResponseCallbacks.forEach { callback ->
-            client.onAdminResponse = { cl, data ->
-                callback(client, data)
-            }
-        }
-
-        receiveFromSourceCallbacks.forEach { callback ->
-            client.onReceiveFromSource = { client, data -> callback(client, data) }
-        }
-
-        receiveFromDestCallbacks.forEach { callback ->
-            client.onReceiveFromDest = { client, data -> callback(client, data) }
-        }
+        client.onReceiveFromDest = { client, data -> receiveFromDestCallbacks(client, data) }
 
         client.timeOut = configuration.transactionTimeOut
 
@@ -465,9 +443,7 @@ class GatewayServiceImpl : GatewayService {
             }
             println(formattedMessage)
             // Call before write log callbacks
-            beforeWriteLogCallbacks.forEach { callback ->
-                callback(formattedMessage)
-            }
+        beforeWriteLogCallbacks(formattedMessage)
 
 
         // Add to monitor message
@@ -1078,35 +1054,31 @@ class GatewayServiceImpl : GatewayService {
     }
 
     override fun onSentFormattedData(callback: suspend (Iso8583Data?, ByteArray?) -> Unit) {
-        sentFormattedDataCallbacks.add(callback)
+        sentFormattedDataCallbacks=callback
     }
 
     override fun onReceivedFormattedData(callback: suspend (Iso8583Data?) -> Unit) {
-        receivedFormattedDataCallbacks.add(callback)
+        receivedFormattedDataCallbacks=callback
     }
 
     override fun beforeReceive(callback: suspend (GatewayClient) -> Unit) {
-        beforeReceiveCallbacks.add(callback)
-    }
-
-    override fun onClientError(callback: suspend (GatewayClient) -> Unit) {
-        clientErrorCallbacks.add(callback)
+        beforeReceiveCallbacks=callback
     }
 
     override fun beforeWriteLog(callback: suspend (String) -> Unit) {
-        beforeWriteLogCallbacks.add(callback)
+        beforeWriteLogCallbacks=callback
     }
 
     override fun onAdminResponse(callback: suspend (GatewayClient, ByteArray) -> ByteArray?) {
-        adminResponseCallbacks.add(callback)
+        adminResponseCallbacks=callback
     }
 
     override fun onReceiveFromSource(callback: suspend (GatewayClient, ByteArray) -> ByteArray) {
-        receiveFromSourceCallbacks.add(callback)
+        receiveFromSourceCallbacks=callback
     }
 
     override fun onReceiveFromDest(callback: suspend (GatewayClient, ByteArray) -> ByteArray) {
-        receiveFromDestCallbacks.add(callback)
+        receiveFromDestCallbacks=callback
     }
 
     companion object {

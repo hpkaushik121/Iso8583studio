@@ -1,10 +1,17 @@
 package `in`.aicortex.iso8583studio.ui.screens.hostSimulator
 
+import androidx.compose.animation.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -40,11 +47,18 @@ fun HostSimulatorScreen(
     onSaveClick: () -> Unit,
     onError: ResultDialogInterface? = null,
 ) {
+    var gw : GatewayServiceImpl? = null
+    val coroutineScope = rememberCoroutineScope()
     Scaffold(
         topBar = {
             AppBarWithBack(
                 title = "Host Simulator - ${config?.name ?: "Unknown"}",
-                onBackClick = onBack,
+                onBackClick = {
+                    coroutineScope.launch {
+                        gw?.stop()
+                    }
+                    onBack()
+                },
                 actions = {
                     IconButton(onClick = { onSaveClick() }) {
                         Icon(Icons.Default.Save, contentDescription = "Save Configuration")
@@ -55,7 +69,7 @@ fun HostSimulatorScreen(
         backgroundColor = MaterialTheme.colors.background
     ) { paddingValues ->
         if (config != null) {
-            val gw = GatewayServiceImpl(config)
+             gw = GatewayServiceImpl(config)
             if (onError != null) {
                 gw.setShowErrorListener(onError)
             }
@@ -91,6 +105,7 @@ fun HostSimulator(
     var bytesOutgoing by remember { mutableStateOf(gw.bytesOutgoing) }
     var bytesIncoming by remember { mutableStateOf(gw.bytesIncoming) }
     var connectionCount by remember { mutableStateOf(gw.connectionCount) }
+    var concurrentConnections by remember { mutableStateOf(gw.activeClients.size) }
     var isHoldMessage by remember { mutableStateOf(false) }
     var holdMessageTime by remember { mutableStateOf("60") }
 
@@ -107,11 +122,13 @@ fun HostSimulator(
     // Set up event handlers
     gw.onReceiveFromSource { client, request ->
         rawRequest = IsoUtil.bytesToHexString(request)
+        rawResponse = ""
         return@onReceiveFromSource request
     }
 
     gw.onReceivedFormattedData {
         request = it?.logFormat() ?: ""
+        response = ""
     }
 
     gw.onSentFormattedData { iso, byte ->
@@ -157,6 +174,7 @@ fun HostSimulator(
                 bytesOutgoing = gw.bytesOutgoing
                 bytesIncoming = gw.bytesIncoming
                 connectionCount = gw.connectionCount
+                concurrentConnections = gw.activeClients.size
                 transactionCount = (transactionCount.toIntOrNull() ?: 0).let {
                     if (it < gw.connectionCount.get()) gw.connectionCount.toString() else it.toString()
                 }
@@ -268,12 +286,13 @@ fun HostSimulator(
                     onClearClick = { logText = "" },
                     connectionCount = connectionCount.get(),
                     bytesIncoming = bytesIncoming.get().toLong(),
-                    bytesOutgoing = bytesOutgoing.get().toLong()
+                    bytesOutgoing = bytesOutgoing.get().toLong(),
+                    concurrentConnections = concurrentConnections
                 )
 
                 2 -> {
                     ISO8583SettingsScreen(
-                        gw = gw,
+                        gw = gw.configuration,
                         onSaveClick = onSaveClick
                     )
                 }
@@ -448,13 +467,14 @@ private fun ISO8583TransactionTab(
                         )
 
                         val scrollState = rememberScrollState()
-                        Text(
-                            request,
-                            modifier = Modifier
+                        TextField(
+                            value = request,
+                            readOnly = true,
+                            onValueChange = { },
+                            modifier =  Modifier
                                 .fillMaxSize()
-                                .padding(8.dp)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2
+                                .verticalScroll(scrollState)
+                                .background(Color.Transparent),
                         )
                     }
                 }
@@ -479,14 +499,14 @@ private fun ISO8583TransactionTab(
                         )
 
                         val scrollState = rememberScrollState()
-                        Text(
-                            rawRequest,
-                            modifier = Modifier
+                        TextField(
+                            value = rawRequest,
+                            readOnly = true,
+                            onValueChange = { },
+                            modifier =  Modifier
                                 .fillMaxSize()
-                                .padding(8.dp)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                .verticalScroll(scrollState)
+                                .background(Color.Transparent),
                         )
                     }
                 }
@@ -519,13 +539,14 @@ private fun ISO8583TransactionTab(
                         )
 
                         val scrollState = rememberScrollState()
-                        Text(
-                            response,
-                            modifier = Modifier
+                        TextField(
+                            value = response,
+                            readOnly = true,
+                            onValueChange = { },
+                            modifier =  Modifier
                                 .fillMaxSize()
-                                .padding(8.dp)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2
+                                .verticalScroll(scrollState)
+                                .background(Color.Transparent),
                         )
                     }
                 }
@@ -550,14 +571,15 @@ private fun ISO8583TransactionTab(
                         )
 
                         val scrollState = rememberScrollState()
-                        Text(
-                            rawResponse,
-                            modifier = Modifier
+
+                        TextField(
+                            value = rawResponse,
+                            readOnly = true,
+                            onValueChange = { },
+                            modifier =  Modifier
                                 .fillMaxSize()
-                                .padding(8.dp)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                .verticalScroll(scrollState)
+                                .background(Color.Transparent),
                         )
                     }
                 }
@@ -566,17 +588,54 @@ private fun ISO8583TransactionTab(
     }
 }
 
+
 /**
- * Log Tab
+ * Enhanced Log Tab with Auto-Scroll functionality
  */
 @Composable
 private fun LogTab(
     logText: String,
     onClearClick: () -> Unit,
     connectionCount: Int,
+    concurrentConnections: Int,
     bytesIncoming: Long,
     bytesOutgoing: Long
 ) {
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope() // Add this for better lifecycle management
+    var isAutoScrollEnabled by remember { mutableStateOf(true) }
+    var userHasScrolled by remember { mutableStateOf(false) }
+    var previousLogLength by remember { mutableStateOf(0) }
+
+    // Auto-scroll effect when new log content is added
+    LaunchedEffect(logText) {
+        if (logText.length > previousLogLength && isAutoScrollEnabled) {
+            // Use a slight delay to ensure the text is rendered before scrolling
+            kotlinx.coroutines.delay(50)
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+        previousLogLength = logText.length
+    }
+
+    // Monitor scroll position to detect manual scrolling
+    LaunchedEffect(scrollState.value, scrollState.maxValue) {
+        if (scrollState.maxValue > 0) {
+            val isAtBottom = scrollState.value >= scrollState.maxValue - 100 // 100px tolerance for better detection
+
+            // If user manually scrolled up, disable auto-scroll
+            if (!isAtBottom && !userHasScrolled && scrollState.value > 0) {
+                userHasScrolled = true
+                isAutoScrollEnabled = false
+            }
+
+            // If user scrolled back to bottom, enable auto-scroll
+            if (isAtBottom && userHasScrolled) {
+                userHasScrolled = false
+                isAutoScrollEnabled = true
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -612,6 +671,57 @@ private fun LogTab(
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    // Auto-scroll toggle button
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (isAutoScrollEnabled)
+                            MaterialTheme.colors.primary.copy(alpha = 0.1f)
+                        else
+                            MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
+                        modifier = Modifier.clickable {
+                            isAutoScrollEnabled = !isAutoScrollEnabled
+                            if (isAutoScrollEnabled) {
+                                // Scroll to bottom when re-enabled
+                                coroutineScope.launch {
+                                    scrollState.animateScrollTo(scrollState.maxValue)
+                                }
+                            }
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (isAutoScrollEnabled)
+                                    Icons.Default.VerticalAlignBottom
+                                else
+                                    Icons.Default.PauseCircle,
+                                contentDescription = if (isAutoScrollEnabled)
+                                    "Auto-scroll enabled"
+                                else
+                                    "Auto-scroll disabled",
+                                tint = if (isAutoScrollEnabled)
+                                    MaterialTheme.colors.primary
+                                else
+                                    MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Auto",
+                                style = MaterialTheme.typography.caption,
+                                color = if (isAutoScrollEnabled)
+                                    MaterialTheme.colors.primary
+                                else
+                                    MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Clear logs button
                     IconButton(onClick = onClearClick) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
@@ -621,21 +731,72 @@ private fun LogTab(
                     }
                 }
 
-                val scrollState = rememberScrollState()
-                Text(
-                    logText,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(16.dp)
-                        .verticalScroll(scrollState),
-                    style = MaterialTheme.typography.body2,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                )
+                ) {
+                    // Log content with custom scrollable text
+                    SelectionContainer {
+                        Text(
+                            text = logText.ifEmpty { "No logs yet. Start the server to see transaction logs here." },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .verticalScroll(scrollState),
+                            style = MaterialTheme.typography.body2,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = if (logText.isEmpty())
+                                MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                            else
+                                MaterialTheme.colors.onSurface
+                        )
+                    }
+
+
+                }
+
+                // Log statistics bar at bottom
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colors.surface)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Lines: ${logText.count { it == '\n' }}",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
+
+                    Text(
+                        "Size: ${formatBytes(logText.length.toLong())}",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Auto-scroll: ",
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                        )
+                        Text(
+                            if (isAutoScrollEnabled) "ON" else "OFF",
+                            style = MaterialTheme.typography.caption,
+                            color = if (isAutoScrollEnabled) SuccessGreen else ErrorRed,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
         }
 
-        // Statistics panel
+        // Statistics panel (unchanged)
         Panel(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -654,6 +815,13 @@ private fun LogTab(
                         title = "Connections",
                         value = connectionCount.toString(),
                         color = MaterialTheme.colors.primary
+                    )
+
+                    StatisticItem(
+                        icon = Icons.Default.NetworkPing,
+                        title = "Concurrent Connections",
+                        value = concurrentConnections.toString(),
+                        color = Color(0xFF00BCD4)
                     )
 
                     StatisticItem(
@@ -681,6 +849,7 @@ private fun LogTab(
         }
     }
 }
+
 
 /**
  * Unsolicited Message Tab

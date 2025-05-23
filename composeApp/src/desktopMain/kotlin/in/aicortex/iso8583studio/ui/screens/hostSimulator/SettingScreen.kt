@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,7 @@ import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.getValue
+import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
@@ -62,16 +64,16 @@ data class Transaction(
     val mti: String,
     val proCode: String,
     val description: String,
-    val fields: MutableList<BitAttribute>? = null
+    val fields: List<BitAttribute>? = null
 )
 
 @Composable
 fun ISO8583SettingsScreen(
-    gw: GatewayServiceImpl,
+    gw: GatewayConfig,
     onSaveClick: () -> Unit
 ) {
     val transactions = remember {
-        (gw.configuration.simulatedTransactions).toMutableStateList()
+        gw.simulatedTransactions.toMutableStateList()
     }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
 
@@ -265,21 +267,18 @@ fun ISO8583SettingsScreen(
                             ) {
                                 items(selectedTransaction!!.fields!!.size) { index ->
                                     val field = selectedTransaction?.fields?.get(index)
-                                    val fieldKey = "${index + 1}"
+                                    val fieldKey = "${index}"
 
                                     // State for edited fields
                                     fieldAvailableStates[fieldKey] = field?.isSet == true
                                     fieldEditStates[fieldKey] = field
                                     if (fieldAvailableStates[fieldKey] == true) {
                                         FieldRow(
-                                            fieldNumber = index + 1,
+                                            fieldNumber = index ,
                                             data = fieldEditStates[fieldKey],
                                             onDataChange = { newValue ->
-                                                selectedTransaction?.fields?.set(
-                                                    index,
-                                                    newValue!!
-                                                )
-                                                fieldEditStates[fieldKey] = newValue
+                                                selectedTransaction?.fields?.get(index)?.updateBit(newValue)
+                                                fieldEditStates[fieldKey] = selectedTransaction?.fields?.get(index)
                                             },
                                             onDescriptionChange = { newValue ->
                                                 descriptionEditStates[fieldKey] = newValue
@@ -329,7 +328,7 @@ fun ISO8583SettingsScreen(
 
                             Button(
                                 onClick = {
-                                    gw.configuration.simulatedTransactions = transactions
+                                    gw.simulatedTransactions = transactions
                                     onSaveClick()
                                 }
                             ) {
@@ -340,11 +339,8 @@ fun ISO8583SettingsScreen(
                             AddBitSpecificDialog(
                                 gw = gw,
                                 onSave = { bit ->
-                                    selectedTransaction!!.fields!![bit.bitNumber.toInt().absoluteValue].updateBit(
-                                        bit.bitNumber.toInt().absoluteValue,
-                                        ""
-                                    )
-                                    fieldAvailableStates["${bit.bitNumber.toInt().absoluteValue + 1}"] =
+                                    selectedTransaction!!.fields!![bit.bitNumber.toInt().absoluteValue-1].updateBit( "")
+                                    fieldAvailableStates["${bit.bitNumber.toInt().absoluteValue-1}"] =
                                         true
                                     showAddBitSpecificDialog = false
                                 },
@@ -679,7 +675,7 @@ private fun DeleteConfirmationDialog(
 private fun AddBitSpecificDialog(
     onSave: (BitSpecific) -> Unit,
     onDismiss: () -> Unit,
-    gw: GatewayServiceImpl
+    gw: GatewayConfig
 ) {
     var bitSpecific by remember { mutableStateOf<BitSpecific?>(null) }
     AlertDialog(
@@ -690,8 +686,8 @@ private fun AddBitSpecificDialog(
         title = { Text("Add Field") },
         text = {
             LazyColumn {
-                items(gw.configuration.bitTemplate.size) { index ->
-                    val bit = gw.configuration.bitTemplate[index]
+                items(gw.bitTemplate.size) { index ->
+                    val bit = gw.bitTemplate[index]
                     Column(
                         modifier = Modifier
                             .background(
@@ -714,7 +710,7 @@ private fun AddBitSpecificDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    bitSpecific?.let { onSave(it) }
+                    bitSpecific?.let {  onSave(it)}
                 }
             ) {
                 Text("Add")
@@ -732,7 +728,7 @@ private fun AddBitSpecificDialog(
 private fun AddTransactionDialog(
     onSave: (Transaction) -> Unit,
     onDismiss: () -> Unit,
-    gw: GatewayServiceImpl
+    gw: GatewayConfig
 ) {
     var mtiValue by remember { mutableStateOf("") }
     var proCode by remember { mutableStateOf("") }
@@ -804,7 +800,7 @@ private fun AddTransactionDialog(
                             mti = mtiValue,
                             proCode = proCode,
                             description = description,
-                            fields = Iso8583Data(config = gw.configuration).bitAttributes.toMutableList(),
+                            fields = Iso8583Data(config = gw).bitAttributes.toMutableList(),
                         )
                     )
                 },
@@ -825,7 +821,7 @@ private fun AddTransactionDialog(
 private fun FieldRow(
     fieldNumber: Int,
     data: BitAttribute?,
-    onDataChange: (BitAttribute?) -> Unit,
+    onDataChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onRemove: (Int) -> Unit
 ) {
@@ -839,7 +835,7 @@ private fun FieldRow(
     ) {
         // Field number
         Text(
-            text = (fieldNumber - 1).toString(),
+            text = (fieldNumber+1).toString(),
             modifier = Modifier.weight(0.15f)
         )
 
@@ -848,8 +844,8 @@ private fun FieldRow(
             value = value,
             onValueChange = {
                 value = it
-                data?.updateBit(fieldNumber, it)
-                onDataChange(data)
+
+                onDataChange(it)
             },
             modifier = Modifier
                 .weight(0.35f)

@@ -126,11 +126,6 @@ interface GatewayService {
     fun beforeReceive(callback: suspend (GatewayClient) -> Unit)
 
     /**
-     * Add callback for client error event
-     */
-    fun onClientError(callback: suspend (GatewayClient) -> Unit)
-
-    /**
      * Add callback for before write log event
      */
     fun beforeWriteLog(callback: suspend (String) -> Unit)

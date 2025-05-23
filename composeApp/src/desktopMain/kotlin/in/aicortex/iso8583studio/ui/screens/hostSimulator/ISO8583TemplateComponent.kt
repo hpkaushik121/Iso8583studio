@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import `in`.aicortex.iso8583studio.data.BitSpecific
+import `in`.aicortex.iso8583studio.data.BitTemplate
+import `in`.aicortex.iso8583studio.data.clone
 import `in`.aicortex.iso8583studio.data.model.*
 import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
@@ -227,6 +229,24 @@ fun Iso8583TemplateScreen(
                 bitTemplates = bitTemplates.map {
                     if (it.bitNumber == updatedBit.bitNumber) updatedBit else it
                 }.toTypedArray()
+                val simulatedTrans = config.simulatedTransactions.map {
+                    val fields = it.fields?.mapIndexed { i , field ->
+                        if(i == (updatedBit.bitNumber.toInt().absoluteValue -1)){
+                            field.apply {
+                                lengthAttribute = updatedBit.bitLength
+                                typeAtribute = updatedBit.bitType
+                                maxLength = updatedBit.maxLength
+                                additionalOption = updatedBit.addtionalOption
+                                isSet = true
+                            }
+                        }else{
+                            field
+                        }
+
+                    }
+                    it.copy(fields = fields)
+                }
+                config.simulatedTransactions = simulatedTrans
                 config.bitTemplate = bitTemplates
                 showEditDialog = false
                 selectedBit = null
@@ -850,6 +870,7 @@ fun BitEditDialog(
                                 text = { Text(option.name) },
                                 onClick = {
                                     editedBit.bitLength = option
+
                                     bitLengthExpanded = false
                                 }
                             )

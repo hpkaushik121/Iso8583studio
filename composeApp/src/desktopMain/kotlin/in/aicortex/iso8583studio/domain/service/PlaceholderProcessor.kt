@@ -1,12 +1,15 @@
-
-package `in`.aicortex.iso8583studio.domain.utils
+package `in`.aicortex.iso8583studio.domain.service
 
 import `in`.aicortex.iso8583studio.data.BitAttribute
-import `in`.aicortex.iso8583studio.data.Iso8583Data
+import `in`.aicortex.iso8583studio.data.clone
+import `in`.aicortex.iso8583studio.data.getValue
+import `in`.aicortex.iso8583studio.data.updateBit
+import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.random.Random
+
 /**
  * Processes special placeholders in ISO8583 transaction fields
  * Supports [SV], [TIME], and [RAND] placeholders as defined in the FieldInformationDialog
@@ -15,38 +18,38 @@ object PlaceholderProcessor {
 
     val holdersList = listOf("[SV]", "[TIME]", "[RAND]")
 
+
     /**
-     * Processes all placeholders in transaction fields
-     *
-     * @param transaction The transaction with fields to process
-     * @param requestTransaction Optional request transaction for [SV] placeholder resolution
-     * @return Updated transaction with processed placeholder values
+     * Alternative method that explicitly takes and returns copies
      */
     fun processPlaceholders(
-        transaction: Transaction,
+        transactionFields: Array<BitAttribute>,
         requestTransaction: Array<BitAttribute>? = null
-    ): Transaction {
-        val fields = transaction.fields!!
+    ): Array<BitAttribute> {
 
-        fields.forEachIndexed { index, field ->
-            if (field.isSet && field.data != null) {
-                val originalValue = String(field.data!!)
+        return transactionFields.mapIndexed { index, field ->
+            // Create a deep copy
+            val fieldCopy = clone(field)
+
+            if (fieldCopy.isSet && fieldCopy.data != null) {
+                val originalValue = fieldCopy.getValue()!!
                 val processedValue = processFieldValue(
                     originalValue = originalValue,
                     fieldIndex = index,
-                    maxLength = field.maxLength,
-                    requestTransaction = requestTransaction?.get(index)
+                    maxLength = fieldCopy.maxLength,
+                    requestTransaction = requestTransaction?.getOrNull(index)
                 )
 
-                // Update field data if value was changed
-                if (processedValue != originalValue) {
-                    field.data = processedValue.toByteArray()
-                }
+                fieldCopy.updateBit(processedValue)
+            } else {
+                fieldCopy.isSet = false
+                fieldCopy.data = null
             }
-        }
-
-        return transaction
+            fieldCopy
+        }.toTypedArray()
     }
+
+
 
     /**
      * Processes a single field value for placeholders
@@ -85,9 +88,8 @@ object PlaceholderProcessor {
         val requestFields = requestTransaction.data
 
         // Check if the corresponding field exists and is set in the request
-        if (fieldIndex < requestFields!!.size && requestTransaction.isSet) {
-            val requestFieldData = requestFields
-            return  String(requestFieldData)
+        if (requestTransaction.isSet) {
+            return String(requestFields!!)
         }
 
         return "[SV]" // Return original if field not found in request
@@ -142,14 +144,23 @@ object PlaceholderProcessor {
     private fun processRandomValue(maxLength: Int): String {
         if (maxLength <= 0) return ""
 
-        // Generate random number with the specified length
-        val minValue = if (maxLength == 1) 0 else 10.0.pow(maxLength - 1).toInt()
-        val maxValue = 10.0.pow(maxLength).toInt() - 1
+        // Handle single digit case
+        if (maxLength == 1) {
+            return Random.nextInt(0, 10).toString()
+        }
 
-        val randomNumber = Random.nextInt(minValue, maxValue + 1)
+        // For multi-digit numbers, generate each digit individually to avoid overflow
+        val result = StringBuilder()
 
-        // Ensure the number is padded to the correct length
-        return randomNumber.toString().padStart(maxLength, '0')
+        // First digit (1-9, can't be 0 for multi-digit numbers)
+        result.append(Random.nextInt(1, 10))
+
+        // Remaining digits (0-9)
+        repeat(maxLength - 1) {
+            result.append(Random.nextInt(0, 10))
+        }
+
+        return result.toString()
     }
 }
 

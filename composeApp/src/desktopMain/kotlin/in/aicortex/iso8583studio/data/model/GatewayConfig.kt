@@ -150,10 +150,7 @@ data class GatewayConfig(
      * Get/set log file name
      */
     var logFileName: String
-        get() = this._logFileName.replace(
-            "date",
-            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy_MM_dd"))
-        )
+        get() = this._logFileName
         set(value) {
             this._logFileName = value
         }

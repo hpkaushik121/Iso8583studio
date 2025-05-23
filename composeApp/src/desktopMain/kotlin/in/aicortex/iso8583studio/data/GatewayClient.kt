@@ -260,7 +260,9 @@ class GatewayClient {
     }
 
     fun processGateway() {
-        IsoCoroutine(gatewayHandler).launchSafely { doProcessGateway() }
+        IsoCoroutine(gatewayHandler).launchSafely {
+            doProcessGateway()
+        }
     }
 
     suspend fun doProcessGateway() {
@@ -737,6 +739,10 @@ class GatewayClient {
 
                 else -> {}
             }
+            m_BytesReceiveFromDestination += input.size
+            gatewayHandler?.bytesOutgoing?.set(
+                (gatewayHandler?.bytesOutgoing?.get() ?: 0) + input.size
+            )
 
             writeServerLog("SENT BACK TO SOURCE ${input.size} BYTES")
             status = TransactionStatus.SUCCESSFUL
@@ -793,6 +799,7 @@ class GatewayClient {
             writeServerLog("SENT TO DESTINATION ${modifiedInput.size} BYTES")
             status = TransactionStatus.SENT_TO_DESTINATION
         }
+
         onSentFormattedData?.invoke(iso,input)
     }
 

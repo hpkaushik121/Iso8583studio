@@ -50,6 +50,16 @@ class BitTemplate {
         }
 
         @JvmStatic
+        fun getBitAttribute(bitSpecific: BitSpecific): BitAttribute {
+            return BitAttribute().apply {
+                lengthAttribute = bitSpecific.bitLength
+                typeAtribute = bitSpecific.bitType
+                maxLength = bitSpecific.maxLength
+                additionalOption = bitSpecific.addtionalOption
+            }
+        }
+
+        @JvmStatic
         fun getBitAttributeArray(binary: Array<BitSpecific>): Array<BitAttribute> {
             val bitAttributeArray = arrayOfNulls<BitAttribute>(128)
 

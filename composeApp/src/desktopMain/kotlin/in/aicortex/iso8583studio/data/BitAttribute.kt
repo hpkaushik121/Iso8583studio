@@ -112,3 +112,20 @@ class BitAttribute {
         }
     }
 }
+
+/**
+ * Creates a deep copy of a BitAttribute
+ */
+fun clone(bitAttribute: BitAttribute): BitAttribute {
+    return BitAttribute().apply {
+        isSet = bitAttribute.isSet
+        data = bitAttribute.data?.clone()
+        maxLength = bitAttribute.maxLength
+        typeAtribute = bitAttribute.typeAtribute
+        lengthAttribute = bitAttribute.lengthAttribute
+        length = bitAttribute.length
+        additionalOption = bitAttribute.additionalOption
+        description = bitAttribute.description
+
+    }
+}
