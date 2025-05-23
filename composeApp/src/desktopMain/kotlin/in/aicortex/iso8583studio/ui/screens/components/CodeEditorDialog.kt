@@ -1,10 +1,14 @@
 package `in`.aicortex.iso8583studio.ui.screens.components
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
@@ -13,6 +17,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -24,9 +31,13 @@ import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberDialogState
 import `in`.aicortex.iso8583studio.data.BitAttribute
-import `in`.aicortex.iso8583studio.domain.service.CodeFormat
+import `in`.aicortex.iso8583studio.data.getValue
+import `in`.aicortex.iso8583studio.data.model.CodeFormat
+import `in`.aicortex.iso8583studio.domain.service.ExecutionProgressCallback
 import `in`.aicortex.iso8583studio.domain.service.ExecutionResult
 import `in`.aicortex.iso8583studio.domain.service.ISO8583MethodExecutor
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -46,26 +57,33 @@ data class MethodTemplate(
     val outputKeys: Map<String, String> = emptyMap() // For JSON key customization
 )
 
+// Execution states for better UX
+enum class ExecutionState {
+    IDLE, VALIDATING, GENERATING, COMPILING, EXECUTING, COMPLETED, FAILED
+}
+
 /**
- * Advanced code editor dialog for ISO8583 message formatting and field mapping
+ * Enhanced code editor dialog with processing animations and better UX
  */
 @Composable
 fun CodeEditorDialog(
-    fields: List<BitAttribute>,
+    fields: List<BitAttribute>, messageType: String, tpdu: String,
     onCloseRequest: () -> Unit,
     onApplyChanges: (List<FieldMapping>) -> Unit
 ) {
-    var selectedFormat by remember { mutableStateOf(CodeFormat.JSON) }
+    var selectedFormat by remember { mutableStateOf(CodeFormat.BYTE_ARRAY) }
     var fieldMappings by remember { mutableStateOf(extractFieldMappings(fields)) }
     var showFormatHelp by remember { mutableStateOf(false) }
     var methodTemplate by remember { mutableStateOf(getDefaultMethodTemplate(selectedFormat)) }
     var outputContent by remember { mutableStateOf("") }
     var showOutput by remember { mutableStateOf(false) }
     var executionResult by remember { mutableStateOf<ExecutionResult?>(null) }
-    var isExecuting by remember { mutableStateOf(false) }
+    var executionState by remember { mutableStateOf(ExecutionState.IDLE) }
+    var executionProgress by remember { mutableStateOf("") }
 
     // Create executor instance
     val executor = remember { ISO8583MethodExecutor() }
+    val coroutineScope = rememberCoroutineScope()
 
     // Update method template when format changes
     LaunchedEffect(selectedFormat) {
@@ -74,7 +92,7 @@ fun CodeEditorDialog(
 
     DialogWindow(
         onCloseRequest = onCloseRequest,
-        title = "ISO8583 Code Editor & Field Mapper",
+        title = "ISO8583 Code Editor & Method Executor",
         state = rememberDialogState(
             position = WindowPosition(Alignment.Center),
             width = 1200.dp,
@@ -89,7 +107,7 @@ fun CodeEditorDialog(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Header with format selection
+                // Header with format selection and field info
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = 2.dp,
@@ -102,20 +120,36 @@ fun CodeEditorDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Output Format:",
+                                    style = MaterialTheme.typography.subtitle1,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Spacer(modifier = Modifier.width(16.dp))
+
+                                FormatSelector(
+                                    selectedFormat = selectedFormat,
+                                    onFormatChange = { selectedFormat = it },
+                                    enabled = executionState == ExecutionState.IDLE
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
                             Text(
-                                "Output Format:",
-                                style = MaterialTheme.typography.subtitle1,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            FormatSelector(
-                                selectedFormat = selectedFormat,
-                                onFormatChange = { selectedFormat = it }
+                                "Active Fields: ${fields.count { it.isSet }} | " +
+                                        "Total: ${fields.size} | " +
+                                        "Data Size: ${
+                                            fields.filter { it.isSet && it.data != null }
+                                                .sumOf { it.data!!.size }
+                                        } bytes",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                             )
                         }
 
@@ -132,6 +166,7 @@ fun CodeEditorDialog(
 
                             Button(
                                 onClick = { onApplyChanges(fieldMappings) },
+                                enabled = executionState == ExecutionState.IDLE,
                                 colors = ButtonDefaults.buttonColors(
                                     backgroundColor = MaterialTheme.colors.primary
                                 )
@@ -145,11 +180,26 @@ fun CodeEditorDialog(
                                 Text("Apply Changes")
                             }
 
-                            OutlinedButton(onClick = onCloseRequest) {
+                            OutlinedButton(
+                                onClick = onCloseRequest,
+                                enabled = executionState == ExecutionState.IDLE
+                            ) {
                                 Text("Cancel")
                             }
                         }
                     }
+                }
+
+                // Execution Progress Bar (when running)
+                AnimatedVisibility(
+                    visible = executionState != ExecutionState.IDLE,
+                    enter = slideInVertically() + fadeIn(),
+                    exit = slideOutVertically() + fadeOut()
+                ) {
+                    ExecutionProgressBar(
+                        executionState = executionState,
+                        progressText = executionProgress
+                    )
                 }
 
                 // Main content area
@@ -167,31 +217,85 @@ fun CodeEditorDialog(
                         elevation = 2.dp
                     ) {
                         MethodEditorPanel(
+                            messageType = messageType,
+                            tpdu = tpdu,
                             methodTemplate = methodTemplate,
                             selectedFormat = selectedFormat,
                             onMethodChange = { methodTemplate = it },
                             onRunMethod = {
-                                isExecuting = true
-                                try {
-                                    executionResult = executor.executeMethod(
-                                        methodName = methodTemplate.methodName,
-                                        methodBody = methodTemplate.methodBody,
-                                        format = selectedFormat,
-                                        fields = fields,
-                                        customKeys = methodTemplate.outputKeys
-                                    )
-                                    outputContent = executionResult?.output ?: ""
-                                    showOutput = true
-                                } finally {
-                                    isExecuting = false
+                                coroutineScope.launch {
+                                    try {
+                                        // Create progress callback
+                                        val progressCallback = object : ExecutionProgressCallback {
+
+                                            override fun onValidating(message: String) {
+                                                executionState = ExecutionState.VALIDATING
+                                                executionProgress = message
+                                            }
+
+                                            override fun onGenerating(message: String) {
+                                                executionState = ExecutionState.GENERATING
+                                                executionProgress = message
+                                            }
+
+                                            override fun onCompiling(message: String) {
+                                                executionState = ExecutionState.COMPILING
+                                                executionProgress = message
+                                            }
+
+                                            override fun onExecuting(message: String) {
+                                                executionState = ExecutionState.EXECUTING
+                                                executionProgress = message
+                                            }
+
+                                            override fun onCompleted(
+                                                success: Boolean,
+                                                message: String
+                                            ) {
+                                                executionState = if (success) {
+                                                    ExecutionState.COMPLETED
+                                                } else {
+                                                    ExecutionState.FAILED
+                                                }
+                                                executionProgress = message
+
+                                                executionState = ExecutionState.IDLE
+                                            }
+                                        }
+
+                                        executionResult = executor
+                                            .setListener(progressCallback).executeMethod(
+                                                methodName = methodTemplate.methodName,
+                                                methodBody = methodTemplate.methodBody,
+                                                format = selectedFormat,
+                                                fields = fields,
+                                                customKeys = methodTemplate.outputKeys,
+                                                messageType = messageType,
+                                                tpdu = tpdu
+                                            )
+
+                                        outputContent = executionResult?.output ?: ""
+                                        showOutput = true
+
+                                    } catch (e: Exception) {
+                                        executionState = ExecutionState.FAILED
+                                        executionProgress = "Error: ${e.message}"
+                                        delay(3000)
+                                        executionState = ExecutionState.IDLE
+                                    }
                                 }
                             },
-                            isExecuting = isExecuting
+                            executionState = executionState,
+                            fields = fields
                         )
                     }
 
                     // Right panel - Output viewer (conditional)
-                    if (showOutput) {
+                    AnimatedVisibility(
+                        visible = showOutput,
+                        enter = slideInHorizontally { it } + fadeIn(),
+                        exit = slideOutHorizontally { it } + fadeOut()
+                    ) {
                         Card(
                             modifier = Modifier
                                 .weight(0.4f)
@@ -220,13 +324,179 @@ fun CodeEditorDialog(
 }
 
 @Composable
+private fun ExecutionProgressBar(
+    executionState: ExecutionState,
+    progressText: String
+) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    val progressValue by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        backgroundColor = when (executionState) {
+            ExecutionState.COMPLETED -> MaterialTheme.colors.primary.copy(alpha = 0.1f)
+            ExecutionState.FAILED -> MaterialTheme.colors.error.copy(alpha = 0.1f)
+            else -> MaterialTheme.colors.secondary.copy(alpha = 0.1f)
+        },
+        elevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Animated icon based on state
+            when (executionState) {
+                ExecutionState.VALIDATING -> {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Validating",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .rotate(rotation),
+                        tint = MaterialTheme.colors.secondary
+                    )
+                }
+
+                ExecutionState.GENERATING -> {
+                    Icon(
+                        Icons.Default.Build,
+                        contentDescription = "Generating",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .scale(
+                                1f + 0.2f * kotlin.math.sin(rotation * kotlin.math.PI / 180)
+                                    .toFloat()
+                            ),
+                        tint = MaterialTheme.colors.secondary
+                    )
+                }
+
+                ExecutionState.COMPILING -> {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = "Compiling",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .rotate(rotation),
+                        tint = MaterialTheme.colors.secondary
+                    )
+                }
+
+                ExecutionState.EXECUTING -> {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = "Executing",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .alpha(
+                                0.5f + 0.5f * kotlin.math.sin(rotation * kotlin.math.PI / 180)
+                                    .toFloat()
+                            ),
+                        tint = MaterialTheme.colors.secondary
+                    )
+                }
+
+                ExecutionState.COMPLETED -> {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Completed",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colors.primary
+                    )
+                }
+
+                ExecutionState.FAILED -> {
+                    Icon(
+                        Icons.Default.Error,
+                        contentDescription = "Failed",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colors.error
+                    )
+                }
+
+                else -> {}
+            }
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = progressText,
+                    style = MaterialTheme.typography.body2,
+                    fontWeight = FontWeight.Medium,
+                    color = when (executionState) {
+                        ExecutionState.COMPLETED -> MaterialTheme.colors.primary
+                        ExecutionState.FAILED -> MaterialTheme.colors.error
+                        else -> MaterialTheme.colors.onSurface
+                    }
+                )
+
+                if (executionState in listOf(
+                        ExecutionState.VALIDATING,
+                        ExecutionState.GENERATING,
+                        ExecutionState.COMPILING,
+                        ExecutionState.EXECUTING
+                    )
+                ) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = progressValue,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colors.secondary
+                    )
+                }
+            }
+
+            // Step indicator
+            Text(
+                text = when (executionState) {
+                    ExecutionState.VALIDATING -> "1/4"
+                    ExecutionState.GENERATING -> "2/4"
+                    ExecutionState.COMPILING -> "3/4"
+                    ExecutionState.EXECUTING -> "4/4"
+                    ExecutionState.COMPLETED -> "✓"
+                    ExecutionState.FAILED -> "✗"
+                    else -> ""
+                },
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+@Composable
 private fun MethodEditorPanel(
     methodTemplate: MethodTemplate,
     selectedFormat: CodeFormat,
     onMethodChange: (MethodTemplate) -> Unit,
     onRunMethod: () -> Unit,
-    isExecuting: Boolean = false
+    executionState: ExecutionState,
+    fields: List<BitAttribute>,
+    messageType: String,
+    tpdu: String
 ) {
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -246,40 +516,147 @@ private fun MethodEditorPanel(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Main RUN button with enhanced animation
                 Button(
                     onClick = onRunMethod,
-                    enabled = !isExecuting,
+                    enabled = executionState == ExecutionState.IDLE,
                     colors = ButtonDefaults.buttonColors(
-                        backgroundColor = if (isExecuting) MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                        else MaterialTheme.colors.secondary
-                    )
+                        backgroundColor = when (executionState) {
+                            ExecutionState.IDLE -> MaterialTheme.colors.secondary
+                            ExecutionState.COMPLETED -> MaterialTheme.colors.primary
+                            ExecutionState.FAILED -> MaterialTheme.colors.error
+                            else -> MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                        }
+                    ),
+                    modifier = Modifier.animateContentSize()
                 ) {
-                    if (isExecuting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colors.onSurface
-                        )
-                    } else {
-                        Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = "Run",
-                            modifier = Modifier.size(18.dp)
-                        )
+                    when (executionState) {
+                        ExecutionState.IDLE -> {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "Run Script",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Run Script")
+                        }
+
+                        ExecutionState.COMPLETED -> {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Completed",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Completed")
+                        }
+
+                        ExecutionState.FAILED -> {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = "Failed",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Failed")
+                        }
+
+                        else -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colors.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Processing...")
+                        }
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (isExecuting) "Running..." else "Run")
                 }
 
+                // Generate File button
+                var isGenerating by remember { mutableStateOf(false) }
+                var generationResult by remember { mutableStateOf<String?>(null) }
+
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            isGenerating = true
+                            try {
+                                val executor = ISO8583MethodExecutor()
+                                val result = executor.generateStandaloneKotlinFile(
+                                    methodName = methodTemplate.methodName,
+                                    methodBody = methodTemplate.methodBody,
+                                    format = selectedFormat,
+                                    fields = fields,
+                                    outputDir = "generated",
+                                    customKeys = methodTemplate.outputKeys,
+                                    messageType = messageType,
+                                    tpdu = tpdu
+                                )
+
+                                generationResult = if (result.success) {
+                                    "✓ Kotlin file generated successfully!\n\nFile: ${result.generatedFilePath}\n\nTo compile and run:\n1. cd generated\n2. kotlinc ${methodTemplate.methodName}_*.kt -include-runtime -d ${methodTemplate.methodName}.jar\n3. java -jar ${methodTemplate.methodName}.jar"
+                                } else {
+                                    "✗ Generation failed: ${result.error}"
+                                }
+                            } catch (e: Exception) {
+                                generationResult = "✗ Error: ${e.message}"
+                            } finally {
+                                isGenerating = false
+                            }
+                        }
+                    },
+                    enabled = !isGenerating && executionState == ExecutionState.IDLE
+                ) {
+                    if (isGenerating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colors.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Generating...")
+                    } else {
+                        Icon(
+                            Icons.Default.GetApp,
+                            contentDescription = "Generate File",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Generate .kt")
+                    }
+                }
+
+                // Show generation result dialog
+                if (generationResult != null) {
+                    AlertDialog(
+                        onDismissRequest = { generationResult = null },
+                        title = { Text("Kotlin File Generation") },
+                        text = {
+                            Text(generationResult!!)
+                        },
+                        confirmButton = {
+                            Button(onClick = { generationResult = null }) {
+                                Text("OK")
+                            }
+                        }
+                    )
+                }
+
+                // Reset button
                 IconButton(
                     onClick = {
                         onMethodChange(getDefaultMethodTemplate(selectedFormat))
-                    }
+                    },
+                    enabled = executionState == ExecutionState.IDLE
                 ) {
                     Icon(
                         Icons.Default.Refresh,
                         contentDescription = "Reset to default",
-                        tint = MaterialTheme.colors.primary
+                        tint = if (executionState == ExecutionState.IDLE)
+                            MaterialTheme.colors.primary
+                        else
+                            MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
                     )
                 }
             }
@@ -295,60 +672,11 @@ private fun MethodEditorPanel(
             },
             label = { Text("Method Name") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            enabled = executionState == ExecutionState.IDLE
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        // JSON Key customization (only for JSON format)
-        if (selectedFormat == CodeFormat.JSON) {
-            Text(
-                "JSON Key Mappings (Output Customization)",
-                style = MaterialTheme.typography.subtitle2,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn(
-                modifier = Modifier.height(150.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(4) { index ->
-                    val keys = listOf("messageType", "timestamp", "fields", "metadata")
-                    val currentKey = keys[index]
-                    val currentValue = methodTemplate.outputKeys[currentKey] ?: currentKey
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            currentKey,
-                            modifier = Modifier.weight(0.4f),
-                            style = MaterialTheme.typography.body2
-                        )
-
-                        Text("→", style = MaterialTheme.typography.body2)
-
-                        OutlinedTextField(
-                            value = currentValue,
-                            onValueChange = { newValue ->
-                                val updatedKeys = methodTemplate.outputKeys.toMutableMap()
-                                updatedKeys[currentKey] = newValue
-                                onMethodChange(methodTemplate.copy(outputKeys = updatedKeys))
-                            },
-                            modifier = Modifier.weight(0.6f),
-                            textStyle = TextStyle(fontSize = 12.sp),
-                            singleLine = true
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-        }
 
         Text(
             "Method Body",
@@ -358,31 +686,48 @@ private fun MethodEditorPanel(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Method body editor
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.3f)),
-            color = Color(0xFF1E1E1E)
+        // Method body editor with overlay when executing
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            BasicTextField(
-                value = methodTemplate.methodBody,
-                onValueChange = {
-                    onMethodChange(methodTemplate.copy(methodBody = it))
-                },
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp)
-                    .verticalScroll(rememberScrollState())
-                    .horizontalScroll(rememberScrollState()),
-                textStyle = TextStyle(
-                    color = Color(0xFF9CDCFE),
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = 18.sp
-                ),
-                cursorBrush = SolidColor(Color.White)
-            )
+                    .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.3f)),
+                color = Color(0xFF1E1E1E)
+            ) {
+                BasicTextField(
+                    value = methodTemplate.methodBody,
+                    onValueChange = {
+                        if (executionState == ExecutionState.IDLE) {
+                            onMethodChange(methodTemplate.copy(methodBody = it))
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                        .verticalScroll(rememberScrollState())
+                        .horizontalScroll(rememberScrollState()),
+                    textStyle = TextStyle(
+                        color = Color(0xFF9CDCFE),
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 18.sp
+                    ),
+                    cursorBrush = SolidColor(Color.White),
+                    readOnly = executionState != ExecutionState.IDLE
+                )
+            }
+
+            // Execution overlay
+            if (executionState != ExecutionState.IDLE) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(0.3f),
+                    color = MaterialTheme.colors.surface
+                ) {}
+            }
         }
     }
 }
@@ -405,7 +750,7 @@ private fun OutputPanel(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "Output",
+                "Execution Output",
                 style = MaterialTheme.typography.h6,
                 fontWeight = FontWeight.Bold
             )
@@ -435,13 +780,13 @@ private fun OutputPanel(
             }
         }
 
-        // Execution metadata
+        // Execution metadata with enhanced styling
         executionResult?.let { result ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                elevation = 1.dp,
+                elevation = 2.dp,
                 backgroundColor = if (result.success)
                     MaterialTheme.colors.primary.copy(alpha = 0.1f)
                 else
@@ -456,12 +801,23 @@ private fun OutputPanel(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            if (result.success) "✓ Execution Successful" else "✗ Execution Failed",
-                            style = MaterialTheme.typography.subtitle2,
-                            fontWeight = FontWeight.Bold,
-                            color = if (result.success) MaterialTheme.colors.primary else MaterialTheme.colors.error
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                if (result.success) Icons.Default.CheckCircle else Icons.Default.Error,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (result.success) MaterialTheme.colors.primary else MaterialTheme.colors.error
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (result.success) "Compilation & Execution Successful" else "Compilation/Execution Failed",
+                                style = MaterialTheme.typography.subtitle2,
+                                fontWeight = FontWeight.Bold,
+                                color = if (result.success) MaterialTheme.colors.primary else MaterialTheme.colors.error
+                            )
+                        }
 
                         Text(
                             "${result.executionTimeMs}ms",
@@ -483,6 +839,14 @@ private fun OutputPanel(
                         style = MaterialTheme.typography.caption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                     )
+
+                    if (result.generatedFilePath != null) {
+                        Text(
+                            "Generated: ${result.generatedFilePath}",
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
                 }
             }
         }
@@ -516,18 +880,22 @@ private fun OutputPanel(
 }
 
 @Composable
-private fun FormatSelector(
+fun FormatSelector(
     selectedFormat: CodeFormat,
-    onFormatChange: (CodeFormat) -> Unit
+    onFormatChange: (CodeFormat) -> Unit,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     Box {
         OutlinedButton(
-            onClick = { expanded = true },
+            onClick = { if (enabled) expanded = true },
+            enabled = enabled,
             colors = ButtonDefaults.outlinedButtonColors(
                 backgroundColor = Color.Transparent,
-                contentColor = MaterialTheme.colors.primary
+                contentColor = if (enabled) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface.copy(
+                    alpha = 0.4f
+                )
             )
         ) {
             Text(selectedFormat.name.replace("_", " "))
@@ -560,7 +928,7 @@ private fun FormatHelpDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Format Information") },
+        title = { Text("Format Information & Execution Process") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -570,11 +938,37 @@ private fun FormatHelpDialog(
                     fontWeight = FontWeight.Bold
                 )
 
-                FormatHelpItem("JSON", "JavaScript Object Notation - structured key-value pairs")
-                FormatHelpItem("XML", "Extensible Markup Language - hierarchical structure")
-                FormatHelpItem("HEX", "Hexadecimal representation of binary data")
-                FormatHelpItem("BYTE_ARRAY", "Raw byte array representation")
-                FormatHelpItem("PLAIN_TEXT", "Simple text format with field mappings")
+                FormatHelpItem(
+                    "JSON",
+                    "JavaScript Object Notation - structured data with actual BitAttribute values"
+                )
+                FormatHelpItem(
+                    "XML",
+                    "Extensible Markup Language - hierarchical ISO8583 message structure"
+                )
+                FormatHelpItem("HEX", "Hexadecimal representation of real field data")
+                FormatHelpItem(
+                    "BYTE_ARRAY",
+                    "Kotlin byte array declarations from BitAttribute data"
+                )
+                FormatHelpItem("PLAIN_TEXT", "Human-readable report with field analysis")
+
+                Divider()
+
+                Text(
+                    "Execution Process:",
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    "1. Validating - Check method syntax and security\n" +
+                            "2. Generating - Create standalone Kotlin script\n" +
+                            "3. Compiling - Run kotlinc to create JAR file\n" +
+                            "4. Executing - Run java -jar to get output\n\n" +
+                            "The process uses your actual BitAttribute data and provides real compilation/execution feedback.",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
+                )
             }
         },
         confirmButton = {
@@ -605,18 +999,28 @@ private fun FormatHelpItem(name: String, description: String) {
 private fun extractFieldMappings(fields: List<BitAttribute>): List<FieldMapping> {
     return fields.mapIndexedNotNull { index, field ->
         if (field.isSet && field.data != null) {
-            FieldMapping(
-                bitNumber = index,
-                name = "field_${index}",
-                value = String(field.data!!),
-                description = "Bit ${index} data"
-            )
+            try {
+                val value = field.getValue() ?: field.getString()
+                FieldMapping(
+                    bitNumber = index + 1,
+                    name = "field_${index + 1}",
+                    value = value,
+                    description = "Bit ${index + 1} data"
+                )
+            } catch (e: Exception) {
+                FieldMapping(
+                    bitNumber = index + 1,
+                    name = "field_${index + 1}",
+                    value = String(field.data!!),
+                    description = "Bit ${index + 1} data (raw)"
+                )
+            }
         } else null
     }
 }
 
 private fun getDefaultMethodTemplate(format: CodeFormat): MethodTemplate {
-    val executor = ISO8583MethodExecutor() // Temporary instance to get sample
+    val executor = ISO8583MethodExecutor()
     return when (format) {
         CodeFormat.JSON -> MethodTemplate(
             methodName = "processToJson",
@@ -660,6 +1064,3 @@ private fun getTextColor(format: CodeFormat): Color {
         CodeFormat.PLAIN_TEXT -> Color(0xFFD4D4D4) // Light gray for plain text
     }
 }
-
-// Extension function for string multiplication
-private operator fun String.times(count: Int): String = this.repeat(count)

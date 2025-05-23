@@ -2,19 +2,22 @@ package `in`.aicortex.iso8583studio.data.model
 
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.BitTemplate
+import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
+import `in`.aicortex.iso8583studio.domain.utils.FormatSettings
+import `in`.aicortex.iso8583studio.domain.utils.MtiMapping
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XML
-import nl.adaptivity.xmlutil.serialization.XmlKeyName
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Serializable
 data class Something(
     val id: Int = 1,
-    var str: String="Data"
+    var str: String = "Data"
 )
+
 /**
  * Gateway configuration class
  */
@@ -73,13 +76,19 @@ data class GatewayConfig(
     var addNewClientWhenLoadKEK: Boolean = false,
     var advancedOptions: AdvancedOptions? = null,
     var restConfiguration: RestConfiguration? = null,
+    var formatMappingConfig: FormatMappingConfig = FormatMappingConfig(
+        formatType = CodeFormat.BYTE_ARRAY,
+        fieldMappings = mapOf(),
+        mti = MtiMapping(
+            key = "msgType"
+        )
+    ),
+    var codeFormat: CodeFormat? = null,
     private var _logFileName: String = "logs.txt",
-    @XmlKeyName(value = "destinationConnectionType") var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
-    @XmlKeyName(value = "serverConnectionType") var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,
+    var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
+    var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,
     var simulatedTransactions: List<Transaction> = emptyList()
 ) {
-
-
 
 
     /**
@@ -268,6 +277,8 @@ data class GatewayConfig(
         if (serialPort != other.serialPort) return false
         if (baudRate != other.baudRate) return false
         if (dialupNumber != other.dialupNumber) return false
+        if (formatMappingConfig != other.formatMappingConfig) return false
+        if (codeFormat != other.codeFormat) return false
         if (fixedResponseHeader != other.fixedResponseHeader) return false
 
         return true
@@ -333,6 +344,8 @@ data class GatewayConfig(
         result = 31 * result + serialPort.hashCode()
         result = 31 * result + baudRate.hashCode()
         result = 31 * result + dialupNumber.hashCode()
+        result = 31 * result + formatMappingConfig.hashCode()
+        result = 31 * result + codeFormat.hashCode()
         result = 31 * result + fixedResponseHeader.contentHashCode()
         return result
     }

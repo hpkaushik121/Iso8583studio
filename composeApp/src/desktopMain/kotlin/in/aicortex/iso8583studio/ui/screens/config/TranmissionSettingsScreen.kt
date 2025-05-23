@@ -9,11 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
@@ -21,6 +23,8 @@ import `in`.aicortex.iso8583studio.data.model.HttpMethod
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.RestConfiguration
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
+import `in`.aicortex.iso8583studio.ui.screens.components.ExecutionState
+import `in`.aicortex.iso8583studio.ui.screens.components.FormatSelector
 
 
 /**

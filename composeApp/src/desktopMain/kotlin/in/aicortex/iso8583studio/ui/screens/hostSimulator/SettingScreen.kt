@@ -48,6 +48,7 @@ import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.ui.screens.components.CodeEditorDialog
 import `in`.aicortex.iso8583studio.ui.screens.components.FieldInformationDialog
 import kotlinx.serialization.Serializable
@@ -81,7 +82,7 @@ fun ISO8583SettingsScreen(
 
     // Dialog states
     var showFieldInfoDialog by remember { mutableStateOf(false) }
-    var showCodeEditorDialog by remember { mutableStateOf(false) }
+//    var showCodeEditorDialog by remember { mutableStateOf(false) }
     var showAddTransactionDialog by remember { mutableStateOf(false) }
     var showEditTransactionDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -107,19 +108,19 @@ fun ISO8583SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Code Editor Button
-                IconButton(
-                    onClick = { showCodeEditorDialog = true },
-                    enabled = selectedTransaction != null
-                ) {
-                    Icon(
-                        Icons.Default.Code,
-                        contentDescription = "Code Editor",
-                        tint = if (selectedTransaction != null)
-                            MaterialTheme.colors.primary
-                        else
-                            MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
-                    )
-                }
+//                IconButton(
+//                    onClick = { showCodeEditorDialog = true },
+//                    enabled = selectedTransaction != null
+//                ) {
+//                    Icon(
+//                        Icons.Default.Code,
+//                        contentDescription = "Code Editor",
+//                        tint = if (selectedTransaction != null)
+//                            MaterialTheme.colors.primary
+//                        else
+//                            MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+//                    )
+//                }
 
                 // Field Information Button
                 IconButton(onClick = { showFieldInfoDialog = true }) {
@@ -393,26 +394,28 @@ fun ISO8583SettingsScreen(
         )
     }
 
-    if (showCodeEditorDialog && selectedTransaction != null) {
-        CodeEditorDialog(
-            fields = selectedTransaction!!.fields ?: emptyList(),
-            onCloseRequest = { showCodeEditorDialog = false },
-            onApplyChanges = { fieldMappings ->
-                // Apply field mappings back to the transaction
-                selectedTransaction?.let { transaction ->
-                    fieldMappings.forEach { mapping ->
-                        val bitIndex = mapping.bitNumber - 1
-                        if (bitIndex >= 0 && bitIndex < transaction.fields!!.size) {
-                            transaction.fields!![bitIndex].updateBit(mapping.bitNumber, mapping.value)
-                            fieldAvailableStates["${mapping.bitNumber}"] = true
-                            fieldEditStates["${mapping.bitNumber}"] = transaction.fields!![bitIndex]
-                        }
-                    }
-                }
-                showCodeEditorDialog = false
-            }
-        )
-    }
+//    if (showCodeEditorDialog && selectedTransaction != null) {
+//        CodeEditorDialog(
+//            messageType = selectedTransaction!!.mti,
+//            tpdu = if (gw.configuration.doNotUseHeader) "" else IsoUtil.bcdToString(gw.configuration.fixedResponseHeader!!),
+//            fields = selectedTransaction!!.fields ?: emptyList(),
+//            onCloseRequest = { showCodeEditorDialog = false },
+//            onApplyChanges = { fieldMappings ->
+//                // Apply field mappings back to the transaction
+//                selectedTransaction?.let { transaction ->
+//                    fieldMappings.forEach { mapping ->
+//                        val bitIndex = mapping.bitNumber - 1
+//                        if (bitIndex >= 0 && bitIndex < transaction.fields!!.size) {
+//                            transaction.fields!![bitIndex].updateBit(mapping.bitNumber, mapping.value)
+//                            fieldAvailableStates["${mapping.bitNumber}"] = true
+//                            fieldEditStates["${mapping.bitNumber}"] = transaction.fields!![bitIndex]
+//                        }
+//                    }
+//                }
+//                showCodeEditorDialog = false
+//            }
+//        )
+//    }
 
     if (showAddTransactionDialog) {
         AddTransactionDialog(
@@ -801,7 +804,7 @@ private fun AddTransactionDialog(
                             mti = mtiValue,
                             proCode = proCode,
                             description = description,
-                            fields = Iso8583Data(config = gw.configuration).bitAttributes.toMutableList()
+                            fields = Iso8583Data(config = gw.configuration).bitAttributes.toMutableList(),
                         )
                     )
                 },

@@ -545,3 +545,9 @@ data class RestConfiguration(
     val timeout: Int = 30,
     val retryCount: Int = 3
 )
+
+// CodeFormat enum - EXACTLY matching your existing dialog
+@Serializable
+enum class CodeFormat(val displayName: String, val requiresYamlConfig: Boolean) {
+    BYTE_ARRAY("Binary", false), JSON("JSON", true), XML("XML", true), HEX("Hex", false), PLAIN_TEXT("PLAIN_TEXT", true)
+}

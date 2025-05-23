@@ -2,12 +2,17 @@ package `in`.aicortex.iso8583studio.data
 
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
+import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.ParsingFeature
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.domain.utils.PlaceholderProcessor
+import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
+import `in`.aicortex.iso8583studio.domain.utils.MtiMapping
+import `in`.aicortex.iso8583studio.domain.utils.packWithFormat
+import `in`.aicortex.iso8583studio.domain.utils.unpackFromFormat
 import kotlinx.serialization.Serializable
 import java.io.InputStream
 import java.net.Socket
@@ -24,7 +29,7 @@ data class Iso8583Data(
     private var m_MessageType: String = "0200",
     protected var m_BitAttributes: Array<BitAttribute> = Array(MAX_BITS) { BitAttribute() },
     private var m_TPDU: TPDU = TPDU(),
-    private var buffer:ByteArray = ByteArray(MAX_PACKAGE_SIZE),
+    private var buffer: ByteArray = ByteArray(MAX_PACKAGE_SIZE),
     private var m_PackageSize: Int = 0,
     private var m_LastBitError: Int = 0,
     var messageLength: Int = 0,
@@ -126,36 +131,41 @@ data class Iso8583Data(
      */
     fun packBit(bitNumber: Int, dataString: String) {
         val index = bitNumber - 1
-        var  value = dataString
+        var value = dataString
         when (m_BitAttributes[index].typeAtribute) {
             BitType.AN, BitType.ANS -> {
-                m_BitAttributes[index].length = if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
-                    value.length
-                } else {
-                    value = value.padStart(m_BitAttributes[index].maxLength,'0')
-                    m_BitAttributes[index].maxLength
-                }
+                m_BitAttributes[index].length =
+                    if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
+                        value.length
+                    } else {
+                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        m_BitAttributes[index].maxLength
+                    }
                 m_BitAttributes[index].data = IsoUtil.stringToAsc(value)
             }
 
             BitType.BCD -> {
-                m_BitAttributes[index].length = if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
-                    value.length
-                } else {
-                    value = value.padStart(m_BitAttributes[index].maxLength,'0')
-                    m_BitAttributes[index].maxLength
-                }
-                m_BitAttributes[index].data = IsoUtil.stringToBCD(value, (m_BitAttributes[index].length + 1) / 2)
+                m_BitAttributes[index].length =
+                    if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
+                        value.length
+                    } else {
+                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        m_BitAttributes[index].maxLength
+                    }
+                m_BitAttributes[index].data =
+                    IsoUtil.stringToBCD(value, (m_BitAttributes[index].length + 1) / 2)
             }
 
             BitType.BINARY -> {
-                m_BitAttributes[index].length = if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
-                    (value.length + 1) / 2
-                } else {
-                    value = value.padStart(m_BitAttributes[index].maxLength,'0')
-                    m_BitAttributes[index].maxLength
-                }
-                m_BitAttributes[index].data = IsoUtil.stringToBCD(value, m_BitAttributes[index].length)
+                m_BitAttributes[index].length =
+                    if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
+                        (value.length + 1) / 2
+                    } else {
+                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        m_BitAttributes[index].maxLength
+                    }
+                m_BitAttributes[index].data =
+                    IsoUtil.stringToBCD(value, m_BitAttributes[index].length)
             }
 
             else -> {}
@@ -233,7 +243,11 @@ data class Iso8583Data(
     /**
      * Pack message with no length type
      */
-    fun pack(): ByteArray = pack(config.messageLengthType)
+    fun pack(): ByteArray = packWithFormat(
+        config.codeFormat ?: CodeFormat.BYTE_ARRAY,
+        messageLengthType = config.messageLengthType,
+        mappingConfig = config.formatMappingConfig
+    )
 
     /**
      * Pack message with specified length type
@@ -268,8 +282,10 @@ data class Iso8583Data(
 
             if (m_BitAttributes[0].isSet) {
                 // Secondary bitmap exists
-                val secondaryBitmapStr = IsoUtil.bcdToString(m_BitAttributes[0].data ?: ByteArray(0))
-                secondaryBitmapStr.toByteArray(Charset.defaultCharset()).copyInto(buffer, m_PackageSize)
+                val secondaryBitmapStr =
+                    IsoUtil.bcdToString(m_BitAttributes[0].data ?: ByteArray(0))
+                secondaryBitmapStr.toByteArray(Charset.defaultCharset())
+                    .copyInto(buffer, m_PackageSize)
                 m_PackageSize += 16
             }
         } else {
@@ -293,12 +309,14 @@ data class Iso8583Data(
                         if (m_LengthInAsc) {
                             // ASCII representation of length
                             val lenStr = m_BitAttributes[i].length.toString().padStart(2, '0')
-                            lenStr.toByteArray(Charset.defaultCharset()).copyInto(buffer, m_PackageSize)
+                            lenStr.toByteArray(Charset.defaultCharset())
+                                .copyInto(buffer, m_PackageSize)
                             m_PackageSize += 2
                             m_BitAttributes[i].data?.copyInto(buffer, m_PackageSize)
                         } else {
                             // BCD representation of length
-                            IsoUtil.binToBcd(m_BitAttributes[i].length, 1).copyInto(buffer, m_PackageSize)
+                            IsoUtil.binToBcd(m_BitAttributes[i].length, 1)
+                                .copyInto(buffer, m_PackageSize)
                             m_PackageSize += 1
                             m_BitAttributes[i].data?.copyInto(buffer, m_PackageSize)
                         }
@@ -308,12 +326,14 @@ data class Iso8583Data(
                         if (m_LengthInAsc) {
                             // ASCII representation of length
                             val lenStr = m_BitAttributes[i].length.toString().padStart(3, '0')
-                            lenStr.toByteArray(Charset.defaultCharset()).copyInto(buffer, m_PackageSize)
+                            lenStr.toByteArray(Charset.defaultCharset())
+                                .copyInto(buffer, m_PackageSize)
                             m_PackageSize += 3
                             m_BitAttributes[i].data?.copyInto(buffer, m_PackageSize)
                         } else {
                             // BCD representation of length
-                            IsoUtil.binToBcd(m_BitAttributes[i].length, 2).copyInto(buffer, m_PackageSize)
+                            IsoUtil.binToBcd(m_BitAttributes[i].length, 2)
+                                .copyInto(buffer, m_PackageSize)
                             m_PackageSize += 2
                             m_BitAttributes[i].data?.copyInto(buffer, m_PackageSize)
                         }
@@ -379,7 +399,8 @@ data class Iso8583Data(
                     // Set bit in primary bitmap
                     val bitPos = i / 8
                     val bitIndex = i % 8
-                    bitmap[bitPos] = (bitmap[bitPos].toInt() or bitValues[bitIndex].toInt()).toByte()
+                    bitmap[bitPos] =
+                        (bitmap[bitPos].toInt() or bitValues[bitIndex].toInt()).toByte()
                 }
             }
         }
@@ -432,144 +453,22 @@ data class Iso8583Data(
     /**
      * Unpack ISO 8583 message
      */
-    open fun unpack(input: ByteArray) = unpack(input, 0, input.size)
+    fun unpack(input: ByteArray) = unpackFromFormat(
+        inputData = input,
+        inputFormat = config.codeFormat ?: CodeFormat.BYTE_ARRAY,
+        mappingConfig = config.formatMappingConfig
+    )
 
     /**
      * Unpack ISO 8583 message with offset and length
      */
-    open fun unpack(input: ByteArray, from: Int, length: Int) {
-        messageLength = length + from
-        input.copyInto(buffer, 0, 0, messageLength)
-
-        var position = from
-
-        // Process header if present
-        if (hasHeader) {
-            val headerBytes = ByteArray(5)
-            buffer.copyInto(headerBytes, 0, position, position + 5)
-            position += 5
-            m_TPDU.unPack(headerBytes)
-        }
-
-        // Extract message type
-        if (m_LengthInAsc) {
-            // ASCII format
-            val msgTypeStr = buffer.copyOfRange(position, position + 4)
-                .toString(Charset.defaultCharset())
-            m_MessageType = msgTypeStr
-            position += 4
-        } else {
-            // BCD format
-            val msgTypeBytes = ByteArray(2)
-            buffer.copyInto(msgTypeBytes, 0, position, position + 2)
-            m_MessageType = IsoUtil.bcdToBin(msgTypeBytes).toString()
-            position += 2
-        }
-
-        // Process bitmap
-        if (bitmapInAscii) {
-            // ASCII bitmap format
-            val bitmapBytes = ByteArray(16)
-            m_BitAttributes[0].maxLength = 16
-
-            // Convert ASCII bitmap to BCD
-            val asciiPrimaryBitmap = String(input, position, 16, Charset.defaultCharset())
-            IsoUtil.stringToBCD(asciiPrimaryBitmap, 8).copyInto(bitmapBytes, 0)
-
-            // Check if secondary bitmap exists (bit 1 is set)
-            if ((bitmapBytes[0].toInt() and 0x80) > 0) {
-                val asciiSecondaryBitmap = String(input, position + 16, 16, Charset.defaultCharset())
-                IsoUtil.stringToBCD(asciiSecondaryBitmap, 8).copyInto(bitmapBytes, 8)
-            }
-
-            analyzeBitmap(bitmapBytes)
-            position += 16
-
-        } else {
-            // Binary bitmap format
-            if ((input[position].toInt() and 0x80) > 0) {
-                // Secondary bitmap exists
-                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 16))
-            } else {
-                // Only primary bitmap
-                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 8))
-            }
-            position += 8
-        }
-
-        // Process data fields
-        val maxBit = if (!m_BitAttributes[0].isSet) 64 else 128
-
-        for (i in 0 until maxBit) {
-            if (m_BitAttributes[i].isSet) {
-                m_LastBitError = i
-
-                // Determine field length
-                when (m_BitAttributes[i].lengthAttribute) {
-                    BitLength.FIXED -> {
-                        m_BitAttributes[i].length = m_BitAttributes[i].maxLength
-                    }
-
-                    BitLength.LLVAR -> {
-                        if (m_LengthInAsc) {
-                            // Length in ASCII format (2 characters)
-                            val lenStr = String(buffer, position, 2, Charset.defaultCharset())
-                            m_BitAttributes[i].length = lenStr.toInt()
-                            position += 2
-                        } else {
-                            // Length in BCD format (1 byte)
-                            val lenByte = ByteArray(1)
-                            buffer.copyInto(lenByte, 0, position, position + 1)
-                            m_BitAttributes[i].length = IsoUtil.bcdToBin(lenByte)
-                            position += 1
-                        }
-                    }
-
-                    BitLength.LLLVAR -> {
-                        if (m_LengthInAsc) {
-                            // Length in ASCII format (3 characters)
-                            val lenStr = String(buffer, position, 3, Charset.defaultCharset())
-                            m_BitAttributes[i].length = lenStr.toInt()
-                            position += 3
-                        } else {
-                            // Length in BCD format (2 bytes)
-                            val lenBytes = ByteArray(2)
-                            buffer.copyInto(lenBytes, 0, position, position + 2)
-                            m_BitAttributes[i].length = IsoUtil.bcdToBin(lenBytes)
-                            position += 2
-                        }
-                    }
-                }
-
-                // Extract field data based on type
-                when (m_BitAttributes[i].typeAtribute) {
-                    BitType.AN, BitType.ANS -> {
-                        // ASCII/EBCDIC character data
-                        m_BitAttributes[i].data = ByteArray(m_BitAttributes[i].length)
-                        buffer.copyInto(m_BitAttributes[i].data!!, 0, position, position + m_BitAttributes[i].length)
-                        position += m_BitAttributes[i].length
-                    }
-
-                    BitType.BCD -> {
-                        // BCD numeric data
-                        val dataLength = (m_BitAttributes[i].length + 1) / 2
-                        m_BitAttributes[i].data = ByteArray(dataLength)
-                        buffer.copyInto(m_BitAttributes[i].data!!, 0, position, position + dataLength)
-                        position += dataLength
-                    }
-
-                    BitType.BINARY -> {
-                        // Binary data
-                        m_BitAttributes[i].data = ByteArray(m_BitAttributes[i].length)
-                        buffer.copyInto(m_BitAttributes[i].data!!, 0, position, position + m_BitAttributes[i].length)
-                        position += m_BitAttributes[i].length
-                    }
-
-                    else -> {}
-                }
-            }
-        }
-    }
+    fun unpack(input: ByteArray, from: Int, length: Int) = unpackFromFormat(
+        inputData = input,
+        inputFormat = config.codeFormat ?: CodeFormat.BYTE_ARRAY,
+        mappingConfig = config.formatMappingConfig,
+        from = from,
+        length = length
+    )
 
     /**
      * Wait for data from a stream (with timeout)
@@ -691,6 +590,156 @@ data class Iso8583Data(
         result = 31 * result + rawMessage.contentHashCode()
         return result
     }
+
+    fun unpackByteArray(input: ByteArray, from: Int, length: Int) {
+        messageLength = length + from
+        input.copyInto(buffer, 0, 0, messageLength)
+
+        var position = from
+
+        // Process header if present
+        if (hasHeader) {
+            val headerBytes = ByteArray(5)
+            buffer.copyInto(headerBytes, 0, position, position + 5)
+            position += 5
+            m_TPDU.unPack(headerBytes)
+        }
+
+        // Extract message type
+        if (m_LengthInAsc) {
+            // ASCII format
+            val msgTypeStr = buffer.copyOfRange(position, position + 4)
+                .toString(Charset.defaultCharset())
+            m_MessageType = msgTypeStr
+            position += 4
+        } else {
+            // BCD format
+            val msgTypeBytes = ByteArray(2)
+            buffer.copyInto(msgTypeBytes, 0, position, position + 2)
+            m_MessageType = IsoUtil.bcdToBin(msgTypeBytes).toString()
+            position += 2
+        }
+
+        // Process bitmap
+        if (bitmapInAscii) {
+            // ASCII bitmap format
+            val bitmapBytes = ByteArray(16)
+            m_BitAttributes[0].maxLength = 16
+
+            // Convert ASCII bitmap to BCD
+            val asciiPrimaryBitmap = String(input, position, 16, Charset.defaultCharset())
+            IsoUtil.stringToBCD(asciiPrimaryBitmap, 8).copyInto(bitmapBytes, 0)
+
+            // Check if secondary bitmap exists (bit 1 is set)
+            if ((bitmapBytes[0].toInt() and 0x80) > 0) {
+                val asciiSecondaryBitmap =
+                    String(input, position + 16, 16, Charset.defaultCharset())
+                IsoUtil.stringToBCD(asciiSecondaryBitmap, 8).copyInto(bitmapBytes, 8)
+            }
+
+            analyzeBitmap(bitmapBytes)
+            position += 16
+
+        } else {
+            // Binary bitmap format
+            if ((input[position].toInt() and 0x80) > 0) {
+                // Secondary bitmap exists
+                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 16))
+            } else {
+                // Only primary bitmap
+                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 8))
+            }
+            position += 8
+        }
+
+        // Process data fields
+        val maxBit = if (!m_BitAttributes[0].isSet) 64 else 128
+
+        for (i in 0 until maxBit) {
+            if (m_BitAttributes[i].isSet) {
+                m_LastBitError = i
+
+                // Determine field length
+                when (m_BitAttributes[i].lengthAttribute) {
+                    BitLength.FIXED -> {
+                        m_BitAttributes[i].length = m_BitAttributes[i].maxLength
+                    }
+
+                    BitLength.LLVAR -> {
+                        if (m_LengthInAsc) {
+                            // Length in ASCII format (2 characters)
+                            val lenStr = String(buffer, position, 2, Charset.defaultCharset())
+                            m_BitAttributes[i].length = lenStr.toInt()
+                            position += 2
+                        } else {
+                            // Length in BCD format (1 byte)
+                            val lenByte = ByteArray(1)
+                            buffer.copyInto(lenByte, 0, position, position + 1)
+                            m_BitAttributes[i].length = IsoUtil.bcdToBin(lenByte)
+                            position += 1
+                        }
+                    }
+
+                    BitLength.LLLVAR -> {
+                        if (m_LengthInAsc) {
+                            // Length in ASCII format (3 characters)
+                            val lenStr = String(buffer, position, 3, Charset.defaultCharset())
+                            m_BitAttributes[i].length = lenStr.toInt()
+                            position += 3
+                        } else {
+                            // Length in BCD format (2 bytes)
+                            val lenBytes = ByteArray(2)
+                            buffer.copyInto(lenBytes, 0, position, position + 2)
+                            m_BitAttributes[i].length = IsoUtil.bcdToBin(lenBytes)
+                            position += 2
+                        }
+                    }
+                }
+
+                // Extract field data based on type
+                when (m_BitAttributes[i].typeAtribute) {
+                    BitType.AN, BitType.ANS -> {
+                        // ASCII/EBCDIC character data
+                        m_BitAttributes[i].data = ByteArray(m_BitAttributes[i].length)
+                        buffer.copyInto(
+                            m_BitAttributes[i].data!!,
+                            0,
+                            position,
+                            position + m_BitAttributes[i].length
+                        )
+                        position += m_BitAttributes[i].length
+                    }
+
+                    BitType.BCD -> {
+                        // BCD numeric data
+                        val dataLength = (m_BitAttributes[i].length + 1) / 2
+                        m_BitAttributes[i].data = ByteArray(dataLength)
+                        buffer.copyInto(
+                            m_BitAttributes[i].data!!,
+                            0,
+                            position,
+                            position + dataLength
+                        )
+                        position += dataLength
+                    }
+
+                    BitType.BINARY -> {
+                        // Binary data
+                        m_BitAttributes[i].data = ByteArray(m_BitAttributes[i].length)
+                        buffer.copyInto(
+                            m_BitAttributes[i].data!!,
+                            0,
+                            position,
+                            position + m_BitAttributes[i].length
+                        )
+                        position += m_BitAttributes[i].length
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+    }
 }
 
 fun BitAttribute.updateBit(index: Int, dataString: String) {
@@ -701,8 +750,8 @@ fun BitAttribute.updateBit(index: Int, dataString: String) {
             length = if (lengthAttribute != BitLength.FIXED) {
                 value.length
             } else {
-                if(!PlaceholderProcessor.holdersList.contains(dataString)){
-                    value = value.padStart(maxLength,'0')
+                if (!PlaceholderProcessor.holdersList.contains(dataString)) {
+                    value = value.padStart(maxLength, '0')
                 }
                 maxLength
             }
@@ -713,8 +762,8 @@ fun BitAttribute.updateBit(index: Int, dataString: String) {
             length = if (lengthAttribute != BitLength.FIXED) {
                 value.length
             } else {
-                if(!PlaceholderProcessor.holdersList.contains(dataString)){
-                    value = value.padStart(maxLength,'0')
+                if (!PlaceholderProcessor.holdersList.contains(dataString)) {
+                    value = value.padStart(maxLength, '0')
                 }
                 maxLength
             }
@@ -725,8 +774,8 @@ fun BitAttribute.updateBit(index: Int, dataString: String) {
             length = if (lengthAttribute != BitLength.FIXED) {
                 (value.length + 1) / 2
             } else {
-                if(!PlaceholderProcessor.holdersList.contains(dataString)){
-                    value = value.padStart(maxLength,'0')
+                if (!PlaceholderProcessor.holdersList.contains(dataString)) {
+                    value = value.padStart(maxLength, '0')
                 }
                 maxLength
             }
