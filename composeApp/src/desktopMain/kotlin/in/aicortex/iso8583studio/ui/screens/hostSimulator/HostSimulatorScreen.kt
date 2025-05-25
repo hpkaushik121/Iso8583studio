@@ -1,14 +1,15 @@
 package `in`.aicortex.iso8583studio.ui.screens.hostSimulator
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -21,21 +22,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
+import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.rememberIsoCoroutineScope
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
-import `in`.aicortex.iso8583studio.ui.components.*
 import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.WarningYellow
+import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.Panel
+import `in`.aicortex.iso8583studio.ui.screens.components.PrimaryButton
+import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
+import `in`.aicortex.iso8583studio.ui.screens.components.SectionHeader
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import java.io.File
+import java.util.UUID
+import javax.swing.JFileChooser
+import javax.swing.filechooser.FileNameExtensionFilter
+import kotlin.text.ifEmpty
 
 /**
  * Modern Host Simulator screen
@@ -47,7 +67,7 @@ fun HostSimulatorScreen(
     onSaveClick: () -> Unit,
     onError: ResultDialogInterface? = null,
 ) {
-    var gw : GatewayServiceImpl? = null
+    var gw: GatewayServiceImpl? = null
     val coroutineScope = rememberCoroutineScope()
     Scaffold(
         topBar = {
@@ -69,7 +89,7 @@ fun HostSimulatorScreen(
         backgroundColor = MaterialTheme.colors.background
     ) { paddingValues ->
         if (config != null) {
-             gw = GatewayServiceImpl(config)
+            gw = GatewayServiceImpl(config)
             if (onError != null) {
                 gw.setShowErrorListener(onError)
             }
@@ -120,20 +140,28 @@ fun HostSimulator(
     val coroutineScope = rememberIsoCoroutineScope(gw)
 
     // Set up event handlers
-    gw.onReceiveFromSource { client, request ->
-        rawRequest = IsoUtil.bytesToHexString(request)
-        rawResponse = ""
-        return@onReceiveFromSource request
-    }
-
-    gw.onReceivedFormattedData {
-        request = it?.logFormat() ?: ""
+    gw.onReceiveFromSource { iso ->
+        rawRequest = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+        request = iso?.logFormat() ?: ""
         response = ""
+        rawResponse = ""
     }
 
-    gw.onSentFormattedData { iso, byte ->
+    gw.onReceiveFromDest { iso ->
         response = iso?.logFormat() ?: ""
-        rawResponse = IsoUtil.bytesToHexString(byte ?: byteArrayOf())
+        rawResponse = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+    }
+
+    gw.onSentToSource { iso ->
+        response = iso?.logFormat() ?: ""
+        rawResponse = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+    }
+
+    gw.onSentToDest { iso ->
+        rawRequest = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+        request = iso?.logFormat() ?: ""
+        response = ""
+        rawResponse = ""
     }
 
     gw.beforeReceive {
@@ -305,7 +333,9 @@ fun HostSimulator(
                 }
 
                 4 -> UnsolicitedMessageTab(
-                    gw = gw
+                    gw = gw,
+                    logText = logText,
+                    onClearClick = { logText = "" },
                 )
             }
         }
@@ -471,7 +501,7 @@ private fun ISO8583TransactionTab(
                             value = request,
                             readOnly = true,
                             onValueChange = { },
-                            modifier =  Modifier
+                            modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(scrollState)
                                 .background(Color.Transparent),
@@ -503,7 +533,7 @@ private fun ISO8583TransactionTab(
                             value = rawRequest,
                             readOnly = true,
                             onValueChange = { },
-                            modifier =  Modifier
+                            modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(scrollState)
                                 .background(Color.Transparent),
@@ -543,7 +573,7 @@ private fun ISO8583TransactionTab(
                             value = response,
                             readOnly = true,
                             onValueChange = { },
-                            modifier =  Modifier
+                            modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(scrollState)
                                 .background(Color.Transparent),
@@ -576,7 +606,7 @@ private fun ISO8583TransactionTab(
                             value = rawResponse,
                             readOnly = true,
                             onValueChange = { },
-                            modifier =  Modifier
+                            modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(scrollState)
                                 .background(Color.Transparent),
@@ -601,40 +631,6 @@ private fun LogTab(
     bytesIncoming: Long,
     bytesOutgoing: Long
 ) {
-    val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope() // Add this for better lifecycle management
-    var isAutoScrollEnabled by remember { mutableStateOf(true) }
-    var userHasScrolled by remember { mutableStateOf(false) }
-    var previousLogLength by remember { mutableStateOf(0) }
-
-    // Auto-scroll effect when new log content is added
-    LaunchedEffect(logText) {
-        if (logText.length > previousLogLength && isAutoScrollEnabled) {
-            // Use a slight delay to ensure the text is rendered before scrolling
-            kotlinx.coroutines.delay(50)
-            scrollState.animateScrollTo(scrollState.maxValue)
-        }
-        previousLogLength = logText.length
-    }
-
-    // Monitor scroll position to detect manual scrolling
-    LaunchedEffect(scrollState.value, scrollState.maxValue) {
-        if (scrollState.maxValue > 0) {
-            val isAtBottom = scrollState.value >= scrollState.maxValue - 100 // 100px tolerance for better detection
-
-            // If user manually scrolled up, disable auto-scroll
-            if (!isAtBottom && !userHasScrolled && scrollState.value > 0) {
-                userHasScrolled = true
-                isAutoScrollEnabled = false
-            }
-
-            // If user scrolled back to bottom, enable auto-scroll
-            if (isAtBottom && userHasScrolled) {
-                userHasScrolled = false
-                isAutoScrollEnabled = true
-            }
-        }
-    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -648,152 +644,10 @@ private fun LogTab(
             elevation = 2.dp,
             shape = RoundedCornerShape(8.dp)
         ) {
-            Column {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colors.primary.copy(alpha = 0.1f))
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Article,
-                        contentDescription = null,
-                        tint = MaterialTheme.colors.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Transaction Log",
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colors.primary
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Auto-scroll toggle button
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = if (isAutoScrollEnabled)
-                            MaterialTheme.colors.primary.copy(alpha = 0.1f)
-                        else
-                            MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
-                        modifier = Modifier.clickable {
-                            isAutoScrollEnabled = !isAutoScrollEnabled
-                            if (isAutoScrollEnabled) {
-                                // Scroll to bottom when re-enabled
-                                coroutineScope.launch {
-                                    scrollState.animateScrollTo(scrollState.maxValue)
-                                }
-                            }
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = if (isAutoScrollEnabled)
-                                    Icons.Default.VerticalAlignBottom
-                                else
-                                    Icons.Default.PauseCircle,
-                                contentDescription = if (isAutoScrollEnabled)
-                                    "Auto-scroll enabled"
-                                else
-                                    "Auto-scroll disabled",
-                                tint = if (isAutoScrollEnabled)
-                                    MaterialTheme.colors.primary
-                                else
-                                    MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                "Auto",
-                                style = MaterialTheme.typography.caption,
-                                color = if (isAutoScrollEnabled)
-                                    MaterialTheme.colors.primary
-                                else
-                                    MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Clear logs button
-                    IconButton(onClick = onClearClick) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteSweep,
-                            contentDescription = "Clear logs",
-                            tint = MaterialTheme.colors.primary
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                ) {
-                    // Log content with custom scrollable text
-                    SelectionContainer {
-                        Text(
-                            text = logText.ifEmpty { "No logs yet. Start the server to see transaction logs here." },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            color = if (logText.isEmpty())
-                                MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                            else
-                                MaterialTheme.colors.onSurface
-                        )
-                    }
-
-
-                }
-
-                // Log statistics bar at bottom
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colors.surface)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Lines: ${logText.count { it == '\n' }}",
-                        style = MaterialTheme.typography.caption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                    )
-
-                    Text(
-                        "Size: ${formatBytes(logText.length.toLong())}",
-                        style = MaterialTheme.typography.caption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Auto-scroll: ",
-                            style = MaterialTheme.typography.caption,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                        )
-                        Text(
-                            if (isAutoScrollEnabled) "ON" else "OFF",
-                            style = MaterialTheme.typography.caption,
-                            color = if (isAutoScrollEnabled) SuccessGreen else ErrorRed,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
+            LogPanelWithAutoScroll(
+                onClearClick = onClearClick,
+                logText = logText
+            )
         }
 
         // Statistics panel (unchanged)
@@ -850,18 +704,236 @@ private fun LogTab(
     }
 }
 
+@Composable
+private fun LogPanelWithAutoScroll(
+    onClearClick: () -> Unit,
+    logText: String,
+    onBack: (() -> Unit)? = null
+) {
+    var userHasScrolled by remember { mutableStateOf(false) }
+    var previousLogLength by remember { mutableStateOf(0) }
+    var isAutoScrollEnabled by remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope() // Add this for better lifecycle management
+    val scrollState = rememberScrollState()
+
+    // Auto-scroll effect when new log content is added
+    LaunchedEffect(logText) {
+        if (logText.length > previousLogLength && isAutoScrollEnabled) {
+            // Use a slight delay to ensure the text is rendered before scrolling
+            kotlinx.coroutines.delay(50)
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+        previousLogLength = logText.length
+    }
+
+    // Monitor scroll position to detect manual scrolling
+    LaunchedEffect(scrollState.value, scrollState.maxValue) {
+        if (scrollState.maxValue > 0) {
+            val isAtBottom =
+                scrollState.value >= scrollState.maxValue - 100 // 100px tolerance for better detection
+
+            // If user manually scrolled up, disable auto-scroll
+            if (!isAtBottom && !userHasScrolled && scrollState.value > 0) {
+                userHasScrolled = true
+                isAutoScrollEnabled = false
+            }
+
+            // If user scrolled back to bottom, enable auto-scroll
+            if (isAtBottom && userHasScrolled) {
+                userHasScrolled = false
+                isAutoScrollEnabled = true
+            }
+        }
+    }
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colors.primary.copy(alpha = 0.1f))
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Article,
+                contentDescription = null,
+                tint = MaterialTheme.colors.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Transaction Log",
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colors.primary
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Auto-scroll toggle button
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = if (isAutoScrollEnabled)
+                    MaterialTheme.colors.primary.copy(alpha = 0.1f)
+                else
+                    MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
+                modifier = Modifier.clickable {
+                    isAutoScrollEnabled = !isAutoScrollEnabled
+                    if (isAutoScrollEnabled) {
+                        // Scroll to bottom when re-enabled
+                        coroutineScope.launch {
+                            scrollState.animateScrollTo(scrollState.maxValue)
+                        }
+                    }
+                }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isAutoScrollEnabled)
+                            Icons.Default.VerticalAlignBottom
+                        else
+                            Icons.Default.PauseCircle,
+                        contentDescription = if (isAutoScrollEnabled)
+                            "Auto-scroll enabled"
+                        else
+                            "Auto-scroll disabled",
+                        tint = if (isAutoScrollEnabled)
+                            MaterialTheme.colors.primary
+                        else
+                            MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        "Auto",
+                        style = MaterialTheme.typography.caption,
+                        color = if (isAutoScrollEnabled)
+                            MaterialTheme.colors.primary
+                        else
+                            MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Clear logs button
+            IconButton(onClick = onClearClick) {
+                Icon(
+                    imageVector = Icons.Default.DeleteSweep,
+                    contentDescription = "Clear logs",
+                    tint = MaterialTheme.colors.primary
+                )
+            }
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Go Back",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colors.primary
+                    )
+                }
+            }
+
+
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            // Log content with custom scrollable text
+            SelectionContainer {
+                Text(
+                    text = logText.ifEmpty { "No logs yet. Start the server to see transaction logs here." },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .verticalScroll(scrollState),
+                    style = MaterialTheme.typography.body2,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    color = if (logText.isEmpty())
+                        MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                    else
+                        MaterialTheme.colors.onSurface
+                )
+            }
+
+
+        }
+
+        // Log statistics bar at bottom
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colors.surface)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Lines: ${logText.count { it == '\n' }}",
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+            )
+
+            Text(
+                "Size: ${formatBytes(logText.length.toLong())}",
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Auto-scroll: ",
+                    style = MaterialTheme.typography.caption,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                )
+                Text(
+                    if (isAutoScrollEnabled) "ON" else "OFF",
+                    style = MaterialTheme.typography.caption,
+                    color = if (isAutoScrollEnabled) SuccessGreen else ErrorRed,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
 
 /**
- * Unsolicited Message Tab
+ * Enhanced Unsolicited Message Tab with animated log panel transition
  */
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun UnsolicitedMessageTab(
-    gw: GatewayServiceImpl
+    gw: GatewayServiceImpl,
+    logText: String,
+    onClearClick: () -> Unit = {},
 ) {
     var rawMessageBytes by remember { mutableStateOf(byteArrayOf()) }
     var rawMessageString by remember { mutableStateOf("") }
     var parsedMessageCreated by remember { mutableStateOf("") }
     var showCreateIsoDialog by remember { mutableStateOf(false) }
+    var savedMessages =
+        remember { gw.configuration.simulatedTransactionsToDest.toMutableStateList() }
+    var selectedMessage by remember { mutableStateOf<Transaction?>(null) }
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
+    var currentMessage by remember { mutableStateOf<Iso8583Data?>(null) }
+
+    // Animation state for panel transition
+    var showLogPanel by remember { mutableStateOf(false) }
+    var isSending by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -871,7 +943,7 @@ private fun UnsolicitedMessageTab(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Left panel - Message content
+            // Left panel - Message content (expanded)
             Column(
                 modifier = Modifier
                     .weight(0.7f)
@@ -887,15 +959,79 @@ private fun UnsolicitedMessageTab(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Column {
-                        Text(
-                            "Raw Message (Hex)",
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colors.primary.copy(alpha = 0.1f))
                                 .padding(8.dp),
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colors.primary
-                        )
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Raw Message (Hex)",
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colors.primary
+                            )
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                IconButton(
+                                    onClick = { showCreateIsoDialog = true },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Create ISO8583 Message",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colors.primary
+                                    )
+                                }
+
+                                if (rawMessageString.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = { showSaveDialog = true },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Save,
+                                            contentDescription = "Save Message",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colors.primary
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            rawMessageString = ""
+                                            parsedMessageCreated = ""
+                                            rawMessageBytes = byteArrayOf()
+                                            selectedMessage = null
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Clear Message",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colors.primary
+                                        )
+                                    }
+                                }
+
+                                IconButton(
+                                    onClick = { showInfoDialog = true },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = "Information",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colors.primary
+                                    )
+                                }
+                            }
+                        }
 
                         TextField(
                             value = rawMessageString,
@@ -932,7 +1068,7 @@ private fun UnsolicitedMessageTab(
                                     rawMessageString,
                                     rawMessageString.length / 2
                                 )
-                                val isoData = Iso8583Data(gw.configuration)
+                                val isoData = Iso8583Data(gw.configuration, isFirst = false)
                                 isoData.unpack(
                                     rawMessageBytes,
                                     2,
@@ -945,15 +1081,51 @@ private fun UnsolicitedMessageTab(
                                 }
                             }
                         },
-                        icon = Icons.Default.UnfoldMore
+                        icon = Icons.Default.UnfoldMore,
+                        enabled = rawMessageString.isNotEmpty()
                     )
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    SecondaryButton(
-                        text = "Create ISO8583 Message",
-                        onClick = { showCreateIsoDialog = true },
-                        icon = Icons.Default.Add
+                    PrimaryButton(
+                        text = if (isSending) "Sending..." else "Send Message",
+                        onClick = {
+                            if (rawMessageString.isNotEmpty()) {
+                                // Start sending process
+                                isSending = true
+                                showLogPanel = true
+
+                                coroutineScope.launch {
+                                    try {
+                                        // Convert string to bytes
+                                        rawMessageBytes = IsoUtil.stringToBcd(
+                                            rawMessageString,
+                                            rawMessageString.length / 2
+                                        )
+
+                                        // Create ISO8583 data object
+                                        val isoData = Iso8583Data(
+                                            config = gw.configuration,
+                                            isFirst = false
+                                        )
+                                        isoData.unpack(rawMessageBytes, 2, rawMessageBytes.size - 2)
+
+                                        // Update parsed message
+                                        parsedMessageCreated = isoData.logFormat()
+
+                                        // Send the message
+                                        gw.sendToSecondConnection(isoData)
+
+
+                                    } catch (e: Exception) {
+                                    } finally {
+                                        isSending = false
+                                    }
+                                }
+                            }
+                        },
+                        icon = if (isSending) Icons.Default.Schedule else Icons.Default.Send,
+                        enabled = rawMessageString.isNotEmpty() && !isSending
                     )
                 }
 
@@ -989,87 +1161,809 @@ private fun UnsolicitedMessageTab(
                 }
             }
 
-            // Right panel - Actions and info
-            Column(
+            // Right panel - Animated transition between Saved Messages and Log Panel
+            AnimatedContent(
+                targetState = showLogPanel,
                 modifier = Modifier
                     .weight(0.3f)
                     .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Message actions panel
-                Panel(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        SectionHeader(title = "Message Actions")
-
-                        PrimaryButton(
-                            text = "Send Message",
-                            onClick = { /* Send message logic */ },
-                            icon = Icons.Default.Send,
-                            modifier = Modifier.fillMaxWidth()
+                transitionSpec = {
+                    slideInHorizontally(
+                        initialOffsetX = { if (targetState) it else -it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
                         )
-
-                        SecondaryButton(
-                            text = "Load from File",
-                            onClick = { /* Load from file logic */ },
-                            icon = Icons.Default.FileOpen,
-                            modifier = Modifier.fillMaxWidth()
+                    ) + fadeIn(
+                        animationSpec = tween(300)
+                    ) with slideOutHorizontally(
+                        targetOffsetX = { if (targetState) -it else it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
                         )
+                    ) + fadeOut(
+                        animationSpec = tween(300)
+                    )
+                },
+                label = "panel_transition"
+            ) { showLog ->
+                if (showLog) {
+                    // Log Panel
+                    Panel {
+                        LogPanelWithAutoScroll(
+                            onClearClick = onClearClick,
+                            logText = logText,
+                            onBack = {
+                                showLogPanel = false
+                                isSending = false
+                            }
 
-                        SecondaryButton(
-                            text = "Save to File",
-                            onClick = { /* Save to file logic */ },
-                            icon = Icons.Default.Save,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                // Help panel
-                Panel(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        SectionHeader(title = "Information")
-
-                        val scrollState = rememberScrollState()
-                        Text(
-                            "This tab allows you to construct and send unsolicited ISO8583 messages to clients. Use the 'Create ISO8583 Message' button to build a message using the built-in editor, or enter raw hexadecimal data in the input field.\n\n" +
-                                    "Unsolicited messages are useful for testing client behavior when receiving unexpected messages from the server.",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
                         )
                     }
+
+
+                } else {
+                    // Saved Messages Panel
+                    SavedMessagesPanel(
+                        savedMessages = savedMessages,
+                        selectedMessage = selectedMessage,
+                        onMessageSelected = { item ->
+                            selectedMessage = item
+                            val message = Iso8583Data(
+                                template = item.fields!!.toTypedArray(),
+                                config = gw.configuration,
+                                isFirst = false,
+                            )
+                            message.messageType = item.mti
+                            rawMessageBytes = message.pack()
+                            rawMessageString = IsoUtil.bcdToString(rawMessageBytes)
+                            parsedMessageCreated = message.logFormat()
+                            currentMessage = message
+                        },
+                        onDeleteMessage = { message ->
+                            val messageToDelete = savedMessages.firstOrNull { it.id == message.id }
+                            if (selectedMessage?.id == message.id) {
+                                selectedMessage = null
+                            }
+                            savedMessages.remove(messageToDelete)
+                            gw.configuration.simulatedTransactionsToDest = savedMessages
+                        },
+                        onImportMessages = { showImportDialog = true },
+                        onExportMessages = { showExportDialog = true }
+                    )
                 }
             }
         }
 
+        // All your existing dialogs remain the same...
+        // ISO8583 Editor Dialog
         if (showCreateIsoDialog) {
             Iso8583EditorDialog(
+                initialMessage = currentMessage,
                 gw = gw,
                 onDismiss = { showCreateIsoDialog = false },
                 onConfirm = {
                     showCreateIsoDialog = false
                     rawMessageBytes = it.pack()
+                    currentMessage = it
                     rawMessageString = IsoUtil.bcdToString(rawMessageBytes)
+
+                    // Auto-parse the created message
+                    try {
+                        parsedMessageCreated = it.logFormat()
+                    } catch (e: Exception) {
+                        parsedMessageCreated = "Error parsing message: ${e.message}"
+                    }
                 }
             )
         }
+
+        // Save Message Dialog
+        if (showSaveDialog && currentMessage != null) {
+            SaveMessageDialog(
+                bitAttribute = currentMessage!!.bitAttributes,
+                mti = currentMessage!!.messageType,
+                processingCode = currentMessage!!.bitAttributes.getOrNull(2)?.getValue() ?: "",
+                onDismiss = { showSaveDialog = false },
+                onSave = { savedMessage ->
+                    savedMessages.add(savedMessage)
+                    showSaveDialog = false
+                    gw.configuration.simulatedTransactionsToDest = savedMessages
+                },
+            )
+        }
+
+        // Import Dialog
+        if (showImportDialog) {
+            ImportMessagesDialog(
+                onDismiss = { showImportDialog = false },
+                onImport = { importedMessages ->
+                    savedMessages.addAll(importedMessages)
+                    showImportDialog = false
+                    gw.configuration.simulatedTransactionsToDest = savedMessages
+                }
+            )
+        }
+
+        // Export Dialog
+        if (showExportDialog) {
+            ExportMessagesDialog(
+                messages = savedMessages,
+                onDismiss = { showExportDialog = false },
+                onExport = {
+                    showExportDialog = false
+                }
+            )
+        }
+
+        // Information Dialog
+        if (showInfoDialog) {
+            InformationDialog(
+                onDismiss = { showInfoDialog = false }
+            )
+        }
     }
+}
+
+
+/**
+ * Information Dialog Component
+ */
+@Composable
+fun InformationDialog(
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colors.primary
+                    )
+                    Text(
+                        text = "Unsolicited Messages",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    text = "This tab allows you to construct and send unsolicited ISO8583 messages to clients.",
+                    style = MaterialTheme.typography.body1,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    InformationItem(
+                        icon = Icons.Default.Add,
+                        title = "Create Messages",
+                        description = "Use the '+' icon to build messages with the built-in editor"
+                    )
+
+                    InformationItem(
+                        icon = Icons.Default.Edit,
+                        title = "Manual Entry",
+                        description = "Enter raw hexadecimal data directly in the input field"
+                    )
+
+                    InformationItem(
+                        icon = Icons.Default.Save,
+                        title = "Save Messages",
+                        description = "Save frequently used messages for quick access"
+                    )
+
+                    InformationItem(
+                        icon = Icons.Default.ImportExport,
+                        title = "Import/Export",
+                        description = "Import and export message collections for backup"
+                    )
+
+                    InformationItem(
+                        icon = Icons.Default.Send,
+                        title = "Send Messages",
+                        description = "Send unsolicited messages to test client behavior"
+                    )
+                }
+
+                Text(
+                    text = "Saved messages appear in the right panel for quick access and reuse.",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
+                    fontStyle = FontStyle.Italic
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(onClick = onDismiss) {
+                        Text("Got it")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Information Item Component
+ */
+@Composable
+fun InformationItem(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colors.primary.copy(alpha = 0.7f)
+        )
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.body2,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+
+/**
+ * Saved Messages Panel Component
+ */
+@Composable
+fun SavedMessagesPanel(
+    savedMessages: List<Transaction>,
+    selectedMessage: Transaction?,
+    onMessageSelected: (Transaction) -> Unit,
+    onDeleteMessage: (Transaction) -> Unit,
+    onImportMessages: () -> Unit,
+    onExportMessages: () -> Unit
+) {
+    Panel(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Header with actions
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colors.primary.copy(alpha = 0.1f))
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Saved Messages (${savedMessages.size})",
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colors.primary,
+                    fontSize = 14.sp
+                )
+
+                Row {
+                    IconButton(
+                        onClick = onImportMessages,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Upload,
+                            contentDescription = "Import Messages",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colors.primary
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onExportMessages,
+                        modifier = Modifier.size(24.dp),
+                        enabled = savedMessages.isNotEmpty()
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Export Messages",
+                            modifier = Modifier.size(14.dp),
+                            tint = if (savedMessages.isNotEmpty()) MaterialTheme.colors.primary
+                            else MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                        )
+                    }
+                }
+            }
+
+            Divider()
+
+            // Messages list
+            if (savedMessages.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Message,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                        )
+                        Text(
+                            "No saved messages",
+                            style = MaterialTheme.typography.body2,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            "Create and save messages to see them here",
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(savedMessages.size) { i ->
+                        SavedMessageItem(
+                            message = savedMessages[i],
+                            isSelected = selectedMessage?.id == savedMessages[i].id,
+                            onSelect = { onMessageSelected(savedMessages[i]) },
+                            onDelete = { onDeleteMessage(savedMessages[i]) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Individual Saved Message Item
+ */
+@Composable
+fun SavedMessageItem(
+    message: Transaction,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clickable { onSelect() },
+        elevation = if (isSelected) 4.dp else 1.dp,
+        backgroundColor = if (isSelected) MaterialTheme.colors.primary.copy(alpha = 0.1f)
+        else MaterialTheme.colors.surface
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = message.description,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (message.mti.isNotEmpty()) {
+                        Text(
+                            text = "MTI: ${message.mti}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+
+                }
+            }
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete Message",
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colors.error
+                )
+            }
+        }
+
+    }
+}
+
+
+/**
+ * Save Message Dialog
+ */
+@Composable
+fun SaveMessageDialog(
+    bitAttribute: Array<BitAttribute>,
+    mti: String,
+    processingCode: String,
+    onDismiss: () -> Unit,
+    onSave: (Transaction) -> Unit
+) {
+    var messageName by remember { mutableStateOf("") }
+    var mti by remember { mutableStateOf(mti) }
+    var procCode by remember { mutableStateOf(processingCode) }
+
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Save Message",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                OutlinedTextField(
+                    value = messageName,
+                    onValueChange = { messageName = it },
+                    label = { Text("Message Name *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Row {
+                    OutlinedTextField(
+                        value = mti,
+                        onValueChange = { mti = it },
+                        label = { Text("MTI") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    OutlinedTextField(
+                        value = procCode,
+                        onValueChange = { procCode = it },
+                        label = { Text("Processing Code") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            val savedMessage = Transaction(
+                                id = UUID.randomUUID().toString(),
+                                description = messageName,
+                                mti = mti,
+                                proCode = procCode,
+                                fields = bitAttribute.toList()
+
+                            )
+                            onSave(savedMessage)
+                        },
+                        enabled = messageName.isNotEmpty()
+                    ) {
+                        Text("Save")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Import Messages Dialog
+ */
+@Composable
+fun ImportMessagesDialog(
+    onDismiss: () -> Unit,
+    onImport: (List<Transaction>) -> Unit
+) {
+    var importedContent by remember { mutableStateOf("") }
+    var importedParsedContent by remember { mutableStateOf<List<Transaction>?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.8f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Import Messages",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Paste JSON content or select a file to import saved messages.",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SecondaryButton(
+                        text = "Choose File",
+                        onClick = {
+
+                            coroutineScope.launch {
+                                val fileChooser = JFileChooser().apply {
+                                    fileSelectionMode = JFileChooser.FILES_ONLY
+                                    dialogTitle = "Select Configuration File"
+                                    currentDirectory = File(System.getProperty("user.home"))
+
+                                    // Add file filters
+                                    addChoosableFileFilter(
+                                        FileNameExtensionFilter(
+                                            "Json files",
+                                            "json"
+                                        )
+                                    )
+                                }
+
+                                val result = fileChooser.showOpenDialog(null)
+                                val file = if (result == JFileChooser.APPROVE_OPTION) {
+                                    fileChooser.selectedFile
+                                } else {
+                                    null
+                                }
+                                file?.let {
+                                    val content = it.readText()
+                                    importedParsedContent = parseImportedMessages(content)
+                                    importedContent = content
+
+                                }
+                            }
+
+
+                        },
+                        icon = Icons.Default.FileOpen,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    SecondaryButton(
+                        text = "Clear",
+                        onClick = { importedContent = "" },
+                        icon = Icons.Default.Clear,
+                        modifier = Modifier.weight(1f),
+                        enabled = importedContent.isNotEmpty()
+                    )
+                }
+
+                OutlinedTextField(
+                    value = importedContent,
+                    onValueChange = { importedContent = it },
+                    label = { Text("Json Content") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    textStyle = TextStyle(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp
+                    )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            try {
+
+
+                                importedParsedContent?.let { onImport(it) }
+                            } catch (e: Exception) {
+                                // Show error
+                                println("Error selecting file: ${e.message}")
+                            }
+                        },
+                        enabled = importedContent.isNotEmpty()
+                    ) {
+                        Text("Import")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Export Messages Dialog
+ */
+@Composable
+fun ExportMessagesDialog(
+    messages: List<Transaction>,
+    onDismiss: () -> Unit,
+    onExport: () -> Unit
+) {
+    val exportContent = remember { generateExportContent(messages) }
+    val coroutineScope = rememberCoroutineScope()
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.8f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Export Messages",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Copy the content below or save it to a file to backup your saved messages.",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SecondaryButton(
+                        text = "Copy to Clipboard",
+                        onClick = {
+                            // Copy to clipboard logic
+                        },
+                        icon = Icons.Default.ContentCopy,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    SecondaryButton(
+                        text = "Save to File",
+                        onClick = {
+                            // Save to file logic
+                            coroutineScope.launch {
+                                try {
+                                    val fileChooser = JFileChooser().apply {
+                                        fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+                                        dialogTitle = "Select Export Directory"
+                                        currentDirectory = File(System.getProperty("user.home"))
+                                    }
+
+                                    val result = fileChooser.showOpenDialog(null)
+                                    val directoryPath = if (result == JFileChooser.APPROVE_OPTION) {
+                                        fileChooser.selectedFile.absolutePath
+                                    } else {
+                                        null
+                                    }
+
+                                    val content = generateExportContent(messages)
+                                    val fileName = "messages.json"
+                                    val filePath = File(directoryPath, fileName)
+
+                                    filePath.writeText(content)
+                                    onExport()
+                                } catch (e: Exception) {
+                                    println("Error selecting directory: ${e.message}")
+                                }
+                            }
+
+
+                        },
+                        icon = Icons.Default.Save,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                OutlinedTextField(
+                    value = exportContent,
+                    onValueChange = { },
+                    label = { Text("Export Content (${messages.size} messages)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    readOnly = true,
+                    textStyle = TextStyle(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp
+                    )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Button(onClick = onDismiss) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Helper functions
+private fun parseImportedMessages(content: String): List<Transaction> {
+    // Implementation for parsing JSON content to SavedMessage list
+    // This would use your preferred JSON library
+    return Json.decodeFromString(content)
+}
+
+private fun generateExportContent(messages: List<Transaction>): String {
+    return Json.encodeToString(messages)
 }
 
 @Composable

@@ -226,123 +226,123 @@ class PartialISO8583Encryption(
      */
     fun setActive(gw: GatewayServiceImpl) {
         GatewayHandler = gw
-        gw.onReceiveFromSource(::gw_OnReceiveFromSource)
-        gw.onReceiveFromDest (::gw_OnReceiveFromDest)
+//        gw.onReceiveFromSource(::gw_OnReceiveFromSource)
+//        gw.onReceiveFromDest (::gw_OnReceiveFromDest)
     }
 
     /**
      * Handler for receiving responses from the destination
      */
-    private fun gw_OnReceiveFromDest(trans: GatewayClient, _response: ByteArray): ByteArray {
-        var response = _response
-
-        if ((GatewayHandler.configuration.logOptions and LoggingOption.RAW_DATA.value) > LoggingOption.NONE.value) {
-            trans.writeServerLog(IsoUtil.bytesToHexString(response, 32, false))
-        }
-
-        val input = Iso8583Data(GatewayHandler.configuration.bitTemplate,GatewayHandler.configuration)
-        input.unpack(response, 2, response.size - 2)
-
-        if ((GatewayHandler.configuration.logOptions and LoggingOption.PARSED_DATA.value) > LoggingOption.NONE.value) {
-            trans.writeServerLog(input.logFormat())
-        }
-
-        Encode(input, GatewayHandler.configuration.advanceOptions.getSecretKey())
-        trans.writeServerLog("SEND RESPONSE")
-
-        val clientId = input[41]?.getString()
-        input.packBit(64, ByteArray(8))
-        response = input.pack(GatewayHandler.configuration.messageLengthType)
-
-        val rmacByMpk = GatewayHandler.endeService.getRMACByMPK(
-            clientId!!,
-            IsoUtil.getBytesFromBytes(response, 7, response.size - 7 - 8)
-        )
-        rmacByMpk.copyInto(response, response.size - 8)
-        input[64]?.data = rmacByMpk
-
-        return response
-    }
+//    private fun gw_OnReceiveFromDest( _response: ByteArray): ByteArray {
+//        var response = _response
+//
+//        if ((GatewayHandler.configuration.logOptions and LoggingOption.RAW_DATA.value) > LoggingOption.NONE.value) {
+//            trans.writeServerLog(IsoUtil.bytesToHexString(response, 32, false))
+//        }
+//
+//        val input = Iso8583Data(GatewayHandler.configuration.bitTemplateSource,GatewayHandler.configuration)
+//        input.unpack(response, 2, response.size - 2)
+//
+//        if ((GatewayHandler.configuration.logOptions and LoggingOption.PARSED_DATA.value) > LoggingOption.NONE.value) {
+//            trans.writeServerLog(input.logFormat())
+//        }
+//
+//        Encode(input, GatewayHandler.configuration.advanceOptions.getSecretKey())
+//        trans.writeServerLog("SEND RESPONSE")
+//
+//        val clientId = input[41]?.getString()
+//        input.packBit(64, ByteArray(8))
+//        response = input.pack(GatewayHandler.configuration.messageLengthTypeSource)
+//
+//        val rmacByMpk = GatewayHandler.endeService.getRMACByMPK(
+//            clientId!!,
+//            IsoUtil.getBytesFromBytes(response, 7, response.size - 7 - 8)
+//        )
+//        rmacByMpk.copyInto(response, response.size - 8)
+//        input[64]?.data = rmacByMpk
+//
+//        return response
+//    }
 
     /**
      * Handler for receiving messages from the source
      */
-    private suspend fun gw_OnReceiveFromSource(trans: GatewayClient, _response: ByteArray): ByteArray {
-        var response = _response
-
-        if ((GatewayHandler.configuration.logOptions and LoggingOption.RAW_DATA.value) > LoggingOption.NONE.value) {
-            trans.writeServerLog(IsoUtil.bytesToHexString(response, 32, false))
-        }
-
-        val iso8583Data = Iso8583Data(GatewayHandler.configuration.bitTemplate,GatewayHandler.configuration)
-        iso8583Data.unpack(response, 2, response.size - 2)
-
-        val terminalId = iso8583Data[41]?.getString()
-        trans.writeServerLog("RECIEVED MESSAGE")
-
-        if ((GatewayHandler.configuration.logOptions and LoggingOption.PARSED_DATA.value) > LoggingOption.NONE.value) {
-            trans.writeServerLog(iso8583Data.logFormat())
-        }
-
-        if (iso8583Data.messageType == "0800" && iso8583Data[3]?.getString() == "850000") {
-            trans.cancelSend = true
-            GatewayHandler.endeService.newClientKeys(terminalId!!)
-            GatewayHandler.endeService.generateRandomKey(terminalId)
-
-            var configStr = "${m_ObscureType.ordinal};"
-            for (index in ObscuredBits.indices) {
-                if (index > 0) {
-                    configStr += ","
-                }
-                configStr += ObscuredBits[index].toString()
-            }
-
-            GatewayHandler.configuration.advanceOptions.getSecretKey()
-            GatewayHandler.configuration.advanceOptions.getSecretKey()
-
-            val encryptedDEK = IsoUtil.bcdToString(GatewayHandler.endeService.getEncryptedDEK(terminalId))
-            val encryptedMPK = IsoUtil.bcdToString(GatewayHandler.endeService.getEncrypteMPK(terminalId))
-            val fieldValue = "$configStr;$encryptedDEK;$encryptedMPK"
-
-            iso8583Data.tpduHeader.swapNII()
-            iso8583Data.messageType = "0810"
-            iso8583Data.packBit(60, fieldValue)
-            iso8583Data.packBit(39, "00")
-
-            trans.writeServerLog("PROCESSED GET ENCRYPTION INFO")
-            response = iso8583Data.pack(GatewayHandler.configuration.messageLengthType)
-            trans.send(response,true)
-
-            if ((GatewayHandler.configuration.logOptions and LoggingOption.RAW_DATA.value) > LoggingOption.NONE.value) {
-                trans.writeServerLog(IsoUtil.bytesToHexString(response, 32, false))
-            }
-
-            if ((GatewayHandler.configuration.logOptions and LoggingOption.PARSED_DATA.value) > LoggingOption.NONE.value) {
-                trans.writeServerLog(iso8583Data.logFormat())
-            }
-        } else {
-            if (!GatewayHandler.endeService.containsKey(terminalId!!)) {
-                trans.respondIso8583ErrorAndThrowException(iso8583Data, "P2", "NOT LOGON BEFORE")
-            }
-
-            val rmacByMpk = GatewayHandler.endeService.getRMACByMPK(
-                terminalId,
-                IsoUtil.getBytesFromBytes(response, 7, response.size - 7 - 8)
-            )
-
-            if (iso8583Data[64]?.isSet == false) {
-                trans.respondIso8583ErrorAndThrowException(iso8583Data, "P2", "MAC (Bit 64) NOT SENT")
-            }
-
-            val data = iso8583Data[64]?.data ?:byteArrayOf(0)
-            if (!IsoUtil.bytesEqualled(rmacByMpk, data)) {
-                trans.respondIso8583ErrorAndThrowException(iso8583Data, "P2", "MAC IS INVALID")
-            }
-
-            decode(iso8583Data, GatewayHandler.configuration.advanceOptions.getSecretKey())
-            response = iso8583Data.pack(GatewayHandler.configuration.messageLengthType)
-        }
-
-        return response
-    }
+//    private suspend fun gw_OnReceiveFromSource( _response: ByteArray): ByteArray {
+//        var response = _response
+//
+//        if ((GatewayHandler.configuration.logOptions and LoggingOption.RAW_DATA.value) > LoggingOption.NONE.value) {
+//            trans.writeServerLog(IsoUtil.bytesToHexString(response, 32, false))
+//        }
+//
+//        val iso8583Data = Iso8583Data(GatewayHandler.configuration.bitTemplateSource,GatewayHandler.configuration)
+//        iso8583Data.unpack(response, 2, response.size - 2)
+//
+//        val terminalId = iso8583Data[41]?.getString()
+//        trans.writeServerLog("RECIEVED MESSAGE")
+//
+//        if ((GatewayHandler.configuration.logOptions and LoggingOption.PARSED_DATA.value) > LoggingOption.NONE.value) {
+//            trans.writeServerLog(iso8583Data.logFormat())
+//        }
+//
+//        if (iso8583Data.messageType == "0800" && iso8583Data[3]?.getString() == "850000") {
+//            trans.cancelSend = true
+//            GatewayHandler.endeService.newClientKeys(terminalId!!)
+//            GatewayHandler.endeService.generateRandomKey(terminalId)
+//
+//            var configStr = "${m_ObscureType.ordinal};"
+//            for (index in ObscuredBits.indices) {
+//                if (index > 0) {
+//                    configStr += ","
+//                }
+//                configStr += ObscuredBits[index].toString()
+//            }
+//
+//            GatewayHandler.configuration.advanceOptions.getSecretKey()
+//            GatewayHandler.configuration.advanceOptions.getSecretKey()
+//
+//            val encryptedDEK = IsoUtil.bcdToString(GatewayHandler.endeService.getEncryptedDEK(terminalId))
+//            val encryptedMPK = IsoUtil.bcdToString(GatewayHandler.endeService.getEncrypteMPK(terminalId))
+//            val fieldValue = "$configStr;$encryptedDEK;$encryptedMPK"
+//
+//            iso8583Data.tpduHeader.swapNII()
+//            iso8583Data.messageType = "0810"
+//            iso8583Data.packBit(60, fieldValue)
+//            iso8583Data.packBit(39, "00")
+//
+//            trans.writeServerLog("PROCESSED GET ENCRYPTION INFO")
+//            response = iso8583Data.pack(GatewayHandler.configuration.messageLengthTypeSource)
+//            trans.send(response,true)
+//
+//            if ((GatewayHandler.configuration.logOptions and LoggingOption.RAW_DATA.value) > LoggingOption.NONE.value) {
+//                trans.writeServerLog(IsoUtil.bytesToHexString(response, 32, false))
+//            }
+//
+//            if ((GatewayHandler.configuration.logOptions and LoggingOption.PARSED_DATA.value) > LoggingOption.NONE.value) {
+//                trans.writeServerLog(iso8583Data.logFormat())
+//            }
+//        } else {
+//            if (!GatewayHandler.endeService.containsKey(terminalId!!)) {
+//                trans.respondIso8583ErrorAndThrowException(iso8583Data, "P2", "NOT LOGON BEFORE")
+//            }
+//
+//            val rmacByMpk = GatewayHandler.endeService.getRMACByMPK(
+//                terminalId,
+//                IsoUtil.getBytesFromBytes(response, 7, response.size - 7 - 8)
+//            )
+//
+//            if (iso8583Data[64]?.isSet == false) {
+//                trans.respondIso8583ErrorAndThrowException(iso8583Data, "P2", "MAC (Bit 64) NOT SENT")
+//            }
+//
+//            val data = iso8583Data[64]?.data ?:byteArrayOf(0)
+//            if (!IsoUtil.bytesEqualled(rmacByMpk, data)) {
+//                trans.respondIso8583ErrorAndThrowException(iso8583Data, "P2", "MAC IS INVALID")
+//            }
+//
+//            decode(iso8583Data, GatewayHandler.configuration.advanceOptions.getSecretKey())
+//            response = iso8583Data.pack(GatewayHandler.configuration.messageLengthTypeSource)
+//        }
+//
+//        return response
+//    }
 }

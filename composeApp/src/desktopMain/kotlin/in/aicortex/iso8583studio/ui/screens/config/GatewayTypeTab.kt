@@ -19,8 +19,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
+import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.domain.utils.Utils
-import `in`.aicortex.iso8583studio.ui.components.*
+import `in`.aicortex.iso8583studio.ui.screens.components.Panel
+import `in`.aicortex.iso8583studio.ui.screens.components.PrimaryButton
+import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
+import `in`.aicortex.iso8583studio.ui.screens.components.SectionHeader
+import `in`.aicortex.iso8583studio.ui.screens.components.StyledTextField
+import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
 import org.springframework.security.crypto.codec.Hex
 
 /**
@@ -52,7 +58,14 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                 ) {
                     GatewayTypeOption(
                         selected = config.gatewayType == GatewayType.SERVER,
-                        onSelect = { onConfigChange(config.copy(gatewayType = GatewayType.SERVER)) },
+                        onSelect = {
+                            onConfigChange(
+                                config.copy(
+                                    gatewayType = GatewayType.SERVER,
+                                    transmissionType = TransmissionType.SYNCHRONOUS
+                                )
+                            )
+                        },
                         title = "Server",
                         icon = Icons.Default.Computer,
                         modifier = Modifier.weight(1f)
@@ -60,7 +73,14 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
 
                     GatewayTypeOption(
                         selected = config.gatewayType == GatewayType.CLIENT,
-                        onSelect = { onConfigChange(config.copy(gatewayType = GatewayType.CLIENT)) },
+                        onSelect = {
+                            onConfigChange(
+                                config.copy(
+                                    gatewayType = GatewayType.CLIENT,
+                                    transmissionType = TransmissionType.SYNCHRONOUS
+                                )
+                            )
+                        },
                         title = "Client",
                         icon = Icons.Default.SettingsInputComponent,
                         modifier = Modifier.weight(1f)
@@ -260,7 +280,8 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                                 onValueChange = { newValue ->
                                     try {
                                         // Only update if valid hex
-                                        val newPasswordBytes = if (newValue.isEmpty()) null else Hex.decode(newValue)
+                                        val newPasswordBytes =
+                                            if (newValue.isEmpty()) null else Hex.decode(newValue)
                                         onConfigChange(config.copy(password = newPasswordBytes))
                                     } catch (e: Exception) {
                                         // Handle invalid hex input if needed
@@ -288,7 +309,7 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SectionHeader(title = "Testing Tools")
-
+                UnderDevelopmentChip()
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)

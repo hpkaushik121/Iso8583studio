@@ -66,13 +66,13 @@ class GatewayClient {
     private var m_CancelSend: Boolean = false
     private var m_NCCProcess: NCCHandler? = null
 
-    var onReceivedFormattedData: ((Iso8583Data?) -> Unit)? = null
-    var onSentFormattedData: ((Iso8583Data?, ByteArray?) -> Unit)? = null
+    var onReceivedFormSource: ((Iso8583Data?) -> Unit)? = null
+    var onSentToSource: ((Iso8583Data?) -> Unit)? = null
+    var onReceivedFormDest: ((Iso8583Data?) -> Unit)? = null
+    var onSentToDest: ((Iso8583Data?) -> Unit)? = null
     var beforeReceive: ((GatewayClient) -> Unit)? = null
     var onError: ((GatewayClient) -> Unit)? = null
     var onAdminResponse: (suspend (GatewayClient, ByteArray) -> ByteArray?)? = null
-    var onReceiveFromSource: (suspend (GatewayClient, ByteArray) -> ByteArray?)? = null
-    var onReceiveFromDest: (suspend (GatewayClient, ByteArray) -> ByteArray?)? = null
 
     var nccProcess: NCCHandler?
         get() = m_NCCProcess
@@ -272,12 +272,12 @@ class GatewayClient {
             if (gatewayHandler?.configuration?.gatewayType == GatewayType.PROXY) {
                 if (m_Request == null) {
                     m_Request = TransmittedData(
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                        gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                     )
                 }
                 if (m_Response == null) {
                     m_Response = TransmittedData(
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                        gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                     )
                 }
             } else {
@@ -285,7 +285,7 @@ class GatewayClient {
                     eRequestData = EncryptedTransmittedData(
                         gatewayHandler?.endeService
                             ?: throw IllegalStateException("ENDEService not initialized"),
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                        gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                     ).apply {
                         clientID = this@GatewayClient.clientID
                         locationID = gatewayHandler?.configuration?.locationID ?: ""
@@ -297,7 +297,7 @@ class GatewayClient {
                     eResponseData = EncryptedTransmittedData(
                         gatewayHandler?.endeService
                             ?: throw IllegalStateException("ENDEService not initialized"),
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                        gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                     ).apply {
                         clientID = this@GatewayClient.clientID
                         locationID = gatewayHandler?.configuration?.locationID ?: ""
@@ -373,7 +373,7 @@ class GatewayClient {
                 eRequestData = EncryptedTransmittedData(
                     gatewayHandler?.endeService
                         ?: throw IllegalStateException("ENDEService not initialized"),
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 ).apply {
                     clientID = gatewayHandler?.configuration?.clientID ?: ""
                     locationID = gatewayHandler?.configuration?.locationID ?: ""
@@ -384,7 +384,7 @@ class GatewayClient {
                 eResponseData = EncryptedTransmittedData(
                     gatewayHandler?.endeService
                         ?: throw IllegalStateException("ENDEService not initialized"),
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 ).apply {
                     clientID = gatewayHandler?.configuration?.clientID ?: ""
                     locationID = gatewayHandler?.configuration?.locationID ?: ""
@@ -520,7 +520,7 @@ class GatewayClient {
                 ).apply {
                     readMessageTimeOut = gatewayHandler?.configuration?.transactionTimeOut ?: 30
                     messageLengthType =
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                        gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                     stxEtxRule = true
                 }
             }
@@ -604,7 +604,7 @@ class GatewayClient {
                 }else{
                     val dataRequest = receive(firstConnection)
                     m_Request?.readMessage = dataRequest?.first
-                    val response = SimulatedResponse(dataRequest,gatewayHandler!!.configuration)
+                    val response = SimulatedResponse(dataRequest,gatewayHandler!!.configuration,true)
                     if (gatewayHandler?.holdMessage == false){
                         send(response.pack(), true)
                     }else{
@@ -618,22 +618,25 @@ class GatewayClient {
             }
 
             GatewayType.CLIENT -> {
-                val dataRequest = receive(firstConnection)
-                eRequestData?.rawMessage = dataRequest?.first
                 establishSecondConnection()
-                sendFormatedData()
-                receiveFormattedData()
 
-                secondConnection?.getOutputStream()?.flush()
+                if (!cancelSend) {
+                    send(m_Request?.readMessage, false)
 
-                eResponseData?.rawMessage?.let { response ->
-                    intToMessageLength(
-                        response.size - 2,
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
-                    ).copyInto(response, 0)
+                    when (gatewayHandler?.configuration?.destinationConnectionType) {
+                        ConnectionType.TCP_IP -> {
+                            val dataResponse = receive(secondConnection)
+                            m_Response?.readMessage = dataResponse?.first
+                        }
+
+                        ConnectionType.COM -> {
+                            m_Response?.readMessage = receive(gatewayHandler?.secondRs232Handler)
+                        }
+
+                        else -> {}
+                    }
                 }
-
-                send(eResponseData?.rawMessage, true)
+                secondConnection?.close()
             }
 
             GatewayType.PROXY -> {
@@ -714,44 +717,49 @@ class GatewayClient {
 
     suspend fun send(input: ByteArray?, isFirst: Boolean) {
         input ?: return
-        val iso = parseData(input)
+
 
 
         if (isFirst) {
-            writeServerLog("====================RESPONSE TO SOURCE======================")
-            writeServerLog(iso?.logFormat() ?: "")
+            writeServerLog("====================SENT TO SOURCE======================")
+            val requestIso = parseData(input,false)
+            val modifiedISO = convertToAnother(requestIso)
+            var modifiedInput = modifiedISO?.pack()
+            writeServerLog(modifiedISO?.logFormat() ?: "")
             if (nccProcess?.isActive() == true) {
                 intToMessageLength(
-                    input.size - 2,
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
-                ).copyInto(input, 0)
+                    modifiedInput!!.size - 2,
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
+                ).copyInto(modifiedInput, 0)
             }
 
             when (gatewayHandler?.configuration?.serverConnectionType) {
                 ConnectionType.TCP_IP -> {
-                    firstConnection?.getOutputStream()?.write(input, 0, input.size)
+                    firstConnection?.getOutputStream()?.write(modifiedInput, 0, modifiedInput!!.size)
                     firstConnection?.getOutputStream()?.flush()
                 }
 
                 ConnectionType.COM -> {
-                    gatewayHandler?.firstRs232Handler?.sendMessage(input, MessageLengthType.NONE)
+                    gatewayHandler?.firstRs232Handler?.sendMessage(modifiedInput!!, MessageLengthType.NONE)
                 }
 
                 else -> {}
             }
-            m_BytesReceiveFromDestination += input.size
+            m_BytesReceiveFromDestination += modifiedInput!!.size
             gatewayHandler?.bytesOutgoing?.set(
-                (gatewayHandler?.bytesOutgoing?.get() ?: 0) + input.size
+                (gatewayHandler?.bytesOutgoing?.get() ?: 0) + modifiedInput.size
             )
 
             writeServerLog("SENT BACK TO SOURCE ${input.size} BYTES")
             status = TransactionStatus.SUCCESSFUL
             m_TotalTransmission++
-
+            onSentToSource?.invoke(requestIso)
         } else {
-            writeServerLog("====================RESPONSE TO DESTINATION======================")
-            writeServerLog(iso?.logFormat() ?: "")
-            var modifiedInput = input
+            writeServerLog("====================SENT TO DESTINATION======================")
+            val requestIso = parseData(input,true)
+            val modifiedISO = convertToAnother(requestIso)
+            var modifiedInput = modifiedISO?.pack()
+            writeServerLog(modifiedISO?.logFormat() ?: "")
             if (nccProcess?.isActive() == true) {
                 val lengthType = nccProcess?.get(destinationNII)?.lengthType
 
@@ -770,10 +778,10 @@ class GatewayClient {
             when (gatewayHandler?.configuration?.destinationConnectionType) {
                 ConnectionType.TCP_IP -> {
                     if (doesConnectToPermanentConnection()) {
-                        nccProcess?.get(destinationNII)?.send(modifiedInput)
+                        nccProcess?.get(destinationNII)?.send(modifiedInput!!)
                     } else {
                         secondConnection?.getOutputStream()
-                            ?.write(modifiedInput, 0, modifiedInput.size)
+                            ?.write(modifiedInput, 0, modifiedInput!!.size)
                     }
                 }
 
@@ -789,18 +797,19 @@ class GatewayClient {
                                 VerificationError.TIMEOUT
                             )
                         }
-                        it.sendMessage(modifiedInput, MessageLengthType.NONE)
+                        it.sendMessage(modifiedInput!!, MessageLengthType.NONE)
                     }
                 }
 
                 else -> {}
             }
 
-            writeServerLog("SENT TO DESTINATION ${modifiedInput.size} BYTES")
+            writeServerLog("SENT TO DESTINATION ${modifiedInput!!.size} BYTES")
             status = TransactionStatus.SENT_TO_DESTINATION
+            onSentToDest?.invoke(modifiedISO)
         }
 
-        onSentFormattedData?.invoke(iso,input)
+
     }
 
     fun isTIDialerRule(): Boolean {
@@ -856,7 +865,7 @@ class GatewayClient {
         }
 
         writeServerLog("RECEIVED MESSAGE FROM COMPORT${message.size} BYTES ")
-        parseData(message)
+        parseData(message, client == gatewayHandler?.firstRs232Handler)
 
         destinationNII = bcdToBin(getBytesFromBytes(message, 3, 2))
 
@@ -934,9 +943,9 @@ class GatewayClient {
         bytesCopy(input, m_Buffer, 0, 0, length - 10)
 
         if (client == sslIncoming) {
-            checkIfCustomRequest(input)
+            onReceivedFormSource?.invoke( parseData(input,true))
         } else {
-            checkIfCustomResponse(input)
+            onReceivedFormSource?.invoke(parseData(input,false))
         }
 
         if (client == sslIncoming) {
@@ -956,7 +965,7 @@ class GatewayClient {
 
         )
 
-        parseData(input)
+        parseData(input, client == sslIncoming)
 
         if (client == sslIncoming) {
             m_BytesReceiveFromSource += input.size
@@ -1059,11 +1068,10 @@ class GatewayClient {
                     )
                 }
             }
-
-        val processedInput = if (client == firstConnection) {
-            checkIfCustomRequest(input)
+        if (client == firstConnection) {
+            onReceivedFormSource?.invoke(parseData(input,true))
         } else {
-            checkIfCustomResponse(input)
+            onReceivedFormDest?.invoke(parseData(input,false))
         }
 
         if (client == firstConnection) {
@@ -1073,40 +1081,40 @@ class GatewayClient {
 
             // Handle special features for proxy
             if (gatewayHandler?.configuration?.advanceOptions?.specialFeature == SpecialFeature.SimpleEncryptionForProxy) {
-                val encrypted = gatewayHandler?.simpleEncryptionForProxy?.encrypt(processedInput)
-                    ?: processedInput
+                val encrypted = gatewayHandler?.simpleEncryptionForProxy?.encrypt(input)
+                    ?: input
                 val result = ByteArray(encrypted.size + 2)
 
                 intToMessageLength(
                     encrypted.size,
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 ).copyInto(result, 0)
 
                 bytesCopy(result, encrypted, 2, 0, encrypted.size)
-                val iso = parseData(result)
+                val iso = parseData(result,client == firstConnection)
                 return Pair(result,iso)
             } else if (gatewayHandler?.configuration?.advanceOptions?.specialFeature == SpecialFeature.SimpleDecryptionForProxy) {
                 val decrypted = gatewayHandler?.simpleEncryptionForProxy?.decrypt(
-                    processedInput,
+                    input,
                     0,
-                    processedInput.size
-                ) ?: processedInput
+                    input.size
+                ) ?: input
                 val msgLength = messageLengthToInt(
                     decrypted,
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 )
 
                 val result = ByteArray(msgLength + 2)
                 intToMessageLength(
                     result.size - 2,
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 ).copyInto(result, 0)
 
                 bytesCopy(result, decrypted, 2, 2, result.size - 2)
-                val iso = parseData(result)
+                val iso = parseData(result,client == firstConnection)
                 return Pair(result,iso)
             } else {
-                destinationNII = bcdToBin(getBytesFromBytes(processedInput, 3, 2))
+                destinationNII = bcdToBin(getBytesFromBytes(input, 3, 2))
             }
         } else {
             status = TransactionStatus.RECEIVED_RESPONSE
@@ -1114,36 +1122,36 @@ class GatewayClient {
             // Handle special features for proxy
             if (gatewayHandler?.configuration?.advanceOptions?.specialFeature == SpecialFeature.SimpleEncryptionForProxy) {
                 val decrypted = gatewayHandler?.simpleEncryptionForProxy?.decrypt(
-                    processedInput,
+                    input,
                     0,
-                    processedInput.size
-                ) ?: processedInput
+                    input.size
+                ) ?: input
                 val msgLength = messageLengthToInt(
                     decrypted,
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 )
 
                 val result = ByteArray(msgLength + 2)
                 intToMessageLength(
                     result.size - 2,
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 ).copyInto(result, 0)
 
                 bytesCopy(result, decrypted, 2, 2, result.size - 2)
-                val iso = parseData(result)
+                val iso = parseData(result,client == firstConnection)
                 return Pair(result,iso)
             } else if (gatewayHandler?.configuration?.advanceOptions?.specialFeature == SpecialFeature.SimpleDecryptionForProxy) {
-                val encrypted = gatewayHandler?.simpleEncryptionForProxy?.encrypt(processedInput)
-                    ?: processedInput
+                val encrypted = gatewayHandler?.simpleEncryptionForProxy?.encrypt(input)
+                    ?: input
                 val result = ByteArray(encrypted.size + 2)
 
                 intToMessageLength(
                     encrypted.size,
-                    gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                    gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                 ).copyInto(result, 0)
 
                 bytesCopy(result, encrypted, 2, 0, encrypted.size)
-                val iso = parseData(result)
+                val iso = parseData(result,client == firstConnection)
                 return Pair(result,iso)
             }
         }
@@ -1152,30 +1160,33 @@ class GatewayClient {
             if (client == firstConnection)
                 "RECEIVED MESSAGE FROM SOURCE "
             else
-                "RECEIVED MESSAGE FROM DESTINATION ${processedInput.size} BYTES ",
+                "RECEIVED MESSAGE FROM DESTINATION ${input.size} BYTES ",
         )
 
-        val formattedData = parseData(processedInput)
-
-        onReceivedFormattedData?.invoke(formattedData)
+        val formattedData = parseData(input,client == firstConnection)
+        writeServerLog(formattedData?.logFormat() ?: "Unable to Decrypt data ")
+        onReceivedFormDest?.invoke(formattedData)
 
         if (client == firstConnection) {
-            m_BytesReceiveFromSource += processedInput.size
+            m_BytesReceiveFromSource += input.size
             gatewayHandler?.bytesIncoming?.set(
-                (gatewayHandler?.bytesIncoming?.get() ?: 0) + processedInput.size
+                (gatewayHandler?.bytesIncoming?.get() ?: 0) + input.size
             )
         } else {
-            m_BytesReceiveFromDestination += processedInput.size
+            m_BytesReceiveFromDestination += input.size
             gatewayHandler?.bytesOutgoing?.set(
-                (gatewayHandler?.bytesOutgoing?.get() ?: 0) + processedInput.size
+                (gatewayHandler?.bytesOutgoing?.get() ?: 0) + input.size
             )
         }
 
-        return Pair(processedInput,formattedData)
+        return Pair(input,formattedData)
     }
 
-    fun parseData(input: ByteArray?): Iso8583Data? {
+    fun parseData(input: ByteArray?,isFirst: Boolean): Iso8583Data? {
         input ?: return null
+        if(input.isEmpty()){
+            return null
+        }
 
         if (gatewayHandler?.configuration?.advanceOptions?.isPartialEncryption() == true) {
             return null
@@ -1188,7 +1199,7 @@ class GatewayClient {
                 return null
             }
 
-            val iso8583Data = gatewayHandler?.configuration?.bitTemplate?.let { Iso8583Data(it,gatewayHandler?.configuration!!) }
+            val iso8583Data = gatewayHandler?.configuration?.bitTemplateSource?.let { Iso8583Data(it,gatewayHandler?.configuration!!,isFirst) }
 
 
             iso8583Data?.emvShowOptions =
@@ -1196,7 +1207,7 @@ class GatewayClient {
                     ?: EMVShowOption.None
             iso8583Data?.unpack(input, 2, input.size - 2)
 
-            writeServerLog("PARSED MESSAGE\r\n${iso8583Data?.logFormat()}")
+
 
             return iso8583Data
         } catch (ex: Exception) {
@@ -1213,22 +1224,7 @@ class GatewayClient {
     }
 
     fun writeServerLog(s: String) {
-        IsoCoroutine(gatewayHandler).launchSafely {
-            gatewayHandler?.writeLog(s)
-        }
-    }
-
-
-    private suspend fun checkIfCustomRequest(input: ByteArray): ByteArray {
-        cancelSend = false
-
-        return onReceiveFromSource?.invoke(this, input) ?: input
-    }
-
-    private suspend fun checkIfCustomResponse(input: ByteArray): ByteArray {
-        cancelSend = false
-
-        return onReceiveFromDest?.invoke(this, input) ?: input
+        gatewayHandler?.writeLog(s)
     }
 
     private fun processServerGatewayAsynchronous(receivedData: ByteArray) {
@@ -1241,7 +1237,7 @@ class GatewayClient {
                     val newData = EncryptedTransmittedData(
                         gatewayHandler?.endeService
                             ?: throw IllegalStateException("ENDEService not initialized"),
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                        gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                     )
                     niiClientMapping[sourceNII] = newData
                 }
@@ -1253,7 +1249,7 @@ class GatewayClient {
 
             val count = messageLengthToInt(
                 getBytesFromBytes(m_Buffer, 0, 2),
-                gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
             )
 
             if (receivedData.size < count) {
@@ -1278,7 +1274,6 @@ class GatewayClient {
                 eRequestData?.readMessage = receivedData
             }
 
-            analyzeFormattedData(eRequestData)
 
             if (eRequestData?.messageType == GatewayMessageType.NORMAL_REQUEST) {
                 if (gatewayHandler?.configuration?.nccRule == true) {
@@ -1287,8 +1282,6 @@ class GatewayClient {
                     }
                 }
 
-                val rawMessage = eRequestData?.rawMessage?.let { checkIfCustomRequest(it) }
-                eRequestData?.rawMessage = rawMessage
 
                 establishSecondConnection()
 
@@ -1314,7 +1307,7 @@ class GatewayClient {
                         nccProcess?.get(destinationNII)?.sourceNii = sourceNii
                         eRequestData?.rawMessage?.let { nccProcess?.get(destinationNII)?.send(it) }
 
-                        doCheckMessageReceiveFromPConnection(arrayOf(destinationNII, sourceNii))
+                        doCheckMessageReceiveFromPConnection(arrayOf(destinationNII, sourceNii),false)
                     }
                 } else {
                     secondConnection?.getOutputStream()?.write(
@@ -1330,7 +1323,7 @@ class GatewayClient {
         }
     }
 
-    private suspend fun doCheckMessageReceiveFromPConnection(obj: Any?) {
+    private suspend fun doCheckMessageReceiveFromPConnection(obj: Any?,isFirst: Boolean) {
         try {
             val params = obj as? Array<*> ?: return
             val hostNii = params[0] as? Int ?: return
@@ -1344,7 +1337,7 @@ class GatewayClient {
             eResponseData?.rawMessage = response
 
             writeServerLog("RECEIVED MESSAGE FROM DESTINATION ${response.size} BYTES ")
-            parseData(response)
+            parseData(response,isFirst)
 
             initResponse()
             sendFormatedData()
@@ -1411,7 +1404,7 @@ class GatewayClient {
 
                                     intToMessageLength(
                                         encrypted.size,
-                                        gatewayHandler?.configuration?.messageLengthType
+                                        gatewayHandler?.configuration?.messageLengthTypeSource
                                             ?: MessageLengthType.BCD
                                     ).copyInto(result, 0)
 
@@ -1430,10 +1423,10 @@ class GatewayClient {
                                     intToMessageLength(
                                         messageLengthToInt(
                                             decrypted,
-                                            gatewayHandler?.configuration?.messageLengthType
+                                            gatewayHandler?.configuration?.messageLengthTypeSource
                                                 ?: MessageLengthType.BCD
                                         ) + 5,
-                                        gatewayHandler?.configuration?.messageLengthType
+                                        gatewayHandler?.configuration?.messageLengthTypeSource
                                             ?: MessageLengthType.BCD
                                     ).copyInto(decrypted, 0)
 
@@ -1442,12 +1435,11 @@ class GatewayClient {
 
                                 else -> input
                             }
-
-                        val customInput = checkIfCustomRequest(processedInput)
+                        onReceivedFormSource?.invoke(parseData(input,true))
 
                         if (!cancelSend) {
                             if (nccProcess?.isActive() == true) {
-                                destinationNII = bcdToBin(getBytesFromBytes(customInput, 3, 2))
+                                destinationNII = bcdToBin(getBytesFromBytes(input, 3, 2))
                             }
 
                             establishSecondConnection()
@@ -1455,37 +1447,37 @@ class GatewayClient {
                             if (nccProcess?.isActive() == true) {
                                 val nccParam = nccProcess?.get(destinationNII)
 
-                                if (nccParam?.lengthType != gatewayHandler?.configuration?.messageLengthType) {
+                                if (nccParam?.lengthType != gatewayHandler?.configuration?.messageLengthTypeSource) {
                                     intToMessageLength(
-                                        customInput.size - 2,
+                                        input.size - 2,
                                         nccParam?.lengthType ?: MessageLengthType.BCD
-                                    ).copyInto(customInput, 0)
+                                    ).copyInto(input, 0)
                                 }
 
                                 intToMessageLength(
                                     nccParam?.niiChanged ?: 0,
                                     MessageLengthType.BCD
-                                ).copyInto(customInput, 3)
+                                ).copyInto(input, 3)
                             }
 
                             when {
                                 gatewayHandler?.configuration?.advanceOptions?.sslClient == true -> {
-                                    sslOutgoing?.sslStream?.write(customInput, 0, customInput.size)
+                                    sslOutgoing?.sslStream?.write(input, 0, input.size)
                                 }
 
                                 doesConnectToPermanentConnection() -> {
-                                    nccProcess?.get(destinationNII)?.send(customInput)
+                                    nccProcess?.get(destinationNII)?.send(input)
                                 }
 
                                 else -> {
                                     secondConnection?.getOutputStream()
-                                        ?.write(customInput, 0, customInput.size)
+                                        ?.write(input, 0, input.size)
                                 }
                             }
                         }
 
                         if (!cancelSend) {
-                            parseData(customInput)
+                            parseData(input,true)
                         }
                     }
 
@@ -1591,7 +1583,7 @@ class GatewayClient {
                 writeServerLog(
                     "RECEIVED FROM DESTINATION AND SENT TO SOURCE ${input.size} BYTES",
                 )
-                parseData(input)
+                parseData(input,false)
 
                 when (gatewayHandler?.configuration?.gatewayType) {
                     GatewayType.SERVER -> {
@@ -1611,7 +1603,6 @@ class GatewayClient {
 
                     GatewayType.CLIENT -> {
                         eResponseData?.readMessage = input
-                        analyzeFormattedData(eResponseData)
 
                         eResponseData?.rawMessage?.let { rawMessage ->
                             firstConnection?.getOutputStream()
@@ -1634,10 +1625,10 @@ class GatewayClient {
                                     intToMessageLength(
                                         messageLengthToInt(
                                             decrypted,
-                                            gatewayHandler?.configuration?.messageLengthType
+                                            gatewayHandler?.configuration?.messageLengthTypeSource
                                                 ?: MessageLengthType.BCD
                                         ) + 5,
-                                        gatewayHandler?.configuration?.messageLengthType
+                                        gatewayHandler?.configuration?.messageLengthTypeSource
                                             ?: MessageLengthType.BCD
                                     ).copyInto(decrypted, 0)
 
@@ -1652,7 +1643,7 @@ class GatewayClient {
 
                                     intToMessageLength(
                                         encrypted.size,
-                                        gatewayHandler?.configuration?.messageLengthType
+                                        gatewayHandler?.configuration?.messageLengthTypeSource
                                             ?: MessageLengthType.BCD
                                     ).copyInto(result, 0)
 
@@ -1669,31 +1660,30 @@ class GatewayClient {
                                 0,
                                 messageLengthToInt(
                                     processedInput,
-                                    gatewayHandler?.configuration?.messageLengthType
+                                    gatewayHandler?.configuration?.messageLengthTypeSource
                                         ?: MessageLengthType.BCD
                                 ) + 2
                             )
                         } else {
                             IsoCoroutine(gatewayHandler).launchSafely {
-                                val customResponse = checkIfCustomResponse(processedInput)
-
+                                onReceivedFormDest?.invoke(parseData(input,true))
                                 if (gatewayHandler?.configuration?.nccRule == true) {
                                     intToMessageLength(
-                                        customResponse.size - 2,
-                                        gatewayHandler?.configuration?.messageLengthType
+                                        input.size - 2,
+                                        gatewayHandler?.configuration?.messageLengthTypeSource
                                             ?: MessageLengthType.BCD
-                                    ).copyInto(customResponse, 0)
+                                    ).copyInto(input, 0)
                                 }
 
                                 if (gatewayHandler?.configuration?.advanceOptions?.sslServer == true) {
                                     sslIncoming?.sslStream?.write(
-                                        customResponse,
+                                        input,
                                         0,
-                                        customResponse.size
+                                        input.size
                                     )
                                 } else {
                                     firstConnection?.getOutputStream()
-                                        ?.write(customResponse, 0, customResponse.size)
+                                        ?.write(input, 0, input.size)
                                 }
                             }
                         }
@@ -1876,7 +1866,7 @@ class GatewayClient {
                     }
 
                     dataToSend?.lengthType =
-                        gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+                        gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
                     firstConnection?.getOutputStream()?.let { dataToSend?.write(it) }
                 }
 
@@ -1892,6 +1882,7 @@ class GatewayClient {
 
             writeServerLog("SEND ENCRYPTED MESSAGE TO CLIENT INSTANCE: ${encryptedData.size} BYTES ")
             status = TransactionStatus.SUCCESSFUL
+            onSentToSource?.invoke(parseData(dataToSend?.rawMessage,true))
 
         } else {
             when (gatewayHandler?.configuration?.destinationConnectionType) {
@@ -1911,8 +1902,9 @@ class GatewayClient {
 
             writeServerLog("SEND ENCRYPTED MESSAGE TO SERVER INSTANCE: ${encryptedData.size} BYTES ")
             status = TransactionStatus.SENT_TO_DESTINATION
+            onSentToDest?.invoke(parseData(dataToSend?.rawMessage,true))
         }
-        onSentFormattedData?.invoke(parseData(dataToSend?.rawMessage),dataToSend?.rawMessage)
+
     }
 
     fun receiveFormattedData() {
@@ -1984,86 +1976,9 @@ class GatewayClient {
         }
 
         m_BeginTransactionDate = LocalDateTime.now()
-        analyzeFormattedData(dataReceived)
     }
 
 
-    private fun analyzeFormattedData(dataReceived: EncryptedTransmittedData?) {
-        dataReceived ?: return
-
-        dataReceived.unpackMessage(gatewayHandler?.configuration?.gatewayType ?: GatewayType.SERVER)
-        writeServerLog(dataReceived.headerString())
-
-        if (gatewayHandler?.configuration?.gatewayType == GatewayType.SERVER) {
-            clientID = dataReceived.clientID
-            locationID = dataReceived.locationID
-            status = TransactionStatus.GATEWAY_HEADER_UNPACKED
-
-            if (gatewayHandler?.configuration?.checkSignature != SignatureChecking.NONE) {
-                if (!(eRequestData?.signatureVerified ?: false)) {
-                    throw VerificationException(
-                        "WRONG SIGNATURE",
-                        VerificationError.WRONG_SIGNATURE
-                    )
-                }
-
-                writeServerLog("CHECKING SIGNATURE OK...")
-            }
-
-            if (!(gatewayHandler?.configuration?.advanceOptions?.acceptVersion.isNullOrEmpty())) {
-                var versionAccepted = false
-
-                gatewayHandler?.configuration?.advanceOptions?.acceptVersion?.split(';')
-                    ?.forEach { version ->
-                        if (version == eRequestData?.clientVersion) {
-                            versionAccepted = true
-                        }
-                    }
-
-                if (!versionAccepted) {
-                    throw VerificationException(
-                        "THIS VERSION ${eRequestData?.clientVersion} IS NOT ACCEPTED",
-                        VerificationError.DECLINED
-                    )
-                }
-
-                writeServerLog("VERSION ${eRequestData?.clientVersion} IS ACCEPTED")
-            }
-
-            if (dataReceived.messageType == GatewayMessageType.GET_KEK_REQUEST &&
-                gatewayHandler?.configuration?.allowLoadKEK != true
-            ) {
-                throw VerificationException(
-                    "CONFIGURATION DO NOT ACCEPT LOAD KEK",
-                    VerificationError.DECLINED
-                )
-            }
-        }
-
-        dataReceived.decryptMessage()
-
-        if (dataReceived.rawMessage != null && dataReceived.messageType == GatewayMessageType.NORMAL_REQUEST) {
-            synchronized(gatewayHandler?.endeService ?: this) {
-                if (!dataReceived.verifyMAC()) {
-                    throw VerificationException(
-                        "MAC VERIFYING FAILS....",
-                        VerificationError.WRONG_MAC
-                    )
-                }
-
-                writeServerLog("CHECKING MESSAGE AUTHENTICATION CODE (MAC) OK...")
-            }
-
-            writeServerLog("MESSAGE WAS DECRYPTED. RAW MESSAGE: ")
-
-        }
-
-        if (gatewayHandler?.configuration?.gatewayType == GatewayType.SERVER) {
-            status = TransactionStatus.AUTHENTICATED
-        }
-
-        onReceivedFormattedData?.invoke(parseData(dataReceived.rawMessage))
-    }
 
     fun respondIso8583ErrorAndThrowException(
         iso8583Request: Iso8583Data,
@@ -2096,13 +2011,13 @@ class GatewayClient {
         iso8583Response.packBit(39, responseCode)
 
         val responseData = iso8583Response.pack(
-            gatewayHandler?.configuration?.messageLengthType ?: MessageLengthType.BCD
+            gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
         )
         firstConnection?.getOutputStream()?.write(responseData)
 
         writeServerLog(log)
         writeServerLog("RESPOND TO SOURCE...",)
-        parseData(responseData)
+        parseData(responseData,true)
         if ((gatewayHandler?.configuration?.logOptions
                 ?: LoggingOption.NONE.value) and LoggingOption.PARSED_DATA.value > LoggingOption.NONE.value
         ) {
@@ -2110,6 +2025,15 @@ class GatewayClient {
         }
 
         throw VerificationException("", VerificationError.EXCEPTION_HANDLED)
+    }
+
+    suspend fun sendMessageToSecondConnection(data: Iso8583Data) {
+        m_Request = TransmittedData(
+            gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
+        )
+        m_Request?.readMessage = data.pack()
+        status = TransactionStatus.SENT_TO_DESTINATION
+        processSynchronous()
     }
 }
 

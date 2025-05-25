@@ -21,9 +21,9 @@ import java.time.temporal.ChronoUnit
 /**
  * Kotlin implementation of Iso8583Data for handling ISO 8583 financial messages
  */
-@Serializable
 data class Iso8583Data(
     val config: GatewayConfig,
+    val isFirst: Boolean = true,
     private var m_MessageType: String = "0200",
     protected var m_BitAttributes: Array<BitAttribute> = Array(MAX_BITS) { BitAttribute() },
     private var m_TPDU: TPDU = TPDU(),
@@ -37,6 +37,8 @@ data class Iso8583Data(
     var emvShowOptions: EMVShowOption = EMVShowOption.None
 
 ) {
+
+
     companion object {
         const val MAX_PACKAGE_SIZE = 10024
         const val MAX_BITS = 128
@@ -85,33 +87,41 @@ data class Iso8583Data(
      * Default constructor
      */
     init {
-        m_TPDU = TPDU()
-        m_BitAttributes = BitTemplate.getBitAttributeArray(config.bitTemplate)
-        hasHeader = !config.doNotUseHeader
+        m_TPDU = if (isFirst){
+            config.fixedResponseHeaderSource?.let { TPDU(rawTPDU = it) } ?: TPDU()
+        }else{
+            config.fixedResponseHeaderDest?.let { TPDU(rawTPDU = it) } ?: TPDU()
+        }
+        m_BitAttributes = if(isFirst){
+            BitTemplate.getBitAttributeArray(config.bitTemplateSource)
+        }else{
+            BitTemplate.getBitAttributeArray(config.bitTemplateDest)
+        }
+        hasHeader = if(isFirst){
+            !config.doNotUseHeaderSource
+        }else{
+            !config.doNotUseHeaderDest
+        }
         bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
-        lengthInAsc = config.lengthInAscii
+        lengthInAsc = if (isFirst){
+            config.messageInAsciiSource
+        }else{
+            config.messageInAsciiDest
+        }
     }
 
     /**
      * Constructor with bit template
      */
-    constructor(template: Array<BitSpecific>, config: GatewayConfig) : this(config) {
-        m_TPDU = TPDU()
+    constructor(template: Array<BitSpecific>, config: GatewayConfig,isFirst: Boolean) : this(config,isFirst) {
         m_BitAttributes = BitTemplate.getBitAttributeArray(template)
-        hasHeader = !config.doNotUseHeader
-        bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
-        lengthInAsc = config.lengthInAscii
     }
 
     /**
      * Constructor with bit template
      */
-    constructor(template: Array<BitAttribute>, config: GatewayConfig) : this(config) {
-        m_TPDU = TPDU()
+    constructor(template: Array<BitAttribute>, config: GatewayConfig,isFirst: Boolean) : this(config,isFirst) {
         m_BitAttributes = template
-        hasHeader = !config.doNotUseHeader
-        bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
-        lengthInAsc = config.lengthInAscii
     }
 
     var bitAttributes: Array<BitAttribute>
@@ -241,9 +251,9 @@ data class Iso8583Data(
      * Pack message with no length type
      */
     fun pack(): ByteArray = packWithFormat(
-        config.codeFormat ?: CodeFormat.BYTE_ARRAY,
-        messageLengthType = config.messageLengthType,
-        mappingConfig = config.formatMappingConfig
+        outputFormat = (if (isFirst)config.codeFormatSource else config.codeFormatDest) ?: CodeFormat.BYTE_ARRAY,
+        messageLengthType = if(isFirst) config.messageLengthTypeSource else config.messageLengthTypeDest,
+        mappingConfig = if(isFirst) config.formatMappingConfigSource else config.formatMappingConfigDest
     )
 
     /**
@@ -268,7 +278,7 @@ data class Iso8583Data(
             m_PackageSize += 4
         } else {
             // Convert message type to BCD
-            IsoUtil.binToBcd(m_MessageType.toInt(), 2).copyInto(buffer, m_PackageSize)
+            IsoUtil.stringToBCD(m_MessageType, 2).copyInto(buffer, m_PackageSize)
             m_PackageSize += 2
         }
 
@@ -452,8 +462,8 @@ data class Iso8583Data(
      */
     fun unpack(input: ByteArray) = unpackFromFormat(
         inputData = input,
-        inputFormat = config.codeFormat ?: CodeFormat.BYTE_ARRAY,
-        mappingConfig = config.formatMappingConfig
+        inputFormat = config.codeFormatSource ?: CodeFormat.BYTE_ARRAY,
+        mappingConfig = config.formatMappingConfigSource
     )
 
     /**
@@ -461,8 +471,8 @@ data class Iso8583Data(
      */
     fun unpack(input: ByteArray, from: Int, length: Int) = unpackFromFormat(
         inputData = input,
-        inputFormat = config.codeFormat ?: CodeFormat.BYTE_ARRAY,
-        mappingConfig = config.formatMappingConfig,
+        inputFormat = config.codeFormatSource ?: CodeFormat.BYTE_ARRAY,
+        mappingConfig = config.formatMappingConfigSource,
         from = from,
         length = length
     )
@@ -496,6 +506,9 @@ data class Iso8583Data(
     fun logFormat(endBits: Int): String {
         val sb = StringBuilder()
         sb.append("Message Type = $m_MessageType\r\n")
+       if(hasHeader){
+           sb.append("TPDU Header = ${IsoUtil.bcdToString(tpduHeader.rawTPDU)}\r\n")
+       }
 
         for (i in 0 until endBits) {
             if (m_BitAttributes[i].isSet) {
@@ -806,7 +819,7 @@ fun BitAttribute.getValue(): String? {
 
     return when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
-            var data = IsoUtil.ascToString(data!!)
+            var data = IsoUtil.ascToString(data ?: byteArrayOf())
             if(!PlaceholderProcessor.holdersList.contains(data)){
                 data = data.padStart(maxLength,'0')
             }
@@ -826,4 +839,18 @@ fun BitAttribute.getValue(): String? {
             null
         }
     }
+}
+
+fun convertToAnother(iso8583Data: Iso8583Data?): Iso8583Data?{
+    val second = Iso8583Data(
+        config = iso8583Data!!.config,
+        isFirst = !iso8583Data.isFirst,
+        m_MessageType = iso8583Data.messageType,
+    )
+    iso8583Data.bitAttributes.forEachIndexed { i,bit ->
+        if(bit.isSet == true && bit.data?.isNotEmpty() == true) {
+            second.packBit(i+1, bit.getValue() ?: "")
+        }
+    }
+    return second
 }

@@ -26,10 +26,12 @@ import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.utils.isIpMatched
 import `in`.aicortex.iso8583studio.data.IsoCoroutine
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable.isActive
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -107,15 +109,16 @@ class GatewayServiceImpl : GatewayService {
     private val coroutineScope = IsoCoroutine(this)
 
     // Callback lists
-    private var errorCallbacks : (() -> @Composable () -> Unit)? = null
-    private var sentFormattedDataCallbacks:suspend (Iso8583Data?, ByteArray?) -> Unit = { _, _ -> }
-    private var receivedFormattedDataCallbacks:suspend (Iso8583Data?) -> Unit = {}
-    private var beforeReceiveCallbacks:suspend (GatewayClient) -> Unit = {}
-    private var beforeWriteLogCallbacks: suspend (String) -> Unit = {}
-    private var adminResponseCallbacks :suspend (GatewayClient, ByteArray) -> ByteArray? = { _, _ -> null }
-    private var receiveFromSourceCallbacks:suspend (GatewayClient, ByteArray) -> ByteArray = { _, _ -> ByteArray(0) }
-    private var receiveFromDestCallbacks:suspend (GatewayClient, ByteArray) -> ByteArray = {  _, _ -> ByteArray(0) }
-    var sendHoldMessage: (suspend () -> Unit)?=null
+    private var errorCallbacks: (() -> @Composable () -> Unit)? = null
+    private var receivedFromDest: (Iso8583Data?) -> Unit = {}
+    private var receivedFromSource: (Iso8583Data?) -> Unit = {}
+    private var sentToSource: (Iso8583Data?) -> Unit = {}
+    private var sentToDest: (Iso8583Data?) -> Unit = {}
+    private var beforeReceiveCallbacks: (GatewayClient) -> Unit = {}
+    private var beforeWriteLogCallbacks: (String) -> Unit = {}
+    private var adminResponseCallbacks: suspend (GatewayClient, ByteArray) -> ByteArray? =
+        { _, _ -> null }
+    var sendHoldMessage: (suspend () -> Unit)? = null
 
     constructor() {
         // Default constructor
@@ -355,9 +358,9 @@ class GatewayServiceImpl : GatewayService {
             }
         }
 
-        client.onReceivedFormattedData = {
+        client.onReceivedFormSource = {
             coroutineScope.launchSafely {
-                receivedFormattedDataCallbacks(it)
+                receivedFromSource(it)
             }
         }
 
@@ -367,18 +370,18 @@ class GatewayServiceImpl : GatewayService {
             }
         }
 
-        client.onSentFormattedData= { i ,b ->
+        client.onReceivedFormDest = { b ->
             coroutineScope.launchSafely {
-                sentFormattedDataCallbacks(i,b)
+                receivedFromDest( b)
             }
         }
 
         client.onAdminResponse = { cl, data ->
             adminResponseCallbacks(cl, data)
         }
-        client.onReceiveFromSource = { client, data -> receiveFromSourceCallbacks(client, data) }
+        client.onSentToSource = { data -> sentToSource(data) }
 
-        client.onReceiveFromDest = { client, data -> receiveFromDestCallbacks(client, data) }
+        client.onSentToDest = { data -> sentToDest(data) }
 
         client.timeOut = configuration.transactionTimeOut
 
@@ -406,54 +409,55 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Write a log message
      */
-    override suspend fun writeLog(message: String) {
+    override fun writeLog(message: String) {
         writeLog(message, "")
     }
 
     /**
      * Write a log message with a client reference
      */
-    override suspend fun writeLog(client: GatewayClient, message: String) {
+    override fun writeLog(client: GatewayClient, message: String) {
         writeLog(message, "ID[${client.index.toString().padStart(8, '0')}] ")
     }
 
     /**
      * Write a log message with a prefix
      */
-    private suspend fun writeLog(message: String, prefix: String) = withContext(Dispatchers.IO) {
+    private fun writeLog(message: String, prefix: String) {
         if (configuration.logFileName.isBlank()) {
-            return@withContext
+            return
         }
 
         val formattedMessage = if (prefix.uppercase() != "NULL") {
-            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
+            val timestamp =
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
             "\r\n$message".replace("\r\n", "\r\n$timestamp  $prefix")
         } else {
             message
         }
 
         // Synchronize log file access
-            try {
-                File(configuration.logFileName).appendText(
-                    formattedMessage,
-                    Charset.forName(configuration.getEncoding())
-                )
-            } catch (e: Exception) {
-                // Ignore write errors
-            }
-            println(formattedMessage)
-            // Call before write log callbacks
+        try {
+            File(configuration.logFileName).appendText(
+                formattedMessage,
+                Charset.forName(configuration.getEncoding())
+            )
+        } catch (e: Exception) {
+            // Ignore write errors
+        }
+        println(formattedMessage)
+        // Call before write log callbacks
         beforeWriteLogCallbacks(formattedMessage)
 
-
-        // Add to monitor message
-        addToMonitorMessage(formattedMessage)
 
         // Check log file size and rotate if needed
         val now = LocalDateTime.now()
         if (now.isAfter(checkLogFileSize)) {
             checkLogFileSize = now.plusSeconds(5)
-            checkAndRotateLogFile()
+            CoroutineScope(Dispatchers.IO).launch {
+                checkAndRotateLogFile()
+            }
+
         }
     }
 
@@ -481,7 +485,8 @@ class GatewayServiceImpl : GatewayService {
         try {
             // Find next available rotation index
             while (File("${logFile.parent}/$baseName${rotationIndex}.$extension").exists() &&
-                rotationIndex != 11) {
+                rotationIndex != 11
+            ) {
                 rotationIndex++
             }
 
@@ -491,7 +496,7 @@ class GatewayServiceImpl : GatewayService {
 
                 for (i in 2 until 11) {
                     val oldFile = File("${logFile.parent}/$baseName${i}.$extension")
-                    val newFile = File("${logFile.parent}/$baseName${i-1}.$extension")
+                    val newFile = File("${logFile.parent}/$baseName${i - 1}.$extension")
 
                     if (oldFile.exists()) {
                         oldFile.renameTo(newFile)
@@ -599,7 +604,8 @@ class GatewayServiceImpl : GatewayService {
                 writeLog("=====================================================")
 
                 // Wait before restart
-                val waitUntil = LocalDateTime.now().plusSeconds(configuration.waitToRestart.toLong())
+                val waitUntil =
+                    LocalDateTime.now().plusSeconds(configuration.waitToRestart.toLong())
                 while (LocalDateTime.now().isBefore(waitUntil) && started.load()) {
                     delay(500)
                 }
@@ -641,11 +647,18 @@ class GatewayServiceImpl : GatewayService {
 
                 client.remoteIPAddress = "$remoteAddress : $remotePort"
 
-                writeLog(client, "==========A REMOTE CLIENT CONNECTED FROM IP = ${client.remoteIPAddress}==========")
+                writeLog(
+                    client,
+                    "==========A REMOTE CLIENT CONNECTED FROM IP = ${client.remoteIPAddress}=========="
+                )
 
                 // Check IP deny list
                 if (!configuration.advancedOptions?.iPsDenied.isNullOrBlank() &&
-                    isIpMatched(remoteAddress, configuration.advancedOptions?.iPsDenied?.trim() ?: "")) {
+                    isIpMatched(
+                        remoteAddress,
+                        configuration.advancedOptions?.iPsDenied?.trim() ?: ""
+                    )
+                ) {
 
                     writeLog(client, "THE IP IS DENIED")
                     socket.close()
@@ -666,7 +679,10 @@ class GatewayServiceImpl : GatewayService {
                     val sslClient = SSLTcpClient.createSSLClient(client, true)
 
                     if (sslClient == null) {
-                        writeLog(client, "==========CONNECTION TERMINATED BECAUSE OF SSL AUTHENTICATION FAILURE${client.remoteIPAddress}==========")
+                        writeLog(
+                            client,
+                            "==========CONNECTION TERMINATED BECAUSE OF SSL AUTHENTICATION FAILURE${client.remoteIPAddress}=========="
+                        )
                         socket.close()
                         continue
                     }
@@ -676,9 +692,10 @@ class GatewayServiceImpl : GatewayService {
 
                 // Add client to active list
                 addClient(client)
-
                 // Start processing
                 client.processGateway()
+
+
             } catch (e: Exception) {
                 if (started.load()) {
                     writeLog("GATEWAY ERROR $e")
@@ -691,6 +708,7 @@ class GatewayServiceImpl : GatewayService {
             }
         }
     }
+
     /**
      * Process REST connections
      */
@@ -706,11 +724,15 @@ class GatewayServiceImpl : GatewayService {
         while (started.load() && isActive) {
             if (firstRs232Handler == null) {
                 // Initialize RS232 handler
-                firstRs232Handler = if (configuration.serverConnectionType != ConnectionType.DIAL_UP) {
-                    RS232Handler(configuration.serverAddress, configuration.serverPort)
-                } else {
-                    DialHandler(configuration.serverAddress.substring(1), configuration.serverPort)
-                }
+                firstRs232Handler =
+                    if (configuration.serverConnectionType != ConnectionType.DIAL_UP) {
+                        RS232Handler(configuration.serverAddress, configuration.serverPort)
+                    } else {
+                        DialHandler(
+                            configuration.serverAddress.substring(1),
+                            configuration.serverPort
+                        )
+                    }
 
                 firstRs232Handler?.readMessageTimeOut = 100000000
                 firstRs232Handler?.open()
@@ -761,7 +783,7 @@ class GatewayServiceImpl : GatewayService {
 //            )
 //        }
 
-        _endeService =  KeyManagement(
+        _endeService = KeyManagement(
             configuration.cipherType,
             configuration.privateKey!!,
             configuration.iv!!,
@@ -848,7 +870,8 @@ class GatewayServiceImpl : GatewayService {
                             monitorMessageBuilder.clear()
 
                             withContext(Dispatchers.IO) {
-                                val bytes = message.toByteArray(Charset.forName(configuration.getEncoding()))
+                                val bytes =
+                                    message.toByteArray(Charset.forName(configuration.getEncoding()))
                                 monitorClient?.getOutputStream()?.write(bytes)
                                 monitorClient?.getOutputStream()?.flush()
                             }
@@ -929,7 +952,8 @@ class GatewayServiceImpl : GatewayService {
 
             // Handle serial connection types
             if (configuration.serverConnectionType == ConnectionType.COM ||
-                configuration.serverConnectionType == ConnectionType.DIAL_UP) {
+                configuration.serverConnectionType == ConnectionType.DIAL_UP
+            ) {
 
                 if (!started.load()) {
                     firstRs232Handler?.let {
@@ -983,12 +1007,14 @@ class GatewayServiceImpl : GatewayService {
                 client.lastError?.let { client.sendErrorCode(it) }
 
                 if (verification != null) {
-                    mustCloseConnection = verification.error == VerificationError.DISCONNECTED_FROM_SOURCE
+                    mustCloseConnection =
+                        verification.error == VerificationError.DISCONNECTED_FROM_SOURCE
 
                     // Special handling for some error types in synchronous mode
                     if ((verification.error == VerificationError.NOT_SEND_LOGON_BEFORE ||
                                 verification.error == VerificationError.WRONG_MAC) &&
-                        configuration.transmissionType == TransmissionType.SYNCHRONOUS) {
+                        configuration.transmissionType == TransmissionType.SYNCHRONOUS
+                    ) {
                         client.processGateway()
                         return
                     }
@@ -1021,10 +1047,10 @@ class GatewayServiceImpl : GatewayService {
             }
             // Handle special cases
             else if (client.secondConnection != null &&
-                configuration.transmissionType == TransmissionType.SYNCHRONOUS) {
+                configuration.transmissionType == TransmissionType.SYNCHRONOUS
+            ) {
                 client.processGateway()
-            }
-            else if (client.secondConnection == null) {
+            } else if (client.secondConnection == null) {
                 writeLog(client, "CONNECTION TO DESTINATION WILL ESTABLISH ONCE RECEIVING REQUEST")
 
                 if (configuration.transmissionType == TransmissionType.SYNCHRONOUS) {
@@ -1045,40 +1071,50 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Event handlers
      */
-    override fun showError(item:@Composable () -> Unit) {
-       resultDialogInterface?.onError(item)
+    override fun showError(item: @Composable () -> Unit) {
+        resultDialogInterface?.onError(item)
     }
 
     override fun setShowErrorListener(resultDialogInterface: ResultDialogInterface) {
         this.resultDialogInterface = resultDialogInterface
     }
 
-    override fun onSentFormattedData(callback: suspend (Iso8583Data?, ByteArray?) -> Unit) {
-        sentFormattedDataCallbacks=callback
+    override fun onSentToDest(callback: (Iso8583Data?) -> Unit) {
+        this.sentToDest = callback
     }
 
-    override fun onReceivedFormattedData(callback: suspend (Iso8583Data?) -> Unit) {
-        receivedFormattedDataCallbacks=callback
+    override fun onSentToSource(callback: (Iso8583Data?) -> Unit) {
+        this.sentToSource = callback
     }
 
-    override fun beforeReceive(callback: suspend (GatewayClient) -> Unit) {
-        beforeReceiveCallbacks=callback
+
+    override fun beforeReceive(callback:  (GatewayClient) -> Unit) {
+        beforeReceiveCallbacks = callback
     }
 
-    override fun beforeWriteLog(callback: suspend (String) -> Unit) {
-        beforeWriteLogCallbacks=callback
+    override fun beforeWriteLog(callback: (String) -> Unit) {
+        beforeWriteLogCallbacks = callback
     }
 
     override fun onAdminResponse(callback: suspend (GatewayClient, ByteArray) -> ByteArray?) {
-        adminResponseCallbacks=callback
+        adminResponseCallbacks = callback
     }
 
-    override fun onReceiveFromSource(callback: suspend (GatewayClient, ByteArray) -> ByteArray) {
-        receiveFromSourceCallbacks=callback
+    override fun onReceiveFromSource(callback: (Iso8583Data?) -> Unit) {
+        receivedFromSource = callback
     }
 
-    override fun onReceiveFromDest(callback: suspend (GatewayClient, ByteArray) -> ByteArray) {
-        receiveFromDestCallbacks=callback
+    override fun onReceiveFromDest(callback: (Iso8583Data?) -> Unit) {
+        receivedFromDest = callback
+    }
+
+    suspend fun sendToSecondConnection(data: Iso8583Data) {
+        try {
+            val client = createClient()
+            client.sendMessageToSecondConnection(data)
+        }catch (e: Exception){
+            writeLog("Error sending data to second connection: ${e.message}")
+        }
     }
 
     companion object {

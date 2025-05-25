@@ -184,7 +184,7 @@ private fun Iso8583Header(
             .padding(bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if(!gw.configuration.doNotUseHeader){
+        if(!gw.configuration.doNotUseHeaderSource){
             // TPDU Field
             Text("TPDU")
             Spacer(modifier = Modifier.width(8.dp))

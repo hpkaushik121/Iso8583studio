@@ -1,10 +1,8 @@
 package `in`.aicortex.iso8583studio.ui.screens.config
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,7 +14,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.LoggingOption
-import `in`.aicortex.iso8583studio.ui.components.*
+import `in`.aicortex.iso8583studio.ui.screens.components.IconActionButton
+import `in`.aicortex.iso8583studio.ui.screens.components.Panel
+import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
+import `in`.aicortex.iso8583studio.ui.screens.components.SectionHeader
+import `in`.aicortex.iso8583studio.ui.screens.components.StyledTextField
 
 /**
  * Log Settings Tab - Fourth tab in the Security Gateway configuration

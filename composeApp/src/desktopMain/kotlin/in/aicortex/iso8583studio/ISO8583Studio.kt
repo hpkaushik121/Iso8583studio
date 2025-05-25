@@ -21,11 +21,14 @@ import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.ui.AppTheme
 import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
-import `in`.aicortex.iso8583studio.ui.components.StatusBadge
+import `in`.aicortex.iso8583studio.ui.screens.components.StatusBadge
 import `in`.aicortex.iso8583studio.ui.screens.about.AboutDialog
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
+import iso8583studio.composeapp.generated.resources.Res
+import iso8583studio.composeapp.generated.resources.app
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 
 enum class DialogType {
     SUCCESS, ERROR, NONE
@@ -56,7 +59,8 @@ class ISO8583Studio {
                 Window(
                     onCloseRequest = ::exitApplication,
                     title = "ISO8583Studio",
-                    state = windowState
+                    state = windowState,
+                    icon = painterResource(Res.drawable.app)
                 ) {
                     var showAboutDialog by remember { mutableStateOf(false) }
                     MenuBar {

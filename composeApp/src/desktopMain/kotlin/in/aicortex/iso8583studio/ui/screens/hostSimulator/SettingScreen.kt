@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,9 +53,6 @@ import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.updateBit
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
-import `in`.aicortex.iso8583studio.ui.screens.components.CodeEditorDialog
 import `in`.aicortex.iso8583studio.ui.screens.components.FieldInformationDialog
 import kotlinx.serialization.Serializable
 import java.util.Random
@@ -78,7 +74,7 @@ fun ISO8583SettingsScreen(
     onSaveClick: () -> Unit
 ) {
     val transactions = remember {
-        gw.simulatedTransactions.toMutableStateList()
+        gw.simulatedTransactionsToSource.toMutableStateList()
     }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
 
@@ -333,7 +329,7 @@ fun ISO8583SettingsScreen(
 
                             Button(
                                 onClick = {
-                                    gw.simulatedTransactions = transactions
+                                    gw.simulatedTransactionsToSource = transactions
                                     onSaveClick()
                                 }
                             ) {
@@ -691,11 +687,11 @@ private fun AddBitSpecificDialog(
     var searchQuery by remember { mutableStateOf("") }
 
     // Filter bits based on search query
-    val filteredBits = remember(searchQuery, gw.bitTemplate) {
+    val filteredBits = remember(searchQuery, gw.bitTemplateSource) {
         if (searchQuery.isBlank()) {
-            gw.bitTemplate
+            gw.bitTemplateSource
         } else {
-            gw.bitTemplate.filter { bit ->
+            gw.bitTemplateSource.filter { bit ->
                 // Search in bit number, description, and data type
                 bit.bitNumber.toString().contains(searchQuery, ignoreCase = true) ||
                         bit.description.contains(searchQuery, ignoreCase = true) == true ||
@@ -787,7 +783,7 @@ private fun AddBitSpecificDialog(
                 // Results count
                 if (searchQuery.isNotEmpty()) {
                     Text(
-                        text = "${filteredBits.size} of ${gw.bitTemplate.size} fields found",
+                        text = "${filteredBits.size} of ${gw.bitTemplateSource.size} fields found",
                         style = MaterialTheme.typography.caption,
                         color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.padding(bottom = 8.dp)

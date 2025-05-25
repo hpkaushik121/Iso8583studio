@@ -1,13 +1,8 @@
 package `in`.aicortex.iso8583studio.ui.screens.config
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -15,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
@@ -23,8 +17,8 @@ import `in`.aicortex.iso8583studio.data.model.HttpMethod
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.RestConfiguration
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
-import `in`.aicortex.iso8583studio.ui.screens.components.ExecutionState
-import `in`.aicortex.iso8583studio.ui.screens.components.FormatSelector
+import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentBanner
+import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
 
 
 /**
@@ -37,53 +31,56 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Transmission Type section
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        if (config.gatewayType == GatewayType.PROXY) {
+
+
+            // Transmission Type section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = 2.dp,
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    "Transmission Type",
-                    style = MaterialTheme.typography.h6,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    RadioButton(
-                        selected = config.transmissionType == TransmissionType.SYNCHRONOUS,
-                        onClick = {
-                            onConfigChange(config.copy(transmissionType = TransmissionType.SYNCHRONOUS))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
-                        )
+                    Text(
+                        "Transmission Type",
+                        style = MaterialTheme.typography.h6,
+                        fontWeight = FontWeight.Bold
                     )
-                    Text("Synchronous", modifier = Modifier.padding(start = 8.dp))
 
-                    Spacer(modifier = Modifier.width(32.dp))
-
-                    RadioButton(
-                        selected = config.transmissionType == TransmissionType.ASYNCHRONOUS,
-                        onClick = {
-                            onConfigChange(config.copy(transmissionType = TransmissionType.ASYNCHRONOUS))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colors.primary
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = config.transmissionType == TransmissionType.SYNCHRONOUS,
+                            onClick = {
+                                onConfigChange(config.copy(transmissionType = TransmissionType.SYNCHRONOUS))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
                         )
-                    )
-                    Text("Asynchronous", modifier = Modifier.padding(start = 8.dp))
+                        Text("Synchronous", modifier = Modifier.padding(start = 8.dp))
+
+                        Spacer(modifier = Modifier.width(32.dp))
+
+                        RadioButton(
+                            selected = config.transmissionType == TransmissionType.ASYNCHRONOUS,
+                            onClick = {
+                                onConfigChange(config.copy(transmissionType = TransmissionType.ASYNCHRONOUS))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
+                        )
+                        Text("Asynchronous", modifier = Modifier.padding(start = 8.dp))
+                    }
                 }
             }
         }
-
         // Incoming Connection section (only for SERVER and PROXY)
         if (config.gatewayType == GatewayType.SERVER || config.gatewayType == GatewayType.PROXY) {
             Card(
@@ -175,6 +172,47 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                         }
 
                         else -> { /* Handle other connection types if needed */
+                        }
+                    }
+
+
+                    // Message Length Type
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Message Length Type",
+                            modifier = Modifier.width(180.dp),
+                            style = MaterialTheme.typography.body1
+                        )
+
+                        var expanded by remember { mutableStateOf(false) }
+
+                        Box {
+                            OutlinedButton(
+                                onClick = { expanded = true },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    backgroundColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colors.onSurface
+                                )
+                            ) {
+                                Text(config.messageLengthTypeSource.name)
+                            }
+
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                MessageLengthType.values().forEach { type ->
+                                    DropdownMenuItem(onClick = {
+                                        onConfigChange(config.copy(messageLengthTypeSource = type))
+                                        expanded = false
+                                    }) {
+                                        Text(type.name)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -269,6 +307,7 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                         }
 
                         ConnectionType.COM -> {
+                            UnderDevelopmentBanner()
 //                            ComSettings(
 //                                comPort = config.destinationSerialPort ?: "",
 //                                baudRate = config.destinationBaudRate ?: "",
@@ -284,6 +323,7 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                         }
 
                         ConnectionType.DIAL_UP -> {
+                            UnderDevelopmentBanner()
 //                            DialUpSettings(
 //                                phoneNumber = config.destinationDialupNumber ?: "",
 //                                onPhoneNumberChange = {
@@ -304,6 +344,47 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                             )
                         }
 
+                    }
+
+
+                    // Message Length Type Destination
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Message Length Type",
+                            modifier = Modifier.width(180.dp),
+                            style = MaterialTheme.typography.body1
+                        )
+
+                        var expanded by remember { mutableStateOf(false) }
+
+                        Box {
+                            OutlinedButton(
+                                onClick = { expanded = true },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    backgroundColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colors.onSurface
+                                )
+                            ) {
+                                Text(config.messageLengthTypeDest.name)
+                            }
+
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                MessageLengthType.values().forEach { type ->
+                                    DropdownMenuItem(onClick = {
+                                        onConfigChange(config.copy(messageLengthTypeDest = type))
+                                        expanded = false
+                                    }) {
+                                        Text(type.name)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -396,45 +477,6 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                     )
                 }
 
-                // Message Length Type
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Message Length Type",
-                        modifier = Modifier.width(180.dp),
-                        style = MaterialTheme.typography.body1
-                    )
-
-                    var expanded by remember { mutableStateOf(false) }
-
-                    Box {
-                        OutlinedButton(
-                            onClick = { expanded = true },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                backgroundColor = Color.Transparent,
-                                contentColor = MaterialTheme.colors.onSurface
-                            )
-                        ) {
-                            Text(config.messageLengthType.name)
-                        }
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            MessageLengthType.values().forEach { type ->
-                                DropdownMenuItem(onClick = {
-                                    onConfigChange(config.copy(messageLengthType = type))
-                                    expanded = false
-                                }) {
-                                    Text(type.name)
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -458,6 +500,7 @@ private fun RestSettings(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            UnderDevelopmentChip()
             Text(
                 "REST API Configuration",
                 style = MaterialTheme.typography.subtitle1,
@@ -617,6 +660,7 @@ private fun ComSettings(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            UnderDevelopmentChip()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -719,6 +763,7 @@ private fun DialUpSettings(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            UnderDevelopmentChip()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically

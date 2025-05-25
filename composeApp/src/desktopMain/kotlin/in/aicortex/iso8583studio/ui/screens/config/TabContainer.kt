@@ -24,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
+import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
+import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentBanner
+import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
 import java.awt.Cursor
 
 /**
@@ -73,6 +76,9 @@ fun TabContainer(
                         "Available Channels",
                         style = MaterialTheme.typography.h6,
                         fontWeight = FontWeight.Bold
+                    )
+                    UnderDevelopmentChip(
+                        status = DevelopmentStatus.EXPERIMENTAL
                     )
 
                     // List of configs in scrollable container

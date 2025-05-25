@@ -3,14 +3,11 @@ package `in`.aicortex.iso8583studio.data.model
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.BitTemplate
 import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
-import `in`.aicortex.iso8583studio.domain.utils.FormatSettings
 import `in`.aicortex.iso8583studio.domain.utils.MtiMapping
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XML
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 @Serializable
 data class Something(
@@ -39,7 +36,6 @@ data class GatewayConfig(
     var serialPort: String = "",
     var dialupNumber: String = "",
     var textEncoding: MessageEncoding = MessageEncoding.ASCII,
-    var messageLengthType: MessageLengthType = MessageLengthType.BCD,
     var privateKey: ByteArray? = byteArrayOf(),
     var iv: ByteArray? = byteArrayOf(),
     var checkSignature: SignatureChecking = SignatureChecking.NONE,
@@ -50,14 +46,6 @@ data class GatewayConfig(
     var locationID: String = "",
     var password: ByteArray? = byteArrayOf(),
     var acceptClientListOnly: Boolean = false,
-    var doNotUseHeader: Boolean = false,
-    var lengthInAscii: Boolean = false,
-    var respondIfUnrecognized: Boolean = false,
-    var metfoneMesage: Boolean = false,
-    var notUpdateScreen: Boolean = false,
-    var customizeMessage: Boolean = false,
-    var ignoreRequestHeader: Int = 5,
-    var fixedResponseHeader: ByteArray? = null,
     var maxConcurrentConnection: Int = 100,
     var cipherMode: CipherMode = CipherMode.CBC,
     var enable: Boolean = false,
@@ -70,24 +58,57 @@ data class GatewayConfig(
     var waitToRestart: Int = 300,
     var hashAlgorithm: HashAlgorithm = HashAlgorithm.SHA1,
     var allowLoadKEK: Boolean = false,
-    private var gwBitTemplate: Array<BitSpecific>? = null,
     var allowWrongParsedData: Boolean = false,
     var keyExpireAfter: Int = 0,
     var addNewClientWhenLoadKEK: Boolean = false,
     var advancedOptions: AdvancedOptions? = null,
     var restConfiguration: RestConfiguration? = null,
-    var formatMappingConfig: FormatMappingConfig = FormatMappingConfig(
+    var codeFormatDest: CodeFormat? = null,
+    var codeFormatSource: CodeFormat? = null,
+    private var _logFileName: String = "logs.txt",
+    var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
+    var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,
+
+
+    //Source
+    var simulatedTransactionsToSource: List<Transaction> = emptyList(),
+    var formatMappingConfigSource: FormatMappingConfig = FormatMappingConfig(
         formatType = CodeFormat.BYTE_ARRAY,
         fieldMappings = mapOf(),
         mti = MtiMapping(
             key = "msgType"
         )
     ),
-    var codeFormat: CodeFormat? = null,
-    private var _logFileName: String = "logs.txt",
-    var destinationConnectionType: ConnectionType = ConnectionType.TCP_IP,
-    var serverConnectionType: ConnectionType = ConnectionType.TCP_IP,
-    var simulatedTransactions: List<Transaction> = emptyList()
+    private var gwBitTemplateSource: Array<BitSpecific>? = null,
+    var doNotUseHeaderSource: Boolean = false,
+    var messageInAsciiSource: Boolean = false,
+    var respondIfUnrecognizedSource: Boolean = false,
+    var metfoneMesageSource: Boolean = false,
+    var notUpdateScreenSource: Boolean = false,
+    var customizeMessageSource: Boolean = false,
+    var ignoreRequestHeaderSource: Int = 5,
+    var fixedResponseHeaderSource: ByteArray? = null,
+    var messageLengthTypeSource: MessageLengthType = MessageLengthType.BCD,
+
+    //Destination
+    var simulatedTransactionsToDest: List<Transaction> = emptyList(),
+    var formatMappingConfigDest: FormatMappingConfig = FormatMappingConfig(
+        formatType = CodeFormat.BYTE_ARRAY,
+        fieldMappings = mapOf(),
+        mti = MtiMapping(
+            key = "msgType"
+        )
+    ),
+    private var gwBitTemplateDest: Array<BitSpecific>? = null,
+    var doNotUseHeaderDest: Boolean = false,
+    var messageInAsciiDest: Boolean = false,
+    var respondIfUnrecognizedDest: Boolean = false,
+    var metfoneMesageDest: Boolean = false,
+    var notUpdateScreenDest: Boolean = false,
+    var customizeMessageDest: Boolean = false,
+    var ignoreRequestHeaderDest: Int = 5,
+    var fixedResponseHeaderDest: ByteArray? = null,
+    var messageLengthTypeDest: MessageLengthType = MessageLengthType.BCD
 ) {
 
 
@@ -121,19 +142,37 @@ data class GatewayConfig(
     /**
      * Get/set bit template
      */
-    var bitTemplate: Array<BitSpecific>
+    var bitTemplateSource: Array<BitSpecific>
         get() {
-            if (gwBitTemplate == null) {
+            if (gwBitTemplateSource == null) {
                 try {
-                    gwBitTemplate = BitTemplate.getBINARYpecificArray("Iso8583Template.xml")
+                    gwBitTemplateSource = BitTemplate.getBINARYpecificArray("Iso8583Template.xml")
                 } catch (e: Exception) {
-                    gwBitTemplate = BitTemplate.getTemplate_Standard()
+                    gwBitTemplateSource = BitTemplate.getTemplate_Standard()
                 }
             }
-            return gwBitTemplate!!
+            return gwBitTemplateSource!!
         }
         set(value) {
-            gwBitTemplate = value
+            gwBitTemplateSource = value
+        }
+
+    /**
+     * Get/set bit template
+     */
+    var bitTemplateDest: Array<BitSpecific>
+        get() {
+            if (gwBitTemplateDest == null) {
+                try {
+                    gwBitTemplateDest = BitTemplate.getBINARYpecificArray("Iso8583Template.xml")
+                } catch (e: Exception) {
+                    gwBitTemplateDest = BitTemplate.getTemplate_Standard()
+                }
+            }
+            return gwBitTemplateDest!!
+        }
+        set(value) {
+            gwBitTemplateDest = value
         }
 
     /**
@@ -223,9 +262,9 @@ data class GatewayConfig(
         if (logOptions != other.logOptions) return false
         if (createDate != other.createDate) return false
         if (acceptClientListOnly != other.acceptClientListOnly) return false
-        if (doNotUseHeader != other.doNotUseHeader) return false
-        if (lengthInAscii != other.lengthInAscii) return false
-        if (respondIfUnrecognized != other.respondIfUnrecognized) return false
+        if (doNotUseHeaderSource != other.doNotUseHeaderSource) return false
+        if (messageInAsciiSource != other.messageInAsciiSource) return false
+        if (respondIfUnrecognizedSource != other.respondIfUnrecognizedSource) return false
         if (maxConcurrentConnection != other.maxConcurrentConnection) return false
         if (enable != other.enable) return false
         if (autoRestartAfter != other.autoRestartAfter) return false
@@ -244,7 +283,7 @@ data class GatewayConfig(
         if (transmissionType != other.transmissionType) return false
         if (serverAddress != other.serverAddress) return false
         if (textEncoding != other.textEncoding) return false
-        if (messageLengthType != other.messageLengthType) return false
+        if (messageLengthTypeSource != other.messageLengthTypeSource) return false
         if (!privateKey.contentEquals(other.privateKey)) return false
         if (!iv.contentEquals(other.iv)) return false
         if (checkSignature != other.checkSignature) return false
@@ -256,27 +295,40 @@ data class GatewayConfig(
         if (cipherMode != other.cipherMode) return false
         if (monitorAddress != other.monitorAddress) return false
         if (hashAlgorithm != other.hashAlgorithm) return false
-        if (!gwBitTemplate.contentEquals(other.gwBitTemplate)) return false
+        if (!gwBitTemplateSource.contentEquals(other.gwBitTemplateSource)) return false
         if (advancedOptions != other.advancedOptions) return false
         if (_logFileName != other._logFileName) return false
         if (destinationConnectionType != other.destinationConnectionType) return false
         if (serverConnectionType != other.serverConnectionType) return false
-        if (simulatedTransactions != other.simulatedTransactions) return false
+        if (simulatedTransactionsToSource != other.simulatedTransactionsToSource) return false
         if (addNewClientWhenLoadKek != other.addNewClientWhenLoadKek) return false
         if (advanceOptions != other.advanceOptions) return false
-        if (!bitTemplate.contentEquals(other.bitTemplate)) return false
+        if (!bitTemplateSource.contentEquals(other.bitTemplateSource)) return false
         if (transmission != other.transmission) return false
         if (logFileName != other.logFileName) return false
-        if (metfoneMesage != other.metfoneMesage) return false
-        if (notUpdateScreen != other.notUpdateScreen) return false
-        if (customizeMessage != other.customizeMessage) return false
-        if (ignoreRequestHeader != other.ignoreRequestHeader) return false
+        if (metfoneMesageSource != other.metfoneMesageSource) return false
+        if (notUpdateScreenSource != other.notUpdateScreenSource) return false
+        if (customizeMessageSource != other.customizeMessageSource) return false
+        if (ignoreRequestHeaderSource != other.ignoreRequestHeaderSource) return false
         if (serialPort != other.serialPort) return false
         if (baudRate != other.baudRate) return false
         if (dialupNumber != other.dialupNumber) return false
-        if (formatMappingConfig != other.formatMappingConfig) return false
-        if (codeFormat != other.codeFormat) return false
-        if (fixedResponseHeader != other.fixedResponseHeader) return false
+        if (formatMappingConfigSource != other.formatMappingConfigSource) return false
+        if (codeFormatSource != other.codeFormatSource) return false
+        if (codeFormatDest != other.codeFormatDest) return false
+        if (fixedResponseHeaderSource != other.fixedResponseHeaderSource) return false
+        if (simulatedTransactionsToDest != other.simulatedTransactionsToDest) return false
+        if (formatMappingConfigDest != other.formatMappingConfigDest) return false
+        if (!gwBitTemplateDest.contentEquals(other.gwBitTemplateDest)) return false
+        if (doNotUseHeaderDest != other.doNotUseHeaderDest) return false
+        if (messageInAsciiDest != other.messageInAsciiDest) return false
+        if (respondIfUnrecognizedDest != other.respondIfUnrecognizedDest) return false
+        if (metfoneMesageDest != other.metfoneMesageDest) return false
+        if (notUpdateScreenDest != other.notUpdateScreenDest) return false
+        if (customizeMessageDest != other.customizeMessageDest) return false
+        if (ignoreRequestHeaderDest != other.ignoreRequestHeaderDest) return false
+        if (fixedResponseHeaderDest != other.fixedResponseHeaderDest) return false
+        if (messageLengthTypeDest != other.messageLengthTypeDest) return false
 
         return true
     }
@@ -290,9 +342,9 @@ data class GatewayConfig(
         result = 31 * result + logOptions
         result = 31 * result + createDate.hashCode()
         result = 31 * result + acceptClientListOnly.hashCode()
-        result = 31 * result + doNotUseHeader.hashCode()
-        result = 31 * result + lengthInAscii.hashCode()
-        result = 31 * result + respondIfUnrecognized.hashCode()
+        result = 31 * result + doNotUseHeaderSource.hashCode()
+        result = 31 * result + messageInAsciiSource.hashCode()
+        result = 31 * result + respondIfUnrecognizedSource.hashCode()
         result = 31 * result + maxConcurrentConnection
         result = 31 * result + enable.hashCode()
         result = 31 * result + autoRestartAfter
@@ -311,7 +363,7 @@ data class GatewayConfig(
         result = 31 * result + transmissionType.hashCode()
         result = 31 * result + serverAddress.hashCode()
         result = 31 * result + textEncoding.hashCode()
-        result = 31 * result + messageLengthType.hashCode()
+        result = 31 * result + messageLengthTypeSource.hashCode()
         result = 31 * result + (privateKey?.contentHashCode() ?: 0)
         result = 31 * result + (iv?.contentHashCode() ?: 0)
         result = 31 * result + checkSignature.hashCode()
@@ -323,27 +375,40 @@ data class GatewayConfig(
         result = 31 * result + cipherMode.hashCode()
         result = 31 * result + monitorAddress.hashCode()
         result = 31 * result + hashAlgorithm.hashCode()
-        result = 31 * result + (gwBitTemplate?.contentHashCode() ?: 0)
+        result = 31 * result + (gwBitTemplateSource?.contentHashCode() ?: 0)
         result = 31 * result + (advancedOptions?.hashCode() ?: 0)
         result = 31 * result + _logFileName.hashCode()
         result = 31 * result + destinationConnectionType.hashCode()
         result = 31 * result + serverConnectionType.hashCode()
-        result = 31 * result + simulatedTransactions.hashCode()
+        result = 31 * result + simulatedTransactionsToSource.hashCode()
         result = 31 * result + addNewClientWhenLoadKek.hashCode()
         result = 31 * result + advanceOptions.hashCode()
-        result = 31 * result + bitTemplate.contentHashCode()
+        result = 31 * result + bitTemplateSource.contentHashCode()
         result = 31 * result + transmission.hashCode()
         result = 31 * result + logFileName.hashCode()
-        result = 31 * result + metfoneMesage.hashCode()
-        result = 31 * result + notUpdateScreen.hashCode()
-        result = 31 * result + customizeMessage.hashCode()
-        result = 31 * result + ignoreRequestHeader.hashCode()
+        result = 31 * result + metfoneMesageSource.hashCode()
+        result = 31 * result + notUpdateScreenSource.hashCode()
+        result = 31 * result + customizeMessageSource.hashCode()
+        result = 31 * result + ignoreRequestHeaderSource.hashCode()
         result = 31 * result + serialPort.hashCode()
         result = 31 * result + baudRate.hashCode()
         result = 31 * result + dialupNumber.hashCode()
-        result = 31 * result + formatMappingConfig.hashCode()
-        result = 31 * result + codeFormat.hashCode()
-        result = 31 * result + fixedResponseHeader.contentHashCode()
+        result = 31 * result + formatMappingConfigSource.hashCode()
+        result = 31 * result + codeFormatSource.hashCode()
+        result = 31 * result + codeFormatDest.hashCode()
+        result = 31 * result + fixedResponseHeaderSource.contentHashCode()
+        result = 31 * result + simulatedTransactionsToDest.hashCode()
+        result = 31 * result + formatMappingConfigDest.hashCode()
+        result = 31 * result + (gwBitTemplateDest?.contentHashCode() ?: 0)
+        result = 31 * result + doNotUseHeaderDest.hashCode()
+        result = 31 * result + messageInAsciiDest.hashCode()
+        result = 31 * result + respondIfUnrecognizedDest.hashCode()
+        result = 31 * result + metfoneMesageDest.hashCode()
+        result = 31 * result + notUpdateScreenDest.hashCode()
+        result = 31 * result + customizeMessageDest.hashCode()
+        result = 31 * result + ignoreRequestHeaderDest.hashCode()
+        result = 31 * result + fixedResponseHeaderDest.contentHashCode()
+        result = 31 * result + messageLengthTypeDest.hashCode()
         return result
     }
 }

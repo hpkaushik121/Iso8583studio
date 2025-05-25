@@ -13,7 +13,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.ui.components.*
+import `in`.aicortex.iso8583studio.ui.screens.components.Panel
+import `in`.aicortex.iso8583studio.ui.screens.components.PrimaryButton
+import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
+import `in`.aicortex.iso8583studio.ui.screens.components.SectionHeader
+import `in`.aicortex.iso8583studio.ui.screens.components.StyledTextField
+import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentBanner
 
 /**
  * Advanced Options Tab - Fifth tab in the Security Gateway configuration
@@ -21,12 +26,15 @@ import `in`.aicortex.iso8583studio.ui.components.*
  */
 @Composable
 fun AdvancedOptionsTab() {
+
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+
         // Header with description
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -45,6 +53,8 @@ fun AdvancedOptionsTab() {
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
             )
         }
+
+        UnderDevelopmentBanner()
 
         // Advanced Options Panel
         Panel(
@@ -203,6 +213,8 @@ fun AdvancedOptionsTab() {
             )
         }
     }
+
+
 }
 
 @Composable

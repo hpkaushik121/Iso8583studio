@@ -91,12 +91,12 @@ interface GatewayService {
     /**
      * Write a log message
      */
-    suspend fun writeLog(message: String)
+    fun writeLog(message: String)
 
     /**
      * Write a log message with a client reference
      */
-    suspend fun writeLog(client: GatewayClient, message: String)
+    fun writeLog(client: GatewayClient, message: String)
 
     /**
      * Get the encryption/decryption service
@@ -113,22 +113,22 @@ interface GatewayService {
     /**
      * Add callback for data sent event
      */
-    fun onSentFormattedData(callback: suspend (Iso8583Data?, ByteArray?) -> Unit)
+    fun onSentToDest(callback: (Iso8583Data?) -> Unit)
 
     /**
      * Add callback for data received event
      */
-    fun onReceivedFormattedData(callback: suspend (Iso8583Data?) -> Unit)
+    fun onSentToSource(callback: (Iso8583Data?) -> Unit)
 
     /**
      * Add callback for before receive event
      */
-    fun beforeReceive(callback: suspend (GatewayClient) -> Unit)
+    fun beforeReceive(callback: (GatewayClient) -> Unit)
 
     /**
      * Add callback for before write log event
      */
-    fun beforeWriteLog(callback: suspend (String) -> Unit)
+    fun beforeWriteLog(callback: (String) -> Unit)
 
     /**
      * Add callback for admin response handling
@@ -138,10 +138,10 @@ interface GatewayService {
     /**
      * Add callback for data received from source
      */
-    fun onReceiveFromSource(callback: suspend (GatewayClient, ByteArray) -> ByteArray)
+    fun onReceiveFromSource(callback:  ( Iso8583Data?) -> Unit)
 
     /**
      * Add callback for data received from destination
      */
-    fun onReceiveFromDest(callback: suspend (GatewayClient, ByteArray) -> ByteArray)
+    fun onReceiveFromDest(callback:  ( Iso8583Data?) -> Unit)
 }
