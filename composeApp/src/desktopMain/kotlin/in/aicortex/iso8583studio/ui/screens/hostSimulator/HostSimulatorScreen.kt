@@ -55,6 +55,7 @@ import java.io.File
 import java.util.UUID
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.text.ifEmpty
 
 /**
@@ -114,13 +115,14 @@ fun HostSimulatorScreen(
 /**
  * Modern Host Simulator implementation
  */
+@OptIn(ExperimentalAtomicApi::class)
 @Composable
 fun HostSimulator(
     gw: GatewayServiceImpl,
     onSaveClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isStarted by remember { mutableStateOf(false) }
+    var isStarted by remember { mutableStateOf(gw.started.load()) }
     var transactionCount by remember { mutableStateOf("0") }
     var bytesOutgoing by remember { mutableStateOf(gw.bytesOutgoing) }
     var bytesIncoming by remember { mutableStateOf(gw.bytesIncoming) }
@@ -1064,16 +1066,10 @@ private fun UnsolicitedMessageTab(
                         text = "Unpack",
                         onClick = {
                             try {
-                                rawMessageBytes = IsoUtil.stringToBcd(
-                                    rawMessageString,
-                                    rawMessageString.length / 2
-                                )
+                                rawMessageBytes = IsoUtil.hexStringToBinary(rawMessageString)
                                 val isoData = Iso8583Data(gw.configuration, isFirst = false)
                                 isoData.unpack(
-                                    rawMessageBytes,
-                                    2,
-                                    rawMessageBytes.size - 2
-                                )
+                                    rawMessageBytes)
                                 parsedMessageCreated = isoData.logFormat()
                             } catch (e: Exception) {
                                 gw.resultDialogInterface?.onError {
@@ -1098,17 +1094,14 @@ private fun UnsolicitedMessageTab(
                                 coroutineScope.launch {
                                     try {
                                         // Convert string to bytes
-                                        rawMessageBytes = IsoUtil.stringToBcd(
-                                            rawMessageString,
-                                            rawMessageString.length / 2
-                                        )
+                                        rawMessageBytes = IsoUtil.hexStringToBinary(rawMessageString)
 
                                         // Create ISO8583 data object
                                         val isoData = Iso8583Data(
                                             config = gw.configuration,
                                             isFirst = false
                                         )
-                                        isoData.unpack(rawMessageBytes, 2, rawMessageBytes.size - 2)
+                                        isoData.unpack(rawMessageBytes)
 
                                         // Update parsed message
                                         parsedMessageCreated = isoData.logFormat()
@@ -1118,6 +1111,7 @@ private fun UnsolicitedMessageTab(
 
 
                                     } catch (e: Exception) {
+                                        e.printStackTrace()
                                     } finally {
                                         isSending = false
                                     }
@@ -1217,7 +1211,7 @@ private fun UnsolicitedMessageTab(
                             )
                             message.messageType = item.mti
                             rawMessageBytes = message.pack()
-                            rawMessageString = IsoUtil.bcdToString(rawMessageBytes)
+                            rawMessageString = IsoUtil.bytesToHexString(rawMessageBytes)
                             parsedMessageCreated = message.logFormat()
                             currentMessage = message
                         },

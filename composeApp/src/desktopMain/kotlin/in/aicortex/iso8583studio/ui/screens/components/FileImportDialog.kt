@@ -522,7 +522,7 @@ private fun ImportOptionsSection(
 }
 
 @Composable
-private fun PreviewSection(preview: String) {
+fun PreviewSection(preview: String, onDismiss:( () -> Unit)? = null) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = 4.dp,
@@ -556,6 +556,15 @@ private fun PreviewSection(preview: String) {
                     unfocusedIndicatorColor = Color.Transparent
                 )
             )
+            if(onDismiss !=null){
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Close")
+                }
+            }
         }
     }
 }
@@ -583,8 +592,7 @@ private fun ActionButtonsSection(
             onClick = onImport,
             modifier = Modifier.weight(1f),
             enabled = (!isImporting &&
-                    importConfig.validationState is ImportValidationState.Valid &&
-                    importConfig.overwriteExisting ), // Adjust logic based on requirements
+                    importConfig.validationState is ImportValidationState.Valid), // Adjust logic based on requirements
             shape = RoundedCornerShape(8.dp)
         ) {
             if (isImporting) {

@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.data.model
 
+import RestAuthConfig
+import RestMessageFormat
+import RestRetryConfig
+import RestSslConfig
 import kotlinx.serialization.Serializable
 import java.nio.charset.Charset
 
@@ -54,9 +58,9 @@ enum class CipherMode { ECB, CBC, CFB, OFB, CTS }
  */
 @Serializable
 enum class MessageLengthType(val value: Int) {
-    BCD(0),
-    NONE(3),
-    STRING_4(5),
+    BCD(2),
+    NONE(0),
+    STRING_4(4),
     HEX_HL(1),
     HEX_LH(2);
     companion object {
@@ -540,11 +544,17 @@ enum class HttpMethod {
 data class RestConfiguration(
     val url: String = "",
     val method: HttpMethod = HttpMethod.POST,
-    val headers: List<HttpHeader> = emptyList(),
-    val contentType: String = "application/json",
-    val timeout: Int = 30,
-    val retryCount: Int = 3
-)
+    val headers: Map<String, String> = emptyMap(),
+    val messageFormat: RestMessageFormat = RestMessageFormat.JSON,
+    val authConfig: RestAuthConfig? = null,
+    val retryConfig: RestRetryConfig = RestRetryConfig(),
+    val sslConfig: RestSslConfig? = null
+) {
+    fun isValid(): Boolean {
+        return url.isNotBlank() &&
+                (url.startsWith("http://") || url.startsWith("https://"))
+    }
+}
 
 // CodeFormat enum - EXACTLY matching your existing dialog
 @Serializable

@@ -1,5 +1,8 @@
 package `in`.aicortex.iso8583studio.domain.utils
 
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
@@ -77,7 +80,6 @@ fun Iso8583Data.unpackFromFormat(
     inputData: ByteArray,
     inputFormat: CodeFormat,
     mappingConfig: FormatMappingConfig,
-    from: Int = 0, length: Int = inputData.size
 ) {
     when (inputFormat) {
         CodeFormat.JSON -> unpackFromJson(
@@ -105,7 +107,7 @@ fun Iso8583Data.unpackFromFormat(
             this.unpack(binaryData) // Use existing unpack method
         }
 
-        CodeFormat.BYTE_ARRAY -> this.unpackByteArray(inputData,from,length) // Use existing unpack method
+        CodeFormat.BYTE_ARRAY -> this.unpackByteArray(inputData) // Use existing unpack method
     }
 }
 
@@ -176,31 +178,326 @@ private fun Iso8583Data.packAsJson(config: FormatMappingConfig): String {
     }
 }
 
+
 private fun Iso8583Data.unpackFromJson(jsonString: String, config: FormatMappingConfig) {
-    val objectMapper = ObjectMapper()
-    val jsonNode = objectMapper.readTree(jsonString)
+    try {
+        // Clean and extract JSON from potentially mixed content
+        val cleanJsonString = extractJsonFromMixedContent(jsonString)
 
-    // Extract MTI
-    val mti = when {
-        config.mti.nestedKey != null -> getNestedValue(jsonNode, config.mti.nestedKey!!)
-        else -> jsonNode.get(config.mti.key)?.asText()
-    }
-    mti?.let { this.messageType = it }
-
-    // Extract fields
-    config.fieldMappings.forEach { (fieldNum, mapping) ->
-        val fieldValue = when {
-            mapping.nestedKey != null -> getNestedValue(jsonNode, mapping.nestedKey!!)
-            mapping.key != null -> jsonNode.get(mapping.key!!)?.asText()
-            else -> null
+        if (cleanJsonString.isBlank()) {
+            throw IllegalArgumentException("No valid JSON content found in input")
         }
 
-        fieldValue?.let {
-            val bitIndex = fieldNum.toInt() - 1
-            this[bitIndex + 1]?.updateBit( it)
+        val objectMapper = ObjectMapper().apply {
+            // Configure ObjectMapper to be lenient with parsing
+            configure(JsonParser.Feature.ALLOW_COMMENTS, true)
+            configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+            configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        }
+
+        val jsonNode = objectMapper.readTree(cleanJsonString)
+
+        // Extract MTI
+        val mti = when {
+            config.mti.nestedKey != null -> getNestedValue(jsonNode, config.mti.nestedKey!!)
+            else -> jsonNode.get(config.mti.key)?.asText()
+        }
+        mti?.let { this.messageType = it }
+
+        // Extract fields
+        config.fieldMappings.forEach { (fieldNum, mapping) ->
+            val fieldValue = when {
+                mapping.nestedKey != null -> getNestedValue(jsonNode, mapping.nestedKey!!)
+                mapping.key != null -> jsonNode.get(mapping.key!!)?.asText()
+                else -> null
+            }
+
+            fieldValue?.let {
+                val bitIndex = fieldNum.toInt() - 1
+                this[bitIndex + 1]?.updateBit(it)
+            }
+        }
+
+    } catch (e: JsonProcessingException) {
+        throw IllegalArgumentException("Invalid JSON format: ${e.message}", e)
+    } catch (e: Exception) {
+        throw IllegalArgumentException("Failed to parse JSON: ${e.message}", e)
+    }
+}
+
+/**
+ * Extracts JSON content from mixed content that may include HTTP headers
+ * Handles various scenarios like HTTP responses, multipart content, etc.
+ */
+private fun extractJsonFromMixedContent(input: String): String {
+    val trimmedInput = input.trim()
+
+    // Case 1: Pure JSON (starts with { or [)
+    if (trimmedInput.startsWith("{") || trimmedInput.startsWith("[")) {
+        return findCompleteJson(trimmedInput)
+    }
+
+    // Case 2: HTTP Response format
+    if (isHttpResponse(trimmedInput)) {
+        return extractJsonFromHttpResponse(trimmedInput)
+    }
+
+    // Case 3: Mixed content with JSON somewhere
+    return findJsonInMixedContent(trimmedInput)
+}
+
+/**
+ * Checks if the content looks like an HTTP response
+ */
+private fun isHttpResponse(content: String): Boolean {
+    val httpStatusPattern = Regex("^HTTP/\\d\\.\\d\\s+\\d{3}\\s+.+", RegexOption.IGNORE_CASE)
+    val httpRequestPattern = Regex("^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\s+.+HTTP/\\d\\.\\d", RegexOption.IGNORE_CASE)
+
+    return httpStatusPattern.containsMatchIn(content) ||
+            httpRequestPattern.containsMatchIn(content) ||
+            content.contains("Content-Type:", ignoreCase = true) ||
+            content.contains("Content-Length:", ignoreCase = true)
+}
+
+/**
+ * Extracts JSON from HTTP response format
+ */
+private fun extractJsonFromHttpResponse(httpContent: String): String {
+    val lines = httpContent.lines()
+    var bodyStartIndex = -1
+
+    // Find where headers end (empty line indicates start of body)
+    for (i in lines.indices) {
+        if (lines[i].trim().isEmpty()) {
+            bodyStartIndex = i + 1
+            break
+        }
+    }
+
+    if (bodyStartIndex == -1) {
+        // No empty line found, try to find JSON pattern
+        return findJsonInMixedContent(httpContent)
+    }
+
+    // Extract body content
+    val bodyLines = lines.drop(bodyStartIndex)
+    val bodyContent = bodyLines.joinToString("\n").trim()
+
+    // Handle chunked encoding or other HTTP body formats
+    return when {
+        bodyContent.startsWith("{") || bodyContent.startsWith("[") -> {
+            findCompleteJson(bodyContent)
+        }
+        // Handle chunked encoding (hex numbers followed by content)
+        bodyContent.contains("\n") && bodyContent.lines().any { it.matches(Regex("^[0-9a-fA-F]+$")) } -> {
+            extractJsonFromChunkedBody(bodyContent)
+        }
+        else -> {
+            findJsonInMixedContent(bodyContent)
         }
     }
 }
+
+/**
+ * Extracts JSON from chunked HTTP body
+ */
+private fun extractJsonFromChunkedBody(chunkedBody: String): String {
+    val lines = chunkedBody.lines()
+    val jsonParts = mutableListOf<String>()
+
+    var i = 0
+    while (i < lines.size) {
+        val line = lines[i].trim()
+
+        // Skip chunk size lines (hex numbers)
+        if (line.matches(Regex("^[0-9a-fA-F]+$"))) {
+            i++
+            continue
+        }
+
+        // Skip empty lines
+        if (line.isEmpty()) {
+            i++
+            continue
+        }
+
+        // Add content lines
+        if (line.startsWith("{") || line.startsWith("[") ||
+            line.contains("\"") || jsonParts.isNotEmpty()) {
+            jsonParts.add(line)
+        }
+
+        i++
+    }
+
+    val reconstructedJson = jsonParts.joinToString("")
+    return findCompleteJson(reconstructedJson)
+}
+
+/**
+ * Finds JSON content within mixed text content
+ */
+private fun findJsonInMixedContent(content: String): String {
+    // Try to find JSON object boundaries
+    val jsonObjectPattern = Regex("\\{[^{}]*(?:\\{[^{}]*\\}[^{}]*)*\\}")
+    val jsonArrayPattern = Regex("\\[[^\\[\\]]*(?:\\[[^\\[\\]]*\\][^\\[\\]]*)*\\]")
+
+    // Look for complete JSON objects first
+    val objectMatch = jsonObjectPattern.find(content)
+    if (objectMatch != null) {
+        val potentialJson = objectMatch.value
+        if (isValidJson(potentialJson)) {
+            return potentialJson
+        }
+    }
+
+    // Look for JSON arrays
+    val arrayMatch = jsonArrayPattern.find(content)
+    if (arrayMatch != null) {
+        val potentialJson = arrayMatch.value
+        if (isValidJson(potentialJson)) {
+            return potentialJson
+        }
+    }
+
+    // More aggressive search - look for anything between { and }
+    val startIndex = content.indexOf('{')
+    val endIndex = content.lastIndexOf('}')
+
+    if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+        val potentialJson = content.substring(startIndex, endIndex + 1)
+        if (isValidJson(potentialJson)) {
+            return potentialJson
+        }
+    }
+
+    // Last resort - try to find any JSON-like structure
+    return findJsonLikeStructure(content)
+}
+
+/**
+ * Finds complete JSON from content that starts with JSON
+ */
+private fun findCompleteJson(jsonContent: String): String {
+    if (jsonContent.startsWith("{")) {
+        return findCompleteJsonObject(jsonContent)
+    } else if (jsonContent.startsWith("[")) {
+        return findCompleteJsonArray(jsonContent)
+    }
+    return jsonContent
+}
+
+/**
+ * Finds complete JSON object by balancing braces
+ */
+private fun findCompleteJsonObject(content: String): String {
+    var braceCount = 0
+    var inString = false
+    var escaped = false
+
+    for (i in content.indices) {
+        val char = content[i]
+
+        when {
+            escaped -> {
+                escaped = false
+            }
+            char == '\\' && inString -> {
+                escaped = true
+            }
+            char == '"' -> {
+                inString = !inString
+            }
+            !inString -> {
+                when (char) {
+                    '{' -> braceCount++
+                    '}' -> {
+                        braceCount--
+                        if (braceCount == 0) {
+                            return content.substring(0, i + 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return content // Return as-is if no complete object found
+}
+
+/**
+ * Finds complete JSON array by balancing brackets
+ */
+private fun findCompleteJsonArray(content: String): String {
+    var bracketCount = 0
+    var inString = false
+    var escaped = false
+
+    for (i in content.indices) {
+        val char = content[i]
+
+        when {
+            escaped -> {
+                escaped = false
+            }
+            char == '\\' && inString -> {
+                escaped = true
+            }
+            char == '"' -> {
+                inString = !inString
+            }
+            !inString -> {
+                when (char) {
+                    '[' -> bracketCount++
+                    ']' -> {
+                        bracketCount--
+                        if (bracketCount == 0) {
+                            return content.substring(0, i + 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return content // Return as-is if no complete array found
+}
+
+/**
+ * Validates if a string is valid JSON
+ */
+private fun isValidJson(jsonString: String): Boolean {
+    return try {
+        ObjectMapper().readTree(jsonString)
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
+/**
+ * Last resort method to find JSON-like structures
+ */
+private fun findJsonLikeStructure(content: String): String {
+    // Look for patterns that might be JSON fields
+    val jsonFieldPattern = Regex("\"[^\"]+\"\\s*:\\s*\"[^\"]*\"")
+    val matches = jsonFieldPattern.findAll(content).toList()
+
+    if (matches.isNotEmpty()) {
+        // Try to reconstruct a JSON object from found fields
+        val fields = matches.map { it.value }
+        val reconstructed = "{${fields.joinToString(",")}}"
+
+        if (isValidJson(reconstructed)) {
+            return reconstructed
+        }
+    }
+
+    // If all else fails, return empty JSON object
+    return "{}"
+}
+
 
 // XML Format Implementation
 private fun Iso8583Data.packAsXml(config: FormatMappingConfig): String {

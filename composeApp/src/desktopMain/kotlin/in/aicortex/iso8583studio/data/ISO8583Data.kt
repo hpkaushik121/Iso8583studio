@@ -5,6 +5,7 @@ import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.ParsingFeature
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
@@ -467,17 +468,6 @@ data class Iso8583Data(
     )
 
     /**
-     * Unpack ISO 8583 message with offset and length
-     */
-    fun unpack(input: ByteArray, from: Int, length: Int) = unpackFromFormat(
-        inputData = input,
-        inputFormat = config.codeFormatSource ?: CodeFormat.BYTE_ARRAY,
-        mappingConfig = config.formatMappingConfigSource,
-        from = from,
-        length = length
-    )
-
-    /**
      * Wait for data from a stream (with timeout)
      */
     private fun waitForData(stream: InputStream, timeout: Int) {
@@ -601,11 +591,22 @@ data class Iso8583Data(
         return result
     }
 
-    fun unpackByteArray(input: ByteArray, from: Int, length: Int) {
-        messageLength = length + from
+    fun unpackByteArray(input: ByteArray) {
+        val from = if (config.gatewayType == GatewayType.SERVER){
+            config.messageLengthTypeSource.value
+        }else if(config.gatewayType == GatewayType.CLIENT){
+            config.messageLengthTypeDest.value
+        }else if (isFirst){
+            config.messageLengthTypeSource.value
+        }else{
+            config.messageLengthTypeDest.value
+        }
+
+        messageLength = input.size - from
+        var position= from
         input.copyInto(buffer, 0, 0, messageLength)
 
-        var position = from
+
 
         // Process header if present
         if (hasHeader) {
@@ -679,7 +680,7 @@ data class Iso8583Data(
                         if (m_LengthInAsc) {
                             // Length in ASCII format (2 characters)
                             val lenStr = String(buffer, position, 2, Charset.defaultCharset())
-                            m_BitAttributes[i].length = lenStr.toInt()
+                            m_BitAttributes[i].length = lenStr.toIntOrNull() ?: 0
                             position += 2
                         } else {
                             // Length in BCD format (1 byte)

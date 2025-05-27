@@ -92,21 +92,27 @@ class BitAttribute {
 
         return when (typeAtribute) {
             BitType.AN, BitType.ANS -> {
-                var str = String(m_Data!!, Charset.defaultCharset()).replace(0.toChar(), '.')
-                if (m_Option == AddtionalOption.Hide12DigitsOfTrack2 && str.length > 12) {
-                    str = "${str.substring(0, 6)}**********${str.substring(12, if (str.length > 21) 21 else str.length)}"
-                }
-                str
+                m_Data?.let {
+                    var str = String(it, Charset.defaultCharset()).replace(0.toChar(), '.')
+                    if (m_Option == AddtionalOption.Hide12DigitsOfTrack2 && str.length > 12) {
+                        str = "${str.substring(0, 6)}**********${str.substring(12, if (str.length > 21) 21 else str.length)}"
+                    }
+                    str
+                } ?: ""
+
             }
             BitType.BCD -> {
-                var str = bcdToString(m_Data!!)
-                if (m_Option == AddtionalOption.Hide12DigitsOfTrack2 && str.length > 12) {
-                    str = "${str.substring(0, 6)}**********${str.substring(12, if (str.length > 21) 21 else str.length)}"
-                }
-                str
+                m_Data?.let {
+                    var str = bcdToString(it)
+                    if (m_Option == AddtionalOption.Hide12DigitsOfTrack2 && str.length > 12) {
+                        str = "${str.substring(0, 6)}**********${str.substring(12, if (str.length > 21) 21 else str.length)}"
+                    }
+                    str
+                } ?: ""
+
             }
             BitType.BINARY -> {
-                bytesToHexString(m_Data!!, 32, false)
+                m_Data?.let { bytesToHexString(it, 32, false) } ?: ""
             }
             else -> ""
         }

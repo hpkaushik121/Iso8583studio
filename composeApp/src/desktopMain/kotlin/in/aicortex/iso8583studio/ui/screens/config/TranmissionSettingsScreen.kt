@@ -1,14 +1,53 @@
 package `in`.aicortex.iso8583studio.ui.screens.config
 
+import RestAuthConfig
+import RestSslConfig
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SecurityUpdate
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
@@ -19,6 +58,7 @@ import `in`.aicortex.iso8583studio.data.model.RestConfiguration
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentBanner
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
+import kotlinx.serialization.json.Json
 
 
 /**
@@ -139,11 +179,22 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                             )
                         )
                         Text("DIAL UP", modifier = Modifier.padding(start = 8.dp))
+
+                        RadioButton(
+                            selected = config.serverConnectionType == ConnectionType.REST,
+                            onClick = {
+                                onConfigChange(config.copy(serverConnectionType = ConnectionType.REST))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colors.primary
+                            )
+                        )
+                        Text("REST", modifier = Modifier.padding(start = 8.dp))
                     }
 
                     // Connection type specific settings
                     when (config.serverConnectionType) {
-                        ConnectionType.TCP_IP -> {
+                        ConnectionType.TCP_IP, ConnectionType.REST -> {
                             TcpIpSettings(
                                 address = config.serverAddress,
                                 port = config.serverPort.toString(),
@@ -169,9 +220,6 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                                 phoneNumber = config.dialupNumber,
                                 onPhoneNumberChange = { onConfigChange(config.copy(dialupNumber = it)) }
                             )
-                        }
-
-                        else -> { /* Handle other connection types if needed */
                         }
                     }
 
@@ -336,9 +384,11 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
                         // Uncomment when REST is added to ConnectionType enum
 
                         ConnectionType.REST -> {
+                            var restConfig by remember { mutableStateOf(config.restConfiguration ?: RestConfiguration()) }
                             RestSettings(
-                                restConfig = config.restConfiguration ?: RestConfiguration(),
+                                restConfig = restConfig,
                                 onRestConfigChange = { newRestConfig ->
+                                    restConfig = newRestConfig
                                     onConfigChange(config.copy(restConfiguration = newRestConfig))
                                 }
                             )
@@ -486,8 +536,10 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
 @Composable
 private fun RestSettings(
     restConfig: RestConfiguration,
-    onRestConfigChange: (RestConfiguration) -> Unit
+    onRestConfigChange: (RestConfiguration) -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    var expandedSections by remember { mutableStateOf(setOf("basic")) }
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -496,83 +548,867 @@ private fun RestSettings(
         color = MaterialTheme.colors.surface.copy(alpha = 0.7f),
         border = ButtonDefaults.outlinedBorder
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            UnderDevelopmentChip()
-            Text(
-                "REST API Configuration",
-                style = MaterialTheme.typography.subtitle1,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colors.primary
-            )
+        Column {
 
-            // URL Configuration
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "URL",
-                    modifier = Modifier.width(100.dp),
-                    style = MaterialTheme.typography.body1,
-                    fontWeight = FontWeight.Medium
-                )
-                OutlinedTextField(
-                    value = restConfig.url,
-                    onValueChange = { onRestConfigChange(restConfig.copy(url = it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text("https://api.example.com/endpoint") },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = MaterialTheme.colors.primary,
-                        cursorColor = MaterialTheme.colors.primary
+
+        // Header with validation status
+        Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "REST API Configuration",
+                        style = MaterialTheme.typography.subtitle1,
+                        fontWeight = FontWeight.Bold
                     )
-                )
-            }
 
-            // HTTP Method Selection
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "HTTP Method",
-                    modifier = Modifier.width(100.dp),
-                    style = MaterialTheme.typography.body1,
-                    fontWeight = FontWeight.Medium
-                )
-
-                var methodExpanded by remember { mutableStateOf(false) }
-
-                Box {
-                    OutlinedButton(
-                        onClick = { methodExpanded = true },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            backgroundColor = Color.Transparent,
-                            contentColor = MaterialTheme.colors.onSurface
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            if (restConfig.isValid()) Icons.Default.CheckCircle else Icons.Default.Error,
+                            contentDescription = null,
+                            tint = if (restConfig.isValid())
+                                MaterialTheme.colors.primary
+                            else
+                                MaterialTheme.colors.error,
+                            modifier = Modifier.size(20.dp)
                         )
-                    ) {
-                        Text(restConfig.method.name)
+                        Text(
+                            if (restConfig.isValid()) "Valid" else "Invalid",
+                            color = if (restConfig.isValid())
+                                MaterialTheme.colors.primary
+                            else
+                                MaterialTheme.colors.error
+                        )
                     }
+                }
 
-                    DropdownMenu(
-                        expanded = methodExpanded,
-                        onDismissRequest = { methodExpanded = false }
-                    ) {
-                        HttpMethod.values().forEach { method ->
-                            DropdownMenuItem(onClick = {
+        }
+
+        // Basic Configuration Section
+        Column {
+            ExpandableConfigSection(
+                title = "Basic Configuration",
+                icon = Icons.Default.Settings,
+                isExpanded = expandedSections.contains("basic"),
+                onToggle = {
+                    expandedSections = if (expandedSections.contains("basic")) {
+                        expandedSections - "basic"
+                    } else {
+                        expandedSections + "basic"
+                    }
+                }
+            ) {
+                BasicRestConfiguration(restConfig, onRestConfigChange)
+            }
+        }
+
+        // Headers Configuration Section
+        Column {
+            ExpandableConfigSection(
+                title = "Headers Configuration",
+                icon = Icons.Default.List,
+                isExpanded = expandedSections.contains("headers"),
+                onToggle = {
+                    expandedSections = if (expandedSections.contains("headers")) {
+                        expandedSections - "headers"
+                    } else {
+                        expandedSections + "headers"
+                    }
+                }
+            ) {
+                HeadersConfiguration(restConfig, onRestConfigChange)
+            }
+        }
+
+        // Authentication Section
+        Column {
+            ExpandableConfigSection(
+                title = "Authentication",
+                icon = Icons.Default.Security,
+                isExpanded = expandedSections.contains("auth"),
+                onToggle = {
+                    expandedSections = if (expandedSections.contains("auth")) {
+                        expandedSections - "auth"
+                    } else {
+                        expandedSections + "auth"
+                    }
+                }
+            ) {
+                AuthenticationConfiguration(restConfig, onRestConfigChange)
+            }
+        }
+
+        // Retry Configuration Section
+        Column {
+            ExpandableConfigSection(
+                title = "Retry Configuration",
+                icon = Icons.Default.Refresh,
+                isExpanded = expandedSections.contains("retry"),
+                onToggle = {
+                    expandedSections = if (expandedSections.contains("retry")) {
+                        expandedSections - "retry"
+                    } else {
+                        expandedSections + "retry"
+                    }
+                }
+            ) {
+                RetryConfiguration(restConfig, onRestConfigChange)
+            }
+        }
+
+        // SSL Configuration Section
+        Column {
+            ExpandableConfigSection(
+                title = "SSL/TLS Configuration",
+                icon = Icons.Default.Lock,
+                isExpanded = expandedSections.contains("ssl"),
+                onToggle = {
+                    expandedSections = if (expandedSections.contains("ssl")) {
+                        expandedSections - "ssl"
+                    } else {
+                        expandedSections + "ssl"
+                    }
+                }
+            ) {
+                SslConfiguration(restConfig, onRestConfigChange)
+            }
+        }
+
+        // Configuration Preview
+        Column {
+            ExpandableConfigSection(
+                title = "Configuration Preview",
+                icon = Icons.Default.Visibility,
+                isExpanded = expandedSections.contains("preview"),
+                onToggle = {
+                    expandedSections = if (expandedSections.contains("preview")) {
+                        expandedSections - "preview"
+                    } else {
+                        expandedSections + "preview"
+                    }
+                }
+            ) {
+                ConfigurationPreview(restConfig)
+            }
+        }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun BasicRestConfiguration(
+    restConfig: RestConfiguration,
+    onRestConfigChange: (RestConfiguration) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // URL Configuration
+        ConfigField(
+            label = "Endpoint URL",
+            isRequired = true,
+            description = "The complete REST API endpoint URL"
+        ) {
+            OutlinedTextField(
+                value = restConfig.url,
+                onValueChange = {
+                    onRestConfigChange(restConfig.copy(url = it))
+                                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("https://api.example.com/v1/transactions") },
+                leadingIcon = {
+                    Icon(Icons.Default.Link, contentDescription = null)
+                },
+                isError = restConfig.url.isNotBlank() && !restConfig.isValid(),
+            )
+        }
+
+        // HTTP Method Selection
+        ConfigField(
+            label = "HTTP Method",
+            description = "HTTP method for API requests"
+        ) {
+            var methodExpanded by remember { mutableStateOf(false) }
+
+            ExposedDropdownMenuBox(
+                expanded = methodExpanded,
+                onExpandedChange = { methodExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = restConfig.method.name,
+                    onValueChange = { },
+                    readOnly = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = methodExpanded)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = methodExpanded,
+                    onDismissRequest = { methodExpanded = false }
+                ) {
+                    HttpMethod.values().forEach { method ->
+                        DropdownMenuItem(
+                            onClick = {
                                 onRestConfigChange(restConfig.copy(method = method))
                                 methodExpanded = false
-                            }) {
-                                Text(method.name)
+                            },
+                            content = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(method.name)
+                                    if (method == restConfig.method) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colors.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                             }
-                        }
+                        )
                     }
                 }
             }
         }
+
+
+        // Message Format Selection
+        ConfigField(
+            label = "Message Format",
+            description = "Format for request/response payloads"
+        ) {
+            var formatExpanded by remember { mutableStateOf(false) }
+
+            ExposedDropdownMenuBox(
+                expanded = formatExpanded,
+                onExpandedChange = { formatExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = restConfig.messageFormat.name,
+                    onValueChange = { },
+                    readOnly = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = formatExpanded)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = formatExpanded,
+                    onDismissRequest = { formatExpanded = false }
+                ) {
+                    RestMessageFormat.values().forEach { format ->
+                        DropdownMenuItem(
+                            onClick = {
+                                onRestConfigChange(restConfig.copy(messageFormat = format))
+                                formatExpanded = false
+                            },
+                            content = {
+
+                                Column {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(format.name)
+                                        if (format == restConfig.messageFormat) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colors.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        format.description,
+                                        color = MaterialTheme.colors.onSurface
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeadersConfiguration(
+    restConfig: RestConfiguration,
+    onRestConfigChange: (RestConfiguration) -> Unit
+) {
+    var newHeaderKey by remember { mutableStateOf("") }
+    var newHeaderValue by remember { mutableStateOf("") }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "Custom Headers",
+            fontWeight = FontWeight.Medium
+        )
+
+        // Existing headers
+        restConfig.headers.forEach { (key, value) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            key,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            value,
+                            color = MaterialTheme.colors.onSurface
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            val newHeaders = restConfig.headers.toMutableMap()
+                            newHeaders.remove(key)
+                            onRestConfigChange(restConfig.copy(headers = newHeaders))
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Remove header",
+                            tint = MaterialTheme.colors.error
+                        )
+                    }
+                }
+
+        }
+
+        // Add new header
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Add New Header",
+                    fontWeight = FontWeight.Medium
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = newHeaderKey,
+                        onValueChange = { newHeaderKey = it },
+                        label = { Text("Header Name") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = newHeaderValue,
+                        onValueChange = { newHeaderValue = it },
+                        label = { Text("Header Value") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        if (newHeaderKey.isNotBlank() && newHeaderValue.isNotBlank()) {
+                            val newHeaders = restConfig.headers.toMutableMap()
+                            newHeaders[newHeaderKey] = newHeaderValue
+                            onRestConfigChange(restConfig.copy(headers = newHeaders))
+                            newHeaderKey = ""
+                            newHeaderValue = ""
+                        }
+                    },
+                    enabled = newHeaderKey.isNotBlank() && newHeaderValue.isNotBlank(),
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Add Header")
+                }
+            }
+
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun AuthenticationConfiguration(
+    restConfig: RestConfiguration,
+    onRestConfigChange: (RestConfiguration) -> Unit
+) {
+    val authConfig = restConfig.authConfig ?: RestAuthConfig()
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Authentication Type Selection
+        ConfigField(
+            label = "Authentication Type",
+            description = "Authentication method for API requests"
+        ) {
+            var authExpanded by remember { mutableStateOf(false) }
+
+            ExposedDropdownMenuBox(
+                expanded = authExpanded,
+                onExpandedChange = { authExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = authConfig.type.name,
+                    onValueChange = { },
+                    readOnly = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = authExpanded)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+
+                ExposedDropdownMenu(
+                    expanded = authExpanded,
+                    onDismissRequest = { authExpanded = false }
+                ) {
+                    RestAuthType.values().forEach { authType ->
+                        DropdownMenuItem(
+                            onClick = {
+                                onRestConfigChange(
+                                    restConfig.copy(
+                                        authConfig = authConfig.copy(type = authType)
+                                    )
+                                )
+                                authExpanded = false
+                            },
+                            content = {
+                                Text(authType.name)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Authentication fields based on type
+        when (authConfig.type) {
+            RestAuthType.BASIC -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = authConfig.username,
+                        onValueChange = {
+                            onRestConfigChange(
+                                restConfig.copy(
+                                    authConfig = authConfig.copy(username = it)
+                                )
+                            )
+                        },
+                        label = { Text("Username") },
+                        modifier = Modifier.weight(1f),
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
+                    )
+                    OutlinedTextField(
+                        value = authConfig.password,
+                        onValueChange = {
+                            onRestConfigChange(
+                                restConfig.copy(
+                                    authConfig = authConfig.copy(password = it)
+                                )
+                            )
+                        },
+                        label = { Text("Password") },
+                        modifier = Modifier.weight(1f),
+                        visualTransformation = PasswordVisualTransformation(),
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) }
+                    )
+                }
+            }
+            RestAuthType.BEARER, RestAuthType.OAUTH2 -> {
+                OutlinedTextField(
+                    value = authConfig.token,
+                    onValueChange = {
+                        onRestConfigChange(
+                            restConfig.copy(
+                                authConfig = authConfig.copy(token = it)
+                            )
+                        )
+                    },
+                    label = { Text("Bearer Token") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                    visualTransformation = PasswordVisualTransformation()
+                )
+            }
+            RestAuthType.API_KEY -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = authConfig.keyHeader,
+                        onValueChange = {
+                            onRestConfigChange(
+                                restConfig.copy(
+                                    authConfig = authConfig.copy(keyHeader = it)
+                                )
+                            )
+                        },
+                        label = { Text("Header Name") },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("X-API-Key") }
+                    )
+                    OutlinedTextField(
+                        value = authConfig.apiKey,
+                        onValueChange = {
+                            onRestConfigChange(
+                                restConfig.copy(
+                                    authConfig = authConfig.copy(apiKey = it)
+                                )
+                            )
+                        },
+                        label = { Text("API Key") },
+                        modifier = Modifier.weight(1f),
+                        visualTransformation = PasswordVisualTransformation(),
+                        leadingIcon = { Icon(Icons.Default.VpnKey, contentDescription = null) }
+                    )
+                }
+            }
+            RestAuthType.NONE -> {
+                    Text(
+                        "No authentication configured",
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colors.onSurface
+                    )
+
+            }
+        }
+    }
+}
+
+@Composable
+private fun RetryConfiguration(
+    restConfig: RestConfiguration,
+    onRestConfigChange: (RestConfiguration) -> Unit
+) {
+    val retryConfig = restConfig.retryConfig
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Max Retries
+        ConfigField(
+            label = "Maximum Retries",
+            description = "Number of retry attempts on failure"
+        ) {
+            var retriesText by remember { mutableStateOf(retryConfig.maxRetries.toString()) }
+
+            OutlinedTextField(
+                value = retriesText,
+                onValueChange = { newValue ->
+                    retriesText = newValue
+                    newValue.toIntOrNull()?.let { retries ->
+                        if (retries >= 0) {
+                            onRestConfigChange(
+                                restConfig.copy(
+                                    retryConfig = retryConfig.copy(maxRetries = retries)
+                                )
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) }
+            )
+        }
+
+        // Retry Options
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = retryConfig.retryOnTimeout,
+                    onCheckedChange = {
+                        onRestConfigChange(
+                            restConfig.copy(
+                                retryConfig = retryConfig.copy(retryOnTimeout = it)
+                            )
+                        )
+                    }
+                )
+                Text(
+                    "Retry on timeout"
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = retryConfig.retryOnServerError,
+                    onCheckedChange = {
+                        onRestConfigChange(
+                            restConfig.copy(
+                                retryConfig = retryConfig.copy(retryOnServerError = it)
+                            )
+                        )
+                    }
+                )
+                Text(
+                    "Retry on server errors (5xx)"
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = retryConfig.exponentialBackoff,
+                    onCheckedChange = {
+                        onRestConfigChange(
+                            restConfig.copy(
+                                retryConfig = retryConfig.copy(exponentialBackoff = it)
+                            )
+                        )
+                    }
+                )
+                Text(
+                    "Use exponential backoff"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SslConfiguration(
+    restConfig: RestConfiguration,
+    onRestConfigChange: (RestConfiguration) -> Unit
+) {
+    val sslConfig = restConfig.sslConfig ?: RestSslConfig()
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = sslConfig.trustAllCertificates,
+                onCheckedChange = {
+                    onRestConfigChange(
+                        restConfig.copy(
+                            sslConfig = sslConfig.copy(trustAllCertificates = it)
+                        )
+                    )
+                }
+            )
+            Column {
+                Text(
+                    "Trust all certificates",
+                )
+                Text(
+                    "⚠️ Only for development/testing",
+                    color = MaterialTheme.colors.error
+                )
+            }
+        }
+
+        if (!sslConfig.trustAllCertificates) {
+            OutlinedTextField(
+                value = sslConfig.certificatePath,
+                onValueChange = {
+                    onRestConfigChange(
+                        restConfig.copy(
+                            sslConfig = sslConfig.copy(certificatePath = it)
+                        )
+                    )
+                },
+                label = { Text("Certificate Path") },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("/path/to/certificate.pem") },
+                leadingIcon = { Icon(Icons.Default.SecurityUpdate, contentDescription = null) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConfigurationPreview(restConfig: RestConfiguration) {
+    val jsonString = remember(restConfig) {
+        Json {
+            prettyPrint = true
+            encodeDefaults = true
+        }.encodeToString(RestConfiguration.serializer(), restConfig)
+    }
+
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Configuration JSON",
+                )
+                IconButton(
+                    onClick = {
+                        // Copy to clipboard functionality
+                    }
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy to clipboard")
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp)
+                    .padding(12.dp)
+            ) {
+                item {
+                    SelectionContainer {
+                        Text(
+                            jsonString,
+                            color = MaterialTheme.colors.onSurface
+                        )
+                    }
+                }
+            }
+        }
+
+}
+
+@Composable
+private fun ExpandableConfigSection(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+        Column {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() }
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colors.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        title,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Icon(
+                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colors.onSurface
+                )
+            }
+
+            // Content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    )
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        color = MaterialTheme.colors.secondaryVariant
+                    )
+                    content()
+                }
+            }
+        }
+
+}
+
+@Composable
+private fun ConfigField(
+    label: String,
+    isRequired: Boolean = false,
+    description: String? = null,
+    content: @Composable () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                label,
+                fontWeight = FontWeight.Medium
+            )
+            if (isRequired) {
+                Text(
+                    "*",
+                    color = MaterialTheme.colors.error,
+                )
+            }
+        }
+
+        description?.let {
+            Text(
+                it,
+                color = MaterialTheme.colors.onSurface
+            )
+        }
+
+        content()
     }
 }
 

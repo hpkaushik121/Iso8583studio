@@ -329,6 +329,7 @@ data class GatewayConfig(
         if (ignoreRequestHeaderDest != other.ignoreRequestHeaderDest) return false
         if (fixedResponseHeaderDest != other.fixedResponseHeaderDest) return false
         if (messageLengthTypeDest != other.messageLengthTypeDest) return false
+        if (restConfiguration != other.restConfiguration) return false
 
         return true
     }
@@ -409,6 +410,7 @@ data class GatewayConfig(
         result = 31 * result + ignoreRequestHeaderDest.hashCode()
         result = 31 * result + fixedResponseHeaderDest.contentHashCode()
         result = 31 * result + messageLengthTypeDest.hashCode()
+        result = 31 * result + restConfiguration.hashCode()
         return result
     }
 }

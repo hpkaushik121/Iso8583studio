@@ -46,13 +46,13 @@ data class GatewayConfigurationState(
     }
 
     fun load() {
-        val file = File("${name}.cfg")
+        val file = File("${name}.json")
         import(file)
     }
 
     fun save(): Boolean {
         try {
-            val file = File("${name}.cfg")
+            val file = File("${name}.json")
             val config = Json.encodeToString(configList.value)
             file.writeBytes(config.toByteArray())
             return true

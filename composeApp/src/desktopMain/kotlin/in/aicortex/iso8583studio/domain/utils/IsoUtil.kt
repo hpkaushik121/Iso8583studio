@@ -676,5 +676,157 @@ object IsoUtil {
             BitType.ANS -> stringToANS(string, string.length)
         }
     }
+
+    /**
+     * Converts hexadecimal string to ASCII string
+     * Handles ISO8583 message processing requirements with proper error handling
+     *
+     * @param hexString The hexadecimal string to convert (e.g., "48656C6C6F")
+     * @param removeNonPrintable Whether to remove non-printable ASCII characters (default: false)
+     * @return ASCII string representation
+     * @throws IllegalArgumentException if hex string is invalid
+     */
+    fun hexToAscii(
+        hexString: String,
+        removeNonPrintable: Boolean = false
+    ): String {
+        // Validate input
+        if (hexString.isBlank()) {
+            return ""
+        }
+
+        // Remove any whitespace and convert to uppercase
+        val cleanHex = hexString.replace("\\s".toRegex(), "").uppercase()
+
+        // Validate hex string format
+        if (!cleanHex.matches("^[0-9A-F]*$".toRegex())) {
+            throw IllegalArgumentException("Invalid hexadecimal string: contains non-hex characters")
+        }
+
+        // Ensure even length (hex strings should have pairs of characters)
+        if (cleanHex.length % 2 != 0) {
+            throw IllegalArgumentException("Invalid hexadecimal string: odd length")
+        }
+
+        return try {
+            val result = StringBuilder()
+
+            // Process hex string in pairs
+            for (i in cleanHex.indices step 2) {
+                val hexPair = cleanHex.substring(i, i + 2)
+                val asciiValue = hexPair.toInt(16)
+
+                // Convert to ASCII character
+                val char = asciiValue.toChar()
+
+                if (removeNonPrintable) {
+                    // Only include printable ASCII characters (32-126)
+                    if (asciiValue in 32..126) {
+                        result.append(char)
+                    } else {
+                        // Replace non-printable with dot or space
+                        result.append('.')
+                    }
+                } else {
+                    result.append(char)
+                }
+            }
+
+            result.toString()
+
+        } catch (e: NumberFormatException) {
+            throw IllegalArgumentException("Invalid hexadecimal string: ${e.message}")
+        }
+    }
+
+    /**
+     * Overloaded method for ByteArray input
+     * Converts byte array to ASCII string
+     *
+     * @param hexBytes The byte array containing hex values
+     * @param removeNonPrintable Whether to remove non-printable ASCII characters
+     * @return ASCII string representation
+     */
+    fun hexToAscii(
+        hexBytes: ByteArray,
+        removeNonPrintable: Boolean = false
+    ): String {
+        if (hexBytes.isEmpty()) {
+            return ""
+        }
+
+        val result = StringBuilder()
+
+        for (byte in hexBytes) {
+            val asciiValue = byte.toInt() and 0xFF // Convert to unsigned
+            val char = asciiValue.toChar()
+
+            if (removeNonPrintable) {
+                // Only include printable ASCII characters (32-126)
+                if (asciiValue in 32..126) {
+                    result.append(char)
+                } else {
+                    result.append('.')
+                }
+            } else {
+                result.append(char)
+            }
+        }
+
+        return result.toString()
+    }
+
+    /**
+     * Extended method with encoding options for ISO8583 processing
+     * Supports different character encodings commonly used in payment systems
+     *
+     * @param hexString The hexadecimal string to convert
+     * @param encoding Character encoding to use (default: UTF-8)
+     * @param removeNonPrintable Whether to remove non-printable characters
+     * @return Encoded ASCII string
+     */
+    fun hexToAscii(
+        hexString: String,
+        encoding: String = "UTF-8",
+        removeNonPrintable: Boolean = false
+    ): String {
+        if (hexString.isBlank()) {
+            return ""
+        }
+
+        val cleanHex = hexString.replace("\\s".toRegex(), "").uppercase()
+
+        if (!cleanHex.matches("^[0-9A-F]*$".toRegex())) {
+            throw IllegalArgumentException("Invalid hexadecimal string: contains non-hex characters")
+        }
+
+        if (cleanHex.length % 2 != 0) {
+            throw IllegalArgumentException("Invalid hexadecimal string: odd length")
+        }
+
+        return try {
+            // Convert hex to byte array
+            val bytes = ByteArray(cleanHex.length / 2)
+            for (i in cleanHex.indices step 2) {
+                val hexPair = cleanHex.substring(i, i + 2)
+                bytes[i / 2] = hexPair.toInt(16).toByte()
+            }
+
+            // Convert using specified encoding
+            val result = String(bytes, charset(encoding))
+
+            if (removeNonPrintable) {
+                // Filter non-printable characters
+                result.filter { char ->
+                    char.code in 32..126
+                }.ifEmpty { "." }
+            } else {
+                result
+            }
+
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Conversion failed: ${e.message}")
+        }
+    }
 }
 

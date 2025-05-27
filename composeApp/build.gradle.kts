@@ -47,6 +47,11 @@ kotlin {
             implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.0")
             implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.19.0")
             implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.19.0")
+            implementation("io.ktor:ktor-client-cio-jvm:3.1.3")
+            implementation("io.ktor:ktor-client-auth-jvm:3.1.3")
+            implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:3.1.3")
+            implementation("io.ktor:ktor-client-logging-jvm:3.1.3")
+            implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -66,7 +71,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
-
+            includeAllModules = true
             packageName = "ISO8583Studio"
             packageVersion = "1.0.0"
             description = "ISO8583 Message Processing Studio"

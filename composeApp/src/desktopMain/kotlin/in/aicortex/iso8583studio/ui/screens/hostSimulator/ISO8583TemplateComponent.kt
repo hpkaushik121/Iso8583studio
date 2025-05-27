@@ -25,6 +25,8 @@ import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.ui.screens.components.FileExportComponent
 import `in`.aicortex.iso8583studio.ui.screens.components.FileImportDialog
+import `in`.aicortex.iso8583studio.ui.screens.components.PreviewSection
+import kotlinx.serialization.json.Json
 
 import kotlin.math.absoluteValue
 
@@ -383,7 +385,8 @@ fun MessageFormatCard(
     onFormatChange: (CodeFormat) -> Unit,
     onUploadYaml: (FormatMappingConfig) -> Unit,
     onDownloadTemplate: (CodeFormat) -> Unit,
-    onShowInfo: () -> Unit
+    onShowInfo: () -> Unit,
+    source: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -450,12 +453,65 @@ fun MessageFormatCard(
             if (selectedFormat.requiresYamlConfig) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "YAML Configuration",
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Row {
+                    Text(
+                        text = "YAML Configuration: ",
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    if(
+                        (source && (
+                                config.codeFormatSource == CodeFormat.JSON ||
+                                config.codeFormatSource == CodeFormat.XML ||
+                                config.codeFormatSource == CodeFormat.PLAIN_TEXT
+
+                                ))
+                        || ( !source && (
+                                config.codeFormatDest == CodeFormat.JSON ||
+                                config.codeFormatDest == CodeFormat.XML ||
+                                config.codeFormatDest == CodeFormat.PLAIN_TEXT
+
+                                )
+                    )){
+
+
+                    Spacer(Modifier.width(10.dp))
+                    var showYamlConfig by remember { mutableStateOf(false) }
+                    Icon(
+                        imageVector = Icons.Default.Preview,
+                        contentDescription = "Show YAML Configuration",
+                        modifier = Modifier.clickable {
+                            showYamlConfig = true
+                        }
+                    )
+                    if(showYamlConfig){
+                        Dialog(
+                            onDismissRequest = {
+                                showYamlConfig = false
+                            }
+                        ) {
+                           Column {
+                               if(source){
+                                   PreviewSection(preview =Json { prettyPrint = true; ignoreUnknownKeys = true }.encodeToString(config.formatMappingConfigSource),
+                                       onDismiss = {
+                                           showYamlConfig = false
+                                       })
+
+                               }else{
+                                   PreviewSection(preview =Json { prettyPrint = true; ignoreUnknownKeys = true }.encodeToString(config.formatMappingConfigDest),
+                                       onDismiss = {
+                                           showYamlConfig = false
+                                       })
+
+                               }
+
+                           }
+                        }
+                    }
+                    }
+
+                }
 
                 var showFileImportDialog by remember { mutableStateOf(false) }
                 if(showFileImportDialog){
@@ -1342,7 +1398,8 @@ fun IncomingConfigurationContent(
                         config.formatMappingConfigSource = it
                     },
                     onDownloadTemplate = onShowYamlDialog,
-                    onShowInfo = onShowInfoDialog
+                    onShowInfo = onShowInfoDialog,
+                    source = true
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1458,7 +1515,8 @@ fun OutgoingConfigurationContent(
                         config.formatMappingConfigDest = it
                     },
                     onDownloadTemplate = onShowYamlDialog,
-                    onShowInfo = onShowInfoDialog
+                    onShowInfo = onShowInfoDialog,
+                    source = false
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

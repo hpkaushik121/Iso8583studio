@@ -406,9 +406,8 @@ private fun generateJsonConfig(bitTemplates: Array<BitSpecific>, config: ExportC
         val indent = if (config.prettyFormat) "  " else ""
         val comment = if (config.includeComments) " # ${bit.description}" else ""
 
-        """$indent"$fieldNum": {
-${indent}  "key": "field$fieldNum"
-${indent}}$comment"""
+        """$indent$fieldNum: 
+${indent}  key: "field$fieldNum" $comment"""
     }
 
     val yamlContent = """formatType: JSON

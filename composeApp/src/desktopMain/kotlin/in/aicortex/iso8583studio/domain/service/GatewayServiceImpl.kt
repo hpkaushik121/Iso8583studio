@@ -161,8 +161,9 @@ class GatewayServiceImpl : GatewayService {
         // Initialize connections list
         activeClients.clear()
 
-        // Initialize server socket for TCP/IP connections
-        if (configuration.serverConnectionType == ConnectionType.TCP_IP) {
+        // Initialize server socket for TCP/IP or REST connections
+        if ((configuration.gatewayType == GatewayType.SERVER && configuration.serverConnectionType == ConnectionType.TCP_IP)||
+            (configuration.gatewayType == GatewayType.SERVER && configuration.serverConnectionType == ConnectionType.REST)) {
             serverSocket = if (configuration.serverAddress.isNotBlank()) {
                 ServerSocket(
                     configuration.serverPort,
@@ -225,7 +226,8 @@ class GatewayServiceImpl : GatewayService {
         stopTime = LocalDateTime.now()
 
         // Close server socket
-        if (configuration.serverConnectionType == ConnectionType.TCP_IP) {
+        if ((configuration.gatewayType == GatewayType.SERVER && configuration.serverConnectionType == ConnectionType.TCP_IP)||
+            (configuration.gatewayType == GatewayType.SERVER && configuration.serverConnectionType == ConnectionType.REST)) {
             serverSocket?.close()
             serverSocket = null
 
@@ -591,10 +593,9 @@ class GatewayServiceImpl : GatewayService {
         while (started.load() && isActive) {
             try {
                 when (configuration.serverConnectionType) {
-                    ConnectionType.TCP_IP -> processTcpIp()
+                    ConnectionType.TCP_IP,ConnectionType.REST  -> processTcpIp()
                     ConnectionType.COM -> processRs232()
                     ConnectionType.DIAL_UP -> processRs232()
-                    ConnectionType.REST -> processRest()
                 }
             } catch (e: Exception) {
                 // Handle errors
