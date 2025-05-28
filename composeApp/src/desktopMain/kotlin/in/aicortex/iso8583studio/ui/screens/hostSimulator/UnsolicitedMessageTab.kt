@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +30,7 @@ import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.model.AddtionalOption
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
+import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.EMVTag
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
@@ -87,7 +87,8 @@ fun UnsolicitedMessageTab(
                 isFirst = isFirst.value,
                 onBitmapToggle = { showBitmapAnalysis.value = !showBitmapAnalysis.value },
                 onParserToggle = { showMessageParser.value = !showMessageParser.value },
-                onFormatToggle = { isFirst.value = !isFirst.value })
+                onFormatToggle = { isFirst.value = !isFirst.value },
+                gw = gw)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -275,6 +276,7 @@ fun ProfessionalHeader(
     currentFields: Array<BitAttribute>?,
     showBitmapAnalysis: Boolean,
     showMessageParser: Boolean,
+    gw: GatewayServiceImpl,
     isFirst: Boolean,
     onBitmapToggle: () -> Unit,
     onParserToggle: () -> Unit,
@@ -315,12 +317,15 @@ fun ProfessionalHeader(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        EnhancedFilterChipDropDown(
-                            onSelected = {
-                                onFormatToggle()
-                            },
-                            isFirst = isFirst
-                        )
+                        if (gw.configuration.gatewayType == GatewayType.PROXY){
+                            SourceToggler(
+                                onSelected = {
+                                    onFormatToggle()
+                                },
+                                isFirst = isFirst
+                            )
+                        }
+
 
                         EnhancedFilterChip(
                             selected = showBitmapAnalysis,
@@ -386,7 +391,7 @@ fun ProfessionalHeader(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun EnhancedFilterChipDropDown(
+fun SourceToggler(
     onSelected: () -> Unit,
     isFirst: Boolean,
     modifier: Modifier = Modifier

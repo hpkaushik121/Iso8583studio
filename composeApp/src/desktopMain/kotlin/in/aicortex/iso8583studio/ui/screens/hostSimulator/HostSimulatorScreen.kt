@@ -150,7 +150,17 @@ fun HostSimulator(
     var selectedFieldIndex = remember { mutableStateOf<Int?>(null) }
     var showBitmapAnalysis = remember { mutableStateOf(false) }
     var showMessageParser = remember { mutableStateOf(true) }
-    var isFirst = remember { mutableStateOf(true) }
+    var isFirst = remember {
+        mutableStateOf(
+            if (gw.configuration.gatewayType == GatewayType.CLIENT) {
+                false
+            } else if (gw.configuration.gatewayType == GatewayType.SERVER) {
+                true
+            }else{
+                true
+            }
+        )
+    }
     var animationTrigger = remember { mutableStateOf(0) }
     var rawMessage = remember { mutableStateOf("") }
     var parseError = remember { mutableStateOf<String?>(null) }
