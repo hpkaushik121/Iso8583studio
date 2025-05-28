@@ -150,7 +150,7 @@ fun HostSimulator(
     var selectedFieldIndex = remember { mutableStateOf<Int?>(null) }
     var showBitmapAnalysis = remember { mutableStateOf(false) }
     var showMessageParser = remember { mutableStateOf(true) }
-    var showStatistics = remember { mutableStateOf(false) }
+    var isFirst = remember { mutableStateOf(true) }
     var animationTrigger = remember { mutableStateOf(0) }
     var rawMessage = remember { mutableStateOf("") }
     var parseError = remember { mutableStateOf<String?>(null) }
@@ -372,13 +372,13 @@ fun HostSimulator(
                 )
 
 
-                HostSimulatorTabs.UNPACK_MESSAGE -> ISO8583FieldsAnalysis(
+                HostSimulatorTabs.UNPACK_MESSAGE -> UnsolicitedMessageTab(
                     gw = gw,
                     selectedField = selectedField,
                     selectedFieldIndex = selectedFieldIndex,
                     showBitmapAnalysis = showBitmapAnalysis,
                     showMessageParser = showMessageParser,
-                    showStatistics = showStatistics,
+                    isFirst = isFirst,
                     animationTrigger = animationTrigger,
                     rawMessage = rawMessage,
                     parseError = parseError,

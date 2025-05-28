@@ -626,7 +626,7 @@ data class Iso8583Data(
 
         messageLength = input.size - from
         var position = from
-        input.copyInto(buffer, 0, 0, messageLength)
+        input.copyInto(buffer, 0, 0, input.size)
 
 
         // Process header if present

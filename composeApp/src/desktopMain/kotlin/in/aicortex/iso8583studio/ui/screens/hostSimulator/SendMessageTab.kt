@@ -250,7 +250,7 @@ internal fun SendMessageTab(
                             try {
                                 rawMessageBytes = IsoUtil.stringToBcd(rawMessageString,
                                     rawMessageString.length / 2)
-                                val isoData = Iso8583Data(gw.configuration, isFirst = true)
+                                val isoData = Iso8583Data(gw.configuration, isFirst = false)
                                 isoData.unpack(
                                     rawMessageBytes
                                 )
@@ -430,6 +430,7 @@ internal fun SendMessageTab(
         // ISO8583 Editor Dialog
         if (showCreateIsoDialog) {
             Iso8583EditorDialog(
+                isFirst = false,
                 initialMessage = currentMessage,
                 gw = gw,
                 onDismiss = { showCreateIsoDialog = false },

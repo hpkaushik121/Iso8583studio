@@ -76,16 +76,16 @@ fun Iso8583TemplateScreen(
     var bitTemplatesSource by remember { mutableStateOf(config.bitTemplateSource) }
 
     // Advanced options state - Dest (Outgoing)
-    var useAsciiDest by remember { mutableStateOf(config.messageInAsciiDest ?: config.messageInAsciiSource) }
+    var useAsciiDest by remember { mutableStateOf(config.messageInAsciiDest ) }
     var codeFormatDest by remember { mutableStateOf(config.codeFormatDest ?: config.codeFormatSource ?: CodeFormat.BYTE_ARRAY) }
-    var dontUseTPDUDest by remember { mutableStateOf(config.doNotUseHeaderDest ?: config.doNotUseHeaderSource) }
-    var respondIfUnrecognizedDest by remember { mutableStateOf(config.respondIfUnrecognizedDest ?: config.respondIfUnrecognizedSource) }
-    var metfoneMessageDest by remember { mutableStateOf(config.metfoneMesageDest ?: config.metfoneMesageSource) }
-    var notUpdateScreenDest by remember { mutableStateOf(config.notUpdateScreenDest ?: config.notUpdateScreenSource) }
-    var customizedMessageDest by remember { mutableStateOf(config.customizeMessageDest ?: config.customizeMessageSource) }
-    var ignoreHeaderLengthDest by remember { mutableStateOf((config.ignoreRequestHeaderDest ?: config.ignoreRequestHeaderSource).toString()) }
-    var fixedResponseHeaderDest by remember { mutableStateOf(config.fixedResponseHeaderDest ?: config.fixedResponseHeaderSource ?: byteArrayOf()) }
-    var bitTemplatesDest by remember { mutableStateOf(config.bitTemplateDest ?: config.bitTemplateSource) }
+    var dontUseTPDUDest by remember { mutableStateOf(config.doNotUseHeaderDest ) }
+    var respondIfUnrecognizedDest by remember { mutableStateOf(config.respondIfUnrecognizedDest ) }
+    var metfoneMessageDest by remember { mutableStateOf(config.metfoneMesageDest ) }
+    var notUpdateScreenDest by remember { mutableStateOf(config.notUpdateScreenDest) }
+    var customizedMessageDest by remember { mutableStateOf(config.customizeMessageDest ) }
+    var ignoreHeaderLengthDest by remember { mutableStateOf((config.ignoreRequestHeaderDest ).toString()) }
+    var fixedResponseHeaderDest by remember { mutableStateOf(config.fixedResponseHeaderDest ?: byteArrayOf()) }
+    var bitTemplatesDest by remember { mutableStateOf(config.bitTemplateDest ) }
 
     Row(
         modifier = Modifier
@@ -318,7 +318,7 @@ fun Iso8583TemplateScreen(
             onDismiss = { showEditDialog = false },
             onSave = { updatedBit ->
                 // Update the appropriate bit template array based on which section is expanded
-                if (incomingExpanded) {
+                if (incomingExpanded && showIncoming) {
                     bitTemplatesSource = bitTemplatesSource.map {
                         if (it.bitNumber == updatedBit.bitNumber) updatedBit else it
                     }.toTypedArray()

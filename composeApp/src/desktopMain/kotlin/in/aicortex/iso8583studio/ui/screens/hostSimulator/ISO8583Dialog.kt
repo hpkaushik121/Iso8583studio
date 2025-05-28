@@ -47,11 +47,12 @@ fun Iso8583EditorDialog(
     gw: GatewayServiceImpl,
     initialMessage: Iso8583Data? = null,
     onDismiss: () -> Unit,
-    onConfirm: (Iso8583Data) -> Unit
+    onConfirm: (Iso8583Data) -> Unit,
+    isFirst: Boolean
 ) {
     // Create state for the ISO8583 message
     val message = remember {
-        mutableStateOf(initialMessage ?: Iso8583Data(gw.configuration).apply {
+        mutableStateOf(initialMessage ?: Iso8583Data(gw.configuration,isFirst).apply {
             messageType = "0200"
             tpduHeader.rawTPDU = IsoUtil.stringToBcd("6000000000", 5)
             bitAttributes.forEach { it.isSet = false }
@@ -185,7 +186,7 @@ private fun Iso8583Header(
             .padding(bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if(!gw.configuration.doNotUseHeaderSource){
+        if(!gw.configuration.doNotUseHeaderDest){
             // TPDU Field
             Text("TPDU")
             Spacer(modifier = Modifier.width(8.dp))

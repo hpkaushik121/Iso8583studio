@@ -3,7 +3,6 @@ package `in`.aicortex.iso8583studio.domain.utils
 import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import kotlinx.serialization.Serializable
 import java.nio.charset.StandardCharsets
-import kotlin.experimental.and
 
 /**
  * EMV Tag representation
@@ -291,7 +290,7 @@ object EMVTagParser {
     /**
      * Format a single tag with proper indentation
      */
-    private fun formatTag(
+    fun formatTag(
         tag: EMVTag,
         depth: Int,
         includeHex: Boolean,
@@ -346,7 +345,7 @@ object EMVTagParser {
     /**
      * Interpret specific tag values based on EMV specifications
      */
-    private fun interpretTagValue(tag: String, value: ByteArray): String {
+    internal fun interpretTagValue(tag: String, value: ByteArray): String {
         if (value.isEmpty()) return ""
 
         return when (tag.uppercase()) {

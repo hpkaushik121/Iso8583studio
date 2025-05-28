@@ -10,14 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -29,12 +27,10 @@ import androidx.compose.ui.window.Dialog
 import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.Iso8583Data
-import `in`.aicortex.iso8583studio.data.TPDU
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.model.AddtionalOption
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
-import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.EMVTag
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
@@ -46,13 +42,13 @@ enum class ParseStatus { SUCCESS, WARNING, ERROR }
 
 
 @Composable
-fun ISO8583FieldsAnalysis(
+fun UnsolicitedMessageTab(
     gw: GatewayServiceImpl,
     selectedField: MutableState<BitAttribute?>,
     selectedFieldIndex: MutableState<Int?>,
     showBitmapAnalysis: MutableState<Boolean>,
     showMessageParser: MutableState<Boolean>,
-    showStatistics: MutableState<Boolean>,
+    isFirst: MutableState<Boolean>,
     animationTrigger: MutableState<Int>,
     rawMessage: MutableState<String>,
     parseError: MutableState<String?>,
@@ -88,16 +84,14 @@ fun ISO8583FieldsAnalysis(
                 currentFields = currentFields.value,
                 showBitmapAnalysis = showBitmapAnalysis.value,
                 showMessageParser = showMessageParser.value,
-                showStatistics = showStatistics.value,
+                isFirst = isFirst.value,
                 onBitmapToggle = { showBitmapAnalysis.value = !showBitmapAnalysis.value },
                 onParserToggle = { showMessageParser.value = !showMessageParser.value },
-                onStatisticsToggle = { showStatistics.value = !showStatistics.value })
+                onFormatToggle = { isFirst.value = !isFirst.value })
 
             Spacer(modifier = Modifier.height(16.dp))
 
 
-
-            if (showStatistics.value) Spacer(modifier = Modifier.height(16.dp))
 
             AnimatedVisibility(
                 visible = showMessageParser.value,
@@ -110,7 +104,7 @@ fun ISO8583FieldsAnalysis(
                         rawMessage.value = newMessage
                         if (newMessage.isNotBlank()) {
                             try {
-                                val parsed = Iso8583Data(gw.configuration, isFirst = true)
+                                val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
                                 parsed.unpack(IsoUtil.stringToBcd(newMessage))
                                 currentFields.value = parsed.bitAttributes
                                 currentBitmap.value = parsed.bitAttributes[0]
@@ -156,7 +150,8 @@ fun ISO8583FieldsAnalysis(
                                         i,
                                         item
                                     )
-                                }?.filter { it.second.isSet && (it.second.data?.size ?: 0)> 0 }?.map { it.first.plus(1) }
+                                }?.filter { it.second.isSet && (it.second.data?.size ?: 0) > 0 }
+                                    ?.map { it.first.plus(1) }
                                     ?: emptyList(),
                                 modifier = Modifier.fillMaxWidth())
                             Spacer(modifier = Modifier.height(8.dp))
@@ -231,7 +226,7 @@ fun ISO8583FieldsAnalysis(
                         }
                         if (rawMessage.value.isNotBlank()) {
                             try {
-                                val parsed = Iso8583Data(gw.configuration, isFirst = true)
+                                val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
                                 parsed.unpack(IsoUtil.stringToBcd(rawMessage.value))
                                 currentFields.value = parsed.bitAttributes
                                 currentBitmap.value = parsed.bitAttributes[0]
@@ -272,18 +267,6 @@ fun ISO8583FieldsAnalysis(
                 )
             }
         }
-
-        FloatingActionButton(
-            onClick = { showMessageParser.value = !showMessageParser.value },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).shadow(8.dp, CircleShape),
-            backgroundColor = MaterialTheme.colors.primary,
-            contentColor = Color.White
-        ) {
-            Icon(
-                imageVector = if (showMessageParser.value) Icons.Default.Visibility else Icons.Default.Add,
-                contentDescription = "Toggle Parser"
-            )
-        }
     }
 }
 
@@ -292,10 +275,10 @@ fun ProfessionalHeader(
     currentFields: Array<BitAttribute>?,
     showBitmapAnalysis: Boolean,
     showMessageParser: Boolean,
-    showStatistics: Boolean,
+    isFirst: Boolean,
     onBitmapToggle: () -> Unit,
     onParserToggle: () -> Unit,
-    onStatisticsToggle: () -> Unit
+    onFormatToggle: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -332,6 +315,13 @@ fun ProfessionalHeader(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        EnhancedFilterChipDropDown(
+                            onSelected = {
+                                onFormatToggle()
+                            },
+                            isFirst = isFirst
+                        )
+
                         EnhancedFilterChip(
                             selected = showBitmapAnalysis,
                             onClick = onBitmapToggle,
@@ -339,6 +329,7 @@ fun ProfessionalHeader(
                             label = "Bitmap",
                             badge = "${currentFields?.count { it.isSet } ?: 0}/64"
                         )
+
 
                         EnhancedFilterChip(
                             selected = showMessageParser,
@@ -389,6 +380,48 @@ fun ProfessionalHeader(
             }
 
 
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun EnhancedFilterChipDropDown(
+    onSelected: () -> Unit,
+    isFirst: Boolean,
+    modifier: Modifier = Modifier
+) {
+
+
+    Column(
+        modifier = modifier,
+    ) {
+        Box(modifier = Modifier.padding(12.dp).clickable { onSelected() }
+            .background(
+                color = MaterialTheme.colors.primary,
+                shape = RoundedCornerShape(20.dp)
+            )) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = if (isFirst) "Source" else "Destination", style = MaterialTheme.typography.subtitle2.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
+                    ),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = if(isFirst) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                    contentDescription = if (isFirst) "Source" else "Destination",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+
+
+            }
         }
     }
 }
@@ -597,17 +630,12 @@ fun EnhancedMessageParserCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Card(
-                        backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.12f),
-                        shape = CircleShape
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Code,
-                            contentDescription = "Parser",
-                            tint = MaterialTheme.colors.primary,
-                            modifier = Modifier.padding(8.dp).size(24.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Code,
+                        contentDescription = "Parser",
+                        tint = MaterialTheme.colors.primary,
+                        modifier = Modifier.padding(8.dp).size(24.dp)
+                    )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
@@ -1242,17 +1270,12 @@ fun EnhancedFieldsListCard(
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Card(
-                    backgroundColor = MaterialTheme.colors.secondary.copy(alpha = 0.12f),
-                    shape = CircleShape
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.List,
-                        contentDescription = "Fields",
-                        tint = MaterialTheme.colors.secondary,
-                        modifier = Modifier.padding(8.dp).size(24.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.List,
+                    contentDescription = "Fields",
+                    tint = MaterialTheme.colors.secondary,
+                    modifier = Modifier.padding(8.dp).size(24.dp)
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
@@ -1767,7 +1790,14 @@ fun EnhancedDetailSection(
 
 @Composable
 fun EnhancedEMVTagCard(tag: EMVTag) {
+    var showTagInfo by remember { mutableStateOf(false) }
 
+    if (showTagInfo) {
+        EMVTagDetailsDialog(
+            tag = tag,
+            onDismiss = { showTagInfo = false }
+        )
+    }
 
     Card(
         elevation = 2.dp,
@@ -1791,13 +1821,24 @@ fun EnhancedEMVTagCard(tag: EMVTag) {
                     }
                 }
 
-                Text(
-                    text = IsoUtil.bcdToString(tag.value),
-                    style = MaterialTheme.typography.caption.copy(
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                Row {
+                    Text(
+                        text = IsoUtil.bcdToString(tag.value),
+                        style = MaterialTheme.typography.caption.copy(
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                        )
                     )
-                )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Information",
+                        modifier = Modifier.clickable {
+                            showTagInfo = true
+                        }.size(16.dp),
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -1907,18 +1948,12 @@ fun EnhancedEmptyFieldSelection(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Card(
-            backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.08f),
-            shape = CircleShape,
-            elevation = 4.dp
-        ) {
-            Icon(
-                imageVector = Icons.Default.TouchApp,
-                contentDescription = "Select Field",
-                modifier = Modifier.padding(24.dp).size(64.dp),
-                tint = MaterialTheme.colors.primary.copy(alpha = 0.6f)
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.TouchApp,
+            contentDescription = "Select Field",
+            modifier = Modifier.padding(24.dp).size(64.dp),
+            tint = MaterialTheme.colors.primary.copy(alpha = 0.6f)
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -2001,9 +2036,8 @@ fun parseBitmap(hexBitmap: String): List<BitmapField> {
     }
 }
 
-fun analyzePosEntryMode(value: String): List<Pair<String, String>> {
-    if (value.length != 3) return listOf("Invalid" to "POS Entry Mode must be 3 digits")
-
+fun analyzePosEntryMode(data: String): List<Pair<String, String>> {
+    var value = data.takeLast(3)
     val panEntryMode = value.substring(0, 2)
     val pinEntryCapability = value.substring(2, 3)
 
