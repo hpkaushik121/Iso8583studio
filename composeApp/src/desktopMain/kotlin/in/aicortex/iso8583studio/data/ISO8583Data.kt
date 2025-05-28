@@ -88,25 +88,25 @@ data class Iso8583Data(
      * Default constructor
      */
     init {
-        m_TPDU = if (isFirst){
+        m_TPDU = if (isFirst) {
             config.fixedResponseHeaderSource?.let { TPDU(rawTPDU = it) } ?: TPDU()
-        }else{
+        } else {
             config.fixedResponseHeaderDest?.let { TPDU(rawTPDU = it) } ?: TPDU()
         }
-        m_BitAttributes = if(isFirst){
+        m_BitAttributes = if (isFirst) {
             BitTemplate.getBitAttributeArray(config.bitTemplateSource)
-        }else{
+        } else {
             BitTemplate.getBitAttributeArray(config.bitTemplateDest)
         }
-        hasHeader = if(isFirst){
+        hasHeader = if (isFirst) {
             !config.doNotUseHeaderSource
-        }else{
+        } else {
             !config.doNotUseHeaderDest
         }
         bitmapInAscii = config.advanceOptions.parsingFeature == ParsingFeature.InASCII
-        lengthInAsc = if (isFirst){
+        lengthInAsc = if (isFirst) {
             config.messageInAsciiSource
-        }else{
+        } else {
             config.messageInAsciiDest
         }
     }
@@ -114,14 +114,21 @@ data class Iso8583Data(
     /**
      * Constructor with bit template
      */
-    constructor(template: Array<BitSpecific>, config: GatewayConfig,isFirst: Boolean) : this(config,isFirst) {
+    constructor(
+        template: Array<BitSpecific>,
+        config: GatewayConfig,
+        isFirst: Boolean
+    ) : this(config, isFirst) {
         m_BitAttributes = BitTemplate.getBitAttributeArray(template)
     }
 
     /**
      * Constructor with bit template
      */
-    constructor(template: Array<BitAttribute>, config: GatewayConfig,isFirst: Boolean) : this(config,isFirst) {
+    constructor(template: Array<BitAttribute>, config: GatewayConfig, isFirst: Boolean) : this(
+        config,
+        isFirst
+    ) {
         m_BitAttributes = template
     }
 
@@ -131,8 +138,11 @@ data class Iso8583Data(
             m_BitAttributes = value
         }
 
-    val tpduHeader: TPDU
+    var tpduHeader: TPDU
         get() = m_TPDU
+        set(value) {
+            m_TPDU = value
+        }
 
     /**
      * Pack a string value into a specified bit
@@ -141,7 +151,18 @@ data class Iso8583Data(
         val index = bitNumber - 1
         var value = dataString
         when (m_BitAttributes[index].typeAtribute) {
-            BitType.AN, BitType.ANS -> {
+            BitType.AN -> {
+                m_BitAttributes[index].length =
+                    if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
+                        value.length
+                    } else {
+                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        m_BitAttributes[index].maxLength
+                    }
+                m_BitAttributes[index].data = IsoUtil.stringToAN(value)
+            }
+
+            BitType.ANS -> {
                 m_BitAttributes[index].length =
                     if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
                         value.length
@@ -252,9 +273,10 @@ data class Iso8583Data(
      * Pack message with no length type
      */
     fun pack(): ByteArray = packWithFormat(
-        outputFormat = (if (isFirst)config.codeFormatSource else config.codeFormatDest) ?: CodeFormat.BYTE_ARRAY,
-        messageLengthType = if(isFirst) config.messageLengthTypeSource else config.messageLengthTypeDest,
-        mappingConfig = if(isFirst) config.formatMappingConfigSource else config.formatMappingConfigDest
+        outputFormat = (if (isFirst) config.codeFormatSource else config.codeFormatDest)
+            ?: CodeFormat.BYTE_ARRAY,
+        messageLengthType = if (isFirst) config.messageLengthTypeSource else config.messageLengthTypeDest,
+        mappingConfig = if (isFirst) config.formatMappingConfigSource else config.formatMappingConfigDest
     )
 
     /**
@@ -426,7 +448,7 @@ data class Iso8583Data(
     /**
      * Analyze bitmap to determine which bits are set
      */
-    private fun analyzeBitmap(array: ByteArray) {
+    internal fun analyzeBitmap(array: ByteArray) {
         // Process primary bitmap (first 8 bytes)
         val primaryBytes = array.copyOfRange(0, 8)
         for (i in 0 until 64) {
@@ -496,9 +518,9 @@ data class Iso8583Data(
     fun logFormat(endBits: Int): String {
         val sb = StringBuilder()
         sb.append("Message Type = $m_MessageType\r\n")
-       if(hasHeader){
-           sb.append("TPDU Header = ${IsoUtil.bcdToString(tpduHeader.rawTPDU)}\r\n")
-       }
+        if (hasHeader) {
+            sb.append("TPDU Header = ${IsoUtil.bcdToString(tpduHeader.rawTPDU)}\r\n")
+        }
 
         for (i in 0 until endBits) {
             if (m_BitAttributes[i].isSet) {
@@ -592,20 +614,19 @@ data class Iso8583Data(
     }
 
     fun unpackByteArray(input: ByteArray) {
-        val from = if (config.gatewayType == GatewayType.SERVER){
+        val from = if (config.gatewayType == GatewayType.SERVER) {
             config.messageLengthTypeSource.value
-        }else if(config.gatewayType == GatewayType.CLIENT){
+        } else if (config.gatewayType == GatewayType.CLIENT) {
             config.messageLengthTypeDest.value
-        }else if (isFirst){
+        } else if (isFirst) {
             config.messageLengthTypeSource.value
-        }else{
+        } else {
             config.messageLengthTypeDest.value
         }
 
         messageLength = input.size - from
-        var position= from
+        var position = from
         input.copyInto(buffer, 0, 0, messageLength)
-
 
 
         // Process header if present
@@ -636,6 +657,7 @@ data class Iso8583Data(
             // ASCII bitmap format
             val bitmapBytes = ByteArray(16)
             m_BitAttributes[0].maxLength = 16
+            m_BitAttributes[0].length = 16
 
             // Convert ASCII bitmap to BCD
             val asciiPrimaryBitmap = String(input, position, 16, Charset.defaultCharset())
@@ -649,18 +671,24 @@ data class Iso8583Data(
             }
 
             analyzeBitmap(bitmapBytes)
+            m_BitAttributes[0].data = bitmapBytes
             position += 16
-
         } else {
+            val len = (config.getBitTemplate(isFirst)?.get(0) ?: BitSpecific(1, bitType = BitType.BCD,
+                maxLength = 8)).maxLength
             // Binary bitmap format
-            if ((input[position].toInt() and 0x80) > 0) {
-                // Secondary bitmap exists
-                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 16))
-            } else {
-                // Only primary bitmap
-                analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + 8))
-            }
-            position += 8
+            analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + len))
+            m_BitAttributes[0].length = len
+            val dataLength = (m_BitAttributes[0].length + 1) / 2
+            m_BitAttributes[0].data = ByteArray(dataLength)
+            buffer.copyInto(
+                m_BitAttributes[0].data!!,
+                0,
+                position,
+                position + dataLength
+            )
+            position += dataLength
+
         }
 
         // Process data fields
@@ -709,6 +737,7 @@ data class Iso8583Data(
 
                 // Extract field data based on type
                 when (m_BitAttributes[i].typeAtribute) {
+
                     BitType.AN, BitType.ANS -> {
                         // ASCII/EBCDIC character data
                         m_BitAttributes[i].data = ByteArray(m_BitAttributes[i].length)
@@ -821,8 +850,8 @@ fun BitAttribute.getValue(): String? {
     return when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
             var data = IsoUtil.ascToString(data ?: byteArrayOf())
-            if(!PlaceholderProcessor.holdersList.contains(data)){
-                data = data.padStart(maxLength,'0')
+            if (!PlaceholderProcessor.holdersList.contains(data)) {
+                data = data.padStart(maxLength, '0')
             }
             data
         }
@@ -830,8 +859,8 @@ fun BitAttribute.getValue(): String? {
         BitType.BCD,
         BitType.BINARY -> {
             val data = IsoUtil.bcdToString(data!!)
-            if(!PlaceholderProcessor.holdersList.contains(data)){
-                data.padStart(maxLength,'0')
+            if (!PlaceholderProcessor.holdersList.contains(data)) {
+                data.padStart(maxLength, '0')
             }
             data
         }
@@ -842,16 +871,17 @@ fun BitAttribute.getValue(): String? {
     }
 }
 
-fun convertToAnother(iso8583Data: Iso8583Data?): Iso8583Data?{
+fun convertToAnother(iso8583Data: Iso8583Data?): Iso8583Data? {
     val second = Iso8583Data(
         config = iso8583Data!!.config,
         isFirst = !iso8583Data.isFirst,
         m_MessageType = iso8583Data.messageType,
     )
-    iso8583Data.bitAttributes.forEachIndexed { i,bit ->
-        if(bit.isSet == true && bit.data?.isNotEmpty() == true) {
-            second.packBit(i+1, bit.getValue() ?: "")
+    iso8583Data.bitAttributes.forEachIndexed { i, bit ->
+        if (bit.isSet == true && bit.data?.isNotEmpty() == true) {
+            second.packBit(i + 1, bit.getValue() ?: "")
         }
     }
     return second
 }
+

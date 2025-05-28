@@ -3,6 +3,8 @@ package `in`.aicortex.iso8583studio.data
 import `in`.aicortex.iso8583studio.data.model.AddtionalOption
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
+import `in`.aicortex.iso8583studio.domain.utils.EMVTag
+import `in`.aicortex.iso8583studio.domain.utils.EMVTagParser
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.ascToString
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToString
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bytesToHexString
@@ -50,7 +52,9 @@ class BitAttribute {
 
     var data: ByteArray?
         get() = m_Data
-        set(value) { m_Data = value }
+        set(value) {
+            m_Data = value
+        }
 
     var additionalOption: AddtionalOption
         get() = m_Option
@@ -93,7 +97,7 @@ class BitAttribute {
         return when (typeAtribute) {
             BitType.AN, BitType.ANS -> {
                 m_Data?.let {
-                    var str = String(it, Charset.defaultCharset()).replace(0.toChar(), '.')
+                    var str = String(it, Charsets.US_ASCII).replace(0.toChar(), '.')
                     if (m_Option == AddtionalOption.Hide12DigitsOfTrack2 && str.length > 12) {
                         str = "${str.substring(0, 6)}**********${str.substring(12, if (str.length > 21) 21 else str.length)}"
                     }
@@ -116,6 +120,14 @@ class BitAttribute {
             }
             else -> ""
         }
+    }
+
+    fun getEmvTags(): EMVTagParser.EMVParseResult{
+        val result = data?.let { EMVTagParser.parseEMVTags(it) }
+        return result ?: EMVTagParser.EMVParseResult(
+            tags = emptyList(),
+            totalBytesProcessed = 0
+        )
     }
 }
 

@@ -61,7 +61,7 @@ enum class MessageLengthType(val value: Int) {
     BCD(2),
     NONE(0),
     STRING_4(4),
-    HEX_HL(1),
+    HEX_HL(2),
     HEX_LH(2);
     companion object {
         fun fromValue(value: Int): MessageLengthType {

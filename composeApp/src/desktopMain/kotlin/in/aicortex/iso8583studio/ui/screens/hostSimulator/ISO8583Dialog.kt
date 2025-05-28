@@ -67,6 +67,7 @@ fun Iso8583EditorDialog(
             packBit(42, "111111112345678")
             packBit(60, "000003")
             packBit(62, "000023")
+            createBitmap()
         })
     }
 

@@ -111,6 +111,33 @@ data class GatewayConfig(
     var messageLengthTypeDest: MessageLengthType = MessageLengthType.BCD
 ) {
 
+    fun getBitTemplate(isFirst: Boolean = true): Array<BitSpecific>? {
+        if (gatewayType == GatewayType.PROXY && isFirst) {
+            return gwBitTemplateSource
+        }
+        if (gatewayType == GatewayType.PROXY && !isFirst) {
+            return gwBitTemplateDest
+        }
+        if (gatewayType == GatewayType.CLIENT) {
+            return gwBitTemplateDest
+        }
+        if (gatewayType == GatewayType.SERVER) {
+            return gwBitTemplateSource
+        }
+        return gwBitTemplateSource
+    }
+
+    fun setBitTemplate(isFirst: Boolean = true, template: Array<BitSpecific>?) {
+        if (gatewayType == GatewayType.PROXY && isFirst) {
+            gwBitTemplateSource = template
+        } else if (gatewayType == GatewayType.PROXY && !isFirst) {
+            gwBitTemplateDest = template
+        } else if (gatewayType == GatewayType.CLIENT) {
+            gwBitTemplateDest = template
+        } else if (gatewayType == GatewayType.SERVER) {
+            gwBitTemplateSource = template
+        }
+    }
 
     /**
      * Advanced options getter/setter

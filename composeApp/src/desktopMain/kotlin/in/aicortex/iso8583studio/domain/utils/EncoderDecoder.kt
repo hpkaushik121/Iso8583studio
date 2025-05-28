@@ -8,12 +8,15 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.Iso8583Data
+import `in`.aicortex.iso8583studio.data.TPDU
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import kotlinx.serialization.Serializable
 import java.nio.charset.Charset
@@ -104,7 +107,7 @@ fun Iso8583Data.unpackFromFormat(
         CodeFormat.HEX -> {
             val hexString = String(inputData, Charset.forName(mappingConfig.settings.encoding))
             val binaryData = IsoUtil.hexStringToBinary(hexString)
-            this.unpack(binaryData) // Use existing unpack method
+            this.unpackByteArray(binaryData) // Use existing unpack method
         }
 
         CodeFormat.BYTE_ARRAY -> this.unpackByteArray(inputData) // Use existing unpack method
@@ -252,7 +255,10 @@ private fun extractJsonFromMixedContent(input: String): String {
  */
 private fun isHttpResponse(content: String): Boolean {
     val httpStatusPattern = Regex("^HTTP/\\d\\.\\d\\s+\\d{3}\\s+.+", RegexOption.IGNORE_CASE)
-    val httpRequestPattern = Regex("^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\s+.+HTTP/\\d\\.\\d", RegexOption.IGNORE_CASE)
+    val httpRequestPattern = Regex(
+        "^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\s+.+HTTP/\\d\\.\\d",
+        RegexOption.IGNORE_CASE
+    )
 
     return httpStatusPattern.containsMatchIn(content) ||
             httpRequestPattern.containsMatchIn(content) ||
@@ -290,9 +296,11 @@ private fun extractJsonFromHttpResponse(httpContent: String): String {
             findCompleteJson(bodyContent)
         }
         // Handle chunked encoding (hex numbers followed by content)
-        bodyContent.contains("\n") && bodyContent.lines().any { it.matches(Regex("^[0-9a-fA-F]+$")) } -> {
+        bodyContent.contains("\n") && bodyContent.lines()
+            .any { it.matches(Regex("^[0-9a-fA-F]+$")) } -> {
             extractJsonFromChunkedBody(bodyContent)
         }
+
         else -> {
             findJsonInMixedContent(bodyContent)
         }
@@ -324,7 +332,8 @@ private fun extractJsonFromChunkedBody(chunkedBody: String): String {
 
         // Add content lines
         if (line.startsWith("{") || line.startsWith("[") ||
-            line.contains("\"") || jsonParts.isNotEmpty()) {
+            line.contains("\"") || jsonParts.isNotEmpty()
+        ) {
             jsonParts.add(line)
         }
 
@@ -403,12 +412,15 @@ private fun findCompleteJsonObject(content: String): String {
             escaped -> {
                 escaped = false
             }
+
             char == '\\' && inString -> {
                 escaped = true
             }
+
             char == '"' -> {
                 inString = !inString
             }
+
             !inString -> {
                 when (char) {
                     '{' -> braceCount++
@@ -441,12 +453,15 @@ private fun findCompleteJsonArray(content: String): String {
             escaped -> {
                 escaped = false
             }
+
             char == '\\' && inString -> {
                 escaped = true
             }
+
             char == '"' -> {
                 inString = !inString
             }
+
             !inString -> {
                 when (char) {
                     '[' -> bracketCount++
@@ -571,7 +586,7 @@ private fun Iso8583Data.unpackFromXml(xmlString: String, config: FormatMappingCo
 
         fieldValue?.let {
             val bitIndex = fieldNum.toInt() - 1
-            this[bitIndex + 1]?.updateBit( it)
+            this[bitIndex + 1]?.updateBit(it)
         }
     }
 }
@@ -621,7 +636,7 @@ private fun Iso8583Data.unpackFromKeyValue(kvString: String, config: FormatMappi
         val key = mapping.key ?: "F$fieldNum"
         dataMap[key]?.let { value ->
             val bitIndex = fieldNum.toInt() - 1
-            this[bitIndex + 1]?.updateBit( value)
+            this[bitIndex + 1]?.updateBit(value)
         }
     }
 }
