@@ -155,15 +155,22 @@ object IsoUtil {
      */
     fun stringToBCD(str: String, length: Int): ByteArray {
         val result = ByteArray(length)
-        val paddedStr = str.padStart(length * 2, '0')
+
+        // Convert non-hex characters to their ASCII values first
+        val hexStr = str.map { char ->
+            if (char.isDigit() || char.uppercaseChar() in 'A'..'F') {
+                char.toString()
+            } else {
+                // Convert to hex representation of ASCII value
+                char.code.toString(16).uppercase()
+            }
+        }.joinToString("")
+
+        val paddedStr = hexStr.padStart(length * 2, '0')
 
         for (i in 0 until length) {
             val highNibble = Character.digit(paddedStr[i * 2], 16)
             val lowNibble = Character.digit(paddedStr[i * 2 + 1], 16)
-
-            if (highNibble == -1 || lowNibble == -1) {
-                throw IllegalArgumentException("Invalid hex character in input string")
-            }
 
             result[i] = ((highNibble shl 4) or lowNibble).toByte()
         }

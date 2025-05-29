@@ -1313,6 +1313,7 @@ class GatewayClient {
                     isFirst
                 )
             }
+            iso8583Data?.rawMessage = input
 
 
             iso8583Data?.emvShowOptions =
@@ -2105,53 +2106,6 @@ class GatewayClient {
         m_BeginTransactionDate = LocalDateTime.now()
     }
 
-
-    fun respondIso8583ErrorAndThrowException(
-        iso8583Request: Iso8583Data,
-        responseCode: String,
-        log: String
-    ) {
-        if (firstConnection == null) {
-            throw VerificationException("", VerificationError.DISCONNECTED_FROM_SOURCE)
-        }
-
-        val iso8583Response = Iso8583Data(gatewayHandler?.configuration!!)
-
-        iso8583Response.packBit(3, iso8583Request[3]?.getString() ?: "")
-        iso8583Response.packBit(11, iso8583Request[11]?.getString() ?: "")
-        iso8583Response.packBit(13, LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMdd")))
-        iso8583Response.packBit(
-            12,
-            LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"))
-        )
-
-        iso8583Response.messageType = iso8583Request.messageType + 10
-
-        if (iso8583Request[41]?.isSet == true) {
-            iso8583Request.packBit(41, iso8583Request[41]?.getString() ?: "")
-        }
-
-        iso8583Response.tpduHeader.rawTPDU = iso8583Request.tpduHeader.rawTPDU.clone()
-        iso8583Response.tpduHeader.swapNII()
-
-        iso8583Response.packBit(39, responseCode)
-
-        val responseData = iso8583Response.pack(
-            gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
-        )
-        firstConnection?.getOutputStream()?.write(responseData)
-
-        writeServerLog(log)
-        writeServerLog("RESPOND TO SOURCE...")
-        parseData(responseData, true)
-        if ((gatewayHandler?.configuration?.logOptions
-                ?: LoggingOption.NONE.value) and LoggingOption.PARSED_DATA.value > LoggingOption.NONE.value
-        ) {
-            writeServerLog(iso8583Response.logFormat())
-        }
-
-        throw VerificationException("", VerificationError.EXCEPTION_HANDLED)
-    }
 
     suspend fun sendMessageToSecondConnection(data: Iso8583Data) {
         m_Request = TransmittedData(

@@ -30,6 +30,7 @@ object PlaceholderProcessor {
         return transactionFields.mapIndexed { index, field ->
             // Create a deep copy
             val fieldCopy = clone(field)
+            val requestField = requestTransaction?.getOrNull(index)
 
             if (fieldCopy.isSet && fieldCopy.data != null) {
                 val originalValue = fieldCopy.getValue()!!
@@ -37,10 +38,10 @@ object PlaceholderProcessor {
                     originalValue = originalValue,
                     fieldIndex = index,
                     maxLength = fieldCopy.maxLength,
-                    requestTransaction = requestTransaction?.getOrNull(index)
+                    requestTransaction = requestField
                 )
 
-                processedValue?.let { fieldCopy.updateBit(it) } ?: run {
+                processedValue?.let { fieldCopy.updateBit(it,processedValue.length) } ?: run {
                     fieldCopy.isSet = false
                     fieldCopy.data = null
                 }
@@ -88,11 +89,10 @@ object PlaceholderProcessor {
             return null // Return original if no request available
         }
 
-        val requestFields = requestTransaction.data
 
         // Check if the corresponding field exists and is set in the request
         if (requestTransaction.isSet) {
-            return String(requestFields!!)
+            return requestTransaction.getValue()
         }
 
         return "[SV]" // Return original if field not found in request

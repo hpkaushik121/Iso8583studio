@@ -473,12 +473,7 @@ data class Iso8583Data(
     /**
      * Get raw message from buffer
      */
-    val rawMessage: ByteArray
-        get() {
-            val result = ByteArray(messageLength)
-            IsoUtil.bytesCopy(result, buffer, 0, 0, messageLength)
-            return result
-        }
+    var rawMessage: ByteArray = byteArrayOf()
 
     /**
      * Unpack ISO 8583 message
@@ -674,8 +669,10 @@ data class Iso8583Data(
             m_BitAttributes[0].data = bitmapBytes
             position += 16
         } else {
-            val len = (config.getBitTemplate(isFirst)?.get(0) ?: BitSpecific(1, bitType = BitType.BCD,
-                maxLength = 8)).maxLength
+            val len = (config.getBitTemplate(isFirst)?.get(0) ?: BitSpecific(
+                1, bitType = BitType.BCD,
+                maxLength = 8
+            )).maxLength
             // Binary bitmap format
             analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + len))
             m_BitAttributes[0].length = len
@@ -694,7 +691,7 @@ data class Iso8583Data(
         // Process data fields
         val maxBit = if (!m_BitAttributes[0].isSet) 64 else 128
 
-        for (i in 0 until maxBit) {
+        for (i in 1 until maxBit) {
             if (m_BitAttributes[i].isSet) {
                 m_LastBitError = i
 
@@ -782,13 +779,13 @@ data class Iso8583Data(
     }
 }
 
-fun BitAttribute.updateBit(dataString: String) {
+fun BitAttribute.updateBit(dataString: String,len: Int? = null) {
 
     var value = dataString
     when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
             length = if (lengthAttribute != BitLength.FIXED) {
-                value.length
+                len ?: value.length
             } else {
                 if (!PlaceholderProcessor.holdersList.contains(dataString)) {
                     value = value.padStart(maxLength, '0')
@@ -800,26 +797,34 @@ fun BitAttribute.updateBit(dataString: String) {
 
         BitType.BCD -> {
             length = if (lengthAttribute != BitLength.FIXED) {
-                value.length
+                len ?: value.length
             } else {
                 if (!PlaceholderProcessor.holdersList.contains(dataString)) {
                     value = value.padStart(maxLength, '0')
                 }
                 maxLength
             }
-            data = IsoUtil.stringToBCD(value, (length + 1) / 2)
+            data = if (!PlaceholderProcessor.holdersList.contains(dataString)) {
+                IsoUtil.stringToBCD(value, (length + 1) / 2)
+            } else {
+                IsoUtil.stringToAsc(value)
+            }
         }
 
         BitType.BINARY -> {
             length = if (lengthAttribute != BitLength.FIXED) {
-                (value.length + 1) / 2
+                (( len ?: value.length) + 1) / 2
             } else {
                 if (!PlaceholderProcessor.holdersList.contains(dataString)) {
                     value = value.padStart(maxLength, '0')
                 }
                 maxLength
             }
-            data = IsoUtil.stringToBCD(value, length)
+            data = if (!PlaceholderProcessor.holdersList.contains(dataString)) {
+                IsoUtil.stringToBCD(value, length)
+            } else {
+                IsoUtil.stringToAsc(value)
+            }
         }
 
         else -> {}
@@ -850,7 +855,7 @@ fun BitAttribute.getValue(): String? {
     return when (typeAtribute) {
         BitType.AN, BitType.ANS -> {
             var data = IsoUtil.ascToString(data ?: byteArrayOf())
-            if (!PlaceholderProcessor.holdersList.contains(data)) {
+            if (!PlaceholderProcessor.holdersList.contains(data) && lengthAttribute == BitLength.FIXED) {
                 data = data.padStart(maxLength, '0')
             }
             data
@@ -858,11 +863,14 @@ fun BitAttribute.getValue(): String? {
 
         BitType.BCD,
         BitType.BINARY -> {
-            val data = IsoUtil.bcdToString(data!!)
-            if (!PlaceholderProcessor.holdersList.contains(data)) {
-                data.padStart(maxLength, '0')
+            var dataField = IsoUtil.ascToString(data ?: byteArrayOf())
+            if (!PlaceholderProcessor.holdersList.contains(dataField)) {
+                dataField = IsoUtil.bcdToString(data ?: byteArrayOf())
+                if(lengthAttribute == BitLength.FIXED){
+                    dataField = dataField.padStart(maxLength, '0')
+                }
             }
-            data
+            dataField
         }
 
         else -> {

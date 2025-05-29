@@ -171,7 +171,7 @@ fun HostSimulator(
 
     // Set up event handlers
     gw.onReceiveFromSource { iso ->
-        rawRequest = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+        rawRequest = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
         request = iso?.logFormat() ?: ""
         response = ""
         rawResponse = ""
@@ -179,16 +179,16 @@ fun HostSimulator(
 
     gw.onReceiveFromDest { iso ->
         response = iso?.logFormat() ?: ""
-        rawResponse = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+        rawResponse = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
     }
 
     gw.onSentToSource { iso ->
         response = iso?.logFormat() ?: ""
-        rawResponse = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+        rawResponse = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
     }
 
     gw.onSentToDest { iso ->
-        rawRequest = IsoUtil.bcdToString(iso?.pack() ?: byteArrayOf())
+        rawRequest = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
         request = iso?.logFormat() ?: ""
         response = ""
         rawResponse = ""
