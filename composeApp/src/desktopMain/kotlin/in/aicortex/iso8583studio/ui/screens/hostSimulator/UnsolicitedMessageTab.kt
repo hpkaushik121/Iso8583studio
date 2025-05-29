@@ -53,7 +53,7 @@ fun UnsolicitedMessageTab(
     rawMessage: MutableState<String>,
     parseError: MutableState<String?>,
     currentFields: MutableState<Array<BitAttribute>?>,
-    currentBitmap: MutableState<BitAttribute?>,
+    currentBitmap: MutableState<ByteArray?>,
     searchQuery: MutableState<String>,
     initialMessage: Iso8583Data? = null,
     modifier: Modifier = Modifier
@@ -108,7 +108,7 @@ fun UnsolicitedMessageTab(
                                 val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
                                 parsed.unpack(IsoUtil.stringToBcd(newMessage))
                                 currentFields.value = parsed.bitAttributes
-                                currentBitmap.value = parsed.bitAttributes[0]
+                                currentBitmap.value = parsed.createBitmap()
                                 message = parsed
                                 parseError.value = null
                                 selectedField.value = null
@@ -230,7 +230,7 @@ fun UnsolicitedMessageTab(
                                 val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
                                 parsed.unpack(IsoUtil.stringToBcd(rawMessage.value))
                                 currentFields.value = parsed.bitAttributes
-                                currentBitmap.value = parsed.bitAttributes[0]
+                                currentBitmap.value = parsed.createBitmap()
                                 message = parsed
                                 parseError.value = null
                                 selectedField.value = null
@@ -1004,13 +1004,13 @@ fun EnhancedDetailItem(
 
 @Composable
 fun EnhancedBitmapAnalysisCard(
-    bitmap: BitAttribute?, presentFields: List<Int>, modifier: Modifier = Modifier
+    bitmap: ByteArray?, presentFields: List<Int>, modifier: Modifier = Modifier
 ) {
     val bitmapFields =
         remember(bitmap) {
             parseBitmap(
                 IsoUtil.bytesToHexString(
-                    bitmap?.data ?: byteArrayOf()
+                    bitmap ?: byteArrayOf()
                 )
             )
         }

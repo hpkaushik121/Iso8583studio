@@ -816,8 +816,15 @@ class GatewayClient {
 
         if (isFirst) {
             writeServerLog("====================SENT TO SOURCE======================")
-            val requestIso = parseData(input, false)
-            val modifiedISO = convertToAnother(requestIso)
+            val gType = gatewayHandler?.configuration?.gatewayType
+            val requestIso = parseData(input,
+                !(gType == GatewayType.PROXY || gType == GatewayType.CLIENT)
+            )
+            val modifiedISO = if(!(gType == GatewayType.PROXY || gType == GatewayType.CLIENT)){
+                requestIso
+            }else{
+                convertToDest(requestIso)
+            }
             var modifiedInput = modifiedISO?.pack()
             writeServerLog(modifiedISO?.logFormat() ?: "")
             if (nccProcess?.isActive() == true) {
@@ -863,8 +870,15 @@ class GatewayClient {
             onSentToSource?.invoke(requestIso)
         } else {
             writeServerLog("====================SENT TO DESTINATION======================")
-            val requestIso = parseData(input, true)
-            val modifiedISO = convertToAnother(requestIso)
+            val gType = gatewayHandler?.configuration?.gatewayType
+            val requestIso = parseData(input,
+                (gType == GatewayType.PROXY || gType == GatewayType.CLIENT)
+            )
+            val modifiedISO = if(!(gType == GatewayType.PROXY || gType == GatewayType.CLIENT)){
+                requestIso
+            }else{
+                convertToDest(requestIso)
+            }
             var modifiedInput = modifiedISO?.pack()
             writeServerLog(modifiedISO?.logFormat() ?: "")
             if (nccProcess?.isActive() == true) {

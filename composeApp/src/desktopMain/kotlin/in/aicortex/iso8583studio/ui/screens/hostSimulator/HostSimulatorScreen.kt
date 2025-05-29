@@ -165,7 +165,7 @@ fun HostSimulator(
     var rawMessage = remember { mutableStateOf("") }
     var parseError = remember { mutableStateOf<String?>(null) }
     var currentFields = remember { mutableStateOf<Array<BitAttribute>?>(null) }
-    var currentBitmap = remember { mutableStateOf<BitAttribute?>(null) }
+    var currentBitmap = remember { mutableStateOf<ByteArray?>(null) }
     var searchQuery = remember { mutableStateOf("") }
 
 

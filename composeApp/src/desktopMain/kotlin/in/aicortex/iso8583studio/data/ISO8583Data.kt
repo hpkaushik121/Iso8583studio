@@ -12,6 +12,7 @@ import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.utils.packWithFormat
 import `in`.aicortex.iso8583studio.domain.utils.unpackFromFormat
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.parseBitmap
 import kotlinx.serialization.Serializable
 import java.io.InputStream
 import java.net.Socket
@@ -93,11 +94,7 @@ data class Iso8583Data(
         } else {
             config.fixedResponseHeaderDest?.let { TPDU(rawTPDU = it) } ?: TPDU()
         }
-        m_BitAttributes = if (isFirst) {
-            BitTemplate.getBitAttributeArray(config.bitTemplateSource)
-        } else {
-            BitTemplate.getBitAttributeArray(config.bitTemplateDest)
-        }
+        m_BitAttributes =  BitTemplate.getBitAttributeArray(config.getBitTemplate(isFirst)!!)
         hasHeader = if (isFirst) {
             !config.doNotUseHeaderSource
         } else {
@@ -324,7 +321,11 @@ data class Iso8583Data(
         }
 
         // Determine maximum bit number to process
-        val maxBit = if (!m_BitAttributes[0].isSet) 64 else 128
+        val maxBit = if (m_BitAttributes[0].isSet){
+            parseBitmap(IsoUtil.bytesToHexString(m_BitAttributes[0].data!!)).maxBy { it.fieldNumber }.fieldNumber
+        }else{
+            64
+        }
 
         // Process each bit field
         for (i in 0 until maxBit) {
@@ -619,9 +620,9 @@ data class Iso8583Data(
             config.messageLengthTypeDest.value
         }
 
-        messageLength = input.size - from
+        messageLength = input.size
         var position = from
-        input.copyInto(buffer, 0, 0, input.size)
+        input.copyInto(buffer, 0, 0, messageLength)
 
 
         // Process header if present
@@ -674,24 +675,18 @@ data class Iso8583Data(
                 maxLength = 8
             )).maxLength
             // Binary bitmap format
-            analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + len))
-            m_BitAttributes[0].length = len
-            val dataLength = (m_BitAttributes[0].length + 1) / 2
-            m_BitAttributes[0].data = ByteArray(dataLength)
-            buffer.copyInto(
-                m_BitAttributes[0].data!!,
-                0,
-                position,
-                position + dataLength
-            )
-            position += dataLength
+            analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + ((len+1)/2)))
+            position += ((len+1)/2)
 
         }
 
         // Process data fields
-        val maxBit = if (!m_BitAttributes[0].isSet) 64 else 128
-
-        for (i in 1 until maxBit) {
+        val maxBit = if (m_BitAttributes[0].isSet){
+            parseBitmap(IsoUtil.bytesToHexString(m_BitAttributes[0].data!!)).maxBy { it.fieldNumber }.fieldNumber
+        }else{
+            64
+        }
+        for (i in 0 until maxBit) {
             if (m_BitAttributes[i].isSet) {
                 m_LastBitError = i
 
@@ -879,10 +874,10 @@ fun BitAttribute.getValue(): String? {
     }
 }
 
-fun convertToAnother(iso8583Data: Iso8583Data?): Iso8583Data? {
+fun convertToDest(iso8583Data: Iso8583Data?): Iso8583Data? {
     val second = Iso8583Data(
         config = iso8583Data!!.config,
-        isFirst = !iso8583Data.isFirst,
+        isFirst = false,
         m_MessageType = iso8583Data.messageType,
     )
     iso8583Data.bitAttributes.forEachIndexed { i, bit ->
