@@ -1056,7 +1056,7 @@ fun EnhancedBitmapAnalysisCard(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "Hex: $bitmap", style = MaterialTheme.typography.body2.copy(
+                    text = "Hex: ${IsoUtil.bytesToHexString(bitmap ?: byteArrayOf())}", style = MaterialTheme.typography.body2.copy(
                         fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium
                     ), modifier = Modifier.padding(12.dp)
                 )
