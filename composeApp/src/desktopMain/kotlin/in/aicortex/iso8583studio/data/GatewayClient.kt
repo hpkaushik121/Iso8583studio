@@ -810,9 +810,13 @@ class GatewayClient {
     }
 
     suspend fun send(input: ByteArray?, isFirst: Boolean) {
-        input ?: return
 
-
+        if (input == null || input.isEmpty()) {
+            throw VerificationException(
+                "INPUT DATA IS NULL OR EMPTY, CHECK IF CONFIGURATION IS AVAILABLE",
+                VerificationError.SOCKET_ERROR
+            )
+        }
 
         if (isFirst) {
             writeServerLog("====================SENT TO SOURCE======================")

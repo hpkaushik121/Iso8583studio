@@ -88,7 +88,8 @@ fun UnsolicitedMessageTab(
                 onBitmapToggle = { showBitmapAnalysis.value = !showBitmapAnalysis.value },
                 onParserToggle = { showMessageParser.value = !showMessageParser.value },
                 onFormatToggle = { isFirst.value = !isFirst.value },
-                gw = gw)
+                gw = gw
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -108,7 +109,7 @@ fun UnsolicitedMessageTab(
                                 val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
                                 parsed.unpack(IsoUtil.stringToBcd(newMessage))
                                 currentFields.value = parsed.bitAttributes
-                                currentBitmap.value = parsed.createBitmap()
+                                currentBitmap.value = parsed.bitmap
                                 message = parsed
                                 parseError.value = null
                                 selectedField.value = null
@@ -230,7 +231,7 @@ fun UnsolicitedMessageTab(
                                 val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
                                 parsed.unpack(IsoUtil.stringToBcd(rawMessage.value))
                                 currentFields.value = parsed.bitAttributes
-                                currentBitmap.value = parsed.createBitmap()
+                                currentBitmap.value = parsed.bitmap
                                 message = parsed
                                 parseError.value = null
                                 selectedField.value = null
@@ -317,7 +318,7 @@ fun ProfessionalHeader(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        if (gw.configuration.gatewayType == GatewayType.PROXY){
+                        if (gw.configuration.gatewayType == GatewayType.PROXY) {
                             SourceToggler(
                                 onSelected = {
                                     onFormatToggle()
@@ -412,14 +413,15 @@ fun SourceToggler(
             ) {
 
                 Text(
-                    text = if (isFirst) "Source" else "Destination", style = MaterialTheme.typography.subtitle2.copy(
+                    text = if (isFirst) "Source" else "Destination",
+                    style = MaterialTheme.typography.subtitle2.copy(
                         fontWeight = FontWeight.Medium,
                         color = Color.White
                     ),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
-                    imageVector = if(isFirst) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                    imageVector = if (isFirst) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
                     contentDescription = if (isFirst) "Source" else "Destination",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
@@ -1008,11 +1010,7 @@ fun EnhancedBitmapAnalysisCard(
 ) {
     val bitmapFields =
         remember(bitmap) {
-            parseBitmap(
-                IsoUtil.bytesToHexString(
-                    bitmap ?: byteArrayOf()
-                )
-            )
+            analyzeBitmap(bitmap!!)
         }
 
     Card(
@@ -1056,9 +1054,11 @@ fun EnhancedBitmapAnalysisCard(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "Hex: ${IsoUtil.bytesToHexString(bitmap ?: byteArrayOf())}", style = MaterialTheme.typography.body2.copy(
+                    text = "Hex: ${IsoUtil.bytesToHexString(bitmap ?: byteArrayOf())}",
+                    style = MaterialTheme.typography.body2.copy(
                         fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium
-                    ), modifier = Modifier.padding(12.dp)
+                    ),
+                    modifier = Modifier.padding(12.dp)
                 )
             }
 
@@ -1769,14 +1769,13 @@ fun EnhancedDetailSection(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row {
-                    Card(backgroundColor = color.copy(alpha = 0.12f), shape = CircleShape) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = title,
-                            tint = color,
-                            modifier = Modifier.padding(8.dp).size(20.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = color,
+                        modifier = Modifier.padding(8.dp).size(20.dp)
+                    )
+
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = title,
@@ -2030,15 +2029,34 @@ fun EnhancedEmptyFieldSelection(
 data class BitmapField(val position: Int, val isSet: Boolean, val fieldNumber: Int)
 
 
-// Utility functions for analysis
-fun parseBitmap(hexBitmap: String): List<BitmapField> {
-    val binaryString = hexBitmap.chunked(2).joinToString("") { hex ->
-        hex.toInt(16).toString(2).padStart(8, '0')
+fun analyzeBitmap(array: ByteArray): List<BitmapField> {
+    val bitmapFields = mutableListOf<BitmapField>()
+    // Process primary bitmap (first 8 bytes)
+    val primaryBytes = array.copyOfRange(0, 8)
+    for (i in 0 until 64) {
+        val byteIndex = i / 8
+        val bitIndex = 7 - (i % 8)  // Bits are ordered from most to least significant
+        val bitValue = (primaryBytes[byteIndex].toInt() and (1 shl bitIndex)) != 0
+        bitmapFields.add(BitmapField(position = i, isSet = bitValue, fieldNumber = i + 1))
     }
 
-    return binaryString.mapIndexed { index, bit ->
-        BitmapField(position = index, isSet = bit == '1', fieldNumber = index + 1)
+    // Process secondary bitmap if present (next 8 bytes)
+    if (array.size >= 16) {
+        val secondaryBytes = array.copyOfRange(8, 16)
+        for (i in 0 until 64) {
+            val byteIndex = i / 8
+            val bitIndex = 7 - (i % 8)
+            val bitValue = (secondaryBytes[byteIndex].toInt() and (1 shl bitIndex)) != 0
+            bitmapFields.add(
+                BitmapField(
+                    position = i + 64,
+                    isSet = bitValue,
+                    fieldNumber = i + 64 + 1
+                )
+            )
+        }
     }
+    return bitmapFields
 }
 
 fun analyzePosEntryMode(data: String): List<Pair<String, String>> {

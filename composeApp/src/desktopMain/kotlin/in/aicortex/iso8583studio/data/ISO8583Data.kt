@@ -12,7 +12,6 @@ import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.utils.packWithFormat
 import `in`.aicortex.iso8583studio.domain.utils.unpackFromFormat
-import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.parseBitmap
 import kotlinx.serialization.Serializable
 import java.io.InputStream
 import java.net.Socket
@@ -306,7 +305,7 @@ data class Iso8583Data(
             val bitmapStr = IsoUtil.bcdToString(createBitmap())
             bitmapStr.toByteArray(Charset.defaultCharset()).copyInto(buffer, m_PackageSize)
             m_PackageSize += 16
-
+            bitmap = m_BitAttributes[0].data
             if (m_BitAttributes[0].isSet) {
                 // Secondary bitmap exists
                 val secondaryBitmapStr =
@@ -316,13 +315,14 @@ data class Iso8583Data(
                 m_PackageSize += 16
             }
         } else {
-            createBitmap().copyInto(buffer, m_PackageSize)
+            bitmap = createBitmap()
+            bitmap!!.copyInto(buffer, m_PackageSize)
             m_PackageSize += 8
         }
 
         // Determine maximum bit number to process
         val maxBit = if (m_BitAttributes[0].isSet){
-            parseBitmap(IsoUtil.bytesToHexString(m_BitAttributes[0].data!!)).maxBy { it.fieldNumber }.fieldNumber
+            `in`.aicortex.iso8583studio.ui.screens.hostSimulator.analyzeBitmap(m_BitAttributes[0].data!!).maxBy { it.fieldNumber }.fieldNumber
         }else{
             64
         }
@@ -475,6 +475,7 @@ data class Iso8583Data(
      * Get raw message from buffer
      */
     var rawMessage: ByteArray = byteArrayOf()
+    var bitmap: ByteArray? = byteArrayOf()
 
     /**
      * Unpack ISO 8583 message
@@ -665,9 +666,8 @@ data class Iso8583Data(
                     String(input, position + 16, 16, Charset.defaultCharset())
                 IsoUtil.stringToBCD(asciiSecondaryBitmap, 8).copyInto(bitmapBytes, 8)
             }
-
+            bitmap = bitmapBytes
             analyzeBitmap(bitmapBytes)
-            m_BitAttributes[0].data = bitmapBytes
             position += 16
         } else {
             val len = (config.getBitTemplate(isFirst)?.get(0) ?: BitSpecific(
@@ -675,14 +675,15 @@ data class Iso8583Data(
                 maxLength = 8
             )).maxLength
             // Binary bitmap format
-            analyzeBitmap(IsoUtil.getBytesFromBytes(input, position, position + ((len+1)/2)))
+            bitmap = IsoUtil.getBytesFromBytes(input, position, position + ((len+1)/2))
+            analyzeBitmap(bitmap!!)
             position += ((len+1)/2)
 
         }
 
         // Process data fields
         val maxBit = if (m_BitAttributes[0].isSet){
-            parseBitmap(IsoUtil.bytesToHexString(m_BitAttributes[0].data!!)).maxBy { it.fieldNumber }.fieldNumber
+            `in`.aicortex.iso8583studio.ui.screens.hostSimulator.analyzeBitmap(m_BitAttributes[0].data!!).maxBy { it.fieldNumber }.fieldNumber
         }else{
             64
         }
