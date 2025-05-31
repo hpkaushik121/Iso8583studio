@@ -107,6 +107,16 @@ compose.desktop {
                     // identity.set("Developer ID Application: YourName (TeamID)")
                 }
             }
+            jvmArgs.addAll(listOf(
+                "-Dfile.encoding=UTF-8",
+                "-Dsun.java2d.d3d=false",
+                "-Dsun.java2d.opengl=false",
+                "-Djava.awt.headless=false",
+                "-Dprism.verbose=true",
+                "-Djavafx.verbose=true"
+            ))
+
+
 
             // Linux specific configuration
             linux {

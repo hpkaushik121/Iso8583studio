@@ -34,6 +34,9 @@ import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.EMVTag
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.ui.ErrorRed
+import `in`.aicortex.iso8583studio.ui.screens.components.StatusBadge
+import `in`.aicortex.iso8583studio.ui.screens.config.GatewayTypeTab
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 
@@ -145,8 +148,13 @@ fun UnsolicitedMessageTab(
                         Column(
                             modifier = Modifier.padding(16.dp),
                         ) {
+                            val bitmapFields =
+                                remember(currentBitmap.value) {
+                                    analyzeBitmap(currentBitmap.value ?: byteArrayOf())
+                                }
                             EnhancedBitmapAnalysisCard(
                                 bitmap = currentBitmap.value,
+                                bitmapFields = bitmapFields,
                                 presentFields = currentFields.value?.mapIndexed { i, item ->
                                     Pair(
                                         i,
@@ -165,6 +173,8 @@ fun UnsolicitedMessageTab(
                             ) {
                                 Text("Close")
                             }
+
+
                         }
                     }
                 }
@@ -1006,130 +1016,146 @@ fun EnhancedDetailItem(
 
 @Composable
 fun EnhancedBitmapAnalysisCard(
-    bitmap: ByteArray?, presentFields: List<Int>, modifier: Modifier = Modifier
+    bitmap: ByteArray?,
+    bitmapFields: List<BitmapField>, presentFields: List<Int>, modifier: Modifier = Modifier
 ) {
-    val bitmapFields =
-        remember(bitmap) {
-            analyzeBitmap(bitmap!!)
-        }
 
-    Card(
-        modifier = modifier,
-        backgroundColor = MaterialTheme.colors.surface,
-        elevation = 8.dp,
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Card(
-                    backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.12f),
-                    shape = CircleShape
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.GridOn,
-                        contentDescription = "Bitmap",
-                        tint = MaterialTheme.colors.primary,
-                        modifier = Modifier.padding(8.dp).size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Bitmap Analysis",
-                        style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Text(
-                        text = "${presentFields.size} of 64 fields present",
-                        style = MaterialTheme.typography.caption.copy(
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+    if (bitmapFields.isNotEmpty()) {
+        Card(
+            modifier = modifier,
+            backgroundColor = MaterialTheme.colors.surface,
+            elevation = 8.dp,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Card(
+                        backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.12f),
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.GridOn,
+                            contentDescription = "Bitmap",
+                            tint = MaterialTheme.colors.primary,
+                            modifier = Modifier.padding(8.dp).size(24.dp)
                         )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Bitmap Analysis",
+                            style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "${presentFields.size} of 64 fields present",
+                            style = MaterialTheme.typography.caption.copy(
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    backgroundColor = MaterialTheme.colors.background.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Hex: ${IsoUtil.bytesToHexString(bitmap ?: byteArrayOf())}",
+                        style = MaterialTheme.typography.body2.copy(
+                            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium
+                        ),
+                        modifier = Modifier.padding(12.dp)
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Card(
-                backgroundColor = MaterialTheme.colors.background.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = "Hex: ${IsoUtil.bytesToHexString(bitmap ?: byteArrayOf())}",
-                    style = MaterialTheme.typography.body2.copy(
-                        fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium
-                    ),
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(
-                backgroundColor = MaterialTheme.colors.background.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                Card(
+                    backgroundColor = MaterialTheme.colors.background.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    val gridResult = divideNumberIntoGrid(128)
-                    val grid = gridResult.grid
-                    val (rows, columns) = gridResult.dimensions
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val gridResult = divideNumberIntoGrid(128)
+                        val grid = gridResult.grid
+                        val (rows, columns) = gridResult.dimensions
 
-                    for (col in 0 until columns) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            for (row in 0 until rows) {
-                                val value = grid[row][col]?.toString()
-                                if (value != null) {
-                                    val index = col * 16 + row
-                                    val fieldNumber = index + 1
-                                    val isSet =
-                                        bitmapFields.any { it.fieldNumber == fieldNumber && it.isSet }
-                                    val isPresent = presentFields.contains(fieldNumber)
+                        for (col in 0 until columns) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                for (row in 0 until rows) {
+                                    val value = grid[row][col]?.toString()
+                                    if (value != null) {
+                                        val index = col * 16 + row
+                                        val fieldNumber = index + 1
+                                        val isSet =
+                                            bitmapFields.any { it.fieldNumber == fieldNumber && it.isSet }
+                                        val isPresent = presentFields.contains(fieldNumber)
 
-                                    EnhancedBitmapBit(
-                                        fieldNumber = fieldNumber,
-                                        isSet = isSet,
-                                        isPresent = isPresent,
-                                        modifier = Modifier.weight(1f).aspectRatio(1f)
-                                    )
+                                        EnhancedBitmapBit(
+                                            fieldNumber = fieldNumber,
+                                            isSet = isSet,
+                                            isPresent = isPresent,
+                                            modifier = Modifier.weight(1f).aspectRatio(1f)
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
-                    repeat(gridResult.dimensions.first) { row ->
+                        repeat(gridResult.dimensions.first) { row ->
 
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                EnhancedLegendItem(
-                    color = MaterialTheme.colors.primary,
-                    label = "Set & Present",
-                    icon = Icons.Default.CheckCircle
-                )
-                EnhancedLegendItem(
-                    color = MaterialTheme.colors.error,
-                    label = "Set but Missing",
-                    icon = Icons.Default.Warning
-                )
-                EnhancedLegendItem(
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
-                    label = "Not Set",
-                    icon = Icons.Default.Circle
-                )
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    EnhancedLegendItem(
+                        color = MaterialTheme.colors.primary,
+                        label = "Set & Present",
+                        icon = Icons.Default.CheckCircle
+                    )
+                    EnhancedLegendItem(
+                        color = MaterialTheme.colors.error,
+                        label = "Set but Missing",
+                        icon = Icons.Default.Warning
+                    )
+                    EnhancedLegendItem(
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
+                        label = "Not Set",
+                        icon = Icons.Default.Circle
+                    )
+                }
             }
         }
+    } else {
+        Column {
+            StatusBadge(
+                text = "ERROR",
+                color = ErrorRed,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "No bitmap analysis available",
+                style = MaterialTheme.typography.body2.copy(
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                )
+            )
+
+        }
     }
+
 }
 
 data class GridResult(
@@ -2031,6 +2057,9 @@ data class BitmapField(val position: Int, val isSet: Boolean, val fieldNumber: I
 
 fun analyzeBitmap(array: ByteArray): List<BitmapField> {
     val bitmapFields = mutableListOf<BitmapField>()
+    if (array.isEmpty()) {
+        return bitmapFields
+    }
     // Process primary bitmap (first 8 bytes)
     val primaryBytes = array.copyOfRange(0, 8)
     for (i in 0 until 64) {

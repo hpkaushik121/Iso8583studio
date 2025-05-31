@@ -75,7 +75,7 @@ class ISO8583Studio {
                                         val file = FileExporter().exportFile(
                                             window = window,
                                             fileName = "ISO8583Studio",
-                                            fileExtension = "cfg",
+                                            fileExtension = "json",
                                             fileContent = appState.export().toByteArray(),
                                             fileDescription = "Configuration File"
                                         )
@@ -86,11 +86,6 @@ class ISO8583Studio {
                                                         horizontalAlignment = Alignment.CenterHorizontally,
                                                         verticalArrangement = Arrangement.Center
                                                     ) {
-                                                        StatusBadge(
-                                                            text = "SUCCESS",
-                                                            color = SuccessGreen,
-                                                            modifier = Modifier.padding(bottom = 8.dp)
-                                                        )
                                                         Text("Configuration exported successfully!")
                                                     }
                                                 }
@@ -102,13 +97,8 @@ class ISO8583Studio {
                                                 appState.resultDialogInterface?.onError {
                                                     Column(
                                                         horizontalAlignment = Alignment.CenterHorizontally,
-                                                        verticalArrangement = Arrangement.Center
+                                                        verticalArrangement = Arrangement.Center,
                                                     ) {
-                                                        StatusBadge(
-                                                            text = "ERROR",
-                                                            color = ErrorRed,
-                                                            modifier = Modifier.padding(bottom = 8.dp)
-                                                        )
                                                         Text((file as ExportResult.Error).message)
                                                     }
                                                 }
@@ -122,7 +112,7 @@ class ISO8583Studio {
                                     isoCoroutine.launch {
                                         val file = FileImporter().importFile(
                                             window = window,
-                                            fileExtensions = listOf("cfg"),
+                                            fileExtensions = listOf("json"),
                                             importLogic = { file ->
                                                 appState.import(file)
                                             }
@@ -134,11 +124,7 @@ class ISO8583Studio {
                                                         horizontalAlignment = Alignment.CenterHorizontally,
                                                         verticalArrangement = Arrangement.Center
                                                     ) {
-                                                        StatusBadge(
-                                                            text = "SUCCESS",
-                                                            color = SuccessGreen,
-                                                            modifier = Modifier.padding(bottom = 8.dp)
-                                                        )
+
                                                         Text("Configuration imported successfully!")
                                                     }
                                                 }
@@ -152,11 +138,7 @@ class ISO8583Studio {
                                                         horizontalAlignment = Alignment.CenterHorizontally,
                                                         verticalArrangement = Arrangement.Center
                                                     ) {
-                                                        StatusBadge(
-                                                            text = "ERROR",
-                                                            color = ErrorRed,
-                                                            modifier = Modifier.padding(bottom = 8.dp)
-                                                        )
+
                                                         Text((file as ImportResult.Error).message)
                                                     }
                                                 }
@@ -206,9 +188,10 @@ class ISO8583Studio {
                                 }
                             },
                             title = {
-                                Text(
-                                    "Error",
-                                    fontWeight = FontWeight.Bold
+                                StatusBadge(
+                                    text = "ERROR",
+                                    color = ErrorRed,
+                                    modifier = Modifier.padding(bottom = 8.dp)
                                 )
                             },
                             text = showErrorDialog!!.second,
@@ -231,9 +214,10 @@ class ISO8583Studio {
                                 }
                             },
                             title = {
-                                Text(
-                                    "Success",
-                                    fontWeight = FontWeight.Bold
+                                StatusBadge(
+                                    text = "SUCCESS",
+                                    color = SuccessGreen,
+                                    modifier = Modifier.padding(bottom = 8.dp)
                                 )
                             },
                             text = showErrorDialog!!.second,
