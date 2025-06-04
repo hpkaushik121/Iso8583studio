@@ -755,7 +755,7 @@ private fun SaveMessageDialog(
                                 description = messageName,
                                 mti = mti,
                                 proCode = procCode,
-                                fields = bitAttribute.toList()
+                                fields = bitAttribute.toMutableList()
 
                             )
                             onSave(savedMessage)

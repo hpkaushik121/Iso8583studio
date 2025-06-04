@@ -346,7 +346,7 @@ fun Iso8583TemplateScreen(
                         }
 
                     }
-                    it.copy(fields = fields)
+                    it.copy(fields = fields?.toMutableList())
                 }
                 config.simulatedTransactionsToSource = simulatedTrans
                 showEditDialog = false

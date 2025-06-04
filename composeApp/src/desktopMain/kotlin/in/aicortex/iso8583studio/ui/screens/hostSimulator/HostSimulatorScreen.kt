@@ -97,10 +97,10 @@ fun HostSimulatorScreen(
         if (config != null) {
             gw = GatewayServiceImpl(config)
             if (onError != null) {
-                gw.setShowErrorListener(onError)
+                gw!!.setShowErrorListener(onError)
             }
             HostSimulator(
-                gw = gw,
+                gw = gw!!,
                 onSaveClick = onSaveClick,
                 modifier = Modifier.padding(paddingValues)
             )

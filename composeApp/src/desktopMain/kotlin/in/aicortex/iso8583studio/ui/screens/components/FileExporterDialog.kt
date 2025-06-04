@@ -413,6 +413,18 @@ ${indent}  key: "field$fieldNum" $comment"""
     val yamlContent = """formatType: JSON
 mti:
   key: header.messageType
+tpdu:
+  key: "tpduHeader"
+other:
+  - item :
+      key : "createdAt" #if at root
+      value : "[TIME]"
+  - item :
+      nestedKey: "userdata.createdAt" # if nested key
+      value : "[TIME]"
+  - item :
+      header: "createdAt" #if key is in header
+      value : "[TIME]"
 fieldMappings:
 $fieldMappings
 settings:
@@ -446,6 +458,18 @@ ${indent}}"""
     val yamlContent = """formatType: XML
 mti:
   key: messageType
+tpdu:
+  key: "tpduHeader"
+other:
+  - item :
+      key : "createdAt" #if at root
+      value : "[TIME]"
+  - item :
+      nestedKey: "userdata.createdAt" # if nested key
+      value : "[TIME]"
+  - item :
+      header: "createdAt" #if key is in header
+      value : "[TIME]"
 fieldMappings:
 $fieldMappings
 settings:
@@ -479,6 +503,18 @@ ${indent}}"""
     val yamlContent = """formatType: KEY_VALUE
 mti:
   key: MTI
+tpdu:
+  key: "tpduHeader"
+other:
+  - item :
+      key : "createdAt" #if at root
+      value : "[TIME]"
+  - item :
+      nestedKey: "userdata.createdAt" # if nested key
+      value : "[TIME]"
+  - item :
+      header: "createdAt" #if key is in header
+      value : "[TIME]"
 fieldMappings:
 $fieldMappings
 settings:

@@ -1,9 +1,11 @@
 package `in`.aicortex.iso8583studio.data.model
 
+import androidx.compose.runtime.key
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.BitTemplate
 import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
 import `in`.aicortex.iso8583studio.domain.utils.MtiMapping
+import `in`.aicortex.iso8583studio.domain.utils.TPDUMapping
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable
@@ -76,7 +78,10 @@ data class GatewayConfig(
         formatType = CodeFormat.BYTE_ARRAY,
         fieldMappings = mapOf(),
         mti = MtiMapping(
-            key = "msgType"
+            key = "msgType",
+        ),
+        tpdu = TPDUMapping(
+            key = "tpdu"
         )
     ),
     private var gwBitTemplateSource: Array<BitSpecific>? = null,
@@ -97,6 +102,9 @@ data class GatewayConfig(
         fieldMappings = mapOf(),
         mti = MtiMapping(
             key = "msgType"
+        ),
+        tpdu = TPDUMapping(
+            key = "tpdu"
         )
     ),
     private var gwBitTemplateDest: Array<BitSpecific>? = null,
