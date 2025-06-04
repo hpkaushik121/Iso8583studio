@@ -147,6 +147,35 @@ data class GatewayConfig(
         }
     }
 
+    fun getFormatMappingConfig(isFirst: Boolean = true): FormatMappingConfig {
+        if (gatewayType == GatewayType.PROXY && isFirst) {
+            return formatMappingConfigSource
+        }
+        if (gatewayType == GatewayType.PROXY && !isFirst) {
+            return formatMappingConfigDest
+        }
+        if (gatewayType == GatewayType.CLIENT) {
+            return formatMappingConfigDest
+        }
+        if (gatewayType == GatewayType.SERVER) {
+            return formatMappingConfigSource
+        }
+        return formatMappingConfigSource
+    }
+
+    fun setFormatMappingConfig(isFirst: Boolean = true, mapping: FormatMappingConfig) {
+        if (gatewayType == GatewayType.PROXY && isFirst) {
+            formatMappingConfigSource = mapping
+        } else if (gatewayType == GatewayType.PROXY && !isFirst) {
+            formatMappingConfigDest = mapping
+        } else if (gatewayType == GatewayType.CLIENT) {
+            formatMappingConfigDest = mapping
+        } else if (gatewayType == GatewayType.SERVER) {
+            formatMappingConfigSource = mapping
+        }
+    }
+
+
     /**
      * Advanced options getter/setter
      */

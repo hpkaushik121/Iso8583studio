@@ -2,6 +2,7 @@ package `in`.aicortex.iso8583studio.domain.service
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.awt.ComposeWindow
 import `in`.aicortex.iso8583studio.data.EncrDecrHandler
 import `in`.aicortex.iso8583studio.data.DialHandler
 import `in`.aicortex.iso8583studio.data.GatewayClient
@@ -85,7 +86,7 @@ class GatewayServiceImpl : GatewayService {
     internal var unsentTrans = AtomicInteger(0)
     internal var incompleteTrans = AtomicInteger(0)
     internal var timeoutTrans = AtomicInteger(0)
-
+    internal var composeWindow = ComposeWindow()
     private var monitorClient: Socket? = null
     private var monitorServerWait = LocalDateTime.now()
     private var checkLogFileSize = LocalDateTime.now()
@@ -1074,6 +1075,14 @@ class GatewayServiceImpl : GatewayService {
      */
     override fun showError(item: @Composable () -> Unit) {
         resultDialogInterface?.onError(item)
+    }
+
+    override fun showSuccess(item: @Composable () -> Unit) {
+        resultDialogInterface?.onSuccess(item)
+    }
+
+    override fun showWarning(item: @Composable () -> Unit) {
+        TODO("Not yet implemented")
     }
 
     override fun setShowErrorListener(resultDialogInterface: ResultDialogInterface) {

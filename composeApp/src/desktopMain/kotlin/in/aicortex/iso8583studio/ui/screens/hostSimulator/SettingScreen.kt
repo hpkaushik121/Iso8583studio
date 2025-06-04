@@ -1,7 +1,12 @@
 package `in`.aicortex.iso8583studio.ui.screens.hostSimulator
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,16 +14,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -32,13 +38,23 @@ import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.clone
 import `in`.aicortex.iso8583studio.data.getValue
+import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.data.model.GatewayType
+import `in`.aicortex.iso8583studio.data.rememberIsoCoroutineScope
 import `in`.aicortex.iso8583studio.data.updateBit
-import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
+import `in`.aicortex.iso8583studio.domain.FileImporter
+import `in`.aicortex.iso8583studio.domain.ImportResult
+import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
+import `in`.aicortex.iso8583studio.domain.service.SimulatedRequest
+import `in`.aicortex.iso8583studio.domain.utils.ExportResult
+import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.ui.screens.components.FieldInformationDialog
+import `in`.aicortex.iso8583studio.ui.screens.components.LabeledSwitch
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.math.absoluteValue
 
@@ -82,7 +98,6 @@ data class KeyValueMatcher(
 data class ResponseMapping(
     val enabled: Boolean = false,
     val responseFields: List<ResponseField> = emptyList(),
-    val staticValues: List<StaticResponseValue> = emptyList()
 )
 
 @Serializable
@@ -91,27 +106,7 @@ data class ResponseField(
     val targetKey: String? = null,
     val targetNestedKey: String? = null,
     val targetHeader: String? = null,
-    val transformation: FieldTransformation = FieldTransformation.COPY
 )
-
-@Serializable
-data class StaticResponseValue(
-    val targetKey: String? = null,
-    val targetNestedKey: String? = null,
-    val targetHeader: String? = null,
-    val value: String
-)
-
-@Serializable
-enum class FieldTransformation(val displayName: String) {
-    COPY("Copy as-is"),
-    REVERSE("Reverse value"),
-    TIMESTAMP("Current timestamp"),
-    SUCCESS_CODE("Success code (00)"),
-    ERROR_CODE("Error code (99)"),
-    ECHO_BACK("Echo request value"),
-    GENERATE_REFERENCE("Generate reference number")
-}
 
 @Serializable
 enum class MatchOperator(val displayName: String, val symbol: String) {
@@ -127,15 +122,15 @@ enum class MatchOperator(val displayName: String, val symbol: String) {
 
 @Composable
 fun ISO8583SettingsScreen(
-    gw: GatewayConfig,
+    gw: GatewayServiceImpl,
     onSaveClick: () -> Unit
 ) {
     // Use mutableStateListOf for proper recomposition
     val transactions = remember {
-        gw.simulatedTransactionsToSource.map { transaction ->
+        gw.configuration.simulatedTransactionsToSource.map { transaction ->
             transaction.copy(
                 fields = transaction.fields?.toMutableList()
-                    ?: Iso8583Data(config = gw).bitAttributes.toMutableList()
+                    ?: Iso8583Data(config = gw.configuration).bitAttributes.toMutableList()
             )
         }.toMutableStateList()
     }
@@ -148,17 +143,19 @@ fun ISO8583SettingsScreen(
 
     // Dialog states
     var showFieldInfoDialog by remember { mutableStateOf(false) }
+    var isFirst by remember { mutableStateOf(gw.configuration.gatewayType == GatewayType.SERVER) }
     var showAddTransactionDialog by remember { mutableStateOf(false) }
     var showEditTransactionDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
     var transactionToEdit by remember { mutableStateOf<Transaction?>(null) }
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
 
 
-    // Save function that updates the gateway config
-    val saveTransactions = {
-        gw.simulatedTransactionsToSource = transactions.map { transaction ->
+    // Stage function that updates the gateway config
+    val stageTransactions = {
+        gw.configuration.simulatedTransactionsToSource = transactions.map { transaction ->
             transaction.copy(
                 fields = transaction.fields?.map { bitAttr ->
                     clone(bitAttr) // Create a copy to ensure immutability
@@ -171,11 +168,17 @@ fun ISO8583SettingsScreen(
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         // Enhanced Header
         EnhancedHeader(
+            gw = gw,
             onFieldInfoClick = { showFieldInfoDialog = true },
             onExportClick = { showExportDialog = true },
+            onImportClick = { showImportDialog = true },
             onSaveClick = {
                 onSaveClick()
-            }
+            },
+            onToggle = {
+                isFirst = it
+            },
+            isFirst = isFirst
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -203,7 +206,7 @@ fun ISO8583SettingsScreen(
                         fields = transaction.fields?.map { clone(it) }?.toMutableList()
                     )
                     transactions.add(duplicatedTransaction)
-                    saveTransactions()
+                    stageTransactions()
                 },
                 onDeleteTransaction = { transaction ->
                     transactionToDelete = transaction
@@ -217,7 +220,7 @@ fun ISO8583SettingsScreen(
                 selectedTransaction = selectedTransaction,
                 selectedTab = selectedTab,
                 onTabChange = { selectedTab = it },
-                gw = gw,
+                gw = gw.configuration,
                 onTransactionUpdated = { updatedTransaction ->
                     val index = transactions.indexOfFirst { it.id == updatedTransaction.id }
                     if (index != -1) {
@@ -244,9 +247,9 @@ fun ISO8583SettingsScreen(
             onSave = { newTransaction ->
                 transactions.add(newTransaction)
                 showAddTransactionDialog = false
-                saveTransactions()
+                stageTransactions()
             },
-            gw = gw
+            gw = gw.configuration
         )
     }
 
@@ -269,9 +272,9 @@ fun ISO8583SettingsScreen(
                 }
                 showEditTransactionDialog = false
                 transactionToEdit = null
-                saveTransactions()
+                stageTransactions()
             },
-            gw = gw
+            gw = gw.configuration
         )
     }
 
@@ -290,25 +293,114 @@ fun ISO8583SettingsScreen(
                 }
                 showDeleteConfirmDialog = false
                 transactionToDelete = null
-                saveTransactions()
+                stageTransactions()
             }
         )
     }
+    val isoCoroutine = rememberIsoCoroutineScope(gw)
 
     if (showExportDialog) {
-        ExportDialog(
-            transactions = transactions,
-            onDismiss = { showExportDialog = false }
-        )
+        isoCoroutine.launch {
+            val file = FileExporter().exportFile(
+                window = gw.composeWindow,
+                fileName = "ISO8583Studio_Transactions",
+                fileExtension = "json",
+                fileContent = Json.encodeToString(transactions.toList()).toByteArray(),
+                fileDescription = "Transaction Configuration File"
+            )
+            showExportDialog = false
+            when (file) {
+                is ExportResult.Success -> {
+                    gw.showSuccess {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text("Configuration exported successfully!")
+                        }
+                    }
+                }
+
+                is ExportResult.Cancelled -> {
+                    println("Export cancelled")
+                }
+
+                is ExportResult.Error -> {
+                    gw.showError {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text((file as ExportResult.Error).message)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showImportDialog) {
+        isoCoroutine.launch {
+            val file = FileImporter().importFile(
+                window = gw.composeWindow,
+                fileExtensions = listOf("json"),
+                importLogic = { file ->
+                    try {
+                        val data: List<Transaction> = Json.decodeFromString(file.readText())
+                        transactions.addAll(data)
+                        stageTransactions()
+                        ImportResult.Success(fileContent = file.readBytes())
+                    } catch (e: Exception) {
+                        ImportResult.Error("failed to import", e)
+                    }
+
+                }
+            )
+            showImportDialog = false
+            when (file) {
+                is ImportResult.Success -> {
+                    gw.showSuccess {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+
+                            Text("Configuration imported successfully!")
+                        }
+                    }
+                }
+
+                is ImportResult.Cancelled -> {
+                    println("Import cancelled")
+                }
+
+                is ImportResult.Error -> {
+                    gw.showError {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+
+                            Text((file as ImportResult.Error).message)
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
 
 
 @Composable
 private fun EnhancedHeader(
+    gw: GatewayServiceImpl,
     onFieldInfoClick: () -> Unit,
     onExportClick: () -> Unit,
-    onSaveClick: () -> Unit
+    onImportClick: () -> Unit,
+    onSaveClick: () -> Unit,
+    onToggle:(Boolean) -> Unit,
+    isFirst:Boolean ,
 ) {
     Card(
         elevation = 4.dp,
@@ -350,6 +442,15 @@ private fun EnhancedHeader(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (gw.configuration.gatewayType == GatewayType.PROXY) {
+                        LabeledSwitch(
+                            checked = isFirst,
+                            onCheckedChange = onToggle,
+                            label = "Source"
+                        )
+                    }
+
+
                     ActionButton(
                         icon = Icons.Default.Info,
                         text = "Field Info",
@@ -365,7 +466,7 @@ private fun EnhancedHeader(
                     ActionButton(
                         icon = Icons.Default.Download,
                         text = "Import",
-                        onClick = onExportClick
+                        onClick = onImportClick
                     )
 
                     Button(
@@ -508,11 +609,7 @@ private fun EnhancedTransactionCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        backgroundColor = if (isSelected) {
-            MaterialTheme.colors.primary.copy(alpha = 0.1f)
-        } else {
-            MaterialTheme.colors.surface
-        },
+        border =  if (isSelected) BorderStroke(2.dp, color = MaterialTheme.colors.primary ) else null,
         shape = RoundedCornerShape(8.dp)
     ) {
         Column {
@@ -831,7 +928,7 @@ private fun FieldsTab(
                                 val updatedFields =
                                     transaction.fields?.toMutableList() ?: mutableListOf()
                                 updatedFields[index].updateBit(newValue)
-                                onTransactionUpdated(transaction.copy(fields = updatedFields))
+//                                onTransactionUpdated(transaction.copy(fields = updatedFields))
                             },
                             onRemove = {
                                 val updatedFields =
@@ -1013,6 +1110,7 @@ private fun EmptyFieldsList() {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun EnhancedFieldRow(
     fieldNumber: Int,
@@ -1020,14 +1118,18 @@ private fun EnhancedFieldRow(
     onDataChange: (String) -> Unit,
     onRemove: () -> Unit,
     gw: GatewayConfig,
-    updateKey: Int = 0 // FIX 15: Add update key parameter
+    updateKey: Int = 0,
 ) {
-    // FIX 16: Use update key in the key function to force recomposition
+    // Use update key in the key function to force recomposition
     key(fieldNumber, data.getValue(), data.isSet, updateKey) {
         var value by remember(data.getValue(), updateKey) {
             mutableStateOf(data.getValue() ?: "")
         }
+
+        // Track if we're actively editing to prevent accidental collapse
+        var isEditing by remember { mutableStateOf(false) }
         var isExpanded by remember { mutableStateOf(false) }
+        var isFocused by remember { mutableStateOf(false) }
 
         // Update local state when data changes
         LaunchedEffect(data.getValue(), updateKey) {
@@ -1041,109 +1143,381 @@ private fun EnhancedFieldRow(
             gw.bitTemplateSource.find { it.bitNumber.toInt() == fieldNumber }
         }
 
+        // Animation states
+        val cardElevation by animateFloatAsState(
+            targetValue = if (isExpanded) 8f else 2f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+        )
+
         Card(
-            elevation = 2.dp,
-            shape = RoundedCornerShape(8.dp)
+            elevation = cardElevation.dp,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
         ) {
             Column {
-                // Main row
-                Row(
+                // Main header row (non-clickable when expanded and editing)
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { isExpanded = !isExpanded }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .then(
+                            // Only make clickable if not actively editing
+                            if (!isEditing && !isFocused) {
+                                Modifier.clickable {
+                                    if(!isEditing && !isFocused){
+                                        isExpanded = (!isExpanded)
+                                    }
+                                }
+                            } else {
+                                Modifier
+                            }
+                        ),
+                    color = if (isExpanded)
+                        MaterialTheme.colors.primary.copy(alpha = 0.05f)
+                    else
+                        Color.Transparent
                 ) {
-                    // Field number badge
-                    Surface(
-                        color = MaterialTheme.colors.primary,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = fieldNumber.toString(),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Field info
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = bitInfo?.description ?: "Field $fieldNumber",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
-                        )
-                        if (value.isNotEmpty()) {
-                            Text(
-                                text = if (value.length > 20) "${value.take(20)}..." else value,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    // Actions
-                    IconButton(
-                        onClick = onRemove,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Remove Field",
-                            tint = MaterialTheme.colors.error,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Icon(
-                        if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = "Expand",
-                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                    )
-                }
-
-                // Expanded content
-                AnimatedVisibility(
-                    visible = isExpanded,
-                    enter = slideInVertically() + fadeIn(),
-                    exit = slideOutVertically() + fadeOut()
-                ) {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colors.surface.copy(alpha = 0.5f))
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Field details
-                        if (bitInfo != null) {
+                        // Enhanced field number badge
+                        Card(
+                            backgroundColor = if (isExpanded)
+                                MaterialTheme.colors.primary
+                            else
+                                MaterialTheme.colors.secondary,
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = if (isExpanded) 4.dp else 2.dp
+                        ) {
+                            Text(
+                                text = "F$fieldNumber",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Enhanced field info with status indicators
+                        Column(modifier = Modifier.weight(1f)) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                LabelChip("Type", bitInfo.bitType.name)
-                                LabelChip("Length", bitInfo.maxLength.toString())
-                                LabelChip("Format", bitInfo.bitLength.name)
+                                Text(
+                                    text = bitInfo?.description ?: "Field $fieldNumber",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 15.sp,
+                                    color = if (isExpanded)
+                                        MaterialTheme.colors.primary
+                                    else
+                                        MaterialTheme.colors.onSurface
+                                )
+
+                                // Status indicator
+                                if (value.isNotEmpty()) {
+                                    Surface(
+                                        color = MaterialTheme.colors.primary.copy(alpha = 0.1f),
+                                        shape = CircleShape
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = "Has value",
+                                            tint = MaterialTheme.colors.primary,
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .padding(2.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Value preview (only when collapsed and has value)
+                            AnimatedVisibility(
+                                visible = !isExpanded && value.isNotEmpty(),
+                                enter = fadeIn() + slideInVertically(),
+                                exit = fadeOut() + slideOutVertically()
+                            ) {
+                                Text(
+                                    text = if (value.length > 30) "${value.take(30)}..." else value,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(top = 4.dp),
+                                    style = MaterialTheme.typography.caption
+                                )
                             }
                         }
 
-                        // Value input
-                        OutlinedTextField(
-                            value = value,
-                            onValueChange = {
-                                value = it
-                                onDataChange(it)
-                            },
-                            label = { Text("Field Value") },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Enter field value...") },
-                            singleLine = false,
-                            maxLines = 3
-                        )
+                        // Action buttons
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Remove button
+                            IconButton(
+                                onClick = onRemove,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Remove Field",
+                                    tint = MaterialTheme.colors.error.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            // Expand/collapse button (separate from row click)
+                            IconButton(
+                                onClick = { if(!isEditing && !isFocused){
+                                    isExpanded = (!isExpanded)
+                                } },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                AnimatedContent(
+                                    targetState = isExpanded,
+                                    transitionSpec = {
+                                        scaleIn() + fadeIn() with scaleOut() + fadeOut()
+                                    }
+                                ) { expanded ->
+                                    Icon(
+                                        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = if (expanded) "Collapse" else "Expand",
+                                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Enhanced expanded content
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = slideInVertically(
+                        initialOffsetY = { -it / 2 },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)
+                    ) + fadeIn(),
+                    exit = slideOutVertically(
+                        targetOffsetY = { -it / 2 },
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy)
+                    ) + fadeOut()
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(
+                            topStart = 0.dp,
+                            topEnd = 0.dp,
+                            bottomStart = 12.dp,
+                            bottomEnd = 12.dp
+                        ),
+                        backgroundColor = MaterialTheme.colors.background,
+                        elevation = 0.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Enhanced field metadata
+                            if (bitInfo != null) {
+                                Text(
+                                    text = "Field Specifications",
+                                    style = MaterialTheme.typography.subtitle2,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
+                                )
+
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(vertical = 4.dp)
+                                ) {
+                                    item {
+                                        EnhancedMetadataChip(
+                                            icon = Icons.Default.Category,
+                                            label = "Type",
+                                            value = bitInfo.bitType.name,
+                                            color = MaterialTheme.colors.primary
+                                        )
+                                    }
+                                    item {
+                                        EnhancedMetadataChip(
+                                            icon = Icons.Default.Straighten,
+                                            label = "Max Length",
+                                            value = if (bitInfo.maxLength > 0)
+                                                bitInfo.maxLength.toString()
+                                            else
+                                                "Variable",
+                                            color = MaterialTheme.colors.secondary
+                                        )
+                                    }
+                                    item {
+                                        EnhancedMetadataChip(
+                                            icon = Icons.Default.FormatSize,
+                                            label = "Length Type",
+                                            value = bitInfo.bitLength.name,
+                                            color = MaterialTheme.colors.onPrimary
+                                        )
+                                    }
+                                    if (bitInfo.description?.isNotEmpty() == true) {
+                                        item {
+                                            EnhancedMetadataChip(
+                                                icon = Icons.Default.Info,
+                                                label = "Description",
+                                                value = bitInfo.description ?: "",
+                                                color = MaterialTheme.colors.onSecondary,
+                                                expanded = true
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f))
+
+                            // Enhanced value input section
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colors.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Field Value",
+                                        style = MaterialTheme.typography.subtitle2,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
+                                    )
+                                    if (value.isNotEmpty()) {
+                                        Text(
+                                            text = "(${value.length} chars)",
+                                            style = MaterialTheme.typography.caption,
+                                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+
+                                // Enhanced text field with proper focus handling
+                                OutlinedTextField(
+                                    value = value,
+                                    onValueChange = { newValue ->
+                                        value = newValue
+                                        onDataChange(newValue)
+                                        isEditing = true
+                                    },
+                                    label = {
+                                        Text("Enter value for field $fieldNumber")
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .onFocusChanged { focusState ->
+                                            isFocused = focusState.isFocused
+                                            if (!focusState.isFocused) {
+                                                // Small delay to allow for value processing
+                                                isEditing = false
+                                            }
+                                        },
+                                    placeholder = {
+                                        Text(
+                                            "Enter field value...",
+                                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+                                        )
+                                    },
+                                    singleLine = false,
+                                    maxLines = 4,
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        focusedBorderColor = MaterialTheme.colors.primary,
+                                        cursorColor = MaterialTheme.colors.primary
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    trailingIcon = {
+                                        if (value.isNotEmpty()) {
+                                            IconButton(
+                                                onClick = {
+                                                    value = ""
+                                                    onDataChange("")
+                                                }
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Clear,
+                                                    contentDescription = "Clear value",
+                                                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+
+                                // Value validation and helpers
+                                if (bitInfo != null && value.isNotEmpty()) {
+                                    val isValidLength = when (bitInfo.lengthType){
+                                        BitLength.LLLVAR,
+                                            BitLength.LLVAR->{
+                                            bitInfo.maxLength <= 0 || value.length <= bitInfo.maxLength
+                                            }
+
+                                        BitLength.FIXED -> {
+                                            value.length == bitInfo.maxLength  || PlaceholderProcessor.holdersList.contains(value)
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(
+                                                if (isValidLength) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                                contentDescription = null,
+                                                tint = if (isValidLength)
+                                                    MaterialTheme.colors.primary
+                                                else
+                                                    MaterialTheme.colors.error,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Text(
+                                                text = if (isValidLength) "Valid" else "Invalid",
+                                                style = MaterialTheme.typography.caption,
+                                                color = if (isValidLength)
+                                                    MaterialTheme.colors.primary
+                                                else
+                                                    MaterialTheme.colors.error
+                                            )
+                                        }
+
+                                        if (bitInfo.maxLength > 0) {
+                                            Text(
+                                                text = "${value.length}/${bitInfo.maxLength}",
+                                                style = MaterialTheme.typography.caption,
+                                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1151,31 +1525,52 @@ private fun EnhancedFieldRow(
     }
 }
 
-
 @Composable
-private fun LabelChip(label: String, value: String) {
-    Surface(
-        color = MaterialTheme.colors.secondary.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(4.dp)
+private fun EnhancedMetadataChip(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    color: Color,
+    expanded: Boolean = false
+) {
+    Card(
+        backgroundColor = color.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(8.dp),
+        elevation = 1.dp
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.padding(
+                horizontal = if (expanded) 12.dp else 8.dp,
+                vertical = 6.dp
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
-                text = label,
-                fontSize = 10.sp,
-                color = MaterialTheme.colors.secondary,
-                fontWeight = FontWeight.Bold
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(12.dp)
             )
+            if (!expanded) {
+                Text(
+                    text = "$label:",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Medium
+                )
+            }
             Text(
-                text = value,
+                text = if (expanded && value.length > 20) "${value.take(20)}..." else value,
                 fontSize = 10.sp,
-                color = MaterialTheme.colors.onSurface
+                color = color,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
             )
         }
     }
 }
+
 
 @Composable
 private fun ConfigurationTab(transaction: Transaction) {
@@ -1433,15 +1828,6 @@ private fun ResponseMappingCard(
                     }
                 )
 
-                Divider()
-
-                // Static values
-                StaticValuesSection(
-                    staticValues = responseMapping.staticValues,
-                    onStaticValuesChange = {
-                        onResponseMappingChange(responseMapping.copy(staticValues = it))
-                    }
-                )
             } else {
                 Text(
                     text = "Enable response mapping to customize how transaction responses are formatted and which fields are included.",
@@ -1631,11 +2017,8 @@ private fun KeyValueMatchersSection(
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
             )
         } else {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 200.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(keyValueMatchers.size) { index ->
+            keyValueMatchers.forEachIndexed { index, keyValueMatcher ->
+                Column {
                     KeyValueMatcherRow(
                         matcher = keyValueMatchers[index],
                         onMatcherChange = { newMatcher ->
@@ -1707,23 +2090,26 @@ private fun KeyValueMatcherRow(
                 // Operator selection
                 var operatorExpanded by remember { mutableStateOf(false) }
 
-                Box(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = matcher.operator.displayName,
-                        onValueChange = { },
-                        label = { Text("Operator") },
+                Box(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                    OutlinedButton(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { operatorExpanded = true },
-                        readOnly = true,
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Select Operator"
+                            .height(IntrinsicSize.Max),
+                        onClick = { if (!operatorExpanded) operatorExpanded = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            backgroundColor = Color.Transparent,
+                            contentColor = if (!operatorExpanded) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface.copy(
+                                alpha = 0.4f
                             )
-                        }
-                    )
-
+                        )
+                    ) {
+                        Text(matcher.operator.displayName)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = "Select Operator"
+                        )
+                    }
                     DropdownMenu(
                         expanded = operatorExpanded,
                         onDismissRequest = { operatorExpanded = false }
@@ -1778,7 +2164,6 @@ private fun ResponseFieldsSection(
                         responseFields + ResponseField(
                             sourceField = "",
                             targetKey = "",
-                            transformation = FieldTransformation.COPY
                         )
                     )
                 }
@@ -1794,11 +2179,8 @@ private fun ResponseFieldsSection(
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
             )
         } else {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 200.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(responseFields.size) { index ->
+            responseFields.forEachIndexed { index, field ->
+                Column {
                     ResponseFieldRow(
                         responseField = responseFields[index],
                         onResponseFieldChange = { newField ->
@@ -1887,180 +2269,11 @@ private fun ResponseFieldRow(
                 )
             }
 
-// Transformation
-            var transformationExpanded by remember { mutableStateOf(false) }
-
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = responseField.transformation.displayName,
-                    onValueChange = { },
-                    label = { Text("Transformation") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { transformationExpanded = true },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            Icons.Default.ArrowDropDown,
-                            contentDescription = "Select Transformation"
-                        )
-                    }
-                )
-
-                DropdownMenu(
-                    expanded = transformationExpanded,
-                    onDismissRequest = { transformationExpanded = false }
-                ) {
-                    FieldTransformation.values().forEach { transformation ->
-                        DropdownMenuItem(
-                            onClick = {
-                                onResponseFieldChange(responseField.copy(transformation = transformation))
-                                transformationExpanded = false
-                            }
-                        ) {
-                            Text(transformation.displayName)
-                        }
-                    }
-                }
-            }
         }
     }
 }
 
-@Composable
-private fun StaticValuesSection(
-    staticValues: List<StaticResponseValue>,
-    onStaticValuesChange: (List<StaticResponseValue>) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Static Response Values",
-                style = MaterialTheme.typography.subtitle2,
-                fontWeight = FontWeight.Bold
-            )
 
-            IconButton(
-                onClick = {
-                    onStaticValuesChange(
-                        staticValues + StaticResponseValue(
-                            targetKey = "",
-                            value = ""
-                        )
-                    )
-                }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Static Value")
-            }
-        }
-
-        if (staticValues.isEmpty()) {
-            Text(
-                text = "No static values configured. Add static values for fixed response fields.",
-                style = MaterialTheme.typography.body2,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 150.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(staticValues.size) { index ->
-                    StaticValueRow(
-                        staticValue = staticValues[index],
-                        onStaticValueChange = { newValue ->
-                            val updatedList = staticValues.toMutableList()
-                            updatedList[index] = newValue
-                            onStaticValuesChange(updatedList)
-                        },
-                        onRemove = {
-                            onStaticValuesChange(
-                                staticValues.filterIndexed { i, _ -> i != index }
-                            )
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StaticValueRow(
-    staticValue: StaticResponseValue,
-    onStaticValueChange: (StaticResponseValue) -> Unit,
-    onRemove: () -> Unit
-) {
-    Card(
-        elevation = 2.dp,
-        backgroundColor = MaterialTheme.colors.surface
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Static Value",
-                    style = MaterialTheme.typography.caption,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-
-                IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Remove",
-                        tint = MaterialTheme.colors.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Target key
-                OutlinedTextField(
-                    value = staticValue.targetKey ?: "",
-                    onValueChange = { onStaticValueChange(staticValue.copy(targetKey = it.takeIf { it.isNotBlank() })) },
-                    label = { Text("Target Key") },
-                    placeholder = { Text("e.g., status") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-
-                // Target nested key
-                OutlinedTextField(
-                    value = staticValue.targetNestedKey ?: "",
-                    onValueChange = { onStaticValueChange(staticValue.copy(targetNestedKey = it.takeIf { it.isNotBlank() })) },
-                    label = { Text("Target Nested Key") },
-                    placeholder = { Text("e.g., header.status") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-            }
-
-            // Value
-            OutlinedTextField(
-                value = staticValue.value,
-                onValueChange = { onStaticValueChange(staticValue.copy(value = it)) },
-                label = { Text("Value") },
-                placeholder = { Text("Static value to set") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-        }
-    }
-}
 
 @Composable
 private fun EmptySelectionPanel() {
@@ -2095,31 +2308,6 @@ private fun EmptySelectionPanel() {
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "💡 Pro Tip",
-                        style = MaterialTheme.typography.subtitle2,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colors.primary
-                    )
-                    Text(
-                        text = "Use the search bar to quickly find transactions, or create a new one using the + button",
-                        style = MaterialTheme.typography.body2,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
         }
     }
 }
@@ -2487,7 +2675,7 @@ private fun ResponseConfigurationCard(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalAnimationApi::class)
 @Composable
 private fun EnhancedAddFieldDialog(
     gw: GatewayConfig,
@@ -2498,9 +2686,22 @@ private fun EnhancedAddFieldDialog(
     var selectedBitSpecifics by remember { mutableStateOf(setOf<BitSpecific>()) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
+    var isSearchActive by remember { mutableStateOf(false) }
+
+    // Animation states
+    val slideInAnimation = slideInVertically(
+        initialOffsetY = { it },
+        animationSpec = tween(400, easing = FastOutSlowInEasing)
+    )
+    val fadeInAnimation = fadeIn(animationSpec = tween(300))
 
     val categories = listOf(
-        "All", "Common", "PAN & Security", "Amount & Date", "Terminal & Merchant", "Network"
+        "All" to Icons.Default.List,
+        "Common" to Icons.Default.Star,
+        "PAN & Security" to Icons.Default.Security,
+        "Amount & Date" to Icons.Default.Payment,
+        "Terminal & Merchant" to Icons.Default.Store,
+        "Network" to Icons.Default.NetworkCheck
     )
 
     val categorizedBits = remember(gw.bitTemplateSource, selectedCategory, existingFields) {
@@ -2512,7 +2713,6 @@ private fun EnhancedAddFieldDialog(
 
         gw.bitTemplateSource.filter { bit ->
             val bitNum = bit.bitNumber.toInt()
-            // Filter out existing fields
             if (existingFields.contains(bitNum)) return@filter false
 
             when (selectedCategory) {
@@ -2530,370 +2730,595 @@ private fun EnhancedAddFieldDialog(
                         bit.description?.contains(searchQuery, ignoreCase = true) == true ||
                         bit.bitType.name.contains(searchQuery, ignoreCase = true)
             }
-        }
+        }.sortedBy { it.bitNumber.toInt() }
     }
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .fillMaxHeight(0.8f),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colors.surface
+        AnimatedVisibility(
+            visible = true,
+            enter = slideInAnimation + fadeInAnimation
         ) {
-            Column {
-                // Header
-                Surface(
-                    color = MaterialTheme.colors.primary,
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Add Fields",
-                                style = MaterialTheme.typography.h6,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            if (selectedBitSpecifics.isNotEmpty()) {
-                                Text(
-                                    text = "${selectedBitSpecifics.size} field(s) selected",
-                                    style = MaterialTheme.typography.caption,
-                                    color = Color.White.copy(alpha = 0.8f)
-                                )
-                            }
-                        }
-
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                }
-
-                // Search and Filter
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .fillMaxHeight(0.85f),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colors.surface,
+                elevation = 16.dp
+            ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.background(color = MaterialTheme.colors.surface)
                 ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search fields...") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    // Enhanced Header with gradient background
+                    Box {
+                        Surface(
+                            color = MaterialTheme.colors.primary,
+                            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // Gradient overlay effect
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colors.primary,
+                                                MaterialTheme.colors.primary.copy(alpha = 0.8f)
+                                            )
+                                        )
+                                    )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(20.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Add,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Text(
+                                                text = "Add ISO8583 Fields",
+                                                style = MaterialTheme.typography.h6,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                        }
+
+                                        AnimatedVisibility(
+                                            visible = selectedBitSpecifics.isNotEmpty(),
+                                            enter = fadeIn() + expandVertically(),
+                                            exit = fadeOut() + shrinkVertically()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(top = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Color.White.copy(alpha = 0.8f),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    text = "${selectedBitSpecifics.size} field(s) selected",
+                                                    style = MaterialTheme.typography.caption,
+                                                    color = Color.White.copy(alpha = 0.8f)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    IconButton(
+                                        onClick = onDismiss,
+                                        modifier = Modifier
+                                            .background(
+                                                Color.White.copy(alpha = 0.1f),
+                                                CircleShape
+                                            )
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Close",
+                                            tint = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }
-                    )
-
-                    // Category filter chips
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(categories) { category ->
-                            FilterChip(
-                                selected = selectedCategory == category,
-                                onClick = { selectedCategory = category }
-                            ) { Text(category, fontSize = 12.sp) }
-                        }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    // Enhanced Search and Filter Section
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                            ,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = "${categorizedBits.size} fields available",
-                            style = MaterialTheme.typography.caption,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                        )
-                        if (existingFields.isNotEmpty()) {
-                            Text(
-                                text = "${existingFields.size} already added",
-                                style = MaterialTheme.typography.caption,
-                                color = MaterialTheme.colors.secondary
-                            )
-                        }
-                    }
-                }
-
-                // Fields list
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(categorizedBits) { bit ->
-                        val isSelected = selectedBitSpecifics.contains(bit)
-
+                        // Smart Search Bar
                         Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedBitSpecifics = if (isSelected) {
-                                        selectedBitSpecifics - bit
-                                    } else {
-                                        selectedBitSpecifics + bit
-                                    }
-                                },
-                            backgroundColor = if (isSelected) {
-                                MaterialTheme.colors.primary.copy(alpha = 0.1f)
-                            } else {
-                                MaterialTheme.colors.surface
-                            }
+                            elevation = if (isSearchActive) 8.dp else 2.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.animateContentSize()
                         ) {
-                            Row(
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .onFocusChanged { isSearchActive = it.isFocused },
+                                placeholder = {
+                                    Text(
+                                        "Search by field number, description, or type...",
+                                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = "Search",
+                                        tint = if (isSearchActive) MaterialTheme.colors.primary
+                                        else MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                                    )
+                                },
+                                trailingIcon = {
+                                    AnimatedVisibility(
+                                        visible = searchQuery.isNotEmpty(),
+                                        enter = fadeIn() + scaleIn(),
+                                        exit = fadeOut() + scaleOut()
+                                    ) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(
+                                                Icons.Default.Clear,
+                                                contentDescription = "Clear",
+                                                tint = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
+                                },
+                                colors = TextFieldDefaults.outlinedTextFieldColors(
+                                    focusedBorderColor = MaterialTheme.colors.primary,
+                                    unfocusedBorderColor = Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+
+                        // Enhanced Category Chips
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            items(categories) { (category, icon) ->
+                                val isSelected = selectedCategory == category
+
+                                Card(
+                                    elevation = if (isSelected) 8.dp else 2.dp,
+                                    shape = RoundedCornerShape(20.dp),
+                                    backgroundColor = if (isSelected)
+                                        MaterialTheme.colors.primary
+                                    else
+                                        MaterialTheme.colors.surface,
+                                    modifier = Modifier
+                                        .clickable { selectedCategory = category }
+                                        .animateContentSize()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 16.dp,
+                                            vertical = 8.dp
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            icon,
+                                            contentDescription = null,
+                                            tint = if (isSelected) Color.White
+                                            else MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = category,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) Color.White
+                                            else MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Enhanced Status Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                // Selection indicator
-                                Checkbox(
-                                    checked = isSelected,
-                                    onCheckedChange = null
+                                Icon(
+                                    Icons.Default.List,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colors.primary,
+                                    modifier = Modifier.size(16.dp)
                                 )
+                                Text(
+                                    text = "${categorizedBits.size} fields available",
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
 
+                            AnimatedVisibility(
+                                visible = existingFields.isNotEmpty(),
+                                enter = fadeIn() + slideInHorizontally(),
+                                exit = fadeOut() + slideOutHorizontally()
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colors.secondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "${existingFields.size} already added",
+                                        style = MaterialTheme.typography.caption,
+                                        color = MaterialTheme.colors.secondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Enhanced Fields List
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(categorizedBits) { bit ->
+                            val isSelected = selectedBitSpecifics.contains(bit)
+
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + slideInVertically(),
+                                modifier = Modifier.animateItem()
+                            ) {
+                                EnhancedFieldCard(
+                                    bit = bit,
+                                    isSelected = isSelected,
+                                    onClick = {
+                                        selectedBitSpecifics = if (isSelected) {
+                                            selectedBitSpecifics - bit
+                                        } else {
+                                            selectedBitSpecifics + bit
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
+                        // Empty state
+                        if (categorizedBits.isEmpty()) {
+                            item {
+                                EmptyStateCard(
+                                    message = if (searchQuery.isNotEmpty())
+                                        "No fields match your search criteria"
+                                    else
+                                        "No fields available in this category",
+                                    onReset = {
+                                        searchQuery = ""
+                                        selectedCategory = "All"
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Enhanced Action Bar
+                    Surface(
+                        color = MaterialTheme.colors.background,
+                        elevation = 8.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Cancel,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cancel", fontWeight = FontWeight.Medium)
+                            }
 
-                                // Field info
-                                Column(modifier = Modifier.weight(1f)) {
+                            Button(
+                                onClick = {
+                                    if (selectedBitSpecifics.isNotEmpty()) {
+                                        onSave(selectedBitSpecifics.toList())
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                enabled = selectedBitSpecifics.isNotEmpty(),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp),
+                                elevation = ButtonDefaults.elevation(
+                                    defaultElevation = if (selectedBitSpecifics.isNotEmpty()) 4.dp else 0.dp
+                                )
+                            ) {
+                                AnimatedContent(
+                                    targetState = selectedBitSpecifics.size,
+                                    transitionSpec = { fadeIn() with fadeOut() }
+                                ) { count ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Surface(
-                                            color = MaterialTheme.colors.primary,
-                                            shape = RoundedCornerShape(4.dp)
-                                        ) {
-                                            Text(
-                                                text = bit.bitNumber.toString(),
-                                                modifier = Modifier.padding(
-                                                    horizontal = 6.dp,
-                                                    vertical = 2.dp
-                                                ),
-                                                color = Color.White,
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-
-                                        Text(
-                                            text = bit.description ?: "Field ${bit.bitNumber}",
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = 14.sp
+                                        Icon(
+                                            if (count > 0) Icons.Default.Add else Icons.Default.AddCircleOutline,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
                                         )
-                                    }
-
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        LabelChip("Type", bit.bitType.name)
-                                        LabelChip("Length", bit.maxLength.toString())
+                                        Text(
+                                            text = if (count > 0) "Add $count Field(s)" else "Add Fields",
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
                             }
                         }
                     }
                 }
-
-                // Action buttons
-                Surface(
-                    color = MaterialTheme.colors.surface.copy(alpha = 0.5f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Cancel")
-                        }
-
-                        Button(
-                            onClick = {
-                                if (selectedBitSpecifics.isNotEmpty()) {
-                                    onSave(selectedBitSpecifics.toList())
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            enabled = selectedBitSpecifics.isNotEmpty()
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add")
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add ${selectedBitSpecifics.size} Field(s)")
-                        }
-                    }
-                }
             }
         }
     }
 }
 
-
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-private fun ExportDialog(
-    transactions: List<Transaction>,
-    onDismiss: () -> Unit
+private fun EnhancedFieldCard(
+    bit: BitSpecific,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
-    var exportFormat by remember { mutableStateOf("") }
-    var exportType by remember { mutableStateOf("") }
-    var includeFields by remember { mutableStateOf(false) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        backgroundColor = MaterialTheme.colors.surface,
-        contentColor = MaterialTheme.colors.onSurface,
-        title = { Text("Export Transactions") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        border =  if (isSelected) BorderStroke(2.dp, color = MaterialTheme.colors.primary ) else null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Enhanced Selection Indicator
+            Card(
+                shape = CircleShape,
+                backgroundColor = if (isSelected)
+                    MaterialTheme.colors.primary
+                else
+                    MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
+                elevation = if (isSelected) 4.dp else 0.dp
             ) {
-                // Export format selection
-                Column {
-                    Text(
-                        text = "Export Format",
-                        style = MaterialTheme.typography.subtitle2,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                AnimatedContent(
+                    targetState = isSelected,
+                    transitionSpec = { scaleIn() + fadeIn() with scaleOut() + fadeOut() }
+                ) { selected ->
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        listOf("JSON", "CSV", "XML").forEach { format ->
-                            FilterChip(
-                                selected = exportFormat == format,
-                                onClick = { exportFormat = format },
-                            ) { Text(format) }
+                        if (selected) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
+            }
 
-                // Export type selection
-                Column {
-                    Text(
-                        text = "Export Type",
-                        style = MaterialTheme.typography.subtitle2,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("All", "Configuration Only", "Fields Only").forEach { type ->
-                            FilterChip(
-                                selected = exportType == type,
-                                onClick = { exportType = type },
-                            ) { Text(type, fontSize = 10.sp) }
-                        }
-                    }
-                }
+            Spacer(modifier = Modifier.width(16.dp))
 
-                // Options
+            // Enhanced Field Information
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Checkbox(
-                        checked = includeFields,
-                        onCheckedChange = { includeFields = it }
-                    )
+                    // Field Number Badge
+                    Surface(
+                        color = if (isSelected)
+                            MaterialTheme.colors.primary
+                        else
+                            MaterialTheme.colors.secondary,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "F${bit.bitNumber.toInt().absoluteValue}",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Field Description
                     Text(
-                        text = "Include field values",
-                        style = MaterialTheme.typography.body2
+                        text = bit.description ?: "Field ${bit.bitNumber}",
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp,
+                        color = if (isSelected)
+                            MaterialTheme.colors.primary
+                        else
+                            MaterialTheme.colors.onSurface
                     )
                 }
 
-                // Preview
-                Text(
-                    text = "Ready to export ${transactions.size} transaction(s) in $exportFormat format",
-                    style = MaterialTheme.typography.caption,
-                    color = MaterialTheme.colors.primary
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Enhanced Metadata Chips
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MetadataChip(
+                        label = "Type",
+                        value = bit.bitType.name,
+                        color = MaterialTheme.colors.primary.copy(alpha = 0.1f)
+                    )
+                    MetadataChip(
+                        label = "Max Length",
+                        value = if (bit.maxLength > 0) bit.maxLength.toString() else "Variable",
+                        color = MaterialTheme.colors.secondary.copy(alpha = 0.1f)
+                    )
+                    MetadataChip(
+                        label = "Length Type ",
+                        value = bit.lengthType.name,
+                        color = MaterialTheme.colors.secondary.copy(alpha = 0.1f)
+                    )
+                    MetadataChip(
+                        label = "Format",
+                        value = bit.bitLength.name,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f)
+                    )
+                }
+            }
+
+            // Selection Arrow
+            AnimatedVisibility(
+                visible = isSelected,
+                enter = fadeIn() + slideInHorizontally(),
+                exit = fadeOut() + slideOutHorizontally()
+            ) {
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colors.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    // Export logic here
-                    performExport(transactions, exportFormat, exportType, includeFields)
-                    onDismiss()
-                }
-            ) {
-                Icon(Icons.Default.GetApp, contentDescription = "Export")
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Export")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-private fun performExport(
-    transactions: List<Transaction>,
-    format: String,
-    type: String,
-    includeFields: Boolean
-) {
-    // Export implementation would go here
-    // This could save to file system or copy to clipboard
-    when (format) {
-        "JSON" -> {
-            val json = Json { prettyPrint = true }
-            val exportData = when (type) {
-                "Configuration Only" -> transactions.map { it.copy(fields = null) }
-                "Fields Only" -> transactions.map {
-                    Transaction(
-                        id = it.id,
-                        mti = it.mti,
-                        proCode = it.proCode,
-                        description = it.description,
-                        fields = if (includeFields) it.fields else null
-                    )
-                }
-
-                else -> transactions
-            }
-            val jsonString = json.encodeToString(exportData)
-            // Save or copy jsonString
-            println("Exported JSON: $jsonString")
-        }
-
-        "CSV" -> {
-            // CSV export implementation
-            println("Exported CSV")
-        }
-
-        "XML" -> {
-            // XML export implementation
-            println("Exported XML")
         }
     }
 }
+
+@Composable
+private fun MetadataChip(
+    label: String,
+    value: String,
+    color: Color
+) {
+    Surface(
+        color = color,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$label:",
+                fontSize = 10.sp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = value,
+                fontSize = 10.sp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f),
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateCard(
+    message: String,
+    onReset: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp),
+        shape = RoundedCornerShape(16.dp),
+        backgroundColor = MaterialTheme.colors.onSurface.copy(alpha = 0.05f)
+    ) {
+        Column(
+            modifier = Modifier.padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                Icons.Default.SearchOff,
+                contentDescription = null,
+                tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.size(48.dp)
+            )
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.body1,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
+            )
+
+            TextButton(
+                onClick = onReset,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Clear Filters")
+            }
+        }
+    }
+}
+
+
 
 @Composable
 private fun DeleteConfirmationDialog(

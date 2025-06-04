@@ -107,6 +107,8 @@ interface GatewayService {
      * Add callback for error handling
      */
     fun showError(item:@Composable () -> Unit)
+    fun showSuccess(item:@Composable () -> Unit)
+    fun showWarning(item:@Composable () -> Unit)
 
     fun setShowErrorListener(resultDialogInterface: ResultDialogInterface)
 

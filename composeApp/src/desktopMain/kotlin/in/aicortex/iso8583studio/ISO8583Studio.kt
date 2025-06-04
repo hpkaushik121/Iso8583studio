@@ -228,7 +228,8 @@ class ISO8583Studio {
 
                     GatewayConfiguration(
                         navigationController,
-                        appState
+                        appState,
+                        window
                     )
                 }
             }

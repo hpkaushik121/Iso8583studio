@@ -38,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +69,7 @@ enum class HostSimulatorTabs(val title: String, val icon: ImageVector) {
  */
 @Composable
 fun HostSimulatorScreen(
+    window: ComposeWindow,
     config: GatewayConfig?,
     onBack: () -> Unit,
     onSaveClick: () -> Unit,
@@ -96,6 +98,7 @@ fun HostSimulatorScreen(
     ) { paddingValues ->
         if (config != null) {
             gw = GatewayServiceImpl(config)
+            gw!!.composeWindow = window
             if (onError != null) {
                 gw!!.setShowErrorListener(onError)
             }
@@ -363,7 +366,7 @@ fun HostSimulator(
 
                 HostSimulatorTabs.SETTINGS -> {
                     ISO8583SettingsScreen(
-                        gw = gw.configuration,
+                        gw = gw,
                         onSaveClick = onSaveClick
                     )
                 }

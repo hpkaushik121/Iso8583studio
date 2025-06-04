@@ -1,6 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens
 
 import androidx.compose.runtime.*
+import androidx.compose.ui.awt.ComposeWindow
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.navigation.Screen
@@ -16,7 +17,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 @Preview
 fun GatewayConfiguration(navigationController: NavigationController,
-                         appState: GatewayConfigurationState) {
+                         appState: GatewayConfigurationState,
+                         window: ComposeWindow) {
 
     // Create navigation controller
 
@@ -65,6 +67,7 @@ fun GatewayConfiguration(navigationController: NavigationController,
             onBack = { navigationController.goBack() }
         )
         is Screen.HostSimulator -> HostSimulatorScreen(
+            window = window,
             config = appState.currentConfig,
             onBack = { navigationController.goBack() },
             onError = appState.resultDialogInterface!!,
