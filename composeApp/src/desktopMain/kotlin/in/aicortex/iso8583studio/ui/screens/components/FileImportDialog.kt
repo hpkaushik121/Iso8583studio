@@ -124,7 +124,10 @@ fun FileImportDialog(
 
                                 val validationResult = validateImportFile(file)
                                 importConfig = importConfig.copy(
-                                    validationState = validationResult
+                                    validationState = validationResult,
+                                    detectedFormat = validationResult.let {
+                                        if (it is ImportValidationState.Valid) it.config.formatType else null
+                                    }
                                 )
                             }
                         }
@@ -136,7 +139,7 @@ fun FileImportDialog(
                     ImportOptionsSection(
                         importConfig = importConfig,
                         onConfigChange = { importConfig = it },
-                        hasExistingConfig = gatewayConfig.formatMappingConfigSource.fieldMappings.isNotEmpty()
+                        hasExistingConfig = gatewayConfig.formatMappingConfigSource.fieldMappings?.isNotEmpty() == true
                     )
                 }
 
@@ -159,7 +162,7 @@ fun FileImportDialog(
                                     performImport(
                                         config = (importConfig.validationState as ImportValidationState.Valid).config,
                                         gatewayConfig = gatewayConfig,
-                                        importConfig = importConfig
+                                        importConfig = importConfig.copy(detectedFormat = (importConfig.validationState as ImportValidationState.Valid).config.formatType)
                                     )
                                     onImportComplete((importConfig.validationState as ImportValidationState.Valid).config)
                                 } catch (e: Exception) {
@@ -620,11 +623,10 @@ private fun selectImportFile(): File? {
             fileSelectionMode = JFileChooser.FILES_ONLY
             dialogTitle = "Select Configuration File"
             currentDirectory = File(System.getProperty("user.home"))
+            isAcceptAllFileFilterUsed = false
 
             // Add file filters
             addChoosableFileFilter(FileNameExtensionFilter("YAML files", "yaml", "yml"))
-            addChoosableFileFilter(FileNameExtensionFilter("JSON files", "json"))
-            addChoosableFileFilter(FileNameExtensionFilter("All supported", "yaml", "yml", "json"))
         }
 
         val result = fileChooser.showOpenDialog(null)
@@ -651,17 +653,11 @@ private suspend fun validateImportFile(file: File): ImportValidationState {
     return withContext(Dispatchers.IO) {
         try {
             val content = file.readText()
-            val mapper = when (file.extension.lowercase()) {
-                "yaml", "yml" -> ObjectMapper(YAMLFactory()).registerModule(kotlinModule())
-                "json" -> ObjectMapper().registerModule(kotlinModule())
-                else -> throw IllegalArgumentException("Unsupported file format")
-            }
+            val mapper = ObjectMapper(YAMLFactory()).registerModule(kotlinModule())
 
             // Try to parse as FormatMappingConfig
             val config = mapper.readValue<FormatMappingConfig>(content)
 
-            // Validate the structure
-            validateConfigStructure(config)
 
             // Generate preview
             val preview = generateConfigPreview(config)
@@ -673,30 +669,43 @@ private suspend fun validateImportFile(file: File): ImportValidationState {
     }
 }
 
-private fun validateConfigStructure(config: FormatMappingConfig) {
-    // Add validation logic here
-    if (config.formatType == null) {
-        throw IllegalArgumentException("Missing formatType")
-    }
-
-    if (config.fieldMappings.isEmpty()) {
-        throw IllegalArgumentException("No field mappings found")
-    }
-
-    // Add more validation as needed
-}
-
 private fun generateConfigPreview(config: FormatMappingConfig): String {
     return buildString {
         appendLine("Format Type: ${config.formatType}")
-        appendLine("Field Mappings: ${config.fieldMappings.size} fields")
-        appendLine()
-        appendLine("Sample Field Mappings:")
-        config.fieldMappings.entries.take(5).forEach { (field, mapping) ->
-            appendLine("  Field $field: ${mapping}")
+
+        config.mti?.let {
+            appendLine("MTI: $it")
         }
-        if (config.fieldMappings.size > 5) {
-            appendLine("  ... and ${config.fieldMappings.size - 5} more fields")
+
+        config.tpdu?.let {
+            appendLine("TPDU: $it")
+        }
+
+        config.entireIsoMessage?.let {
+            appendLine("Entire ISO Message: $it")
+        }
+
+        config.other.let {
+            appendLine("Other: ${config.other.size} items")
+            appendLine()
+            config.other.take(5).forEach { other ->
+                appendLine("  key : ${other.item.key ?: other.item.nestedKey ?: other.item.header} ")
+            }
+            if (config.other.size > 5) {
+                appendLine("  ... and ${config.other.size - 5} more items")
+            }
+        }
+
+        config.fieldMappings?.size?.let {
+            appendLine("Field Mappings: ${config.fieldMappings.size} fields")
+            appendLine()
+            appendLine("Sample Field Mappings:")
+            config.fieldMappings.entries.take(5).forEach { (field, mapping) ->
+                appendLine("  Field $field: ${mapping}")
+            }
+            if (it > 5) {
+                appendLine("  ... and ${config.fieldMappings?.size?.minus(5)} more fields")
+            }
         }
     }
 }

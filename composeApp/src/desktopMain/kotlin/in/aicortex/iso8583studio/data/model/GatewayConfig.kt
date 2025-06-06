@@ -119,6 +119,35 @@ data class GatewayConfig(
     var messageLengthTypeDest: MessageLengthType = MessageLengthType.BCD
 ) {
 
+
+    fun getSimulatedTransaction(isFirst: Boolean = true): List<Transaction> {
+        if (gatewayType == GatewayType.PROXY && isFirst) {
+            return simulatedTransactionsToSource
+        }
+        if (gatewayType == GatewayType.PROXY && !isFirst) {
+            return simulatedTransactionsToDest
+        }
+        if (gatewayType == GatewayType.CLIENT) {
+            return simulatedTransactionsToDest
+        }
+        if (gatewayType == GatewayType.SERVER) {
+            return simulatedTransactionsToSource
+        }
+        return simulatedTransactionsToSource
+    }
+
+    fun setSimulatedTransaction(isFirst: Boolean = true, tranList: List<Transaction>) {
+        if (gatewayType == GatewayType.PROXY && isFirst) {
+            simulatedTransactionsToSource = tranList
+        } else if (gatewayType == GatewayType.PROXY && !isFirst) {
+            simulatedTransactionsToDest = tranList
+        } else if (gatewayType == GatewayType.CLIENT) {
+            simulatedTransactionsToDest = tranList
+        } else if (gatewayType == GatewayType.SERVER) {
+            simulatedTransactionsToSource = tranList
+        }
+    }
+
     fun getBitTemplate(isFirst: Boolean = true): Array<BitSpecific>? {
         if (gatewayType == GatewayType.PROXY && isFirst) {
             return gwBitTemplateSource

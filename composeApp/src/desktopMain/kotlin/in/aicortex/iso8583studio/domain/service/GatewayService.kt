@@ -7,6 +7,7 @@ import `in`.aicortex.iso8583studio.data.KeyManagement
 import `in`.aicortex.iso8583studio.data.PermanentConnection
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.logging.LogEntry
 import java.time.LocalDateTime
 
 /**
@@ -130,7 +131,7 @@ interface GatewayService {
     /**
      * Add callback for before write log event
      */
-    fun beforeWriteLog(callback: (String) -> Unit)
+    fun beforeWriteLog(callback: (LogEntry) -> Unit)
 
     /**
      * Add callback for admin response handling

@@ -27,6 +27,9 @@ import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.utils.isIpMatched
 import `in`.aicortex.iso8583studio.data.IsoCoroutine
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -116,7 +119,7 @@ class GatewayServiceImpl : GatewayService {
     private var sentToSource: (Iso8583Data?) -> Unit = {}
     private var sentToDest: (Iso8583Data?) -> Unit = {}
     private var beforeReceiveCallbacks: (GatewayClient) -> Unit = {}
-    private var beforeWriteLogCallbacks: (String) -> Unit = {}
+    private var beforeWriteLogCallbacks: (LogEntry) -> Unit = {}
     private var adminResponseCallbacks: suspend (GatewayClient, ByteArray) -> ByteArray? =
         { _, _ -> null }
     var sendHoldMessage: (suspend () -> Unit)? = null
@@ -432,25 +435,26 @@ class GatewayServiceImpl : GatewayService {
         }
 
         val formattedMessage = if (prefix.uppercase() != "NULL") {
-            val timestamp =
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
-            "\r\n$message".replace("\r\n", "\r\n$timestamp  $prefix")
+            "$prefix $message"
         } else {
             message
         }
 
         // Synchronize log file access
         try {
+            val timestamp =
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
             File(configuration.logFileName).appendText(
-                formattedMessage,
+                "\r\n$message".replace("\r\n", "\r\n$timestamp  $prefix"),
                 Charset.forName(configuration.getEncoding())
             )
+            println(formattedMessage)
         } catch (e: Exception) {
             // Ignore write errors
         }
-        println(formattedMessage)
+
         // Call before write log callbacks
-        beforeWriteLogCallbacks(formattedMessage)
+        beforeWriteLogCallbacks(createLogEntry(LogType.INFO,formattedMessage))
 
 
         // Check log file size and rotate if needed
@@ -1102,7 +1106,7 @@ class GatewayServiceImpl : GatewayService {
         beforeReceiveCallbacks = callback
     }
 
-    override fun beforeWriteLog(callback: (String) -> Unit) {
+    override fun beforeWriteLog(callback: (LogEntry) -> Unit) {
         beforeWriteLogCallbacks = callback
     }
 

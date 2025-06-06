@@ -5,6 +5,7 @@ import `in`.aicortex.iso8583studio.data.clone
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.ResponseField
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -18,6 +19,30 @@ object PlaceholderProcessor {
 
     val holdersList = listOf("[SV]", "[TIME]", "[RAND]")
 
+
+    /**
+     * Processes placeholders in transaction fields
+     * @param responseFields List of ResponseField containing transaction fields to process
+     * @param requestTransaction Optional array of BitAttribute representing request transaction for [SV] placeholder
+     * @return Array of BitAttribute with processed placeholders
+     */
+    fun processPlaceholders(
+        responseFields: List<ResponseField>,
+        requestTransaction: MutableMap<String?, String?>? = null
+    ): MutableMap<String?, String?> {
+
+        val processedFields = mutableMapOf<String?, String?>()
+
+        responseFields.forEachIndexed { index, field ->
+            // Create a deep copy of the field
+            val requestField = requestTransaction?.get(field.targetKey)
+            val processedValue = processFieldValue(source = requestField ?: "<Error: No value>",
+                originalValue = field.value)
+            processedFields.put(field.targetKey, processedValue ?: field.value)
+        }
+
+        return processedFields
+    }
 
     /**
      * Alternative method that explicitly takes and returns copies
@@ -53,6 +78,26 @@ object PlaceholderProcessor {
         }.toTypedArray()
     }
 
+    /**
+     * Processes a single field value for placeholders
+     */
+    private fun processFieldValue(
+        source: String,
+        originalValue: String,
+    ): String? {
+        return when {
+            originalValue.equals("[SV]", ignoreCase = true) -> {
+                source
+            }
+            originalValue.equals("[TIME]", ignoreCase = true) -> {
+                processTimeValue(6)
+            }
+            originalValue.equals("[RAND]", ignoreCase = true) -> {
+                processRandomValue(12)
+            }
+            else -> originalValue // No placeholder found, return original value
+        }
+    }
 
 
     /**

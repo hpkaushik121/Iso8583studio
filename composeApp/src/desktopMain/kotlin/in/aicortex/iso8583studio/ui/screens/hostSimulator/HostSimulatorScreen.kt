@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,6 +51,8 @@ import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.rememberIsoCoroutineScope
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -143,7 +146,7 @@ fun HostSimulator(
     var request by remember { mutableStateOf("") }
     var rawResponse by remember { mutableStateOf("") }
     var response by remember { mutableStateOf("") }
-    var logText by remember { mutableStateOf("") }
+    val logText = remember { mutableStateListOf<LogEntry>() }
 
     var waitingRemain by remember { mutableStateOf("0") }
     var sendHoldMessage by remember { mutableStateOf(true) }
@@ -205,7 +208,7 @@ fun HostSimulator(
     }
 
     gw.beforeWriteLog {
-        logText += it + "\n"
+        logText.add(it)
     }
 
     // Handle hold message countdown
@@ -356,8 +359,8 @@ fun HostSimulator(
                 )
 
                 HostSimulatorTabs.LOGS -> LogTab(
-                    logText = logText,
-                    onClearClick = { logText = "" },
+                    logEntries = logText,
+                    onClearClick = { logText.clear() },
                     connectionCount = connectionCount.get(),
                     bytesIncoming = bytesIncoming.get().toLong(),
                     bytesOutgoing = bytesOutgoing.get().toLong(),
@@ -380,8 +383,8 @@ fun HostSimulator(
 
                 HostSimulatorTabs.SEND_MESSAGE -> SendMessageTab(
                     gw = gw,
-                    logText = logText,
-                    onClearClick = { logText = "" },
+                    logText = "",
+                    onClearClick = { logText.clear() },
                 )
 
 

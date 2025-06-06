@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -27,7 +29,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,8 +57,11 @@ import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.service.SimulatedRequest
 import `in`.aicortex.iso8583studio.domain.utils.ExportResult
 import `in`.aicortex.iso8583studio.domain.utils.FileExporter
+import `in`.aicortex.iso8583studio.domain.utils.concatPathAndQuery
+import `in`.aicortex.iso8583studio.domain.utils.parsePathAndQuery
 import `in`.aicortex.iso8583studio.ui.screens.components.FieldInformationDialog
 import `in`.aicortex.iso8583studio.ui.screens.components.LabeledSwitch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -83,6 +92,7 @@ data class RestApiMatching(
 data class PathMatching(
     val enabled: Boolean = false,
     val path: String = "",
+    val query:  Map<String, String>? = null,
     val method: String = "POST",
     val exactMatch: Boolean = true
 )
@@ -102,9 +112,8 @@ data class ResponseMapping(
 
 @Serializable
 data class ResponseField(
-    val sourceField: String,
+    val value: String,
     val targetKey: String? = null,
-    val targetNestedKey: String? = null,
     val targetHeader: String? = null,
 )
 
@@ -221,13 +230,16 @@ fun ISO8583SettingsScreen(
                 selectedTab = selectedTab,
                 onTabChange = { selectedTab = it },
                 gw = gw.configuration,
-                onTransactionUpdated = { updatedTransaction ->
+                onTransactionUpdated = { updatedTransaction,isRecompose ->
                     val index = transactions.indexOfFirst { it.id == updatedTransaction.id }
                     if (index != -1) {
                         transactions[index] = updatedTransaction
                         selectedTransaction = updatedTransaction
-                        fieldChangeCounter++ // FIX 3: Increment counter on field changes
+                        if(isRecompose){
+                            fieldChangeCounter++ // FIX 3: Increment counter on field changes
+                        }
                     }
+                    stageTransactions()
                 },
                 fieldChangeCounter = fieldChangeCounter // FIX 4: Pass counter to force recomposition
             )
@@ -782,7 +794,7 @@ private fun EnhancedFieldPanel(
     selectedTab: Int,
     onTabChange: (Int) -> Unit,
     gw: GatewayConfig,
-    onTransactionUpdated: (Transaction) -> Unit,
+    onTransactionUpdated: (Transaction, Boolean) -> Unit,
     fieldChangeCounter: Int = 0 // FIX 6: Add field change counter parameter
 ) {
     Card(
@@ -824,14 +836,14 @@ private fun EnhancedFieldPanel(
                         0 -> FieldsTab(
                             transaction = selectedTransaction,
                             gw = gw,
-                            onTransactionUpdated = onTransactionUpdated,
+                            onTransactionUpdated = { onTransactionUpdated(it,true)},
                             fieldChangeCounter = fieldChangeCounter // FIX 8: Pass counter down
                         )
 
                         1 -> ConfigurationTab(selectedTransaction)
                         2 -> ApiConfigurationTab(
                             transaction = selectedTransaction,
-                            onTransactionUpdated = onTransactionUpdated
+                            onTransactionUpdated =  { onTransactionUpdated(it,false)}
                         )
                     }
                 }
@@ -1945,17 +1957,9 @@ private fun PathMatchingSection(
             }
 
             // Path Input
-            OutlinedTextField(
-                value = pathMatching.path,
-                onValueChange = {
-                    onPathMatchingChange(pathMatching.copy(path = it))
-                },
-                label = { Text("API Path") },
-                placeholder = { Text("/api/payment or /transactions/*") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = {
-                    Icon(Icons.Default.Link, contentDescription = "Path")
-                }
+            PathTextFieldWithDebounce(
+                pathMatching = pathMatching,
+                onPathMatchingChange = onPathMatchingChange
             )
 
             // Exact Match Toggle
@@ -1977,6 +1981,90 @@ private fun PathMatchingSection(
         }
     }
 }
+// Alternative approach using a debounced parsing strategy
+@Composable
+fun PathTextFieldWithDebounce(
+    pathMatching: PathMatching,
+    onPathMatchingChange: (PathMatching) -> Unit,
+    modifier: Modifier = Modifier,
+    debounceDelayMs: Long = 500L // Wait 500ms after user stops typing
+) {
+    var textFieldValue by remember {
+        mutableStateOf(TextFieldValue(
+            text = concatPathAndQuery(pathMatching.path, pathMatching.query),
+            selection = TextRange.Zero
+        ))
+    }
+
+    // Debounced parsing effect
+    LaunchedEffect(textFieldValue.text) {
+        delay(debounceDelayMs)
+
+        // Only parse if the text hasn't changed during the delay
+        val currentText = textFieldValue.text
+        if (currentText == textFieldValue.text) {
+            val (path, query) = parsePathAndQuery(currentText.trim())
+            onPathMatchingChange(pathMatching.copy(
+                path = path ?: "",
+                query = query
+            ))
+        }
+    }
+
+    // Update local state when external pathMatching changes
+    LaunchedEffect(pathMatching) {
+        val newText = concatPathAndQuery(pathMatching.path, pathMatching.query)
+        if (textFieldValue.text != newText) {
+            textFieldValue = textFieldValue.copy(text = newText)
+        }
+    }
+
+    OutlinedTextField(
+        value = textFieldValue,
+        onValueChange = { newValue ->
+            textFieldValue = newValue
+        },
+        label = { Text("API Path") },
+        placeholder = { Text("/api/payment?amount=100&currency=USD") },
+        modifier = modifier.fillMaxWidth(),
+        leadingIcon = {
+            Icon(Icons.Default.Link, contentDescription = "Path")
+        },
+        trailingIcon = {
+            if (textFieldValue.text.isNotEmpty()) {
+                IconButton(
+                    onClick = {
+                        textFieldValue = TextFieldValue("")
+                        onPathMatchingChange(pathMatching.copy(path = "", query = null))
+                    }
+                ) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                }
+            }
+        },
+        isError = textFieldValue.text.isNotEmpty() && !isValidPathFormat(textFieldValue.text),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Uri,
+            imeAction = ImeAction.Done,
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = {
+                // Force immediate parsing when user is done
+                val (path, query) = parsePathAndQuery(textFieldValue.text.trim())
+                onPathMatchingChange(pathMatching.copy(
+                    path = path ?: "",
+                    query = query
+                ))
+            }
+        )
+    )
+}
+
+// Utility function to validate path format without parsing
+private fun isValidPathFormat(text: String): Boolean {
+    return text.startsWith("/") && !text.contains("//") && !text.contains(" ")
+}
+
 
 @Composable
 private fun KeyValueMatchersSection(
@@ -2074,14 +2162,7 @@ private fun KeyValueMatcherRow(
             }
 
             // Key input
-            OutlinedTextField(
-                value = matcher.key,
-                onValueChange = { onMatcherChange(matcher.copy(key = it)) },
-                label = { Text("Key Path") },
-                placeholder = { Text("e.g., transaction.type") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2089,6 +2170,14 @@ private fun KeyValueMatcherRow(
             ) {
                 // Operator selection
                 var operatorExpanded by remember { mutableStateOf(false) }
+                OutlinedTextField(
+                    value = matcher.key,
+                    onValueChange = { onMatcherChange(matcher.copy(key = it)) },
+                    label = { Text("Key Path") },
+                    placeholder = { Text("e.g., transaction.type") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
 
                 Box(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                     OutlinedButton(
@@ -2162,7 +2251,7 @@ private fun ResponseFieldsSection(
                 onClick = {
                     onResponseFieldsChange(
                         responseFields + ResponseField(
-                            sourceField = "",
+                            value = "",
                             targetKey = "",
                         )
                     )
@@ -2234,15 +2323,6 @@ private fun ResponseFieldRow(
                 }
             }
 
-// Source field
-            OutlinedTextField(
-                value = responseField.sourceField,
-                onValueChange = { onResponseFieldChange(responseField.copy(sourceField = it)) },
-                label = { Text("Source Field") },
-                placeholder = { Text("e.g., field2, request.header.messageType") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2252,18 +2332,18 @@ private fun ResponseFieldRow(
                 OutlinedTextField(
                     value = responseField.targetKey ?: "",
                     onValueChange = { onResponseFieldChange(responseField.copy(targetKey = it.takeIf { it.isNotBlank() })) },
-                    label = { Text("Target Key") },
-                    placeholder = { Text("e.g., responseCode") },
+                    label = { Text("Key Path") },
+                    placeholder = { Text("e.g., header.mti") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
 
                 // Target nested key
                 OutlinedTextField(
-                    value = responseField.targetNestedKey ?: "",
-                    onValueChange = { onResponseFieldChange(responseField.copy(targetNestedKey = it.takeIf { it.isNotBlank() })) },
-                    label = { Text("Target Nested Key") },
-                    placeholder = { Text("e.g., header.responseCode") },
+                    value = responseField.value,
+                    onValueChange = { onResponseFieldChange(responseField.copy(value = it)) },
+                    label = { Text("Value") },
+                    placeholder = { Text("e.g., 00000, [SV]") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )

@@ -15,6 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.logging.ISO8583Colors
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.logging.SampleLogEntries
 import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
@@ -30,17 +34,7 @@ fun MonitorScreen(
     onBack: () -> Unit
 ) {
     // Mock data for demonstration purposes
-    val mockLogs = remember {
-        mutableStateListOf(
-            LogEntry("2024-05-21 10:15:23", "Connection established", LogLevel.INFO),
-            LogEntry("2024-05-21 10:15:24", "Client connected: 192.168.1.45", LogLevel.INFO),
-            LogEntry("2024-05-21 10:15:28", "Received transaction request: 0200", LogLevel.TRANSACTION),
-            LogEntry("2024-05-21 10:15:28", "Processing transaction...", LogLevel.INFO),
-            LogEntry("2024-05-21 10:15:29", "Transaction approved: 000000", LogLevel.SUCCESS),
-            LogEntry("2024-05-21 10:15:35", "Received invalid message format", LogLevel.WARNING),
-            LogEntry("2024-05-21 10:15:40", "Connection timeout with client 192.168.1.50", LogLevel.ERROR)
-        )
-    }
+
 
     // Stats for demonstration
     var connectionCount by remember { mutableStateOf(3) }
@@ -244,7 +238,7 @@ fun MonitorScreen(
                         .padding(8.dp),
                     reverseLayout = true
                 ) {
-                    items(mockLogs) { log ->
+                    items(SampleLogEntries.getTypicalTransactionFlow()) { log ->
                         LogEntryRow(log)
                         Divider(
                             color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
@@ -310,15 +304,6 @@ private fun StatCard(
     }
 }
 
-enum class LogLevel {
-    INFO, TRANSACTION, SUCCESS, WARNING, ERROR
-}
-
-data class LogEntry(
-    val timestamp: String,
-    val message: String,
-    val level: LogLevel
-)
 
 @Composable
 private fun LogEntryRow(log: LogEntry) {
@@ -337,14 +322,34 @@ private fun LogEntryRow(log: LogEntry) {
         )
 
         // Level indicator
-        val (color, icon) = when (log.level) {
-            LogLevel.INFO -> Pair(Color.Gray, Icons.Default.Info)
-            LogLevel.TRANSACTION -> Pair(PrimaryBlue, Icons.Default.CompareArrows)
-            LogLevel.SUCCESS -> Pair(SuccessGreen, Icons.Default.CheckCircle)
-            LogLevel.WARNING -> Pair(WarningYellow, Icons.Default.Warning)
-            LogLevel.ERROR -> Pair(ErrorRed, Icons.Default.Error)
-        }
+        val (color, icon) = when (log.type) {
+            LogType.INFO -> Pair(ISO8583Colors.InfoBlue, Icons.Default.Info)
+            LogType.WARNING -> Pair(ISO8583Colors.WarningOrange, Icons.Default.Warning)
+            LogType.ERROR -> Pair(ISO8583Colors.ErrorRed, Icons.Default.Error)
+            LogType.VERBOSE -> Pair(ISO8583Colors.VerboseGrey, Icons.Default.Visibility)
+            LogType.DEBUG -> Pair(ISO8583Colors.DebugBrown, Icons.Default.BugReport)
+            LogType.TRACE -> Pair(ISO8583Colors.TraceLightGrey, Icons.Default.Timeline)
 
+            LogType.TRANSACTION -> Pair(ISO8583Colors.TransactionBlue, Icons.Default.SwapHoriz)
+            LogType.AUTHORIZATION -> Pair(ISO8583Colors.AuthGreen, Icons.Default.VerifiedUser)
+            LogType.SETTLEMENT -> Pair(ISO8583Colors.SettlementTeal, Icons.Default.AccountBalance)
+            LogType.REVERSAL -> Pair(ISO8583Colors.ReversalOrange, Icons.Default.Undo)
+
+            LogType.SECURITY -> Pair(ISO8583Colors.SecurityPurple, Icons.Default.Security)
+            LogType.ENCRYPTION -> Pair(ISO8583Colors.EncryptionPink, Icons.Default.Lock)
+            LogType.HSM -> Pair(ISO8583Colors.HSMDeepPurple, Icons.Default.Hardware)
+
+            LogType.CONNECTION -> Pair(ISO8583Colors.ConnectionPurple, Icons.Default.Router)
+            LogType.SOCKET -> Pair(ISO8583Colors.SocketIndigo, Icons.Default.Cable)
+            LogType.PROTOCOL -> Pair(ISO8583Colors.ProtocolBlue, Icons.Default.Lan)
+
+            LogType.MESSAGE -> Pair(ISO8583Colors.MessageDarkBlue, Icons.Default.Message)
+            LogType.FIELD -> Pair(ISO8583Colors.FieldGreen, Icons.Default.DataObject)
+            LogType.BITMAP -> Pair(ISO8583Colors.BitmapLime, Icons.Default.GridOn)
+
+            LogType.PERFORMANCE -> Pair(ISO8583Colors.PerformanceOrange, Icons.Default.Speed)
+            LogType.METRICS -> Pair(ISO8583Colors.MetricsLightBlue, Icons.Default.Analytics)
+        }
         Icon(
             imageVector = icon,
             contentDescription = null,

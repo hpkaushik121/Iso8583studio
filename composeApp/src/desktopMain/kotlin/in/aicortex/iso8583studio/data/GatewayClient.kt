@@ -1,12 +1,18 @@
 package `in`.aicortex.iso8583studio.data
 
 import RestEnabledGatewayHandler
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import `in`.aicortex.iso8583studio.data.model.CipherType
+import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
 import `in`.aicortex.iso8583studio.data.model.EDialupStatus
 import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import `in`.aicortex.iso8583studio.data.model.GatewayMessageType
 import `in`.aicortex.iso8583studio.data.model.GatewayType
+import `in`.aicortex.iso8583studio.data.model.HttpInfo
 import `in`.aicortex.iso8583studio.data.model.LoggingOption
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.SignatureChecking
@@ -34,11 +40,14 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import java.net.Socket
 import java.net.SocketException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import kotlin.collections.getValue
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 class GatewayClient {
@@ -821,13 +830,13 @@ class GatewayClient {
         if (isFirst) {
             writeServerLog("====================SENT TO SOURCE======================")
             val gType = gatewayHandler?.configuration?.gatewayType
-            val requestIso = parseData(input,
+            val incomingIso = parseData(input,
                 !(gType == GatewayType.PROXY || gType == GatewayType.CLIENT)
             )
             val modifiedISO = if(!(gType == GatewayType.PROXY || gType == GatewayType.CLIENT)){
-                requestIso
+                incomingIso
             }else{
-                convertToDest(requestIso)
+                convertToDest(incomingIso)
             }
             var modifiedInput = modifiedISO?.pack()
             writeServerLog(modifiedISO?.logFormat() ?: "")
@@ -845,12 +854,24 @@ class GatewayClient {
                 }
 
                 ConnectionType.REST -> {
-                    val httpHeader =  """HTTP/1.1 200 OK${"\r\n"}Content-Type: application/json${"\r\n"}Content-Length: ${modifiedInput!!.size}${"\r\n"}Connection: close${"\r\n"}${"\r\n"}"""
-                    writeServerLog(httpHeader)
+                    val httpResponse = StringBuilder()
+                    if (modifiedISO?.httpInfo !=null){
+                        if (modifiedISO.httpInfo?.version != null) {
+                            httpResponse.append(modifiedISO.httpInfo?.version ?: "HTTP/1.1")
+                        }
+                        httpResponse.append(" 200 OK${"\r\n"}")
+                        modifiedISO.httpInfo?.headers?.forEach {
+                            httpResponse.append("${it.key}: ${it.value}${"\r\n"}")
+                        }
+                        httpResponse.append("Content-Length: ${modifiedInput?.size ?: 0}${"\r\n"}")
+                        httpResponse.append("Connection: close${"\r\n"}${"\r\n"}")
+
+                    }
+                    val httpHeader = httpResponse.toString()
                     val headerByteArray = httpHeader.toByteArray(Charsets.UTF_8)
                     firstConnection?.getOutputStream()
                         ?.write(headerByteArray, 0, headerByteArray.size)
-                    firstConnection?.getOutputStream()?.write(modifiedInput, 0, modifiedInput.size)
+                    firstConnection?.getOutputStream()?.write(modifiedInput, 0, modifiedInput?.size ?: 0)
                     firstConnection?.getOutputStream()?.flush()
                 }
 
@@ -871,17 +892,17 @@ class GatewayClient {
             writeServerLog("SENT BACK TO SOURCE ${input.size} BYTES")
             status = TransactionStatus.SUCCESSFUL
             m_TotalTransmission++
-            onSentToSource?.invoke(requestIso)
+            onSentToSource?.invoke(modifiedISO)
         } else {
             writeServerLog("====================SENT TO DESTINATION======================")
             val gType = gatewayHandler?.configuration?.gatewayType
-            val requestIso = parseData(input,
+            val incomingIso = parseData(input,
                 (gType == GatewayType.PROXY || gType == GatewayType.CLIENT)
             )
             val modifiedISO = if(!(gType == GatewayType.PROXY || gType == GatewayType.CLIENT)){
-                requestIso
+                incomingIso
             }else{
-                convertToDest(requestIso)
+                convertToDest(incomingIso)
             }
             var modifiedInput = modifiedISO?.pack()
             writeServerLog(modifiedISO?.logFormat() ?: "")
@@ -908,6 +929,28 @@ class GatewayClient {
                         secondConnection?.getOutputStream()
                             ?.write(modifiedInput, 0, modifiedInput!!.size)
                     }
+                }
+
+                ConnectionType.REST -> {
+                    val httpResponse = StringBuilder()
+                    if (modifiedISO?.httpInfo !=null){
+                        if (modifiedISO.httpInfo?.version != null) {
+                            httpResponse.append(modifiedISO.httpInfo?.version ?: "HTTP/1.1")
+                        }
+                        httpResponse.append(" 200 OK${"\r\n"}")
+                        modifiedISO.httpInfo?.headers?.forEach {
+                            httpResponse.append("${it.key}: ${it.value}${"\r\n"}")
+                        }
+                        httpResponse.append("Content-Length: ${modifiedInput?.size ?: 0}${"\r\n"}")
+                        httpResponse.append("Connection: keep-alive${"\r\n"}${"\r\n"}")
+
+                    }
+                    val httpHeader = httpResponse.toString()
+                    val headerByteArray = httpHeader.toByteArray(Charsets.UTF_8)
+                    firstConnection?.getOutputStream()
+                        ?.write(headerByteArray, 0, headerByteArray.size)
+                    firstConnection?.getOutputStream()?.write(modifiedInput, 0, modifiedInput?.size ?: 0)
+                    firstConnection?.getOutputStream()?.flush()
                 }
 
                 ConnectionType.COM -> {
@@ -1332,6 +1375,27 @@ class GatewayClient {
                 )
             }
             iso8583Data?.rawMessage = input
+            try {
+                if(gatewayHandler?.configuration?.getFormatMappingConfig(isFirst)?.formatType == CodeFormat.XML){
+                    val xmlMapper = XmlMapper()
+                    val xmlNode = xmlMapper.readTree(String(input))
+                    iso8583Data?.httpInfo = Json.decodeFromString(xmlNode.get("HTTP_INFO_STUDIO").asText())
+                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "")
+                }else if (gatewayHandler?.configuration?.getFormatMappingConfig(isFirst)?.formatType == CodeFormat.JSON){
+                    val objectMapper = ObjectMapper().apply {
+                        configure(JsonParser.Feature.ALLOW_COMMENTS, true)
+                        configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+                        configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+                        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    }
+                    val jsonNode = objectMapper.readTree(String(input))
+                    iso8583Data?.httpInfo = Json.decodeFromString(jsonNode.get("HTTP_INFO_STUDIO").asText())
+                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "")
+                }
+
+            }catch (e: Exception){
+                //skipping if failed
+            }
 
 
             iso8583Data?.emvShowOptions =

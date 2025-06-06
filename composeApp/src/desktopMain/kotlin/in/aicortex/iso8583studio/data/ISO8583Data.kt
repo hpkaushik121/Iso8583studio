@@ -1,21 +1,20 @@
 package `in`.aicortex.iso8583studio.data
 
-import androidx.compose.material.Text
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
+import `in`.aicortex.iso8583studio.data.model.HttpInfo
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.ParsingFeature
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.utils.packWithFormat
 import `in`.aicortex.iso8583studio.domain.utils.unpackFromFormat
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.BitmapField
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.net.Socket
 import java.nio.charset.Charset
@@ -28,7 +27,7 @@ import java.time.temporal.ChronoUnit
 data class Iso8583Data(
     val config: GatewayConfig,
     val isFirst: Boolean = true,
-    private var m_MessageType: String = "0200",
+    private var m_MessageType: String = "",
     protected var m_BitAttributes: Array<BitAttribute> = Array(MAX_BITS) { BitAttribute() },
     private var m_TPDU: TPDU = TPDU(),
     private var buffer: ByteArray = ByteArray(MAX_PACKAGE_SIZE),
@@ -479,6 +478,8 @@ data class Iso8583Data(
      */
     var rawMessage: ByteArray = byteArrayOf()
     var bitmap: ByteArray? = byteArrayOf()
+    var otherKAttributes: MutableMap<String?,String?> = mutableMapOf()
+    var httpInfo: HttpInfo? = null
 
     /**
      * Unpack ISO 8583 message
@@ -486,7 +487,7 @@ data class Iso8583Data(
     fun unpack(input: ByteArray) = unpackFromFormat(
         inputData = input,
         inputFormat = config.codeFormatSource ?: CodeFormat.BYTE_ARRAY,
-        mappingConfig = config.formatMappingConfigSource
+        mappingConfig = config.getFormatMappingConfig(isFirst)
     )
 
     /**
@@ -517,6 +518,41 @@ data class Iso8583Data(
      */
     fun logFormat(endBits: Int): String {
         val sb = StringBuilder()
+        when (config.getFormatMappingConfig(isFirst).formatType){
+            CodeFormat.HEX,
+            CodeFormat.BYTE_ARRAY-> prepareLogFormatByteArray(sb,endBits)
+            CodeFormat.XML,
+            CodeFormat.JSON,
+            CodeFormat.PLAIN_TEXT-> prepareLogFormatString(sb, endBits)
+        }
+
+
+        return sb.toString()
+    }
+
+    private fun prepareLogFormatString(builder: StringBuilder, endBits: Int) {
+        if (httpInfo !=null){
+            if (httpInfo?.version != null) {
+                builder.append(httpInfo?.version ?: "HTTP/1.1")
+            }
+            builder.append(" 200 OK${"\r\n"}")
+            httpInfo?.headers?.forEach {
+                builder.append("${it.key}: ${it.value}${"\r\n"}")
+            }
+            builder.append("Content-Length: ${rawMessage.size}${"\r\n"}")
+            builder.append("Connection: close${"\r\n"}${"\r\n"}")
+
+        }
+        val message = String(rawMessage)
+        val splitByN = message.split("\n")
+        splitByN.forEach {
+            if (it.isNotBlank()) {
+                builder.append(it.trim()).append("\r\n")
+            }
+        }
+    }
+
+    private fun prepareLogFormatByteArray(sb: StringBuilder, endBits: Int) {
         sb.append("Message Type = $m_MessageType\r\n")
         if (hasHeader) {
             sb.append("TPDU Header = ${IsoUtil.bcdToString(tpduHeader.rawTPDU)}\r\n")
@@ -542,8 +578,6 @@ data class Iso8583Data(
                 }
             }
         }
-
-        return sb.toString()
     }
 
     fun getValue(index: Int): String? {
@@ -586,6 +620,8 @@ data class Iso8583Data(
         if (tpduHeader != other.tpduHeader) return false
         if (messageType != other.messageType) return false
         if (!rawMessage.contentEquals(other.rawMessage)) return false
+        if (!bitmap.contentEquals(other.bitmap)) return false
+        if (otherKAttributes != other.otherKAttributes) return false
 
         return true
     }
@@ -610,6 +646,8 @@ data class Iso8583Data(
         result = 31 * result + tpduHeader.hashCode()
         result = 31 * result + messageType.hashCode()
         result = 31 * result + rawMessage.contentHashCode()
+        result = 31 * result + bitmap.contentHashCode()
+        result = 31 * result + otherKAttributes.hashCode()
         return result
     }
 
