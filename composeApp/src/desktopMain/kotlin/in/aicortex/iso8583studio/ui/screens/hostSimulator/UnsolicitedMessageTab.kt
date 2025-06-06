@@ -94,7 +94,7 @@ fun UnsolicitedMessageTab(
                 gw = gw
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
 
 
@@ -181,12 +181,12 @@ fun UnsolicitedMessageTab(
 
             }
 
-            if (showMessageParser.value) Spacer(modifier = Modifier.height(16.dp))
+            if (showMessageParser.value) Spacer(modifier = Modifier.height(8.dp))
 
 
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
 
                 Column(
@@ -198,7 +198,7 @@ fun UnsolicitedMessageTab(
                         fieldCount = currentFields.value?.count { it.isSet } ?: 0,
                         modifier = Modifier.fillMaxWidth())
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
 
 
@@ -297,7 +297,7 @@ fun ProfessionalHeader(
         modifier = Modifier.fillMaxWidth(),
         backgroundColor = MaterialTheme.colors.surface,
         elevation = 12.dp,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
 
         Column(modifier = Modifier.padding(20.dp)) {
@@ -500,73 +500,7 @@ fun EnhancedFilterChip(
     }
 }
 
-@Composable
-fun StatusIndicator(status: ParseStatus, fieldCount: Int) {
-    val (color, icon, text) = when (status) {
-        ParseStatus.SUCCESS -> Triple(Color(0xFF4CAF50), Icons.Default.CheckCircle, "Valid")
-        ParseStatus.WARNING -> Triple(Color(0xFFFF9800), Icons.Default.Warning, "Warning")
-        ParseStatus.ERROR -> Triple(Color(0xFFF44336), Icons.Default.Error, "Error")
-    }
 
-    Card(
-        backgroundColor = color.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = color,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "$fieldCount Fields", style = MaterialTheme.typography.caption.copy(
-                    color = color, fontWeight = FontWeight.Medium
-                )
-            )
-        }
-    }
-}
-
-
-@Composable
-fun StatCard(title: String, value: String, subtitle: String, icon: ImageVector, color: Color) {
-    Card(
-        backgroundColor = color.copy(alpha = 0.08f),
-        shape = RoundedCornerShape(12.dp),
-        elevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp).width(75.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = color,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = value, style = MaterialTheme.typography.h5.copy(
-                    fontWeight = FontWeight.Bold, color = color
-                )
-            )
-            Text(
-                text = title, style = MaterialTheme.typography.caption.copy(
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                )
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.caption.copy(color = color, fontSize = 10.sp)
-            )
-        }
-    }
-}
 
 @Composable
 fun SearchAndFilterBar(
@@ -579,7 +513,7 @@ fun SearchAndFilterBar(
         modifier = modifier,
         backgroundColor = MaterialTheme.colors.surface,
         elevation = 4.dp,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
@@ -638,7 +572,7 @@ fun EnhancedMessageParserCard(
         modifier = modifier,
         backgroundColor = MaterialTheme.colors.surface,
         elevation = 8.dp,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -928,93 +862,6 @@ fun EnhancedMessageParserCard(
 }
 
 @Composable
-fun EnhancedSampleMessageCard(
-    name: String, icon: ImageVector, message: String, onClick: () -> Unit
-) {
-    var isHovered by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        backgroundColor = if (isHovered) MaterialTheme.colors.primary.copy(alpha = 0.08f) else MaterialTheme.colors.surface,
-        elevation = if (isHovered) 4.dp else 2.dp,
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
-        ) {
-            Card(
-                backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.12f),
-                shape = CircleShape
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = name,
-                    tint = MaterialTheme.colors.primary,
-                    modifier = Modifier.padding(8.dp).size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.subtitle2.copy(fontWeight = FontWeight.Medium)
-                )
-                Text(
-                    text = "${message.length / 2} bytes",
-                    style = MaterialTheme.typography.caption.copy(
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                    )
-                )
-            }
-
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = "Load",
-                tint = MaterialTheme.colors.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-
-@Composable
-fun EnhancedDetailItem(
-    label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Card(
-            backgroundColor = color.copy(alpha = 0.12f), shape = CircleShape, elevation = 2.dp
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = color,
-                modifier = Modifier.padding(8.dp).size(16.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = value, style = MaterialTheme.typography.body2.copy(
-                fontWeight = FontWeight.Bold,
-                fontFamily = if (label == "MTI" || label == "Size" || label == "Time") FontFamily.Monospace else FontFamily.Default
-            )
-        )
-        Text(
-            text = label, style = MaterialTheme.typography.caption.copy(
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-            )
-        )
-    }
-}
-
-@Composable
 fun EnhancedBitmapAnalysisCard(
     bitmap: ByteArray?,
     bitmapFields: List<BitmapField>, presentFields: List<Int>, modifier: Modifier = Modifier
@@ -1025,7 +872,7 @@ fun EnhancedBitmapAnalysisCard(
             modifier = modifier,
             backgroundColor = MaterialTheme.colors.surface,
             elevation = 8.dp,
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(8.dp)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1074,7 +921,7 @@ fun EnhancedBitmapAnalysisCard(
 
                 Card(
                     backgroundColor = MaterialTheme.colors.background.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -1297,7 +1144,7 @@ fun EnhancedFieldsListCard(
         modifier = modifier,
         backgroundColor = MaterialTheme.colors.surface,
         elevation = 8.dp,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1350,7 +1197,7 @@ fun EnhancedFieldsListCard(
                 if (filteredFields.isEmpty() && searchQuery.isNotEmpty()) {
                     Card(
                         backgroundColor = MaterialTheme.colors.background.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -1399,7 +1246,7 @@ fun EnhancedFieldItem(
     Card(
         modifier = modifier.clickable { onClick() },
 
-        shape = RoundedCornerShape(12.dp), border = if (isSelected) BorderStroke(
+        shape = RoundedCornerShape(8.dp), border = if (isSelected) BorderStroke(
             2.dp, MaterialTheme.colors.primary.copy(alpha = 0.3f)
         ) else null
     ) {
@@ -1540,7 +1387,7 @@ fun EnhancedFieldDetailsPanel(
         modifier = modifier,
         backgroundColor = MaterialTheme.colors.surface,
         elevation = 8.dp,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
             if (selectedField != null) {
@@ -1575,7 +1422,7 @@ fun EnhancedFieldDetailContent(
         modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Card(
-            shape = RoundedCornerShape(16.dp), elevation = 4.dp
+            shape = RoundedCornerShape(8.dp), elevation = 4.dp
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
@@ -1586,7 +1433,7 @@ fun EnhancedFieldDetailContent(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Card(
                             backgroundColor = MaterialTheme.colors.primary,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = "F${selectedFieldIndex?.plus(1) ?: "__"}",
@@ -1681,7 +1528,7 @@ fun EnhancedFieldDetailContent(
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     backgroundColor = MaterialTheme.colors.background.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     elevation = 2.dp
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -1786,7 +1633,7 @@ fun EnhancedDetailSection(
     Card(
         backgroundColor = MaterialTheme.colors.surface,
         elevation = 4.dp,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -1831,7 +1678,7 @@ fun EnhancedEMVTagCard(tag: EMVTag) {
 
     Card(
         elevation = 2.dp,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

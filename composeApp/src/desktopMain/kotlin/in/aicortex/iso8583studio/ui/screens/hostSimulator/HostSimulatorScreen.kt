@@ -248,11 +248,19 @@ fun HostSimulator(
 
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList =
-        if (gw.configuration.gatewayType in listOf(GatewayType.PROXY, GatewayType.CLIENT)) {
+        if (gw.configuration.gatewayType == GatewayType.PROXY) {
             listOf(
                 HostSimulatorTabs.HOST_HANDLER,
                 HostSimulatorTabs.LOGS,
                 HostSimulatorTabs.SETTINGS,
+                HostSimulatorTabs.TEMPLATE,
+                HostSimulatorTabs.SEND_MESSAGE,
+                HostSimulatorTabs.UNPACK_MESSAGE
+            )
+        } else if (gw.configuration.gatewayType == GatewayType.CLIENT){
+            listOf(
+                HostSimulatorTabs.HOST_HANDLER,
+                HostSimulatorTabs.LOGS,
                 HostSimulatorTabs.TEMPLATE,
                 HostSimulatorTabs.SEND_MESSAGE,
                 HostSimulatorTabs.UNPACK_MESSAGE

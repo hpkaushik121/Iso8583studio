@@ -21,12 +21,15 @@ import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.domain.utils.Utils
+import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.components.PrimaryButton
 import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
 import `in`.aicortex.iso8583studio.ui.screens.components.SectionHeader
 import `in`.aicortex.iso8583studio.ui.screens.components.StyledTextField
+import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentBanner
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
+import org.jetbrains.exposed.v1.core.Column
 import org.springframework.security.crypto.codec.Hex
 
 /**
@@ -83,7 +86,8 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                         },
                         title = "Client",
                         icon = Icons.Default.SettingsInputComponent,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        isUnderDevelopment = true
                     )
 
                     GatewayTypeOption(
@@ -91,7 +95,8 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                         onSelect = { onConfigChange(config.copy(gatewayType = GatewayType.PROXY)) },
                         title = "Proxy",
                         icon = Icons.Default.Router,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        isUnderDevelopment = true
                     )
                 }
             }
@@ -343,7 +348,8 @@ private fun GatewayTypeOption(
     onSelect: () -> Unit,
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isUnderDevelopment: Boolean = false
 ) {
     Surface(
         modifier = modifier
@@ -357,6 +363,14 @@ private fun GatewayTypeOption(
         border = ButtonDefaults.outlinedBorder,
         color = if (selected) MaterialTheme.colors.primary else MaterialTheme.colors.surface
     ) {
+        if(isUnderDevelopment){
+            Column(
+                modifier = Modifier.padding(15.dp)
+            ) {
+                UnderDevelopmentChip(status = DevelopmentStatus.UNDER_DEVELOPMENT,
+                    modifier = Modifier.width(30.dp))
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()

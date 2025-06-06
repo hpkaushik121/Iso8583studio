@@ -174,7 +174,7 @@ fun ISO8583SettingsScreen(
 
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize()) {
         // Enhanced Header
         EnhancedHeader(
             gw = gw,
@@ -190,13 +190,13 @@ fun ISO8583SettingsScreen(
             isFirst = isFirst
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Main Content
         Row(modifier = Modifier.fillMaxSize()) {
             // Left Panel - Transaction List
             EnhancedTransactionPanel(
-                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                modifier = Modifier.weight(1f),
                 transactions = transactions,
                 selectedTransaction = selectedTransaction,
                 onTransactionSelect = {
@@ -416,7 +416,7 @@ private fun EnhancedHeader(
 ) {
     Card(
         elevation = 4.dp,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier
@@ -535,7 +535,7 @@ private fun EnhancedTransactionPanel(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column {
             // Header with stats
@@ -800,7 +800,7 @@ private fun EnhancedFieldPanel(
     Card(
         modifier = modifier,
         elevation = 6.dp,
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column {
             if (selectedTransaction != null) {

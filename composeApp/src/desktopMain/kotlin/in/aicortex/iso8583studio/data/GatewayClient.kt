@@ -872,7 +872,7 @@ class GatewayClient {
             }else{
                 convertToDest(incomingIso)
             }
-            var modifiedInput = modifiedISO?.pack()
+            var modifiedInput = modifiedISO?.pack(false)
             writeServerLog(createLogEntry(type = LogType.MESSAGE,modifiedISO?.logFormat() ?: ""))
             if (nccProcess?.isActive() == true) {
                 intToMessageLength(
@@ -938,7 +938,7 @@ class GatewayClient {
             }else{
                 convertToDest(incomingIso)
             }
-            var modifiedInput = modifiedISO?.pack()
+            var modifiedInput = modifiedISO?.pack(false)
             writeServerLog(createLogEntry(type = LogType.MESSAGE,modifiedISO?.logFormat() ?: ""))
             if (nccProcess?.isActive() == true) {
                 val lengthType = nccProcess?.get(destinationNII)?.lengthType
@@ -1419,7 +1419,7 @@ class GatewayClient {
                     val xmlMapper = XmlMapper()
                     val xmlNode = xmlMapper.readTree(String(input))
                     iso8583Data?.httpInfo = Json.decodeFromString(xmlNode.get("HTTP_INFO_STUDIO").asText())
-                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "")
+                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "", method = null)
                 }else if (gatewayHandler?.configuration?.getFormatMappingConfig(isFirst)?.formatType == CodeFormat.JSON){
                     val objectMapper = ObjectMapper().apply {
                         configure(JsonParser.Feature.ALLOW_COMMENTS, true)
@@ -1429,7 +1429,7 @@ class GatewayClient {
                     }
                     val jsonNode = objectMapper.readTree(String(input))
                     iso8583Data?.httpInfo = Json.decodeFromString(jsonNode.get("HTTP_INFO_STUDIO").asText())
-                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "")
+                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "", method = null)
                 }
 
             }catch (e: Exception){

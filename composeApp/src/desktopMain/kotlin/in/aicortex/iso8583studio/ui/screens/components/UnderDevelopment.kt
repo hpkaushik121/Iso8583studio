@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -468,7 +469,9 @@ fun UnderDevelopmentChip(
                 text = status.title,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = status.color
+                color = status.color,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1
             )
         }
     }

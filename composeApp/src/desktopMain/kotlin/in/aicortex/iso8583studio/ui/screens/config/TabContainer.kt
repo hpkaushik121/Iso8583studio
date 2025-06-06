@@ -197,28 +197,28 @@ fun TabContainer(
                     )
 
                     // Monitor and Host Simulator buttons
-                    Text(
-                        "Tools",
-                        style = MaterialTheme.typography.subtitle1,
-                        fontWeight = FontWeight.Bold
-                    )
+//                    Text(
+//                        "Tools",
+//                        style = MaterialTheme.typography.subtitle1,
+//                        fontWeight = FontWeight.Bold
+//                    )
 
-                    Button(
-                        onClick = { onOpenMonitor() },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = appState.currentConfig != null,
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = MaterialTheme.colors.primaryVariant
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MonitorHeart,
-                            contentDescription = "Monitor",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Monitor")
-                    }
+//                    Button(
+//                        onClick = { onOpenMonitor() },
+//                        modifier = Modifier.fillMaxWidth(),
+//                        enabled = appState.currentConfig != null,
+//                        colors = ButtonDefaults.buttonColors(
+//                            backgroundColor = MaterialTheme.colors.primaryVariant
+//                        )
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Default.MonitorHeart,
+//                            contentDescription = "Monitor",
+//                            modifier = Modifier.size(18.dp)
+//                        )
+//                        Spacer(modifier = Modifier.width(8.dp))
+//                        Text("Monitor")
+//                    }
 
                     Button(
                         onClick = { onOpenHostSimulator() },

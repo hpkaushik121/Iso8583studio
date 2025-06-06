@@ -270,11 +270,12 @@ data class Iso8583Data(
     /**
      * Pack message with no length type
      */
-    fun pack(): ByteArray = packWithFormat(
+    fun pack(isHttpInfo: Boolean = true): ByteArray = packWithFormat(
         outputFormat = (if (isFirst) config.codeFormatSource else config.codeFormatDest)
             ?: CodeFormat.BYTE_ARRAY,
         messageLengthType = if (isFirst) config.messageLengthTypeSource else config.messageLengthTypeDest,
-        mappingConfig = if (isFirst) config.formatMappingConfigSource else config.formatMappingConfigDest
+        mappingConfig = if (isFirst) config.formatMappingConfigSource else config.formatMappingConfigDest,
+        isHttpInfo = isHttpInfo
     )
 
     /**
@@ -531,7 +532,7 @@ data class Iso8583Data(
     }
 
     private fun prepareLogFormatString(builder: StringBuilder, endBits: Int) {
-        if (httpInfo !=null){
+        if (httpInfo !=null && httpInfo?.method == null){
             if (httpInfo?.version != null) {
                 builder.append(httpInfo?.version ?: "HTTP/1.1")
             }
@@ -546,7 +547,7 @@ data class Iso8583Data(
         val message = String(rawMessage)
         val splitByN = message.split("\n")
         splitByN.forEach {
-            if (it.isNotBlank()) {
+            if (it.isNotBlank() && !it.contains("HTTP_INFO_STUDIO")) {
                 builder.append(it.trim()).append("\r\n")
             }
         }

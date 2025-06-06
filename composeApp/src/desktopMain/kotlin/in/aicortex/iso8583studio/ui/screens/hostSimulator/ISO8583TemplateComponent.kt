@@ -90,7 +90,6 @@ fun Iso8583TemplateScreen(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -1366,7 +1365,7 @@ fun IncomingConfigurationContent(
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .padding(start = 16.dp)
+                    .padding(start = 8.dp)
             ) {
                 // Advanced options group - Source (Incoming)
                 AdvancedOptionsCard(
@@ -1383,7 +1382,7 @@ fun IncomingConfigurationContent(
                     onNotUpdateScreenChange = onNotUpdateScreenSourceChange
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Message Encoder/Decoder Section - Source
                 MessageFormatCard(
@@ -1402,7 +1401,7 @@ fun IncomingConfigurationContent(
                     source = true
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Customized message group - Source
                 CustomizedMessageCard(
@@ -1415,7 +1414,7 @@ fun IncomingConfigurationContent(
                     onFixedResponseHeaderChange = onFixedResponseHeaderSourceChange
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Bit manipulation controls for Source
                 BitManipulationControls(

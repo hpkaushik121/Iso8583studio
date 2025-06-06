@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class HttpInfo(
-    val method: HttpMethod,
+    val method: HttpMethod?=null,
     val path: String,
     val version: String = "HTTP/1.1",
     val headers: Map<String, String> = emptyMap(),

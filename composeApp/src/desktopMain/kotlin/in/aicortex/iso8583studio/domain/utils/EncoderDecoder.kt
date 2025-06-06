@@ -88,11 +88,12 @@ data class FormatSettings(
 fun Iso8583Data.packWithFormat(
     outputFormat: CodeFormat,
     messageLengthType: MessageLengthType,
-    mappingConfig: FormatMappingConfig
+    mappingConfig: FormatMappingConfig,
+    isHttpInfo: Boolean = true
 ): ByteArray {
     return when (outputFormat) {
-        CodeFormat.JSON -> packAsJson(mappingConfig).toByteArray(Charset.forName(mappingConfig.settings.encoding))
-        CodeFormat.XML -> packAsXml(mappingConfig).toByteArray(Charset.forName(mappingConfig.settings.encoding))
+        CodeFormat.JSON -> packAsJson(mappingConfig,isHttpInfo).toByteArray(Charset.forName(mappingConfig.settings.encoding))
+        CodeFormat.XML -> packAsXml(mappingConfig,isHttpInfo).toByteArray(Charset.forName(mappingConfig.settings.encoding))
         CodeFormat.PLAIN_TEXT -> packAsKeyValue(mappingConfig).toByteArray(
             Charset.forName(
                 mappingConfig.settings.encoding
@@ -146,7 +147,7 @@ fun Iso8583Data.unpackFromFormat(
 
 
 // Enhanced JSON Format Implementation with header support
-private fun Iso8583Data.packAsJson(config: FormatMappingConfig): String {
+private fun Iso8583Data.packAsJson(config: FormatMappingConfig,isHttpInfo: Boolean): String {
     val objectMapper = ObjectMapper()
     val rootMap = mutableMapOf<String, Any>()
     val headerMap = mutableMapOf<String, String>()
@@ -162,11 +163,11 @@ private fun Iso8583Data.packAsJson(config: FormatMappingConfig): String {
             setNestedValue(rootMap, config.mti?.nestedKey!!, mtiValue)
         }
 
-        config.mti?.header != null -> {
+        config.mti?.header != null && mtiValue.isNotEmpty()-> {
             headerMap[config.mti?.header!!] = mtiValue
         }
 
-        config.mti?.key != null -> {
+        config.mti?.key != null && mtiValue.isNotEmpty()-> {
             rootMap[config.mti?.key!!] = mtiValue
         }
     }
@@ -183,11 +184,11 @@ private fun Iso8583Data.packAsJson(config: FormatMappingConfig): String {
             setNestedValue(rootMap, config.tpdu?.nestedKey!!, tpdu)
         }
 
-        config.tpdu?.header != null -> {
+        config.tpdu?.header != null && tpdu.isNotEmpty()-> {
             headerMap[config.tpdu?.header!!] = tpdu
         }
 
-        config.tpdu?.key != null -> {
+        config.tpdu?.key != null  && tpdu.isNotEmpty()-> {
             rootMap[config.tpdu?.key!!] = tpdu
         }
     }
@@ -209,11 +210,11 @@ private fun Iso8583Data.packAsJson(config: FormatMappingConfig): String {
                     setNestedValue(rootMap, mapping.nestedKey!!, fieldValue)
                 }
 
-                mapping.header != null -> {
+                mapping.header != null && fieldValue.isNotEmpty()-> {
                     headerMap[mapping.header!!] = fieldValue
                 }
 
-                mapping.key != null -> {
+                mapping.key != null && fieldValue.isNotEmpty()-> {
                     rootMap[mapping.key!!] = fieldValue
                 }
             }
@@ -238,13 +239,15 @@ private fun Iso8583Data.packAsJson(config: FormatMappingConfig): String {
                 )
             }
 
-            otherItem.item.header != null -> {
+            otherItem.item.header != null && this.otherKAttributes[otherItem.item.key] != null
+                    && this.otherKAttributes[otherItem.item.key]!!.isNotEmpty() -> {
                 headerMap[otherItem.item.header!!] =
-                    this.otherKAttributes[otherItem.item.header] ?: ""
+                    this.otherKAttributes[otherItem.item.header]!!
             }
 
-            otherItem.item.key != null -> {
-                rootMap[otherItem.item.key!!] = this.otherKAttributes[otherItem.item.key] ?: ""
+            otherItem.item.key != null && this.otherKAttributes[otherItem.item.key] != null
+                    && this.otherKAttributes[otherItem.item.key]!!.isNotEmpty()-> {
+                rootMap[otherItem.item.key!!] = this.otherKAttributes[otherItem.item.key]!!
             }
         }
     }
@@ -263,8 +266,9 @@ private fun Iso8583Data.packAsJson(config: FormatMappingConfig): String {
             }
         }
     }
+    headerMap.put("Content-Type","application/json")
     // Add header to root if it has content
-    if (headerMap.isNotEmpty()) {
+    if (headerMap.isNotEmpty() && isHttpInfo) {
         rootMap["HTTP_INFO_STUDIO"] = Json.encodeToString(this.httpInfo?.copy(headers = headerMap) )
     }
     return if (config.settings.prettyPrint) {
@@ -343,7 +347,6 @@ private fun parseHttpRequest(rawRequest: String): HttpInfo {
         )
     } ?: run {
         HttpInfo(
-            method = HttpMethod.GET, // Default to GET if method is not recognized
             path = path ?: "/",
             version = "HTTP/1.1",
             body = body,
@@ -771,7 +774,7 @@ private fun findJsonLikeStructure(content: String): String {
 
 
 // Enhanced XML Format Implementation with header support
-private fun Iso8583Data.packAsXml(config: FormatMappingConfig): String {
+private fun Iso8583Data.packAsXml(config: FormatMappingConfig,isHttpInfo: Boolean): String {
     val xmlMapper = XmlMapper()
     val rootMap = mutableMapOf<String, Any>()
     val headerMap = mutableMapOf<String, String>()
@@ -788,11 +791,11 @@ private fun Iso8583Data.packAsXml(config: FormatMappingConfig): String {
             setNestedValue(rootMap, config.mti?.nestedKey!!, mtiValue)
         }
 
-        config.mti?.header != null -> {
+        config.mti?.header != null && mtiValue.isNotEmpty()-> {
             headerMap[config.mti?.header!!] = mtiValue
         }
 
-        config.mti?.key != null -> {
+        config.mti?.key != null && mtiValue.isNotEmpty()-> {
             rootMap[config.mti?.key!!] = mtiValue
         }
     }
@@ -808,11 +811,11 @@ private fun Iso8583Data.packAsXml(config: FormatMappingConfig): String {
             setNestedValue(rootMap, config.tpdu?.nestedKey!!, tpdu)
         }
 
-        config.tpdu?.header != null -> {
+        config.tpdu?.header != null && tpdu.isNotEmpty()-> {
             headerMap[config.tpdu?.header!!] = tpdu
         }
 
-        config.tpdu?.key != null -> {
+        config.tpdu?.key != null && tpdu.isNotEmpty()-> {
             rootMap[config.tpdu?.key!!] = tpdu
         }
     }
@@ -834,11 +837,11 @@ private fun Iso8583Data.packAsXml(config: FormatMappingConfig): String {
                     setNestedValue(rootMap, mapping.nestedKey!!, fieldValue)
                 }
 
-                mapping.header != null -> {
+                mapping.header != null && fieldValue.isNotEmpty()-> {
                     headerMap[mapping.header!!] = fieldValue
                 }
 
-                mapping.key != null -> {
+                mapping.key != null && fieldValue.isNotEmpty()-> {
                     rootMap[mapping.key!!] = fieldValue
                 }
             }
@@ -863,13 +866,15 @@ private fun Iso8583Data.packAsXml(config: FormatMappingConfig): String {
                 )
             }
 
-            otherItem.item.header != null -> {
+            otherItem.item.header != null && this.otherKAttributes[otherItem.item.key] != null
+                    && this.otherKAttributes[otherItem.item.key]!!.isNotEmpty()-> {
                 headerMap[otherItem.item.header!!] =
-                    this.otherKAttributes[otherItem.item.header] ?: ""
+                    this.otherKAttributes[otherItem.item.header]!!
             }
 
-            otherItem.item.key != null -> {
-                rootMap[otherItem.item.key!!] = this.otherKAttributes[otherItem.item.key] ?: ""
+            otherItem.item.key != null && this.otherKAttributes[otherItem.item.key] != null
+                    && this.otherKAttributes[otherItem.item.key]!!.isNotEmpty()-> {
+                rootMap[otherItem.item.key!!] = this.otherKAttributes[otherItem.item.key]!!
             }
         }
     }
@@ -888,8 +893,9 @@ private fun Iso8583Data.packAsXml(config: FormatMappingConfig): String {
             }
         }
     }
+    headerMap.put("Content-Type","application/xml")
     // Add header to root if it has content
-    if (headerMap.isNotEmpty()) {
+    if (headerMap.isNotEmpty() && isHttpInfo) {
         rootMap["HTTP_INFO_STUDIO"] = Json.encodeToString(this.httpInfo?.copy(headers = headerMap) )
     }
     // Wrap in root element if configured
@@ -1058,7 +1064,7 @@ private fun getNestedValue(jsonNode: JsonNode, path: String): String? {
         current = current.get(key) ?: return null
     }
 
-    return current.asText()
+    return current.asText()?.takeIf { it.isNotEmpty() }
 }
 
 private fun extractKeyFromTemplate(template: String): String {
