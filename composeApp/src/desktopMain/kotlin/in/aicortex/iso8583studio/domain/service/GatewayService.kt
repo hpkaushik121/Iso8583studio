@@ -92,12 +92,7 @@ interface GatewayService {
     /**
      * Write a log message
      */
-    fun writeLog(message: String)
-
-    /**
-     * Write a log message with a client reference
-     */
-    fun writeLog(client: GatewayClient, message: String)
+    fun writeLog(log: LogEntry)
 
     /**
      * Get the encryption/decryption service

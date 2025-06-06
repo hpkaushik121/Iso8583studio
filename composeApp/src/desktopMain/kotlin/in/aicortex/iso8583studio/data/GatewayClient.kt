@@ -30,6 +30,9 @@ import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.intToMessageLength
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.messageLengthToInt
 import `in`.aicortex.iso8583studio.domain.service.SimulatedResponse
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.header
@@ -42,6 +45,7 @@ import io.ktor.http.isSuccess
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
+import org.apache.commons.logging.Log
 import java.net.Socket
 import java.net.SocketException
 import java.time.LocalDateTime
@@ -471,13 +475,20 @@ class GatewayClient {
                         }
 
                         nccParam?.connection == null -> {
-                            writeServerLog("ESTABLISHING CONNECTION TO ${nccParam?.hostAddress} ON PORT ${nccParam?.port}")
+                            writeServerLog(createLogEntry(
+                                type = LogType.CONNECTION,
+                                message = "ESTABLISHING CONNECTION TO ${nccParam?.hostAddress} ON PORT ${nccParam?.port}"
+                            ))
                             nccParam?.connection = Socket(nccParam.hostAddress, nccParam.port)
                         }
 
                         nccParam.connection?.isConnected == false -> {
                             nccParam.connection?.close()
-                            writeServerLog("RE-ESTABLISHING CONNECTION ...")
+                            writeServerLog(createLogEntry(
+                                type = LogType.CONNECTION,
+                                message =  "RE-ESTABLISHING CONNECTION ..."
+                            )
+                            )
                             nccParam.connection = Socket(nccParam.hostAddress, nccParam.port)
                         }
 
@@ -489,7 +500,8 @@ class GatewayClient {
                     val destServer = gatewayHandler?.configuration?.destinationServer
                     val destPort = gatewayHandler?.configuration?.destinationPort
 
-                    writeServerLog("ESTABLISHING CONNECTION TO $destServer ON PORT $destPort")
+                    writeServerLog(createLogEntry(type = LogType.CONNECTION,
+                        message =  "ESTABLISHING CONNECTION TO $destServer ON PORT $destPort"))
                     m_SecondConnection = Socket(destServer, destPort ?: 0)
 
                     if (gatewayHandler?.configuration?.advanceOptions?.sslClient == true) {
@@ -503,7 +515,8 @@ class GatewayClient {
                     }
                 } else if (!(secondConnection?.isConnected ?: false)) {
                     secondConnection?.close()
-                    writeServerLog("RE-ESTABLISHING CONNECTION ...")
+                    writeServerLog(createLogEntry(type = LogType.CONNECTION,
+                        message = "RE-ESTABLISHING CONNECTION ..."))
                     m_SecondConnection = Socket(
                         gatewayHandler?.configuration?.destinationServer,
                         gatewayHandler?.configuration?.destinationPort ?: 0
@@ -538,7 +551,8 @@ class GatewayClient {
                     return
                 }
 
-                writeServerLog("ESTABLISHING CONNECTION TO ${gatewayHandler?.configuration?.destinationServer} ON PORT ${gatewayHandler?.configuration?.destinationPort}")
+                writeServerLog(createLogEntry(type = LogType.CONNECTION,
+                    message = "ESTABLISHING CONNECTION TO ${gatewayHandler?.configuration?.destinationServer} ON PORT ${gatewayHandler?.configuration?.destinationPort}"))
                 gatewayHandler?.secondRs232Handler = RS232Handler(
                     gatewayHandler?.configuration?.destinationServer ?: "",
                     gatewayHandler?.configuration?.destinationPort ?: 0
@@ -556,7 +570,10 @@ class GatewayClient {
                     return
                 }
 
-                writeServerLog("ESTABLISHING CONNECTION TO ${gatewayHandler?.configuration?.destinationServer} ON PORT ${gatewayHandler?.configuration?.destinationPort}")
+                writeServerLog(createLogEntry(
+                    type = LogType.CONNECTION,
+                    "ESTABLISHING CONNECTION TO ${gatewayHandler?.configuration?.destinationServer} ON PORT ${gatewayHandler?.configuration?.destinationPort}"
+                ))
                 val configParts = gatewayHandler?.configuration?.destinationServer?.split(';')
 
                 if (configParts?.size == 2) {
@@ -759,15 +776,32 @@ class GatewayClient {
                 }
             )
             val body = IsoUtil.hexToAscii(data)
-            writeServerLog("=========================SENT TO REST SERVER==========================")
-            writeServerLog("URL:${gatewayHandler?.configuration?.restConfiguration?.url ?: "N/A"}")
-            writeServerLog(body)
+            writeServerLog(createLogEntry(
+                type = LogType.INFO,
+                message = "=========================SENT TO REST SERVER=========================="
+            ))
+            writeServerLog(createLogEntry(
+                type = LogType.DEBUG,
+                message = "URL:${gatewayHandler?.configuration?.restConfiguration?.url ?: "N/A"}"
+            ))
+            writeServerLog(
+                createLogEntry(type = LogType.MESSAGE,
+                    message = body)
+            )
             // Add request body
             setBody(body)
-            writeServerLog("=========================HEADER INFORMATION==========================")
+            writeServerLog(
+                createLogEntry(
+                    type = LogType.INFO,
+                    message = "=========================HEADER INFORMATION=========================="
+                )
+            )
             // Add correlation ID for tracking
             gatewayHandler!!.configuration.restConfiguration!!.headers.forEach { key, value ->
-                writeServerLog("${key.uppercase()}: $value")
+                writeServerLog(createLogEntry(
+                    type = LogType.INFO,
+                    message = "${key.uppercase()}: $value"
+                ))
                 header(key, value)
             }
         }
@@ -775,10 +809,10 @@ class GatewayClient {
         if (response.status.isSuccess() == true) {
             val responseBody = response.body<ByteArray>()
             val iso8583Data = parseData(responseBody, false)
-            writeServerLog("REST MESSAGE PROCESSED SUCCESSFULLY")
+            writeServerLog(createLogEntry(type = LogType.INFO, message = "REST MESSAGE PROCESSED SUCCESSFULLY"))
             return iso8583Data
         } else {
-            writeServerLog("REST MESSAGE PROCESSING FAILED: ${response.status}")
+            writeServerLog(createLogEntry(type = LogType.ERROR,"REST MESSAGE PROCESSING FAILED: ${response.status}"))
             throw VerificationException(
                 "REST message processing failed: ${response.status}",
                 VerificationError.RELEASE_CONNECTION
@@ -828,7 +862,7 @@ class GatewayClient {
         }
 
         if (isFirst) {
-            writeServerLog("====================SENT TO SOURCE======================")
+            writeServerLog(createLogEntry(type = LogType.INFO,"====================SENT TO SOURCE======================"))
             val gType = gatewayHandler?.configuration?.gatewayType
             val incomingIso = parseData(input,
                 !(gType == GatewayType.PROXY || gType == GatewayType.CLIENT)
@@ -839,7 +873,7 @@ class GatewayClient {
                 convertToDest(incomingIso)
             }
             var modifiedInput = modifiedISO?.pack()
-            writeServerLog(modifiedISO?.logFormat() ?: "")
+            writeServerLog(createLogEntry(type = LogType.MESSAGE,modifiedISO?.logFormat() ?: ""))
             if (nccProcess?.isActive() == true) {
                 intToMessageLength(
                     modifiedInput!!.size - 2,
@@ -889,12 +923,12 @@ class GatewayClient {
                 (gatewayHandler?.bytesOutgoing?.get() ?: 0) + modifiedInput.size
             )
 
-            writeServerLog("SENT BACK TO SOURCE ${input.size} BYTES")
+            writeServerLog(createLogEntry(type = LogType.DEBUG,"SENT BACK TO SOURCE ${input.size} BYTES"))
             status = TransactionStatus.SUCCESSFUL
             m_TotalTransmission++
             onSentToSource?.invoke(modifiedISO)
         } else {
-            writeServerLog("====================SENT TO DESTINATION======================")
+            writeServerLog(createLogEntry(type = LogType.INFO,"====================SENT TO DESTINATION======================"))
             val gType = gatewayHandler?.configuration?.gatewayType
             val incomingIso = parseData(input,
                 (gType == GatewayType.PROXY || gType == GatewayType.CLIENT)
@@ -905,7 +939,7 @@ class GatewayClient {
                 convertToDest(incomingIso)
             }
             var modifiedInput = modifiedISO?.pack()
-            writeServerLog(modifiedISO?.logFormat() ?: "")
+            writeServerLog(createLogEntry(type = LogType.MESSAGE,modifiedISO?.logFormat() ?: ""))
             if (nccProcess?.isActive() == true) {
                 val lengthType = nccProcess?.get(destinationNII)?.lengthType
 
@@ -972,7 +1006,7 @@ class GatewayClient {
                 else -> {}
             }
 
-            writeServerLog("SENT TO DESTINATION ${modifiedInput!!.size} BYTES")
+            writeServerLog(createLogEntry(type = LogType.DEBUG,"SENT TO DESTINATION ${modifiedInput!!.size} BYTES"))
             status = TransactionStatus.SENT_TO_DESTINATION
             onSentToDest?.invoke(modifiedISO)
         }
@@ -1007,7 +1041,7 @@ class GatewayClient {
             if (dialHandler?.currentStatus != EDialupStatus.Connected &&
                 dialHandler?.makeCall() != true
             ) {
-                writeServerLog("CANNOT MAKE A CALL TO ${dialHandler?.phoneNumber}")
+                writeServerLog(createLogEntry(type = LogType.WARNING,"CANNOT MAKE A CALL TO ${dialHandler?.phoneNumber}"))
             }
         }
 
@@ -1032,7 +1066,7 @@ class GatewayClient {
             )
         }
 
-        writeServerLog("RECEIVED MESSAGE FROM COMPORT${message.size} BYTES ")
+        writeServerLog(createLogEntry(type = LogType.INFO,"RECEIVED MESSAGE FROM COMPORT${message.size} BYTES "))
         parseData(message, client == gatewayHandler?.firstRs232Handler)
 
         destinationNII = bcdToBin(getBytesFromBytes(message, 3, 2))
@@ -1126,10 +1160,12 @@ class GatewayClient {
         }
 
         writeServerLog(
-            if (client == sslIncoming)
-                "RECEIVED MESSAGE FROM SOURCE "
-            else
-                "RECEIVED MESSAGE FROM DESTINATION ${input.size} BYTES ",
+            createLogEntry(type = LogType.DEBUG,
+
+                if (client == sslIncoming)
+                    "RECEIVED MESSAGE FROM SOURCE "
+                else
+                    "RECEIVED MESSAGE FROM DESTINATION ${input.size} BYTES ")
 
             )
 
@@ -1156,7 +1192,7 @@ class GatewayClient {
         val now = LocalDateTime.now()
         val timeOut = this.timeOut
 
-        writeServerLog("RECEIVING MESSAGE.......")
+        writeServerLog(createLogEntry(type = LogType.INFO,"RECEIVING MESSAGE......."))
 
         val input: ByteArray =
             if (doesConnectToPermanentConnection() && client == secondConnection) {
@@ -1324,15 +1360,18 @@ class GatewayClient {
             }
         }
 
-        writeServerLog(
-            if (client == firstConnection)
+        writeServerLog(createLogEntry(
+            type = LogType.DEBUG,
+            message = if (client == firstConnection)
                 "RECEIVED MESSAGE FROM SOURCE "
             else
-                "RECEIVED MESSAGE FROM DESTINATION ${input.size} BYTES ",
+                "RECEIVED MESSAGE FROM DESTINATION ${input.size} BYTES "
+        )
         )
 
         val formattedData = parseData(input, client == firstConnection)
-        writeServerLog(formattedData?.logFormat() ?: "Unable to Decrypt data ")
+        writeServerLog(formattedData?.let {createLogEntry(type = LogType.MESSAGE,
+            message = it.logFormat())} ?: createLogEntry(type = LogType.ERROR, message = "Unable to Decrypt data "))
         onReceivedFormDest?.invoke(formattedData)
 
         if (client == firstConnection) {
@@ -1407,7 +1446,7 @@ class GatewayClient {
 
             return iso8583Data
         } catch (ex: Exception) {
-            writeServerLog("ERROR WHEN PARSING DATA \r\n${ex}")
+            writeServerLog(createLogEntry(type = LogType.ERROR,"ERROR WHEN PARSING DATA \r\n${ex}"))
 
             if (gatewayHandler?.configuration?.allowWrongParsedData != true) {
                 throw VerificationException(
@@ -1419,9 +1458,6 @@ class GatewayClient {
         return null
     }
 
-    fun writeServerLog(s: String) {
-        gatewayHandler?.writeLog(s)
-    }
 
     private fun processServerGatewayAsynchronous(receivedData: ByteArray) {
         IsoCoroutine(gatewayHandler).launchSafely {
@@ -1450,7 +1486,7 @@ class GatewayClient {
             )
 
             if (receivedData.size < count) {
-                writeServerLog("CONTINUE READING")
+                writeServerLog(createLogEntry(type = LogType.INFO,"CONTINUE READING"))
 
                 firstConnection?.soTimeout = 1000
                 val inputStream = firstConnection?.getInputStream()
@@ -1536,7 +1572,7 @@ class GatewayClient {
 
             eResponseData?.rawMessage = response
 
-            writeServerLog("RECEIVED MESSAGE FROM DESTINATION ${response.size} BYTES ")
+            writeServerLog(createLogEntry(type = LogType.DEBUG,"RECEIVED MESSAGE FROM DESTINATION ${response.size} BYTES "))
             parseData(response, isFirst)
 
             initResponse()
@@ -1547,7 +1583,10 @@ class GatewayClient {
             m_TotalTransmission++
 
         } catch (ex: Exception) {
-            writeServerLog(ex.toString())
+            writeServerLog(createLogEntry(
+                type = LogType.ERROR,
+                message = ex.toString()
+            ))
         }
     }
 
@@ -1687,8 +1726,10 @@ class GatewayClient {
                 m_BytesReceiveFromSource += input.size
 
                 if (!cancelSend && gatewayHandler?.configuration?.gatewayType == GatewayType.PROXY) {
-                    writeServerLog(
-                        "RECEIVED FROM SOURCE AND SENT TO DESTINATION ${input.size} BYTES",
+                    writeServerLog(createLogEntry(
+                        type = LogType.DEBUG,
+                        message = "RECEIVED FROM SOURCE AND SENT TO DESTINATION ${input.size} BYTES"
+                    )
                     )
                 }
 
@@ -1712,8 +1753,14 @@ class GatewayClient {
             if (count > 0 && gatewayHandler?.started?.load() == true) {
                 if (gatewayHandler?.configuration?.terminateWhenError == false) {
                     try {
-                        writeServerLog(ex.message ?: "")
-                        writeServerLog(bcdToString(m_Buffer))
+                        writeServerLog(createLogEntry(
+                            type = LogType.ERROR,
+                            message = ex.message ?: ""
+                        ))
+                        writeServerLog(createLogEntry(
+                            type = LogType.MESSAGE,
+                            message = bcdToString(m_Buffer)
+                        ))
 
                         if (gatewayHandler?.configuration?.gatewayType == GatewayType.SERVER) {
                             eRequestData?.rawMessage = null
@@ -1780,8 +1827,10 @@ class GatewayClient {
                 }
 
                 m_BytesReceiveFromDestination += input.size
-                writeServerLog(
-                    "RECEIVED FROM DESTINATION AND SENT TO SOURCE ${input.size} BYTES",
+                writeServerLog(createLogEntry(
+                    type = LogType.DEBUG,
+                    message = "RECEIVED FROM DESTINATION AND SENT TO SOURCE ${input.size} BYTES"
+                )
                 )
                 parseData(input, false)
 
@@ -1924,7 +1973,10 @@ class GatewayClient {
             if (count > 0 && !(gatewayHandler?.configuration?.terminateWhenError ?: false)) {
                 if (gatewayHandler?.started?.load() == true) {
                     try {
-                        writeServerLog(ex.toString())
+                        writeServerLog(createLogEntry(
+                            type = LogType.ERROR,
+                            message = ex.toString()
+                        ))
 
                         // Setup next asynchronous read
                         if (gatewayHandler?.configuration?.advanceOptions?.sslClient == true) {
@@ -1957,6 +2009,10 @@ class GatewayClient {
                 }
             }
         }
+    }
+
+    internal fun writeServerLog(log: LogEntry) {
+        gatewayHandler?.writeLog(log)
     }
 
     var firstConnection: Socket?
@@ -2082,7 +2138,8 @@ class GatewayClient {
                 else -> {}
             }
 
-            writeServerLog("SEND ENCRYPTED MESSAGE TO CLIENT INSTANCE: ${encryptedData.size} BYTES ")
+            writeServerLog(createLogEntry(type = LogType.ENCRYPTION,
+                message = "SEND ENCRYPTED MESSAGE TO CLIENT INSTANCE: ${encryptedData.size} BYTES "))
             status = TransactionStatus.SUCCESSFUL
             if(dataToSend?.rawMessage != null){
                 onSentToSource?.invoke(parseData(dataToSend.rawMessage, true))
@@ -2108,7 +2165,10 @@ class GatewayClient {
                 else -> {}
             }
 
-            writeServerLog("SEND ENCRYPTED MESSAGE TO SERVER INSTANCE: ${encryptedData.size} BYTES ")
+            writeServerLog(createLogEntry(
+                type = LogType.ENCRYPTION,
+                message = "SEND ENCRYPTED MESSAGE TO SERVER INSTANCE: ${encryptedData.size} BYTES "
+            ))
             status = TransactionStatus.SENT_TO_DESTINATION
             if(dataToSend?.rawMessage != null){
                 onSentToDest?.invoke(parseData(dataToSend.rawMessage, true))
@@ -2118,7 +2178,10 @@ class GatewayClient {
     }
 
     fun receiveFormattedData() {
-        writeServerLog("RECEIVING ENCRYPTED MESSAGE")
+        writeServerLog(createLogEntry(
+            type = LogType.MESSAGE,
+            message = "RECEIVING ENCRYPTED MESSAGE"
+        ))
 
         val dataReceived = if (gatewayHandler?.configuration?.gatewayType == GatewayType.SERVER) {
             eRequestData

@@ -318,6 +318,7 @@ fun HostSimulator(
         ) {
             when (tabList[selectedTabIndex]) {
                 HostSimulatorTabs.HOST_HANDLER -> ISO8583TransactionTab(
+                    gw = gw,
                     isStarted = isStarted,
                     onStartStopClick = {
                         coroutineScope.launchSafely {
@@ -383,7 +384,7 @@ fun HostSimulator(
 
                 HostSimulatorTabs.SEND_MESSAGE -> SendMessageTab(
                     gw = gw,
-                    logText = "",
+                    logText = logText,
                     onClearClick = { logText.clear() },
                 )
 

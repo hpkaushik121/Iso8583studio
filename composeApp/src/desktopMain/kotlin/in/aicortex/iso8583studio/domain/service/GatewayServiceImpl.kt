@@ -29,6 +29,7 @@ import `in`.aicortex.iso8583studio.data.IsoCoroutine
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import org.apache.commons.logging.Log
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -200,9 +202,10 @@ class GatewayServiceImpl : GatewayService {
         }
 
         // Log startup
-        writeLog("===============GATEWAY STARTED===============")
-        writeLog(configuration.toString())
-        writeLog("=============================================")
+        writeLog(createLogEntry(
+            type = LogType.SOCKET,
+            message = "===============GATEWAY STARTED===============",
+            details = configuration.toString()))
 
         // Set start time
         startTime = LocalDateTime.now()
@@ -279,8 +282,10 @@ class GatewayServiceImpl : GatewayService {
         permanentConnections.clear()
 
         // Log shutdown
-        writeLog("=============================================")
-        writeLog("===============GATEWAY STOPPED===============")
+        writeLog(createLogEntry(
+            type = LogType.SOCKET,
+            message = "===============GATEWAY STOPPED==============="
+        ))
     }
 
     /**
@@ -413,48 +418,27 @@ class GatewayServiceImpl : GatewayService {
     }
 
     /**
-     * Write a log message
-     */
-    override fun writeLog(message: String) {
-        writeLog(message, "")
-    }
-
-    /**
-     * Write a log message with a client reference
-     */
-    override fun writeLog(client: GatewayClient, message: String) {
-        writeLog(message, "ID[${client.index.toString().padStart(8, '0')}] ")
-    }
-
-    /**
      * Write a log message with a prefix
      */
-    private fun writeLog(message: String, prefix: String) {
+    override fun writeLog(log: LogEntry) {
         if (configuration.logFileName.isBlank()) {
             return
         }
-
-        val formattedMessage = if (prefix.uppercase() != "NULL") {
-            "$prefix $message"
-        } else {
-            message
-        }
-
         // Synchronize log file access
         try {
             val timestamp =
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
             File(configuration.logFileName).appendText(
-                "\r\n$message".replace("\r\n", "\r\n$timestamp  $prefix"),
+                "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"),
                 Charset.forName(configuration.getEncoding())
             )
-            println(formattedMessage)
+            println( "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"))
         } catch (e: Exception) {
             // Ignore write errors
         }
 
         // Call before write log callbacks
-        beforeWriteLogCallbacks(createLogEntry(LogType.INFO,formattedMessage))
+        beforeWriteLogCallbacks(log)
 
 
         // Check log file size and rotate if needed
@@ -604,11 +588,8 @@ class GatewayServiceImpl : GatewayService {
                 }
             } catch (e: Exception) {
                 // Handle errors
-                writeLog("FATAL ERROR ${e}")
-                writeLog("=====================================================")
-                writeLog(" THE GATEWAY WILL RESTART IN ${configuration.waitToRestart} seconds ")
-                writeLog("=====================================================")
-
+                writeLog(createLogEntry(type = LogType.ERROR, message = "FATAL ERROR ${e}"))
+                writeLog(createLogEntry(type = LogType.DEBUG, message = " THE GATEWAY WILL RESTART IN ${configuration.waitToRestart} seconds "))
                 // Wait before restart
                 val waitUntil =
                     LocalDateTime.now().plusSeconds(configuration.waitToRestart.toLong())
@@ -654,8 +635,13 @@ class GatewayServiceImpl : GatewayService {
                 client.remoteIPAddress = "$remoteAddress : $remotePort"
 
                 writeLog(
-                    client,
-                    "==========A REMOTE CLIENT CONNECTED FROM IP = ${client.remoteIPAddress}=========="
+                    createLogEntry(
+                        type = LogType.CONNECTION,
+                        message = "==========A REMOTE CLIENT CONNECTED FROM IP = ${client.remoteIPAddress}=========="
+                    ).apply {
+                        source = client.clientID
+                    }
+
                 )
 
                 // Check IP deny list
@@ -666,7 +652,10 @@ class GatewayServiceImpl : GatewayService {
                     )
                 ) {
 
-                    writeLog(client, "THE IP IS DENIED")
+                    writeLog(createLogEntry(
+                        type = LogType.WARNING,
+                        message = "THE IP [${remoteAddress}] IS DENIED").apply { source = client.clientID }
+                    )
                     socket.close()
                     continue
                 }
@@ -675,7 +664,10 @@ class GatewayServiceImpl : GatewayService {
                 if (!configuration.advancedOptions?.onlyAllowIps.isNullOrBlank() &&
                     !isIpMatched(remoteAddress, configuration.advancedOptions?.onlyAllowIps?.trim() ?: "")) {
 
-                    writeLog(client, "THE IP IS NOT ALLOWED")
+                    writeLog(createLogEntry(
+                        type = LogType.WARNING,
+                        message = "THE IP [${remoteAddress}] IS DENIED").apply { source = client.clientID }
+                    )
                     socket.close()
                     continue
                 }
@@ -686,8 +678,13 @@ class GatewayServiceImpl : GatewayService {
 
                     if (sslClient == null) {
                         writeLog(
-                            client,
-                            "==========CONNECTION TERMINATED BECAUSE OF SSL AUTHENTICATION FAILURE${client.remoteIPAddress}=========="
+                            createLogEntry(
+                                type = LogType.ERROR,
+                                message = "==========CONNECTION TERMINATED BECAUSE OF SSL AUTHENTICATION FAILURE${client.remoteIPAddress}=========="
+                            ).apply {
+                                source = client.clientID
+                            }
+
                         )
                         socket.close()
                         continue
@@ -704,7 +701,7 @@ class GatewayServiceImpl : GatewayService {
 
             } catch (e: Exception) {
                 if (started.load()) {
-                    writeLog("GATEWAY ERROR $e")
+                    writeLog(createLogEntry(type = LogType.ERROR, message =  "GATEWAY ERROR $e"))
 
                     // Call error callbacks
                     errorCallbacks?.invoke()
@@ -935,8 +932,11 @@ class GatewayServiceImpl : GatewayService {
     @OptIn(ExperimentalAtomicApi::class)
     private suspend fun clientError(client: GatewayClient) {
         try {
-            if (started.load()) {
-                writeLog(client, client.lastError.toString())
+            if (started.load() && client.lastError != null) {
+                writeLog(createLogEntry(
+                    type = LogType.ERROR,
+                    message =  client.lastError.toString()
+                ).apply { source = client.clientID })
             }
 
             // Handle unauthorized access exception
@@ -970,7 +970,8 @@ class GatewayServiceImpl : GatewayService {
                     }
 
                     removeClient(client)
-                    writeLog(client, "===============CONNECTION TERMINATED===============")
+                    writeLog(createLogEntry(type = LogType.CONNECTION, message = "===============CONNECTION TERMINATED===============",
+                        details = client.clientID))
                 }
                 return
             }
@@ -1049,7 +1050,8 @@ class GatewayServiceImpl : GatewayService {
             // Clean up if first connection is gone
             if (client.firstConnection == null) {
                 removeClient(client)
-                writeLog(client, "===============CONNECTION TERMINATED===============")
+                writeLog(createLogEntry(type = LogType.CONNECTION, message = "===============CONNECTION TERMINATED===============",
+                    details = client.clientID))
             }
             // Handle special cases
             else if (client.secondConnection != null &&
@@ -1057,7 +1059,8 @@ class GatewayServiceImpl : GatewayService {
             ) {
                 client.processGateway()
             } else if (client.secondConnection == null) {
-                writeLog(client, "CONNECTION TO DESTINATION WILL ESTABLISH ONCE RECEIVING REQUEST")
+                writeLog(createLogEntry(type = LogType.CONNECTION, message = "CONNECTION TO DESTINATION WILL ESTABLISH ONCE RECEIVING REQUEST",
+                    details = client.clientID))
 
                 if (configuration.transmissionType == TransmissionType.SYNCHRONOUS) {
                     client.processGateway()
@@ -1068,8 +1071,13 @@ class GatewayServiceImpl : GatewayService {
             removeClient(client)
 
             if (e !is VerificationException) {
-                writeLog(client, "FATAL ERROR $e")
-                writeLog(client, "===============CONNECTION TERMINATED===============")
+                writeLog(createLogEntry(
+                    type = LogType.ERROR,
+                    message = "FATAL ERROR $e"
+                ).apply { source = client.clientID } )
+                writeLog(createLogEntry(type = LogType.CONNECTION,
+                    message = "===============CONNECTION TERMINATED===============",
+                    details = client.clientID))
             }
         }
     }
@@ -1127,7 +1135,7 @@ class GatewayServiceImpl : GatewayService {
             val client = createClient()
             client.sendMessageToSecondConnection(data)
         }catch (e: Exception){
-            writeLog("Error sending data to second connection: ${e.message}")
+            writeLog(createLogEntry(type = LogType.ERROR, message = "Error sending data to second connection: ${e.message}"))
         }
     }
 

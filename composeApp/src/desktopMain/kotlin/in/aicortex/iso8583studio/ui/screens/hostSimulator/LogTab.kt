@@ -73,6 +73,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.logging.formatLogDetails
+import `in`.aicortex.iso8583studio.logging.formatLogMessage
 import `in`.aicortex.iso8583studio.logging.formatPlainTextLogs
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -93,7 +95,7 @@ fun LogTab(
     bytesOutgoing: Long,
     logEntries: SnapshotStateList<LogEntry> // New parameter for structured logs
 ) {
-    var isStatsVisible by remember { mutableStateOf(true) }
+    var isStatsVisible by remember { mutableStateOf(false) }
     var selectedLogTypes by remember { mutableStateOf(LogType.values().toSet()) }
     println(logEntries.size)
 
@@ -106,7 +108,6 @@ fun LogTab(
         ) {
             LogPanelWithAutoScroll(
                 onClearClick = onClearClick,
-                logText = logText,
                 logEntries = logEntries,
                 selectedLogTypes = selectedLogTypes,
                 onLogTypesChanged = { selectedLogTypes = it },
@@ -180,51 +181,69 @@ fun LogTab(
 @Composable
 internal fun LogPanelWithAutoScroll(
     onClearClick: () -> Unit,
-    logText: String,
     logEntries: List<LogEntry> = emptyList(),
     selectedLogTypes: Set<LogType> = LogType.values().toSet(),
     onLogTypesChanged: (Set<LogType>) -> Unit = {},
     onBack: (() -> Unit)? = null,
-    isStatsVisible: Boolean = true,
+    isStatsVisible: Boolean = false,
     onToggleStats: () -> Unit = {}
 ) {
-    var userHasScrolled by remember { mutableStateOf(false) }
-    var previousLogLength by remember { mutableStateOf(0) }
     var isAutoScrollEnabled by remember { mutableStateOf(true) }
     var showFilterMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    // Filter log entries based on selected types
-    val filteredLogEntries = remember(logEntries, selectedLogTypes) {
-        logEntries.filter { it.type in selectedLogTypes }
-    }
+    // Filter log entries
+    val filteredLogEntries = logEntries.filter { it.type in selectedLogTypes }
 
-    // Auto-scroll effect when new log content is added
-    LaunchedEffect(logText, filteredLogEntries.size) {
-        val currentLogLength =
-            if (logEntries.isNotEmpty()) filteredLogEntries.size else logText.length
-        if (currentLogLength > previousLogLength && isAutoScrollEnabled) {
+    // Simple and reliable auto-scroll - triggers on ANY change to filtered entries
+    LaunchedEffect(filteredLogEntries) {
+        if (isAutoScrollEnabled && filteredLogEntries.isNotEmpty()) {
+            // Wait a bit for UI to render
             kotlinx.coroutines.delay(50)
-            scrollState.animateScrollTo(scrollState.maxValue)
+
+            // Try multiple times to ensure it works
+            repeat(3) {
+                if (scrollState.maxValue > 0) {
+                    scrollState.animateScrollTo(scrollState.maxValue)
+                }
+                kotlinx.coroutines.delay(50)
+            }
         }
-        previousLogLength = currentLogLength
     }
 
-    // Monitor scroll position to detect manual scrolling
-    LaunchedEffect(scrollState.value, scrollState.maxValue) {
-        if (scrollState.maxValue > 0) {
-            val isAtBottom = scrollState.value >= scrollState.maxValue - 100
+    // Detect manual scrolling with better logic
+    var isUserScrolling by remember { mutableStateOf(false) }
 
-            if (!isAtBottom && !userHasScrolled && scrollState.value > 0) {
-                userHasScrolled = true
-                isAutoScrollEnabled = false
+    LaunchedEffect(scrollState.isScrollInProgress) {
+        if (scrollState.isScrollInProgress) {
+            isUserScrolling = true
+        } else {
+            // When scrolling stops, check position after a delay
+            kotlinx.coroutines.delay(100)
+
+            if (scrollState.maxValue > 0) {
+                val isNearBottom = scrollState.value >= (scrollState.maxValue - 100)
+
+                if (!isNearBottom && isUserScrolling) {
+                    // User scrolled away from bottom and stopped - disable auto-scroll
+                    isAutoScrollEnabled = false
+                }
+
+                if (isNearBottom && !isAutoScrollEnabled) {
+                    // User scrolled back to bottom - re-enable auto-scroll
+                    isAutoScrollEnabled = true
+                }
             }
 
-            if (isAtBottom && userHasScrolled) {
-                userHasScrolled = false
-                isAutoScrollEnabled = true
-            }
+            isUserScrolling = false
+        }
+    }
+
+    // Reset auto-scroll when logs are cleared
+    LaunchedEffect(logEntries.isEmpty()) {
+        if (logEntries.isEmpty()) {
+            isAutoScrollEnabled = true
         }
     }
 
@@ -372,7 +391,7 @@ internal fun LogPanelWithAutoScroll(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Auto-scroll toggle button
+            // Enhanced Auto-scroll toggle button
             Surface(
                 shape = RoundedCornerShape(4.dp),
                 color = if (isAutoScrollEnabled)
@@ -381,6 +400,8 @@ internal fun LogPanelWithAutoScroll(
                     MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
                 modifier = Modifier.clickable {
                     isAutoScrollEnabled = !isAutoScrollEnabled
+
+                    // If enabling auto-scroll, immediately scroll to bottom
                     if (isAutoScrollEnabled) {
                         coroutineScope.launch {
                             scrollState.animateScrollTo(scrollState.maxValue)
@@ -398,9 +419,9 @@ internal fun LogPanelWithAutoScroll(
                         else
                             Icons.Default.PauseCircle,
                         contentDescription = if (isAutoScrollEnabled)
-                            "Auto-scroll enabled"
+                            "Auto-scroll enabled - click to disable"
                         else
-                            "Auto-scroll disabled",
+                            "Auto-scroll disabled - click to enable and scroll to bottom",
                         tint = if (isAutoScrollEnabled)
                             MaterialTheme.colors.primary
                         else
@@ -422,7 +443,10 @@ internal fun LogPanelWithAutoScroll(
             Spacer(modifier = Modifier.width(8.dp))
 
             // Clear logs button
-            IconButton(onClick = onClearClick) {
+            IconButton(onClick = {
+                onClearClick()
+                isAutoScrollEnabled = true
+            }) {
                 Icon(
                     imageVector = Icons.Default.DeleteSweep,
                     contentDescription = "Clear logs",
@@ -448,23 +472,33 @@ internal fun LogPanelWithAutoScroll(
                 .weight(1f)
         ) {
             SelectionContainer {
-                Text(
-                    text = buildStructuredLogText(logEntries),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                        .verticalScroll(scrollState),
-                    style = MaterialTheme.typography.body2,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                    color = if (logText.isEmpty())
-                        MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                    else
-                        MaterialTheme.colors.onSurface
-                )
+                if(filteredLogEntries.isEmpty()) {
+                    Text(
+                        text = "No logs yet. Start using the application to see logs here.",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                            .verticalScroll(scrollState),
+                        style = MaterialTheme.typography.body2,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                    )
+                } else {
+                    Text(
+                        text = buildStructuredLogText(filteredLogEntries),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                            .verticalScroll(scrollState),
+                        style = MaterialTheme.typography.body2,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colors.onSurface
+                    )
+                }
             }
         }
 
-// Log statistics bar at bottom
+        // Log statistics bar at bottom
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -474,13 +508,13 @@ internal fun LogPanelWithAutoScroll(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Lines: ${logText.count { it == '\n' }}",
+                "Entries: ${filteredLogEntries.size}/${logEntries.size}",
                 style = MaterialTheme.typography.caption,
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
             )
 
             Text(
-                "Size: ${formatBytes(logText.length.toLong())}",
+                "Size: ${formatBytes(logEntries.sumOf { it.message.length }.toLong())}",
                 style = MaterialTheme.typography.caption,
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
             )
@@ -545,22 +579,27 @@ private fun buildStructuredLogText(logEntries: List<LogEntry>) = buildAnnotatedS
             append("[${entry.timestamp}] ")
         }
 
-        // Log type with color coding
+        // Log type with color coding - use fixed width for alignment
         withStyle(
             SpanStyle(
                 color = entry.type.color,
                 fontWeight = FontWeight.Bold
             )
         ) {
-            append("${entry.type.displayName.uppercase()}: ")
+            val logTypeName = entry.type.displayName.uppercase()
+            val paddedLogType = logTypeName.padEnd(12) // Fixed width of 12 characters
+            append("$paddedLogType: ")
         }
 
-        // Message
+        // Calculate base indent size - now consistent for all log types
+        val baseIndent = "[${entry.timestamp}] ".length + 12 + 2  // timestamp + padded log type + ": "
+
+        // Message with proper indentation for multi-line content
         withStyle(SpanStyle(color = MaterialTheme.colors.onSurface)) {
-            append(formatPlainTextLogs(entry.message))
+            append(formatLogMessage(entry.message, baseIndent))
         }
 
-        // Details if available
+        // Details if available with proper multi-line handling
         entry.details?.let { details ->
             append("\n")
             withStyle(
@@ -569,14 +608,14 @@ private fun buildStructuredLogText(logEntries: List<LogEntry>) = buildAnnotatedS
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )
             ) {
-                append("    └─ $details")
+                append(" ".repeat(baseIndent))
+                append(formatLogDetails(details, baseIndent))
             }
         }
 
         append("\n")
     }
 }
-
 /**
  * Helper function to create log entries - can be used in your application
  */

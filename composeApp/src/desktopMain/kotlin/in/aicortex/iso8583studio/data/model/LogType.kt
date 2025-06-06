@@ -72,13 +72,13 @@ enum class LogCategory(val displayName: String, val icon: ImageVector) {
 data class LogEntry(
     val id: String = generateLogId(),
     val timestamp: String,
-    val type: LogType,
-    val message: String,
-    val details: String? = null,
-    val source: String? = null,
-    val sessionId: String? = null,
-    val correlationId: String? = null,
-    val metadata: Map<String, Any> = emptyMap()
+    var type: LogType,
+    var message: String,
+    var details: String? = null,
+    var source: String? = null,
+    var sessionId: String? = null,
+    var correlationId: String? = null,
+    var metadata: Map<String, Any> = emptyMap()
 ) {
     companion object {
         private var logCounter = 0L

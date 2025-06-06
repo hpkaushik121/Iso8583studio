@@ -1,6 +1,9 @@
 package `in`.aicortex.iso8583studio.data
 
 
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import java.io.FileInputStream
 import java.io.IOException
 import java.net.Socket
@@ -115,12 +118,15 @@ class SSLTcpClient private constructor(private val client: GatewayClient, bIsInc
 
             // Log authentication results
             client.writeServerLog(
-                "SSL AUTHENTICATION RESULT: " +
-                        "AUTHENTICATED:${_sslStream?.isAuthenticated} , " +
-                        "ENCRYPTED:${_sslStream?.isEncrypted} , " +
-                        "MUTUALLY AUTHENTICATED:${_sslStream?.isMutuallyAuthenticated} , " +
-                        "SIGNED:${_sslStream?.isSigned} , " +
-                        "IS SERVER:${_sslStream?.isServer}"
+                createLogEntry(
+                    type = LogType.DEBUG,
+                    message = "SSL AUTHENTICATION RESULT: ",
+                    details = "AUTHENTICATED:${_sslStream?.isAuthenticated} , " +
+                            "ENCRYPTED:${_sslStream?.isEncrypted} , " +
+                            "MUTUALLY AUTHENTICATED:${_sslStream?.isMutuallyAuthenticated} , " +
+                            "SIGNED:${_sslStream?.isSigned} , " +
+                            "IS SERVER:${_sslStream?.isServer}"
+                )
             )
 
         } catch (e: Exception) {
@@ -227,8 +233,12 @@ class SSLTcpClient private constructor(private val client: GatewayClient, bIsInc
             private fun logCertificateInfo(chain: Array<X509Certificate>?) {
                 chain?.firstOrNull()?.let { certificate ->
                     client.writeServerLog(
-                        "Remote Certificate's Information: Subject = \"${certificate.subjectDN}\" " +
-                                "Issuer = \"${certificate.issuerDN}\""
+                        createLogEntry(
+                            type = LogType.INFO,
+                            message = "Remote Certificate's Information: Subject = \"${certificate.subjectDN}\" " +
+                                    "Issuer = \"${certificate.issuerDN}\""
+                        )
+
                     )
                 }
             }
@@ -251,7 +261,7 @@ class SSLTcpClient private constructor(private val client: GatewayClient, bIsInc
             return try {
                 SSLTcpClient(client, bIsIncoming)
             } catch (ex: Exception) {
-                client.writeServerLog("SSL AUTHENTICATION FAILED: ${ex.message}")
+                client.writeServerLog(createLogEntry(type = LogType.ERROR,"SSL AUTHENTICATION FAILED: ${ex.message}"))
                 null
             }
         }

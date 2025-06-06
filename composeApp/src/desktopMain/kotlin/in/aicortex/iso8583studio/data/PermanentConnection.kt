@@ -6,12 +6,15 @@ import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import org.apache.commons.logging.Log
 import java.net.Socket
 import java.time.Duration
 import java.time.LocalDateTime
@@ -70,7 +73,10 @@ class PermanentConnection(
                         socket = Socket(hostIp, port)
                     }
                     connectionNumber++
-                    gatewayHandler.writeLog("$logPrefix ESTABLISHED CONNECTION TO $hostIp $port")
+                    gatewayHandler.writeLog(createLogEntry(
+                        type = LogType.CONNECTION,
+                        message = "$logPrefix ESTABLISHED CONNECTION TO $hostIp $port"
+                    ))
                     isConnected = true
 
                     // Start receiving data from the socket
@@ -79,10 +85,18 @@ class PermanentConnection(
                     }
                 } catch (e: Exception) {
                     if (attempts == 1) {
-                        gatewayHandler.writeLog("$logPrefix CANNOT CONNECT TO $hostIp $port\r\n${e.message}")
+                        gatewayHandler.writeLog(createLogEntry(
+                            type = LogType.CONNECTION,
+                            message = "$logPrefix CANNOT CONNECT TO $hostIp $port\r\n${e.message}"
+                        ))
                     }
                     if (attempts % 500 == 0) {
-                        gatewayHandler.writeLog("$logPrefix TRIED $attempts TIMES TO CONNECT BUT FAILED \r\n${e.message}")
+                        gatewayHandler.writeLog(
+                            createLogEntry(
+                                type = LogType.CONNECTION,
+                                message = "$logPrefix TRIED $attempts TIMES TO CONNECT BUT FAILED \r\n${e.message}"
+                            )
+                        )
                     }
                     delay(1000) // Wait before retrying
                 }
@@ -133,8 +147,16 @@ class PermanentConnection(
             }
         } catch (e: Exception) {
             try {
-                gatewayHandler.writeLog("$logPrefix CONNECTION IS DROPPED: ${e.message}")
-                gatewayHandler.writeLog("$logPrefix TRYING TO RECONNECT")
+                gatewayHandler.writeLog(createLogEntry(
+                    type = LogType.ERROR,
+                    message = "$logPrefix CONNECTION IS DROPPED: ${e.message}"
+                )
+                )
+                gatewayHandler.writeLog(createLogEntry(
+                    type = LogType.DEBUG,
+                    message = "$logPrefix TRYING TO RECONNECT"
+                )
+                )
             } catch (e: Exception) {
                 // Ignore logging errors
             } finally {

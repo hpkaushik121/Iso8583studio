@@ -7,171 +7,123 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Enhanced Log Formatter for Plain Text (No Timestamp/Level)
- * Automatically detects content type and adds appropriate formatting
+ * Robust log formatter with detailed debugging and simple logic
  */
-
-data class PlainLogEntry(
-    val originalText: String,
-    val type: DetectedLogType,
-    val structuredData: Map<String, String> = emptyMap()
-)
-
-enum class DetectedLogType(
-    val displayName: String,
-    val emoji: String
-) {
-    GATEWAY_START("Gateway Started", "🟢"),
-    GATEWAY_STOP("Gateway Stopped", "🔴"),
-    GATEWAY_CONFIG("Gateway Config", "⚙️"),
-    SEPARATOR("Separator", "─"),
-    TRANSACTION("Transaction", "💳"),
-    CONNECTION("Connection", "🔗"),
-    ERROR_EVENT("Error", "❌"),
-    WARNING_EVENT("Warning", "⚠️"),
-    GENERAL_INFO("Info", "ℹ️"),
-    UNKNOWN("Unknown", "📝")
-}
-
-@Composable
-fun DetectedLogType.getColor(): Color {
-    return when (this) {
-        DetectedLogType.GATEWAY_START -> MaterialTheme.colors.primary
-        DetectedLogType.GATEWAY_STOP -> MaterialTheme.colors.error
-        DetectedLogType.GATEWAY_CONFIG -> MaterialTheme.colors.primary
-        DetectedLogType.SEPARATOR -> MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
-        DetectedLogType.TRANSACTION -> MaterialTheme.colors.secondary
-        DetectedLogType.CONNECTION -> MaterialTheme.colors.primary.copy(alpha = 0.8f)
-        DetectedLogType.ERROR_EVENT -> MaterialTheme.colors.error
-        DetectedLogType.WARNING_EVENT -> Color(0xFFFF9800) // Orange - not in MaterialTheme
-        DetectedLogType.GENERAL_INFO -> MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-        DetectedLogType.UNKNOWN -> MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-    }
-}
 
 object PlainTextLogParser {
 
-    fun parseAndFormat(plainText: String): List<PlainLogEntry> {
-        val lines = plainText.split("\n").filter { it.isNotBlank() }
-        return lines.map { line ->
-            val trimmedLine = line.trim()
-            val type = detectLogType(trimmedLine)
-            val structuredData = extractStructuredData(trimmedLine, type)
+    fun parseAndFormat(plainText: String): String {
+        if (plainText.isBlank()) return plainText
 
-            PlainLogEntry(
-                originalText = trimmedLine,
-                type = type,
-                structuredData = structuredData
-            )
-        }
-    }
+        val lines = plainText.split("\n")
+        val result = mutableListOf<String>()
+        var currentIndentSize = 0
 
-    private fun detectLogType(line: String): DetectedLogType {
-        val upperLine = line.uppercase()
+        for (i in lines.indices) {
+            val line = lines[i]
 
-        return when {
-            // Gateway events
-            upperLine.contains("GATEWAY STARTED") || upperLine.contains("GATEWAY START") -> DetectedLogType.GATEWAY_START
-            upperLine.contains("GATEWAY STOPPED") || upperLine.contains("GATEWAY STOP") -> DetectedLogType.GATEWAY_STOP
+            when {
+                line.isBlank() -> {
+                    result.add(line)
+                }
 
-            // Configuration lines
-            upperLine.contains("NAME =") || upperLine.contains("GATEWAY TYPE") ||
-                    upperLine.contains("TRANSMISSION TYPE") || upperLine.contains("LOCAL ADDRESS") ||
-                    upperLine.contains("REMOTE ADDRESS") || upperLine.contains("PORT =") -> DetectedLogType.GATEWAY_CONFIG
+                hasTimestamp(line) -> {
+                    // This is a main log entry
+                    result.add(line)
+                    currentIndentSize = findContentStart(line)
+                }
 
-            // Separators
-            line.matches(Regex("^=+$")) || line.matches(Regex("^-+$")) ||
-                    line.matches(Regex("^\\*+$")) -> DetectedLogType.SEPARATOR
-
-            // Transaction related
-            upperLine.contains("TRANSACTION") || upperLine.contains("PAYMENT") ||
-                    upperLine.contains("AUTHORIZATION") || upperLine.contains("MTI") ||
-                    upperLine.contains("ISO8583") -> DetectedLogType.TRANSACTION
-
-            // Connection events
-            upperLine.contains("CONNECTION") || upperLine.contains("CONNECT") ||
-                    upperLine.contains("DISCONNECT") || upperLine.contains("CLIENT") ||
-                    upperLine.contains("SERVER") -> DetectedLogType.CONNECTION
-
-            // Error indicators
-            upperLine.contains("ERROR") || upperLine.contains("FAIL") ||
-                    upperLine.contains("EXCEPTION") || upperLine.contains("TIMEOUT") -> DetectedLogType.ERROR_EVENT
-
-            // Warning indicators
-            upperLine.contains("WARNING") || upperLine.contains("WARN") ||
-                    upperLine.contains("RETRY") || upperLine.contains("INVALID") -> DetectedLogType.WARNING_EVENT
-
-            // Default
-            else -> DetectedLogType.GENERAL_INFO
-        }
-    }
-
-    private fun extractStructuredData(line: String, type: DetectedLogType): Map<String, String> {
-        val data = mutableMapOf<String, String>()
-
-        when (type) {
-            DetectedLogType.GATEWAY_CONFIG -> {
-                // Extract key-value pairs from configuration lines
-                extractKeyValue(line, "Name")?.let { data["name"] = it }
-                extractKeyValue(line, "Gateway type")?.let { data["gatewayType"] = it }
-                extractKeyValue(line, "Transmission Type")?.let { data["transmissionType"] = it }
-                extractKeyValue(line, "Description")?.let { data["description"] = it }
-                extractKeyValue(line, "Local Address")?.let { data["localAddress"] = it }
-                extractKeyValue(line, "Remote Address")?.let { data["remoteAddress"] = it }
-                extractKeyValue(line, "Port")?.let { data["port"] = it }
-            }
-            DetectedLogType.TRANSACTION -> {
-                // Extract transaction related data
-                extractKeyValue(line, "MTI")?.let { data["mti"] = it }
-                extractKeyValue(line, "Amount")?.let { data["amount"] = it }
-                extractKeyValue(line, "STAN")?.let { data["stan"] = it }
-            }
-            DetectedLogType.CONNECTION -> {
-                // Extract connection data
-                extractIpAddress(line)?.let { data["ipAddress"] = it }
-                extractPort(line)?.let { data["port"] = it }
-            }
-            else -> {
-                // For other types, just store the full text
-                data["message"] = line
+                else -> {
+                    // This is a continuation line - add proper indentation
+                    val trimmedLine = line.trim()
+                    if (trimmedLine.isNotEmpty()) {
+                        val spaces = " ".repeat(currentIndentSize)
+                        result.add(spaces + trimmedLine)
+                    } else {
+                        result.add("")
+                    }
+                }
             }
         }
 
-        return data
+        return result.joinToString("\n")
     }
 
-    private fun extractKeyValue(line: String, key: String): String? {
-        val patterns = listOf(
-            "$key\\s*=\\s*([^\\t\\n]+?)(?:\\s*\\t|$)".toRegex(),
-            "$key\\s*:\\s*([^\\t\\n]+?)(?:\\s*\\t|$)".toRegex(),
-            "$key\\s+([^\\t\\n]+?)(?:\\s*\\t|$)".toRegex()
-        )
+    internal fun hasTimestamp(line: String): Boolean {
+        // Simple check: does the line start with [XX:XX:XX.XXX]
+        return line.matches(Regex("^\\[\\d{2}:\\d{2}:\\d{2}\\.\\d{3}\\].*"))
+    }
 
-        for (pattern in patterns) {
-            pattern.find(line)?.let { match ->
-                return match.groupValues[1].trim()
+    internal fun findContentStart(line: String): Int {
+        // For consistent alignment, we'll use a fixed position after the longest possible log type
+        // This ensures all continuation lines align vertically regardless of log type length
+
+        // Find where timestamp ends: [HH:mm:ss.SSS]
+        val timestampEnd = line.indexOf(']')
+        if (timestampEnd == -1) return 0
+
+        // Standard format: [timestamp] LOG_TYPE: content
+        // We'll align all content to start at a consistent position
+        // Longest common log types: ENCRYPTION (10 chars), CONNECTION (10 chars)
+        // So we'll align everything to position: timestamp + space + 12 chars + ": "
+
+        val fixedLogTypeWidth = 12  // Accommodate longest log type names
+        return timestampEnd + 1 + 1 + fixedLogTypeWidth + 2  // "] " + LOG_TYPE + ": "
+    }
+}
+
+/**
+ * Debug version that shows what's happening
+ */
+object DebugLogParser {
+
+    fun parseAndFormatWithDebug(plainText: String): Pair<String, List<String>> {
+        if (plainText.isBlank()) return Pair(plainText, emptyList())
+
+        val lines = plainText.split("\n")
+        val result = mutableListOf<String>()
+        val debugInfo = mutableListOf<String>()
+        var currentIndentSize = 0
+
+        for (i in lines.indices) {
+            val line = lines[i]
+
+            when {
+                line.isBlank() -> {
+                    result.add(line)
+                    debugInfo.add("Line $i: BLANK")
+                }
+
+                PlainTextLogParser.hasTimestamp(line) -> {
+                    result.add(line)
+                    currentIndentSize = PlainTextLogParser.findContentStart(line)
+                    debugInfo.add("Line $i: MAIN ENTRY - indent size = $currentIndentSize")
+                    debugInfo.add("  Content: '${line.substring(0, minOf(50, line.length))}${if(line.length > 50) "..." else ""}'")
+                }
+
+                else -> {
+                    val trimmedLine = line.trim()
+                    if (trimmedLine.isNotEmpty()) {
+                        val spaces = " ".repeat(currentIndentSize)
+                        result.add(spaces + trimmedLine)
+                        debugInfo.add("Line $i: CONTINUATION - added $currentIndentSize spaces")
+                        debugInfo.add("  Original: '$line'")
+                        debugInfo.add("  Result: '${spaces}${trimmedLine}'")
+                    } else {
+                        result.add("")
+                        debugInfo.add("Line $i: EMPTY")
+                    }
+                }
             }
         }
-        return null
-    }
 
-    private fun extractIpAddress(line: String): String? {
-        val ipPattern = "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b".toRegex()
-        return ipPattern.find(line)?.value
-    }
-
-    private fun extractPort(line: String): String? {
-        val portPattern = "(?:port|Port|PORT)\\s*[:=]?\\s*(\\d+)".toRegex()
-        return portPattern.find(line)?.groupValues?.get(1)
+        return Pair(result.joinToString("\n"), debugInfo)
     }
 }
 
@@ -182,271 +134,77 @@ object PlainTextLogParser {
 fun PlainTextLogDisplay(
     plainText: String,
     modifier: Modifier = Modifier,
-    autoDetectTypes: Boolean = true
+    enableFormatting: Boolean = true,
+    showDebug: Boolean = false
 ) {
-    val parsedEntries = remember(plainText, autoDetectTypes) {
-        if (autoDetectTypes) {
-            PlainTextLogParser.parseAndFormat(plainText)
-        } else {
-            // Fallback: treat each line as general info
-            plainText.split("\n").filter { it.isNotBlank() }.map { line ->
-                PlainLogEntry(
-                    originalText = line.trim(),
-                    type = DetectedLogType.GENERAL_INFO
-                )
-            }
-        }
-    }
-
-    // Build the formatted text directly in the Composable context
-    val formattedText = buildPlainTextAnnotatedString(parsedEntries)
-
-    SelectionContainer {
-        Text(
-            text = formattedText,
-            modifier = modifier,
-            fontFamily = FontFamily.Monospace,
-            style = MaterialTheme.typography.body2,
-            lineHeight = 18.sp
-        )
-    }
-}
-
-@Composable
-private fun buildPlainTextAnnotatedString(
-    entries: List<PlainLogEntry>
-): AnnotatedString {
-    return buildAnnotatedString {
-        entries.forEachIndexed { index, entry ->
-            buildPlainLogEntry(entry)
-
-            // Add spacing between entries
-            if (index < entries.size - 1) {
-                append("\n")
-            }
-        }
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildPlainLogEntry(
-    entry: PlainLogEntry
-) {
-    // Add emoji indicator
-    withStyle(SpanStyle(fontSize = 14.sp)) {
-        append("${entry.type.emoji} ")
-    }
-
-    // Format based on detected type
-    when (entry.type) {
-        DetectedLogType.GATEWAY_START -> buildGatewayStartEntry(entry)
-        DetectedLogType.GATEWAY_STOP -> buildGatewayStopEntry(entry)
-        DetectedLogType.GATEWAY_CONFIG -> buildGatewayConfigEntry(entry)
-        DetectedLogType.SEPARATOR -> buildSeparatorEntry(entry)
-        DetectedLogType.TRANSACTION -> buildTransactionEntry(entry)
-        DetectedLogType.CONNECTION -> buildConnectionEntry(entry)
-        DetectedLogType.ERROR_EVENT -> buildErrorEntry(entry)
-        DetectedLogType.WARNING_EVENT -> buildWarningEntry(entry)
-        else -> buildGeneralEntry(entry)
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildGatewayStartEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(
-        color = DetectedLogType.GATEWAY_START.getColor(),
-        fontWeight = FontWeight.Bold,
-        fontSize = 14.sp
-    )) {
-        append("GATEWAY STARTED")
-    }
-
-    // Add visual separator
-    append("\n")
-    withStyle(SpanStyle(color = MaterialTheme.colors.primary.copy(alpha = 0.3f))) {
-        append("    ")
-        append("━".repeat(40))
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildGatewayStopEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(
-        color = DetectedLogType.GATEWAY_STOP.getColor(),
-        fontWeight = FontWeight.Bold,
-        fontSize = 14.sp
-    )) {
-        append("GATEWAY STOPPED")
-    }
-
-    // Add visual separator
-    append("\n")
-    withStyle(SpanStyle(color = MaterialTheme.colors.error.copy(alpha = 0.3f))) {
-        append("    ")
-        append("━".repeat(40))
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildGatewayConfigEntry(entry: PlainLogEntry) {
-    val structuredData = entry.structuredData
-
-    if (structuredData.isNotEmpty()) {
-        // Format as structured configuration
-        structuredData.forEach { (key, value) ->
-            append("    ")
-            withStyle(SpanStyle(
-                color = MaterialTheme.colors.primary,
-                fontWeight = FontWeight.Medium
-            )) {
-                append("${key.replaceFirstChar { it.uppercase() }}: ")
-            }
-
-            withStyle(SpanStyle(
-                color = MaterialTheme.colors.onSurface,
-                fontWeight = FontWeight.Bold
-            )) {
-                append(value)
-            }
-
-            append("  ")
-        }
-    } else {
-        // Fallback to original text with highlighting
-        val parts = entry.originalText.split(Regex("\\s*[=:]\\s*"))
-        parts.forEachIndexed { index, part ->
-            if (index == 0) {
-                withStyle(SpanStyle(
-                    color = MaterialTheme.colors.primary,
-                    fontWeight = FontWeight.Medium
-                )) {
-                    append(part)
-                }
-                append(": ")
+    val (formattedText, debugInfo) = remember(plainText, enableFormatting, showDebug) {
+        if (enableFormatting && plainText.isNotBlank()) {
+            if (showDebug) {
+                DebugLogParser.parseAndFormatWithDebug(plainText)
             } else {
-                withStyle(SpanStyle(
-                    color = MaterialTheme.colors.onSurface,
-                    fontWeight = FontWeight.Bold
-                )) {
-                    append(part)
+                Pair(PlainTextLogParser.parseAndFormat(plainText), emptyList<String>())
+            }
+        } else {
+            Pair(plainText, emptyList<String>())
+        }
+    }
+
+    Column {
+        if (showDebug && debugInfo.isNotEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                elevation = 1.dp,
+                color = MaterialTheme.colors.primary.copy(alpha = 0.1f)
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(
+                        "Debug Information:",
+                        style = MaterialTheme.typography.caption,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                    debugInfo.take(10).forEach { info ->
+                        Text(
+                            info,
+                            style = MaterialTheme.typography.caption,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    if (debugInfo.size > 10) {
+                        Text("... and ${debugInfo.size - 10} more lines", style = MaterialTheme.typography.caption)
+                    }
                 }
-                if (index < parts.size - 1) append(" | ")
             }
         }
-    }
-}
 
-@Composable
-private fun AnnotatedString.Builder.buildSeparatorEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f))) {
-        append("    ")
-        append("─".repeat(45))
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildTransactionEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(
-        color = DetectedLogType.TRANSACTION.getColor(),
-        fontWeight = FontWeight.Medium
-    )) {
-        append("TRANSACTION: ")
-    }
-
-    withStyle(SpanStyle(color = MaterialTheme.colors.onSurface)) {
-        append(entry.originalText)
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildConnectionEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(
-        color = DetectedLogType.CONNECTION.getColor(),
-        fontWeight = FontWeight.Medium
-    )) {
-        append("CONNECTION: ")
-    }
-
-    // Highlight IP addresses and ports
-    val text = entry.originalText
-    val ipPattern = "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b".toRegex()
-    val portPattern = "\\b\\d{4,5}\\b".toRegex()
-
-    var lastIndex = 0
-
-    // Find and highlight IP addresses
-    ipPattern.findAll(text).forEach { match ->
-        // Add text before IP
-        append(text.substring(lastIndex, match.range.first))
-
-        // Add highlighted IP
-        withStyle(SpanStyle(
-            color = MaterialTheme.colors.secondary,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.Monospace
-        )) {
-            append(match.value)
+        SelectionContainer {
+            Text(
+                text = formattedText,
+                modifier = modifier,
+                fontFamily = FontFamily.Monospace,
+                style = MaterialTheme.typography.body2,
+                lineHeight = 18.sp,
+                color = MaterialTheme.colors.onSurface
+            )
         }
-
-        lastIndex = match.range.last + 1
-    }
-
-    // Add remaining text
-    append(text.substring(lastIndex))
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildErrorEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(
-        color = DetectedLogType.ERROR_EVENT.getColor(),
-        fontWeight = FontWeight.Bold
-    )) {
-        append("ERROR: ")
-    }
-
-    withStyle(SpanStyle(color = MaterialTheme.colors.onSurface)) {
-        append(entry.originalText)
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildWarningEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(
-        color = DetectedLogType.WARNING_EVENT.getColor(),
-        fontWeight = FontWeight.Bold
-    )) {
-        append("WARNING: ")
-    }
-
-    withStyle(SpanStyle(color = MaterialTheme.colors.onSurface)) {
-        append(entry.originalText)
-    }
-}
-
-@Composable
-private fun AnnotatedString.Builder.buildGeneralEntry(entry: PlainLogEntry) {
-    withStyle(SpanStyle(color = MaterialTheme.colors.onSurface)) {
-        append(entry.originalText)
     }
 }
 
 /**
- * Demo screen showing plain text log formatting
+ * Demo screen with debugging capabilities
  */
 @Composable
 fun PlainTextLogDemo() {
     val samplePlainText = """
-===============GATEWAY STARTED===============
-Name = Config_1	 Gateway type = SERVER
-Transmission Type = SYNCHRONOUS	 Description: 
-Local Address = 127.0.0.1	 Port = 8080
-Remote Address = 	 Port = 0
-=============================================
-=============================================
-===============GATEWAY STOPPED===============
+[22:41:48.850] MESSAGE: Message Type =
+TPDU Header =
+[22:41:48.857] ERROR: in.aicortex.iso8583studio.data.model.VerificationException: INPUT DATA IS NULL OR EMPTY, CHECK IF CONFIGURATION IS AVAILABLE
+[22:41:48.859] ENCRYPTION: SEND ENCRYPTED MESSAGE TO CLIENT INSTANCE: 19 BYTES
+[22:41:48.861] CONNECTION: ===============CONNECTION TERMINATED===============
+    └─ 
     """.trimIndent()
 
-    var autoDetect by remember { mutableStateOf(true) }
+    var enableFormatting by remember { mutableStateOf(true) }
+    var showDebug by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -454,7 +212,7 @@ Remote Address = 	 Port = 0
             .padding(16.dp)
     ) {
         Text(
-            "Plain Text Log Formatter",
+            "Debug Log Formatter",
             style = MaterialTheme.typography.h6,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -465,10 +223,18 @@ Remote Address = 	 Port = 0
         ) {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Checkbox(
-                    checked = autoDetect,
-                    onCheckedChange = { autoDetect = it }
+                    checked = enableFormatting,
+                    onCheckedChange = { enableFormatting = it }
                 )
-                Text("Auto-detect Types", style = MaterialTheme.typography.body2)
+                Text("Enable Formatting", style = MaterialTheme.typography.body2)
+            }
+
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Checkbox(
+                    checked = showDebug,
+                    onCheckedChange = { showDebug = it }
+                )
+                Text("Show Debug Info", style = MaterialTheme.typography.body2)
             }
         }
 
@@ -479,7 +245,8 @@ Remote Address = 	 Port = 0
         ) {
             PlainTextLogDisplay(
                 plainText = samplePlainText,
-                autoDetectTypes = autoDetect,
+                enableFormatting = enableFormatting,
+                showDebug = showDebug,
                 modifier = Modifier
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
@@ -489,26 +256,142 @@ Remote Address = 	 Port = 0
 }
 
 /**
- * Utility function to format plain text logs - must be called from Composable context
+ * Utility function to format plain text logs for use in composables
  */
 @Composable
 fun formatPlainTextLogs(
     plainText: String,
-    autoDetectTypes: Boolean = true
+    enableFormatting: Boolean = true
 ): AnnotatedString {
-    val entries = remember(plainText, autoDetectTypes) {
-        if (autoDetectTypes) {
+    val formattedText = remember(plainText, enableFormatting) {
+        if (enableFormatting && plainText.isNotBlank()) {
             PlainTextLogParser.parseAndFormat(plainText)
         } else {
-            plainText.split("\n").filter { it.isNotBlank() }.map { line ->
-                PlainLogEntry(
-                    originalText = line.trim(),
-                    type = DetectedLogType.GENERAL_INFO
-                )
-            }
+            plainText
         }
     }
 
-    // Build the formatted text directly without remember
-    return buildPlainTextAnnotatedString(entries)
+    return buildAnnotatedString {
+        append(formattedText)
+    }
+}
+
+/**
+ * Format just the message part (for individual log entries without timestamps)
+ * This handles multi-line messages that don't have timestamps on each line
+ */
+@Composable
+fun formatLogMessage(
+    message: String,
+    baseIndentSize: Int = 0
+): AnnotatedString {
+    val formattedText = remember(message, baseIndentSize) {
+        if (message.contains('\n')) {
+            val lines = message.split('\n')
+            val result = mutableListOf<String>()
+
+            // First line stays as-is
+            result.add(lines.first())
+
+            // Subsequent lines get indented to align with first line
+            lines.drop(1).forEach { line ->
+                val trimmedLine = line.trim()
+                if (trimmedLine.isNotEmpty()) {
+                    result.add(" ".repeat(baseIndentSize) + trimmedLine)
+                } else {
+                    result.add("")
+                }
+            }
+
+            result.joinToString("\n")
+        } else {
+            message
+        }
+    }
+
+    return buildAnnotatedString {
+        append(formattedText)
+    }
+}
+
+/**
+ * Format details with proper multi-line indentation
+ */
+@Composable
+fun formatLogDetails(
+    details: String,
+    baseIndentSize: Int
+): AnnotatedString {
+    val formattedText = remember(details, baseIndentSize) {
+        if (details.contains('\n')) {
+            val lines = details.split('\n')
+            val result = mutableListOf<String>()
+
+            // First line with tree indicator
+            result.add("└─ ${lines.first()}")
+
+            // Subsequent lines get additional indentation
+            lines.drop(1).forEach { line ->
+                val trimmedLine = line.trim()
+                if (trimmedLine.isNotEmpty()) {
+                    // Align with content after the tree indicator
+                    result.add(" ".repeat(baseIndentSize) + "   " + trimmedLine)  // 3 spaces for "└─ "
+                } else {
+                    result.add("")
+                }
+            }
+
+            result.joinToString("\n")
+        } else {
+            "└─ $details"
+        }
+    }
+
+    return buildAnnotatedString {
+        append(formattedText)
+    }
+}
+
+/**
+ * Non-composable version for use outside of Compose context
+ */
+fun formatPlainTextLogsString(
+    plainText: String,
+    enableFormatting: Boolean = true
+): String {
+    return if (enableFormatting && plainText.isNotBlank()) {
+        PlainTextLogParser.parseAndFormat(plainText)
+    } else {
+        plainText
+    }
+}
+
+/**
+ * Test function to verify the parser is working
+ */
+fun testLogParser() {
+    val testLog = """
+[22:41:48.850] MESSAGE: Message Type =
+TPDU Header =
+[22:41:48.857] ERROR: Exception occurred
+[22:41:48.859] ENCRYPTION: SEND ENCRYPTED MESSAGE
+    """.trimIndent()
+
+    println("=== ORIGINAL ===")
+    testLog.split("\n").forEachIndexed { i, line ->
+        println("$i: '$line'")
+    }
+
+    println("\n=== ANALYSIS ===")
+    testLog.split("\n").forEachIndexed { i, line ->
+        val hasTs = PlainTextLogParser.hasTimestamp(line)
+        val contentStart = if (hasTs) PlainTextLogParser.findContentStart(line) else -1
+        println("$i: hasTimestamp=$hasTs, contentStart=$contentStart, line='$line'")
+    }
+
+    println("\n=== FORMATTED ===")
+    val result = PlainTextLogParser.parseAndFormat(testLog)
+    result.split("\n").forEachIndexed { i, line ->
+        println("$i: '$line'")
+    }
 }

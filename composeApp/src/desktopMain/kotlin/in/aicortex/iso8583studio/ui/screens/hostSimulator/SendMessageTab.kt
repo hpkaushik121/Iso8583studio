@@ -80,6 +80,7 @@ import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.components.PrimaryButton
 import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
@@ -97,7 +98,7 @@ import javax.swing.filechooser.FileNameExtensionFilter
 @Composable
 internal fun SendMessageTab(
     gw: GatewayServiceImpl,
-    logText: String,
+    logText: List<LogEntry>,
     onClearClick: () -> Unit = {},
 ) {
     var rawMessageBytes by remember { mutableStateOf(byteArrayOf()) }
@@ -383,7 +384,7 @@ internal fun SendMessageTab(
                     Panel {
                         LogPanelWithAutoScroll(
                             onClearClick = onClearClick,
-                            logText = logText,
+                            logEntries = logText,
                             onBack = {
                                 showLogPanel = false
                                 isSending = false
