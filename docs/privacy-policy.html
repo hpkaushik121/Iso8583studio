@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - ISO8583Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* ISO8583Studio Brand Colors - Dark Theme */
+            --primary-blue: #6ab7ff;
+            --primary-blue-light: #9fd3ff;
+            --primary-blue-dark: #1e88e5;
+            --accent-teal: #64d8cb;
+            --accent-teal-light: #a0f4ea;
+            --accent-teal-dark: #26a69a;
+            --background-light: #252836;
+            --background-dark: #1a1d2e;
+            --card-light: #2F3142;
+            --card-dark: #1e1f2e;
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+            --warning-yellow: #ffd43b;
+            --border-light: #3d3d3d;
+            --border-dark: #2a2a2a;
+            --text-primary-light: #eceff1;
+            --text-secondary-light: #b0bec5;
+            --text-muted: #90a4ae;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary-light);
+            background: var(--background-dark);
+            overflow-x: hidden;
+        }
+
+        /* Transparent Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: transparent;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .header.scrolled {
+            background: rgba(26, 29, 46, 0.95);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .header-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary-light);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--background-dark);
+            font-size: 16px;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--text-secondary-light);
+            font-size: 16px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav a:hover {
+            color: var(--primary-blue);
+        }
+
+        .header-cta {
+            background: var(--primary-blue);
+            color: var(--background-dark);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 20px rgba(106, 183, 255, 0.3);
+        }
+
+        .header-cta:hover {
+            background: var(--primary-blue-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(106, 183, 255, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 140px 24px 60px;
+            background: var(--background-dark);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(106, 183, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(100, 216, 203, 0.1) 0%, transparent 50%);
+            animation: hero-glow 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes hero-glow {
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--text-primary-light);
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            font-weight: 400;
+            color: var(--text-secondary-light);
+            margin-bottom: 32px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .last-updated {
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 24px;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px 120px;
+        }
+
+        .content-card {
+            background: linear-gradient(135deg, var(--card-dark) 0%, var(--card-light) 100%);
+            border-radius: 20px;
+            padding: 60px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(106, 183, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(106, 183, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .content-card > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: rgba(106, 183, 255, 0.05);
+            border: 1px solid rgba(106, 183, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 48px;
+        }
+
+        .toc-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 8px;
+        }
+
+        .toc-item {
+            padding: 8px 0;
+        }
+
+        .toc-link {
+            text-decoration: none;
+            color: var(--text-secondary-light);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-link:hover {
+            color: var(--primary-blue);
+            transform: translateX(4px);
+        }
+
+        .toc-link::before {
+            content: '▶';
+            font-size: 10px;
+            color: var(--accent-teal);
+            transition: transform 0.2s ease;
+        }
+
+        .toc-link:hover::before {
+            transform: translateX(2px);
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary-light);
+            margin: 48px 0 24px 0;
+            line-height: 1.2;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            scroll-margin-top: 100px;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            border-radius: 2px;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary-light);
+            margin: 32px 0 16px 0;
+            line-height: 1.3;
+        }
+
+        h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin: 24px 0 12px 0;
+        }
+
+        p {
+            color: var(--text-secondary-light);
+            margin-bottom: 16px;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        strong {
+            color: var(--text-primary-light);
+            font-weight: 600;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            color: var(--text-secondary-light);
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        li strong {
+            color: var(--primary-blue);
+        }
+
+        /* Special sections */
+        .highlight-box {
+            background: rgba(100, 216, 203, 0.1);
+            border: 1px solid rgba(100, 216, 203, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .highlight-box::before {
+            content: '💡';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--card-dark);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .warning-box {
+            background: rgba(255, 212, 59, 0.1);
+            border: 1px solid rgba(255, 212, 59, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .warning-box::before {
+            content: '⚠️';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--card-dark);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .info-box {
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .info-box::before {
+            content: 'ℹ️';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--card-dark);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        /* Contact section */
+        .contact-section {
+            background: linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--accent-teal-dark) 100%);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .contact-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact-text {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact-email {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact-email:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Back to top */
+        .back-to-top {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 48px;
+            height: 48px;
+            background: var(--primary-blue);
+            color: var(--background-dark);
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(106, 183, 255, 0.4);
+            opacity: 0;
+            transform: translateY(20px);
+            z-index: 1000;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .back-to-top:hover {
+            background: var(--primary-blue-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(106, 183, 255, 0.6);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--card-dark);
+            padding: 40px 24px;
+            border-top: 1px solid var(--border-light);
+            text-align: center;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: var(--text-secondary-light);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-blue);
+        }
+
+        .footer-copyright {
+            color: var(--text-secondary-light);
+            font-size: 14px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 20px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .nav {
+                display: none;
+            }
+
+            .content-card {
+                padding: 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 36px;
+            }
+
+            .hero-subtitle {
+                font-size: 18px;
+            }
+
+            .content-card {
+                padding: 24px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            h2::before {
+                display: none;
+            }
+
+            .toc-list {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero {
+                padding: 120px 16px 40px;
+            }
+
+            .main-content {
+                padding: 0 16px 80px;
+            }
+
+            .hero-title {
+                font-size: 28px;
+            }
+
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 44px;
+                height: 44px;
+                font-size: 18px;
+            }
+        }
+
+        /* Smooth animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- Transparent Header -->
+<header class="header">
+    <div class="header-container">
+        <a href="#" class="logo">
+            <div class="logo-icon">
+                <img src="images/app.png" class="logo-icon"/>
+            </div>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="#overview">Overview</a>
+            <a href="#data-collection">Data Collection</a>
+            <a href="#data-usage">Usage</a>
+            <a href="#security">Security</a>
+            <a href="#contact">Contact</a>
+        </nav>
+        <a href="./" class="header-cta">Back to Home</a>
+    </div>
+</header>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-container">
+        <div class="last-updated">
+            📅 Last Updated: June 9, 2025
+        </div>
+        <h1 class="hero-title">Privacy Policy</h1>
+        <p class="hero-subtitle">Your privacy and data security are fundamental to everything we do. This policy explains how ISO8583Studio handles your information with transparency and respect.</p>
+    </div>
+</section>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="content-card fade-in">
+        <!-- Table of Contents -->
+        <div class="toc">
+            <div class="toc-title">
+                📋 Table of Contents
+            </div>
+            <ul class="toc-list">
+                <li class="toc-item">
+                    <a href="#overview" class="toc-link">Overview & Commitment</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#data-collection" class="toc-link">Information We Collect</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#data-usage" class="toc-link">How We Use Your Data</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#data-sharing" class="toc-link">Data Sharing & Disclosure</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#security" class="toc-link">Security Measures</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#retention" class="toc-link">Data Retention</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#rights" class="toc-link">Your Rights</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#cookies" class="toc-link">Cookies & Tracking</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#international" class="toc-link">International Transfers</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#updates" class="toc-link">Policy Updates</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#contact" class="toc-link">Contact Information</a>
+                </li>
+            </ul>
+        </div>
+
+        <h2 id="overview">🛡️ Overview & Our Commitment</h2>
+        <p>At ISO8583Studio, we are committed to protecting your privacy and ensuring the security of your personal information. As a professional desktop application for financial transaction processing, we understand the critical importance of data protection in the financial technology sector.</p>
+
+        <div class="highlight-box">
+            <p><strong>Our Commitment:</strong> We process only the minimum data necessary to provide our services, implement industry-leading security measures, and never sell your personal information to third parties.</p>
+        </div>
+
+        <p>This Privacy Policy applies to:</p>
+        <ul>
+            <li><strong>ISO8583Studio Desktop Application</strong> - Our primary software product</li>
+            <li><strong>Official Website</strong> - https://iso8583.studio</li>
+            <li><strong>Support Services</strong> - Customer support and technical assistance</li>
+            <li><strong>Documentation & Resources</strong> - Online guides and documentation</li>
+        </ul>
+
+        <h2 id="data-collection">📊 Information We Collect</h2>
+
+        <h3>Information You Provide Directly</h3>
+        <p>We collect information you voluntarily provide when using our services:</p>
+        <ul>
+            <li><strong>Account Information:</strong> Name, email address, company name, and contact details when you create an account or request support</li>
+            <li><strong>License Information:</strong> License key details, activation information, and subscription data</li>
+            <li><strong>Support Communications:</strong> Information you provide when contacting our support team, including technical details about your environment</li>
+            <li><strong>Feedback & Surveys:</strong> Your responses to surveys, feedback forms, and product improvement requests</li>
+        </ul>
+
+        <h3>Information Collected Automatically</h3>
+        <p>Our application and website may automatically collect certain technical information:</p>
+        <ul>
+            <li><strong>Application Usage Data:</strong> Feature usage statistics, performance metrics, and crash reports (anonymized)</li>
+            <li><strong>System Information:</strong> Operating system version, hardware specifications, and software environment details</li>
+            <li><strong>Website Analytics:</strong> IP address, browser type, pages visited, and interaction patterns</li>
+            <li><strong>Log Data:</strong> Application logs, error reports, and diagnostic information</li>
+        </ul>
+
+        <div class="info-box">
+            <p><strong>Desktop Application Data:</strong> ISO8583Studio is primarily a desktop application. Most of your transaction data, configurations, and financial information remain on your local system and are not transmitted to our servers unless you explicitly use cloud features or request support.</p>
+        </div>
+
+        <h3>Financial & Transaction Data</h3>
+        <p>Important clarifications regarding sensitive financial data:</p>
+        <ul>
+            <li><strong>Local Processing:</strong> Transaction data processed through ISO8583Studio remains on your local system by default</li>
+            <li><strong>No Data Collection:</strong> We do not collect, store, or transmit your actual financial transaction data</li>
+            <li><strong>Configuration Data:</strong> Gateway configurations and message templates are stored locally unless you use cloud sync features</li>
+            <li><strong>Support Cases:</strong> If you share configuration or log files for support purposes, we handle them with strict confidentiality</li>
+        </ul>
+
+        <h2 id="data-usage">⚙️ How We Use Your Data</h2>
+
+        <p>We use collected information for the following purposes:</p>
+
+        <h3>Service Provision & Improvement</h3>
+        <ul>
+            <li><strong>License Management:</strong> Verify licenses, manage subscriptions, and prevent unauthorized use</li>
+            <li><strong>Technical Support:</strong> Provide customer support, troubleshoot issues, and resolve technical problems</li>
+            <li><strong>Product Development:</strong> Improve our software, develop new features, and enhance user experience</li>
+            <li><strong>Performance Optimization:</strong> Analyze usage patterns to optimize application performance and stability</li>
+        </ul>
+
+        <h3>Communication & Updates</h3>
+        <ul>
+            <li><strong>Product Updates:</strong> Notify you about software updates, security patches, and new releases</li>
+            <li><strong>Support Communications:</strong> Respond to your support requests and provide technical assistance</li>
+            <li><strong>Educational Content:</strong> Share documentation, tutorials, and best practices (with your consent)</li>
+            <li><strong>Important Notices:</strong> Communicate critical security updates or service changes</li>
+        </ul>
+
+        <h3>Legal & Compliance</h3>
+        <ul>
+            <li><strong>Legal Obligations:</strong> Comply with applicable laws, regulations, and legal processes</li>
+            <li><strong>Security Protection:</strong> Detect and prevent fraud, unauthorized access, and security threats</li>
+            <li><strong>Terms Enforcement:</strong> Enforce our Terms of Service and protect our rights and property</li>
+        </ul>
+
+        <h2 id="data-sharing">🤝 Data Sharing & Disclosure</h2>
+
+        <p>We do not sell, rent, or trade your personal information. We may share information only in the following limited circumstances:</p>
+
+        <h3>Service Providers</h3>
+        <p>We may share data with trusted third-party service providers who help us operate our business:</p>
+        <ul>
+            <li><strong>Cloud Infrastructure:</strong> Hosting services for our website and support systems</li>
+            <li><strong>Analytics Services:</strong> Website analytics and application performance monitoring</li>
+            <li><strong>Support Tools:</strong> Customer support and ticketing systems</li>
+            <li><strong>Payment Processing:</strong> Payment processors for license purchases (they handle payment data independently)</li>
+        </ul>
+
+        <div class="warning-box">
+            <p><strong>Important:</strong> All service providers are contractually required to protect your data and use it only for the specific services they provide to us. They cannot use your information for their own purposes.</p>
+        </div>
+
+        <h3>Legal Requirements</h3>
+        <p>We may disclose information when required by law or to protect our rights:</p>
+        <ul>
+            <li>In response to valid legal processes (subpoenas, court orders, etc.)</li>
+            <li>To comply with applicable laws and regulations</li>
+            <li>To protect our rights, property, or safety, or that of our users</li>
+            <li>To investigate potential violations of our Terms of Service</li>
+        </ul>
+
+        <h3>Business Transfers</h3>
+        <p>In the event of a merger, acquisition, or sale of assets, your information may be transferred as part of the transaction. We will notify you of any such change and the choices you may have.</p>
+
+        <h2 id="security">🔒 Security Measures</h2>
+
+        <p>We implement comprehensive security measures to protect your information:</p>
+
+        <h3>Technical Safeguards</h3>
+        <ul>
+            <li><strong>Encryption:</strong> Data in transit is protected using TLS/SSL encryption</li>
+            <li><strong>Access Controls:</strong> Strict access controls and authentication for our systems</li>
+            <li><strong>Secure Infrastructure:</strong> Industry-standard security practices for our servers and databases</li>
+            <li><strong>Regular Updates:</strong> Timely security patches and software updates</li>
+        </ul>
+
+        <h3>Operational Safeguards</h3>
+        <ul>
+            <li><strong>Employee Training:</strong> Regular security awareness training for all employees</li>
+            <li><strong>Background Checks:</strong> Comprehensive background checks for personnel with data access</li>
+            <li><strong>Incident Response:</strong> Established procedures for security incident detection and response</li>
+            <li><strong>Regular Audits:</strong> Periodic security assessments and vulnerability testing</li>
+        </ul>
+
+        <h3>Application Security</h3>
+        <ul>
+            <li><strong>Local Data Protection:</strong> Your local data remains on your system with standard OS protections</li>
+            <li><strong>Secure Communications:</strong> All network communications use encrypted channels</li>
+            <li><strong>Code Signing:</strong> Our application is digitally signed to ensure authenticity and integrity</li>
+            <li><strong>Regular Security Reviews:</strong> Continuous security assessment of our codebase and infrastructure</li>
+        </ul>
+
+        <div class="info-box">
+            <p><strong>Financial Data Security:</strong> Since ISO8583Studio processes financial transaction data, we follow industry best practices including PCI DSS guidelines, even though your transaction data typically remains on your local system.</p>
+        </div>
+
+        <h2 id="retention">🗄️ Data Retention</h2>
+
+        <p>We retain your information only as long as necessary to provide our services and comply with legal obligations:</p>
+
+        <h3>Account Information</h3>
+        <ul>
+            <li><strong>Active Accounts:</strong> Retained while your account is active and for service provision</li>
+            <li><strong>Inactive Accounts:</strong> Deleted after 2 years of inactivity, unless legal obligations require longer retention</li>
+            <li><strong>Support Records:</strong> Support tickets and communications retained for 3 years for quality and legal purposes</li>
+        </ul>
+
+        <h3>Technical Data</h3>
+        <ul>
+            <li><strong>Usage Analytics:</strong> Aggregated and anonymized usage data retained for 24 months</li>
+            <li><strong>Log Files:</strong> Server logs retained for 90 days for security and operational purposes</li>
+            <li><strong>Crash Reports:</strong> Anonymous crash reports retained for 12 months for product improvement</li>
+        </ul>
+
+        <h3>Legal & Compliance Data</h3>
+        <ul>
+            <li><strong>Financial Records:</strong> License and payment records retained for 7 years for tax and accounting purposes</li>
+            <li><strong>Legal Holds:</strong> Data subject to legal proceedings retained until resolution</li>
+            <li><strong>Regulatory Requirements:</strong> Data retained as required by applicable financial services regulations</li>
+        </ul>
+
+        <h2 id="rights">👤 Your Rights</h2>
+
+        <p>You have several rights regarding your personal information. The specific rights available to you may depend on your location and applicable laws:</p>
+
+        <h3>Access & Portability Rights</h3>
+        <ul>
+            <li><strong>Access:</strong> Request a copy of the personal information we hold about you</li>
+            <li><strong>Portability:</strong> Receive your data in a structured, machine-readable format</li>
+            <li><strong>Information:</strong> Learn about how we process your data and with whom we share it</li>
+        </ul>
+
+        <h3>Control & Correction Rights</h3>
+        <ul>
+            <li><strong>Correction:</strong> Update or correct inaccurate personal information</li>
+            <li><strong>Deletion:</strong> Request deletion of your personal information (subject to legal obligations)</li>
+            <li><strong>Restriction:</strong> Limit how we process your information in certain circumstances</li>
+            <li><strong>Objection:</strong> Object to processing based on legitimate interests</li>
+        </ul>
+
+        <h3>Communication Preferences</h3>
+        <ul>
+            <li><strong>Marketing Opt-out:</strong> Unsubscribe from marketing communications at any time</li>
+            <li><strong>Communication Settings:</strong> Choose how and when we contact you</li>
+            <li><strong>Notification Preferences:</strong> Control which product updates and announcements you receive</li>
+        </ul>
+
+        <div class="highlight-box">
+            <p><strong>How to Exercise Your Rights:</strong> Contact us at admin@aicortex.in with your request. We will respond within 30 days and may require identity verification for security purposes.</p>
+        </div>
+
+        <h2 id="cookies">🍪 Cookies & Tracking Technologies</h2>
+
+        <p>Our website uses cookies and similar technologies to improve your experience and understand how our services are used:</p>
+
+        <h3>Types of Cookies We Use</h3>
+        <ul>
+            <li><strong>Essential Cookies:</strong> Required for website functionality and security</li>
+            <li><strong>Analytics Cookies:</strong> Help us understand website usage and improve performance</li>
+            <li><strong>Functional Cookies:</strong> Remember your preferences and settings</li>
+            <li><strong>Marketing Cookies:</strong> Used for targeted advertising (with your consent)</li>
+        </ul>
+
+        <h3>Third-Party Cookies</h3>
+        <p>We may use third-party services that set their own cookies:</p>
+        <ul>
+            <li><strong>Google Analytics:</strong> Website traffic analysis and user behavior insights</li>
+            <li><strong>Support Chat:</strong> Customer support chat functionality</li>
+            <li><strong>CDN Services:</strong> Content delivery and website performance optimization</li>
+        </ul>
+
+        <h3>Managing Cookies</h3>
+        <p>You can control cookies through your browser settings:</p>
+        <ul>
+            <li>Block all cookies (may affect website functionality)</li>
+            <li>Block third-party cookies only</li>
+            <li>Delete existing cookies</li>
+            <li>Set preferences for future cookies</li>
+        </ul>
+
+        <div class="warning-box">
+            <p><strong>Note:</strong> The desktop application does not use web cookies, but may store local configuration files and preferences on your system for application functionality.</p>
+        </div>
+
+        <h2 id="international">🌐 International Data Transfers</h2>
+
+        <p>ISO8583Studio operates globally, and your information may be transferred to and processed in countries other than your own:</p>
+
+        <h3>Legal Basis for Transfers</h3>
+        <ul>
+            <li><strong>Adequacy Decisions:</strong> Transfers to countries with adequate data protection laws</li>
+            <li><strong>Standard Contractual Clauses:</strong> EU-approved contracts ensuring data protection</li>
+            <li><strong>Your Consent:</strong> Explicit consent for specific transfers when required</li>
+            <li><strong>Necessity:</strong> Transfers necessary for service provision or legal compliance</li>
+        </ul>
+
+        <h3>Safeguards for International Transfers</h3>
+        <ul>
+            <li><strong>Encryption:</strong> All data transfers use strong encryption</li>
+            <li><strong>Access Controls:</strong> Strict limits on who can access transferred data</li>
+            <li><strong>Contractual Protections:</strong> Legal agreements requiring equivalent protection</li>
+            <li><strong>Regular Reviews:</strong> Ongoing assessment of transfer arrangements and protections</li>
+        </ul>
+
+        <h2 id="minors">👶 Children's Privacy</h2>
+
+        <p>ISO8583Studio is designed for professional use in financial services and is not intended for children under 16. We do not knowingly collect personal information from children.</p>
+
+        <p>If we become aware that we have collected information from a child under 16 without parental consent, we will take steps to delete that information promptly.</p>
+
+        <h2 id="updates">📝 Changes to This Privacy Policy</h2>
+
+        <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors.</p>
+
+        <h3>How We Notify You of Changes</h3>
+        <ul>
+            <li><strong>Website Notice:</strong> Prominent notice on our website for 30 days</li>
+            <li><strong>Email Notification:</strong> Email to registered users for material changes</li>
+            <li><strong>In-App Notification:</strong> Notification within the desktop application</li>
+            <li><strong>Version Dating:</strong> Clear dating of policy versions for transparency</li>
+        </ul>
+
+        <h3>Types of Changes</h3>
+        <ul>
+            <li><strong>Minor Changes:</strong> Clarifications, formatting, or contact information updates</li>
+            <li><strong>Material Changes:</strong> Changes to data collection, use, or sharing practices</li>
+            <li><strong>Legal Changes:</strong> Updates required by new laws or regulations</li>
+        </ul>
+
+        <div class="info-box">
+            <p><strong>Your Continued Use:</strong> Continued use of our services after policy changes constitutes acceptance of the updated terms. If you disagree with changes, please discontinue use and contact us about data deletion.</p>
+        </div>
+
+        <h2 id="compliance">⚖️ Legal Compliance & Frameworks</h2>
+
+        <p>ISO8583Studio complies with major data protection frameworks and regulations:</p>
+
+        <h3>Regulatory Compliance</h3>
+        <ul>
+            <li><strong>GDPR:</strong> European General Data Protection Regulation compliance</li>
+            <li><strong>CCPA:</strong> California Consumer Privacy Act protections</li>
+            <li><strong>PIPEDA:</strong> Canadian Personal Information Protection Act compliance</li>
+            <li><strong>Financial Regulations:</strong> Relevant financial services data protection requirements</li>
+        </ul>
+
+        <h3>Industry Standards</h3>
+        <ul>
+            <li><strong>ISO 27001:</strong> Information security management best practices</li>
+            <li><strong>PCI DSS Guidelines:</strong> Payment card industry security standards</li>
+            <li><strong>SOC 2:</strong> Security, availability, and confidentiality controls</li>
+            <li><strong>Financial Industry Standards:</strong> Sector-specific security and privacy requirements</li>
+        </ul>
+
+
+
+        <div style="border-top: 2px solid var(--border-light); padding-top: 32px; margin-top: 48px; text-align: center;">
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                <strong>Document Version:</strong> 2.1 | <strong>Effective Date:</strong> June 9, 2025 | <strong>Last Reviewed:</strong> June 9, 2025
+            </p>
+
+        </div>
+    </div>
+</div>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" onclick="scrollToTop()">↑</button>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="#" class="footer-link">Privacy Policy</a>
+            <a href="./terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/README.md" class="footer-link">Documentation</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/discussions" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+
+        <div class="footer-copyright">
+            © 2024 AiCortex. All rights reserved. Built with ❤️ for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Enhanced scroll effects and animations
+    document.addEventListener('DOMContentLoaded', () => {
+        // Transparent header scroll effect
+        const header = document.querySelector('.header');
+        const backToTop = document.querySelector('.back-to-top');
+
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY > 50;
+
+            // Header transparency
+            header.classList.toggle('scrolled', scrolled);
+
+            // Back to top button
+            backToTop.classList.toggle('visible', window.scrollY > 300);
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+
+                if (targetElement) {
+                    const headerHeight = 80;
+                    const targetPosition = targetElement.offsetTop - headerHeight;
+
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+
+                    // Update URL without scrolling
+                    history.pushState(null, null, targetId);
+                }
+            });
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe content sections
+        document.querySelectorAll('.fade-in, h2, h3').forEach(element => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px)';
+            element.style.transition = 'all 0.6s ease-out';
+            observer.observe(element);
+        });
+
+        // Enhanced TOC link highlighting
+        const sections = document.querySelectorAll('h2[id]');
+        const tocLinks = document.querySelectorAll('.toc-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            const scrollPosition = window.scrollY + 100;
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.offsetHeight;
+
+                if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                if (href === `#${current}`) {
+                    link.classList.add('active');
+                    link.style.color = 'var(--primary-blue)';
+                    link.style.fontWeight = '600';
+                } else {
+                    link.style.color = 'var(--text-secondary-light)';
+                    link.style.fontWeight = '500';
+                }
+            });
+        });
+
+        // Enhanced hover effects for interactive elements
+        document.querySelectorAll('.contact-email, .footer-link').forEach(element => {
+            element.addEventListener('mouseenter', () => {
+                element.style.transform = 'translateY(-1px)';
+            });
+
+            element.addEventListener('mouseleave', () => {
+                element.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Copy link functionality for headers
+        document.querySelectorAll('h2[id], h3[id]').forEach(header => {
+            header.style.cursor = 'pointer';
+            header.title = 'Click to copy link';
+
+            header.addEventListener('click', () => {
+                const url = `${window.location.origin}${window.location.pathname}#${header.id}`;
+                navigator.clipboard.writeText(url).then(() => {
+                    // Visual feedback
+                    const originalColor = header.style.color;
+                    header.style.color = 'var(--success-green)';
+                    setTimeout(() => {
+                        header.style.color = originalColor;
+                    }, 1000);
+                });
+            });
+        });
+
+        // Auto-scroll to hash on page load
+        if (window.location.hash) {
+            setTimeout(() => {
+                const target = document.querySelector(window.location.hash);
+                if (target) {
+                    const headerHeight = 80;
+                    const targetPosition = target.offsetTop - headerHeight;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100);
+        }
+    });
+
+    // Back to top functionality
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    // Print-friendly styles
+    window.addEventListener('beforeprint', () => {
+        document.body.style.background = 'white';
+        document.body.style.color = 'black';
+    });
+
+    window.addEventListener('afterprint', () => {
+        document.body.style.background = '';
+        document.body.style.color = '';
+    });
+</script>
+</body>
+</html>

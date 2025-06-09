@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions - ISO8583Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* ISO8583Studio Brand Colors - Dark Theme */
+            --primary-blue: #6ab7ff;
+            --primary-blue-light: #9fd3ff;
+            --primary-blue-dark: #1e88e5;
+            --accent-teal: #64d8cb;
+            --accent-teal-light: #a0f4ea;
+            --accent-teal-dark: #26a69a;
+            --background-light: #252836;
+            --background-dark: #1a1d2e;
+            --card-light: #2F3142;
+            --card-dark: #1e1f2e;
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+            --warning-yellow: #ffd43b;
+            --border-light: #3d3d3d;
+            --border-dark: #2a2a2a;
+            --text-primary-light: #eceff1;
+            --text-secondary-light: #b0bec5;
+            --text-muted: #90a4ae;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary-light);
+            background: var(--background-dark);
+            overflow-x: hidden;
+        }
+
+        /* Transparent Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: transparent;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .header.scrolled {
+            background: rgba(26, 29, 46, 0.95);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .header-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary-light);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--background-dark);
+            font-size: 16px;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--text-secondary-light);
+            font-size: 16px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .nav a:hover {
+            color: var(--primary-blue);
+        }
+
+        .header-cta {
+            background: var(--primary-blue);
+            color: var(--background-dark);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 20px rgba(106, 183, 255, 0.3);
+        }
+
+        .header-cta:hover {
+            background: var(--primary-blue-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(106, 183, 255, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 140px 24px 60px;
+            background: var(--background-dark);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(106, 183, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(100, 216, 203, 0.1) 0%, transparent 50%);
+            animation: hero-glow 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes hero-glow {
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--text-primary-light);
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            font-weight: 400;
+            color: var(--text-secondary-light);
+            margin-bottom: 32px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .last-updated {
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 24px;
+        }
+
+        /* Quick Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin: 48px 0;
+        }
+
+        .summary-card {
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .summary-card:hover {
+            background: rgba(106, 183, 255, 0.15);
+            border-color: rgba(106, 183, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .summary-card.warning {
+            background: rgba(255, 212, 59, 0.1);
+            border-color: rgba(255, 212, 59, 0.3);
+        }
+
+        .summary-card.warning:hover {
+            background: rgba(255, 212, 59, 0.15);
+            border-color: rgba(255, 212, 59, 0.5);
+        }
+
+        .summary-card.success {
+            background: rgba(81, 207, 102, 0.1);
+            border-color: rgba(81, 207, 102, 0.3);
+        }
+
+        .summary-card.success:hover {
+            background: rgba(81, 207, 102, 0.15);
+            border-color: rgba(81, 207, 102, 0.5);
+        }
+
+        .card-icon {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary-light);
+            margin-bottom: 8px;
+        }
+
+        .card-description {
+            color: var(--text-secondary-light);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px 120px;
+        }
+
+        .content-card {
+            background: linear-gradient(135deg, var(--card-dark) 0%, var(--card-light) 100%);
+            border-radius: 20px;
+            padding: 60px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(106, 183, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(106, 183, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .content-card > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: rgba(106, 183, 255, 0.05);
+            border: 1px solid rgba(106, 183, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 48px;
+        }
+
+        .toc-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 8px;
+        }
+
+        .toc-item {
+            padding: 8px 0;
+        }
+
+        .toc-link {
+            text-decoration: none;
+            color: var(--text-secondary-light);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-link:hover {
+            color: var(--primary-blue);
+            transform: translateX(4px);
+        }
+
+        .toc-link::before {
+            content: '▶';
+            font-size: 10px;
+            color: var(--accent-teal);
+            transition: transform 0.2s ease;
+        }
+
+        .toc-link:hover::before {
+            transform: translateX(2px);
+        }
+
+        /* Typography */
+        h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary-light);
+            margin: 48px 0 24px 0;
+            line-height: 1.2;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            scroll-margin-top: 100px;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            border-radius: 2px;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary-light);
+            margin: 32px 0 16px 0;
+            line-height: 1.3;
+        }
+
+        h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin: 24px 0 12px 0;
+        }
+
+        p {
+            color: var(--text-secondary-light);
+            margin-bottom: 16px;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        strong {
+            color: var(--text-primary-light);
+            font-weight: 600;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            color: var(--text-secondary-light);
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        li strong {
+            color: var(--primary-blue);
+        }
+
+        /* Special sections */
+        .highlight-box {
+            background: rgba(100, 216, 203, 0.1);
+            border: 1px solid rgba(100, 216, 203, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .highlight-box::before {
+            content: '💡';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--card-dark);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .warning-box {
+            background: rgba(255, 212, 59, 0.1);
+            border: 1px solid rgba(255, 212, 59, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .warning-box::before {
+            content: '⚠️';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--card-dark);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .info-box {
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .info-box::before {
+            content: 'ℹ️';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--card-dark);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .error-box {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .error-box::before {
+            content: '🚫';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--card-dark);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        /* License tiers table */
+        .license-table {
+            background: rgba(106, 183, 255, 0.05);
+            border: 1px solid rgba(106, 183, 255, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 24px 0;
+        }
+
+        .license-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .license-table th,
+        .license-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(106, 183, 255, 0.1);
+        }
+
+        .license-table th {
+            background: rgba(106, 183, 255, 0.1);
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .license-table td {
+            color: var(--text-secondary-light);
+        }
+
+        .license-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Contact section */
+        .contact-section {
+            background: linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--accent-teal-dark) 100%);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .contact-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact-text {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact-email {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact-email:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Back to top */
+        .back-to-top {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 48px;
+            height: 48px;
+            background: var(--primary-blue);
+            color: var(--background-dark);
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(106, 183, 255, 0.4);
+            opacity: 0;
+            transform: translateY(20px);
+            z-index: 1000;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .back-to-top:hover {
+            background: var(--primary-blue-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(106, 183, 255, 0.6);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--card-dark);
+            padding: 40px 24px;
+            border-top: 1px solid var(--border-light);
+            text-align: center;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: var(--text-secondary-light);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-blue);
+        }
+
+        .footer-copyright {
+            color: var(--text-secondary-light);
+            font-size: 14px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 20px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .nav {
+                display: none;
+            }
+
+            .content-card {
+                padding: 40px;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 36px;
+            }
+
+            .hero-subtitle {
+                font-size: 18px;
+            }
+
+            .content-card {
+                padding: 24px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            h2::before {
+                display: none;
+            }
+
+            .toc-list {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .license-table {
+                font-size: 14px;
+            }
+
+            .license-table th,
+            .license-table td {
+                padding: 12px 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero {
+                padding: 120px 16px 40px;
+            }
+
+            .main-content {
+                padding: 0 16px 80px;
+            }
+
+            .hero-title {
+                font-size: 28px;
+            }
+
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 44px;
+                height: 44px;
+                font-size: 18px;
+            }
+        }
+
+        /* Smooth animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- Transparent Header -->
+<header class="header">
+    <div class="header-container">
+        <a href="#" class="logo">
+            <div class="logo-icon">
+                <img src="images/app.png" class="logo-icon"/>
+            </div>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="#agreement">Agreement</a>
+            <a href="#license">License</a>
+            <a href="#usage">Usage</a>
+            <a href="#limitations">Limitations</a>
+            <a href="#contact">Contact</a>
+        </nav>
+        <a href="./" class="header-cta">Back to Home</a>
+    </div>
+</header>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-container">
+        <div class="last-updated">
+            📅 Last Updated: June 9, 2025
+        </div>
+        <h1 class="hero-title">Terms and Conditions</h1>
+        <p class="hero-subtitle">Professional software license agreement for ISO8583Studio desktop application. These terms govern the use of our financial transaction processing software.</p>
+
+        <!-- Quick Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card success">
+                <div class="card-icon">🆓</div>
+                <div class="card-title">Completely Free</div>
+                <div class="card-description">No payment required, no license fees, no subscriptions - forever free</div>
+            </div>
+
+            <div class="summary-card warning">
+                <div class="card-icon">⚠️</div>
+                <div class="card-title">No Warranties</div>
+                <div class="card-description">Open source software provided "as is" with no guarantees or support obligations</div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-icon">🤝</div>
+                <div class="card-title">Community Driven</div>
+                <div class="card-description">Support and development by the open source community</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="content-card fade-in">
+        <!-- Table of Contents -->
+        <div class="toc">
+            <div class="toc-title">
+                📋 Terms Overview
+            </div>
+            <ul class="toc-list">
+                <li class="toc-item">
+                    <a href="#agreement" class="toc-link">License Agreement</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#definitions" class="toc-link">Definitions</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#license" class="toc-link">License Grant</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#usage" class="toc-link">Permitted Usage</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#restrictions" class="toc-link">Usage Restrictions</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#payment" class="toc-link">Payment Terms</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#support" class="toc-link">Support & Updates</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#warranties" class="toc-link">Warranties</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#limitations" class="toc-link">Liability Limitations</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#termination" class="toc-link">Termination</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#governing-law" class="toc-link">Governing Law</a>
+                </li>
+                <li class="toc-item">
+                    <a href="#contact" class="toc-link">Contact Information</a>
+                </li>
+            </ul>
+        </div>
+
+        <h2 id="agreement">📋 Open Source Software Agreement</h2>
+        <p>This Open Source Software Agreement ("Agreement") governs your use of ISO8583Studio desktop application software ("Software"), which is free and open source software provided by AiCortex Solutions ("we," "us," or "our") under the Apache License 2.0.</p>
+
+        <div class="highlight-box">
+            <p><strong>By downloading, installing, or using ISO8583Studio, you acknowledge that this is open source software provided "AS IS" without any warranty or obligation from the developers, distributed under the Apache License 2.0.</strong></p>
+        </div>
+
+        <div class="warning-box">
+            <p><strong>Important:</strong> This is free, open source software distributed under Apache 2.0. There are no purchase requirements, no refunds (as the software is free), and no warranties or obligations from the developers regarding its performance or suitability for any purpose.</p>
+        </div>
+
+        <h2 id="definitions">📚 Definitions</h2>
+
+        <p>For the purposes of this Agreement, the following terms shall have the meanings set forth below:</p>
+
+        <ul>
+            <li><strong>"Software"</strong> means the ISO8583Studio desktop application, including all its components, source code, documentation, and related materials provided under the Apache License 2.0.</li>
+            <li><strong>"Open Source"</strong> means software with source code that anyone can inspect, modify, and enhance under the Apache License 2.0.</li>
+            <li><strong>"User"</strong> means any individual or entity that downloads, uses, or modifies the Software.</li>
+            <li><strong>"Commercial Use"</strong> means any use of the Software in a business environment or for profit-generating activities (which is permitted under the Apache License 2.0).</li>
+            <li><strong>"Financial Data"</strong> means transaction data, payment information, and other sensitive financial information processed through the Software (user responsibility only).</li>
+            <li><strong>"Apache License 2.0"</strong> means the open source license under which this Software is distributed.</li>
+            <li><strong>"Repository"</strong> means the source code repository where the Software is hosted and maintained.</li>
+            <li><strong>"Community"</strong> means the open source community of developers and users contributing to the Software.</li>
+            <li><strong>"Contributor"</strong> means any person or entity that makes contributions to the Software under the Apache License 2.0.</li>
+            <li><strong>"Patent Rights"</strong> means patent claims licensable by a Contributor that are necessarily infringed by their Contribution(s).</li>
+        </ul>
+
+        <h2 id="license">🔑 Apache License 2.0 Grant</h2>
+
+        <h3>Open Source License</h3>
+        <p>ISO8583Studio is distributed under the Apache License 2.0, which grants you the following rights:</p>
+
+        <ul>
+            <li><strong>Use:</strong> Use the Software for any purpose, including commercial purposes</li>
+            <li><strong>Reproduce:</strong> Make unlimited copies of the Software</li>
+            <li><strong>Modify:</strong> Create derivative works based on the Software</li>
+            <li><strong>Distribute:</strong> Distribute original or modified versions of the Software</li>
+            <li><strong>Private Use:</strong> Use the Software privately without sharing your modifications</li>
+            <li><strong>Commercial Use:</strong> Use the Software in commercial environments and profit-generating activities</li>
+            <li><strong>Patent Grant:</strong> Receive patent rights from contributors for their contributions</li>
+            <li><strong>Sublicense:</strong> Grant sublicenses to third parties</li>
+        </ul>
+
+        <h3>Apache License 2.0 Key Features</h3>
+        <div class="info-box">
+            <p><strong>Apache License 2.0 Benefits:</strong></p>
+            <ul style="margin: 12px 0 0 0; padding-left: 20px;">
+                <li><strong>Patent Protection:</strong> Includes express patent grant from contributors</li>
+                <li><strong>Attribution Requirements:</strong> Clear requirements for notices and attributions</li>
+                <li><strong>Trademark Protection:</strong> Does not grant rights to use trademarks</li>
+                <li><strong>Contribution Licensing:</strong> Automatic licensing of contributions</li>
+                <li><strong>Enterprise Friendly:</strong> Widely accepted in enterprise environments</li>
+            </ul>
+        </div>
+
+        <h3>License Requirements</h3>
+        <p>When redistributing the Software, you must:</p>
+        <ul>
+            <li><strong>Preserve Notices:</strong> Include the original Apache License 2.0 notice</li>
+            <li><strong>Include Copyright:</strong> Retain all copyright, patent, trademark, and attribution notices</li>
+            <li><strong>Include License:</strong> Provide a copy of the Apache License 2.0</li>
+            <li><strong>State Changes:</strong> Include a NOTICE file documenting significant changes you made</li>
+            <li><strong>No Trademark Use:</strong> Do not use the names, trademarks, or logos without permission</li>
+        </ul>
+
+        <h3>Patent Grant</h3>
+        <div class="highlight-box">
+            <p><strong>Patent Protection:</strong> Each contributor grants you a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable (except as stated below) patent license to make, use, offer to sell, sell, import, and otherwise transfer the Software.</p>
+        </div>
+
+        <h3>No License Fees or Registration</h3>
+        <p>As open source software:</p>
+        <ul>
+            <li><strong>Free to Use:</strong> No license fees, subscription costs, or registration required</li>
+            <li><strong>No User Limits:</strong> Unlimited users and installations</li>
+            <li><strong>No Restrictions:</strong> No restrictions on commercial or production use</li>
+            <li><strong>No Activation:</strong> No license keys or activation processes required</li>
+        </ul>
+
+        <h2 id="usage">✅ Permitted Usage</h2>
+
+        <p>As open source software under the Apache 2.0 License, you may use ISO8583Studio for any purpose, including:</p>
+
+        <h3>Financial Transaction Processing</h3>
+        <ul>
+            <li><strong>ISO8583 Message Processing:</strong> Create, modify, parse, and analyze ISO8583 financial messages</li>
+            <li><strong>Gateway Configuration:</strong> Set up and manage payment gateways, switches, and transaction processors</li>
+            <li><strong>Protocol Support:</strong> Use TCP/IP, RS232, dial-up, and REST/SOAP protocols for financial communications</li>
+            <li><strong>Host Simulation:</strong> Simulate host systems for testing and development purposes</li>
+            <li><strong>Transaction Testing:</strong> Test transaction flows, message formats, and system integrations</li>
+        </ul>
+
+        <h3>Development and Modification</h3>
+        <ul>
+            <li><strong>Source Code Access:</strong> Access, read, and study the complete source code</li>
+            <li><strong>Modification Rights:</strong> Modify the software to meet your specific requirements</li>
+            <li><strong>Custom Features:</strong> Add new features and functionality as needed</li>
+            <li><strong>Integration Development:</strong> Create custom integrations with other systems</li>
+            <li><strong>Bug Fixes:</strong> Fix bugs and improve software stability</li>
+            <li><strong>Derivative Works:</strong> Create derivative works based on the original Software</li>
+        </ul>
+
+        <h3>Distribution and Commercial Use</h3>
+        <ul>
+            <li><strong>Commercial Operations:</strong> Use in production environments for profit-generating activities</li>
+            <li><strong>Redistribution:</strong> Distribute original or modified versions (with proper attribution and notices)</li>
+            <li><strong>Incorporation:</strong> Incorporate into other software products or services</li>
+            <li><strong>Selling:</strong> Sell software that includes or is based on ISO8583Studio</li>
+            <li><strong>Sublicensing:</strong> Grant sublicenses to third parties under the same terms</li>
+        </ul>
+
+        <div class="highlight-box">
+            <p><strong>Apache 2.0 Advantages:</strong> The Apache License 2.0 provides explicit patent protection and clear contribution guidelines, making it particularly suitable for enterprise and commercial use while maintaining open source principles.</p>
+        </div>
+
+        <h2 id="restrictions">⚖️ Apache License 2.0 Requirements</h2>
+
+        <p>While the Apache License 2.0 grants broad permissions, there are specific requirements:</p>
+
+        <h3>Attribution and Notice Requirements</h3>
+        <ul>
+            <li><strong>License Notice:</strong> Include the Apache License 2.0 text in distributions</li>
+            <li><strong>Copyright Notice:</strong> Retain all copyright notices from the original Software</li>
+            <li><strong>Patent Notices:</strong> Retain all patent notices from the original Software</li>
+            <li><strong>Trademark Notices:</strong> Retain all trademark notices from the original Software</li>
+            <li><strong>Attribution Notices:</strong> Retain all attribution notices from the original Software</li>
+            <li><strong>NOTICE File:</strong> Include the NOTICE file if one exists with the Software</li>
+        </ul>
+
+        <h3>Modification Documentation</h3>
+        <div class="info-box">
+            <p><strong>Change Documentation:</strong> If you modify the Software, you must include a NOTICE file documenting significant changes you made, including the date of the changes.</p>
+        </div>
+
+        <ul>
+            <li><strong>Change Notice:</strong> Document what you changed and when</li>
+            <li><strong>Modified Files:</strong> Clearly mark which files were modified</li>
+            <li><strong>Original License:</strong> Keep the original license intact</li>
+            <li><strong>Additional Terms:</strong> You may add your own copyright notices for your modifications</li>
+        </ul>
+
+        <h3>Trademark Restrictions</h3>
+        <ul>
+            <li><strong>No Trademark Rights:</strong> The license does not grant rights to use trademarks</li>
+            <li><strong>Name Usage:</strong> Cannot use "ISO8583Studio" or related trademarks without permission</li>
+            <li><strong>Logo Usage:</strong> Cannot use project logos or branding without permission</li>
+            <li><strong>Endorsement:</strong> Cannot imply endorsement by the original authors</li>
+        </ul>
+
+        <h3>Patent Termination Clause</h3>
+        <div class="warning-box">
+            <p><strong>Patent Litigation Termination:</strong> If you initiate patent litigation against any entity alleging that the Software constitutes patent infringement, your patent licenses under this License terminate automatically.</p>
+        </div>
+
+        <h3>Legal and Ethical Considerations</h3>
+        <ul>
+            <li><strong>Regulatory Compliance:</strong> Ensure compliance with financial regulations in your jurisdiction</li>
+            <li><strong>Data Protection:</strong> Implement appropriate security measures for financial data</li>
+            <li><strong>Legal Use:</strong> Do not use the software for illegal activities</li>
+            <li><strong>Industry Standards:</strong> Follow applicable financial industry standards and best practices</li>
+        </ul>
+
+        <h2 id="payment">🆓 No Payment Required</h2>
+
+        <h3>Free and Open Source</h3>
+        <p>ISO8583Studio is completely free to use with no associated costs:</p>
+
+        <ul>
+            <li><strong>No License Fees:</strong> No payment required for any usage, including commercial use</li>
+            <li><strong>No Subscription:</strong> No recurring payments or subscription models</li>
+            <li><strong>No Registration:</strong> No account creation or registration required</li>
+            <li><strong>No Hidden Costs:</strong> No additional fees for features, updates, or support</li>
+        </ul>
+
+        <h3>Community-Driven Development</h3>
+        <ul>
+            <li><strong>Volunteer Contributions:</strong> Development is supported by community volunteers</li>
+            <li><strong>Open Collaboration:</strong> Anyone can contribute code, documentation, or improvements</li>
+            <li><strong>Transparent Development:</strong> All development happens in the open on public repositories</li>
+            <li><strong>Community Funding:</strong> Optional donations or sponsorships support development</li>
+        </ul>
+
+        <h3>Professional Services (Optional)</h3>
+        <p>While the software is free, optional paid services may be available:</p>
+        <ul>
+            <li><strong>Custom Development:</strong> Paid custom feature development</li>
+            <li><strong>Consulting Services:</strong> Professional consulting for implementation</li>
+            <li><strong>Training:</strong> Optional training sessions and workshops</li>
+            <li><strong>Priority Support:</strong> Commercial support contracts for enterprises</li>
+        </ul>
+
+        <div class="info-box">
+            <p><strong>No Obligation:</strong> These professional services are completely optional. The core software remains free regardless of whether you use any paid services.</p>
+        </div>
+
+        <h2 id="support">🤝 Community Support</h2>
+
+        <h3>Open Source Support Model</h3>
+        <p>As open source software, support is primarily community-driven:</p>
+
+        <ul>
+            <li><strong>Community Forums:</strong> User community provides peer-to-peer support</li>
+            <li><strong>Documentation:</strong> Comprehensive documentation maintained by the community</li>
+            <li><strong>Issue Tracking:</strong> Public issue tracking on the project repository</li>
+            <li><strong>Wiki and Knowledge Base:</strong> Community-maintained documentation and guides</li>
+        </ul>
+
+        <h3>No Guaranteed Support</h3>
+        <div class="warning-box">
+            <p><strong>Important:</strong> There is no guaranteed support, service level agreements, or response times. Support is provided by volunteers on a best-effort basis.</p>
+        </div>
+
+        <ul>
+            <li><strong>Best Effort:</strong> Community members help when available and willing</li>
+            <li><strong>No SLA:</strong> No guaranteed response times or resolution schedules</li>
+            <li><strong>Volunteer Basis:</strong> All support is provided by volunteers in their spare time</li>
+            <li><strong>Self-Service:</strong> Users are encouraged to read documentation and search existing issues first</li>
+        </ul>
+
+        <h3>How to Get Help</h3>
+        <ul>
+            <li><strong>Read Documentation:</strong> Check the comprehensive documentation first</li>
+            <li><strong>Search Issues:</strong> Look through existing GitHub issues for solutions</li>
+            <li><strong>Community Forums:</strong> Ask questions in community discussion forums</li>
+            <li><strong>Report Bugs:</strong> Submit bug reports through the project's issue tracker</li>
+            <li><strong>Contribute:</strong> Contribute fixes and improvements back to the project</li>
+        </ul>
+
+        <h3>Commercial Support (Optional)</h3>
+        <p>Professional support services may be available separately:</p>
+        <ul>
+            <li><strong>Consulting Services:</strong> Paid professional consulting</li>
+            <li><strong>Custom Development:</strong> Paid custom feature development</li>
+            <li><strong>Training:</strong> Professional training sessions</li>
+            <li><strong>Enterprise Support:</strong> Commercial support contracts with SLAs</li>
+        </ul>
+
+        <h2 id="warranties">🚫 No Warranties or Guarantees</h2>
+
+        <h3>Apache License 2.0 Disclaimer</h3>
+        <div class="error-box">
+            <p><strong>UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING, LICENSOR PROVIDES THE WORK (AND EACH CONTRIBUTOR PROVIDES ITS CONTRIBUTIONS) ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.</strong></p>
+        </div>
+
+        <p>As open source software distributed under the Apache License 2.0, ISO8583Studio comes with absolutely no warranties:</p>
+
+        <ul>
+            <li><strong>No Warranty of Functionality:</strong> No guarantee that the software will work for your specific needs</li>
+            <li><strong>No Warranty of Quality:</strong> No assurance of software quality, reliability, or performance</li>
+            <li><strong>No Warranty of Accuracy:</strong> No guarantee that calculations or processes will be accurate</li>
+            <li><strong>No Warranty of Security:</strong> No guarantee that the software is secure or free from vulnerabilities</li>
+            <li><strong>No Warranty of Compatibility:</strong> No guarantee of compatibility with your systems or environment</li>
+            <li><strong>No Warranty of Non-Infringement:</strong> No guarantee that use won't infringe third-party rights</li>
+            <li><strong>No Warranty of Title:</strong> No warranty regarding ownership or title to the software</li>
+        </ul>
+
+        <h3>Financial Transaction Processing</h3>
+        <div class="warning-box">
+            <p><strong>Critical Warning:</strong> This software processes financial transactions. You are solely responsible for testing, validation, and ensuring the software meets your regulatory and business requirements. No warranties are provided regarding financial accuracy or compliance.</p>
+        </div>
+
+        <ul>
+            <li><strong>No Transaction Guarantees:</strong> No warranty that financial transactions will process correctly</li>
+            <li><strong>No Regulatory Compliance:</strong> No guarantee of compliance with financial regulations</li>
+            <li><strong>No Data Accuracy:</strong> No warranty regarding accuracy of financial calculations or data</li>
+            <li><strong>No Security Assurance:</strong> No guarantee of security for sensitive financial data</li>
+            <li><strong>No Audit Compliance:</strong> No warranty regarding audit trail accuracy or completeness</li>
+        </ul>
+
+        <h3>User Responsibility</h3>
+        <p>You are completely responsible for:</p>
+        <ul>
+            <li><strong>Testing:</strong> Thoroughly testing the software before production use</li>
+            <li><strong>Validation:</strong> Validating that the software meets your requirements</li>
+            <li><strong>Compliance:</strong> Ensuring compliance with applicable laws and regulations</li>
+            <li><strong>Security:</strong> Implementing appropriate security measures</li>
+            <li><strong>Backup:</strong> Maintaining proper backups and disaster recovery procedures</li>
+            <li><strong>Risk Assessment:</strong> Conducting proper risk assessment before deployment</li>
+        </ul>
+
+        <h2 id="limitations">🚫 No Liability or Obligations</h2>
+
+        <h3>Complete Disclaimer of Liability</h3>
+        <div class="error-box">
+            <p><strong>IN NO EVENT AND UNDER NO LEGAL THEORY, WHETHER IN TORT (INCLUDING NEGLIGENCE), CONTRACT, OR OTHERWISE, UNLESS REQUIRED BY APPLICABLE LAW (SUCH AS DELIBERATE AND GROSSLY NEGLIGENT ACTS) OR AGREED TO IN WRITING, SHALL ANY CONTRIBUTOR BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES OF ANY CHARACTER ARISING AS A RESULT OF THIS LICENSE OR OUT OF THE USE OR INABILITY TO USE THE WORK.</strong></p>
+        </div>
+
+        <p>The developers and contributors of ISO8583Studio have no liability whatsoever for:</p>
+
+        <ul>
+            <li><strong>Financial Losses:</strong> Any financial losses, lost profits, or business damages</li>
+            <li><strong>Data Loss:</strong> Loss of data, corruption, or unauthorized access to information</li>
+            <li><strong>System Failures:</strong> System downtime, crashes, or integration failures</li>
+            <li><strong>Transaction Errors:</strong> Errors in financial transaction processing or calculations</li>
+            <li><strong>Security Breaches:</strong> Security vulnerabilities or data breaches</li>
+            <li><strong>Regulatory Issues:</strong> Regulatory violations or compliance failures</li>
+            <li><strong>Patent Infringement:</strong> Claims of patent infringement by third parties</li>
+            <li><strong>Consequential Damages:</strong> Any indirect, incidental, or consequential damages</li>
+            <li><strong>Special Damages:</strong> Punitive or exemplary damages</li>
+        </ul>
+
+        <h3>Limitation of Liability Amount</h3>
+        <div class="info-box">
+            <p><strong>Liability Cap:</strong> Even if some jurisdictions do not allow the complete exclusion of liability, the total liability of any contributor shall not exceed the amount you paid for the Software (which is $0 for this free open source software).</p>
+        </div>
+
+        <h3>No Support Obligations</h3>
+        <p>The developers have no obligation to:</p>
+        <ul>
+            <li><strong>Provide Support:</strong> No obligation to provide any technical support</li>
+            <li><strong>Fix Bugs:</strong> No obligation to fix bugs or resolve issues</li>
+            <li><strong>Release Updates:</strong> No obligation to provide updates or new versions</li>
+            <li><strong>Maintain Software:</strong> No obligation to maintain or continue development</li>
+            <li><strong>Respond to Issues:</strong> No obligation to respond to bug reports or feature requests</li>
+            <li><strong>Provide Documentation:</strong> No obligation to provide or maintain documentation</li>
+        </ul>
+
+        <h3>Use at Your Own Risk</h3>
+        <div class="warning-box">
+            <p><strong>You use this software entirely at your own risk. You are responsible for evaluating the software's suitability for your intended use and for all consequences of its use.</strong></p>
+        </div>
+
+        <h3>Financial Industry Considerations</h3>
+        <p>Given the financial nature of this software, you must understand that:</p>
+        <ul>
+            <li><strong>Production Use Risk:</strong> Using in production financial systems is entirely at your own risk</li>
+            <li><strong>Regulatory Responsibility:</strong> You are solely responsible for regulatory compliance</li>
+            <li><strong>Financial Accuracy:</strong> You must validate all financial calculations and processes</li>
+            <li><strong>Security Implementation:</strong> You are responsible for all security measures and protections</li>
+            <li><strong>Audit Requirements:</strong> You must ensure proper audit trails and compliance documentation</li>
+        </ul>
+
+        <h2 id="indemnification">🛡️ No Indemnification from Developers</h2>
+
+        <h3>User Assumes All Risk</h3>
+        <p>You agree that you assume all risk associated with using ISO8583Studio and agree to:</p>
+
+        <ul>
+            <li><strong>Hold Harmless:</strong> Hold harmless all developers, contributors, and maintainers from any claims</li>
+            <li><strong>Indemnify Developers:</strong> Indemnify developers against any losses arising from your use of the software</li>
+            <li><strong>Defend Against Claims:</strong> Defend developers against any third-party claims related to your use</li>
+            <li><strong>Cover Legal Costs:</strong> Cover all legal costs and damages arising from your use of the software</li>
+        </ul>
+
+        <h3>No Developer Obligations</h3>
+        <p>The developers provide no indemnification and have no obligation to:</p>
+
+        <ul>
+            <li><strong>Defend You:</strong> No obligation to defend you against any claims</li>
+            <li><strong>Cover Damages:</strong> No obligation to cover any damages or losses you incur</li>
+            <li><strong>Legal Support:</strong> No obligation to provide legal support or assistance</li>
+            <li><strong>Insurance Coverage:</strong> No insurance coverage for users of the software</li>
+        </ul>
+
+        <h3>Third-Party Claims</h3>
+        <div class="warning-box">
+            <p><strong>Important:</strong> If you face any legal claims related to your use of this software, you cannot look to the developers for assistance or compensation. You must handle all legal matters independently.</p>
+        </div>
+
+        <h2 id="termination">🔄 No Termination Needed</h2>
+
+        <h3>Perpetual License</h3>
+        <p>The Apache 2.0 License grants you perpetual rights to use the software:</p>
+
+        <ul>
+            <li><strong>No Expiration:</strong> Your rights to use the software never expire</li>
+            <li><strong>No Termination:</strong> No one can terminate your right to use the software</li>
+            <li><strong>No Revocation:</strong> Your license cannot be revoked or cancelled</li>
+            <li><strong>Permanent Rights:</strong> Once you have a copy, you can use it forever</li>
+        </ul>
+
+        <h3>Discontinuation of Development</h3>
+        <p>While your usage rights are permanent, development may change:</p>
+
+        <ul>
+            <li><strong>Development May Cease:</strong> Active development may stop at any time</li>
+            <li><strong>No Obligation to Continue:</strong> Developers have no obligation to continue working on the project</li>
+            <li><strong>Community Takeover:</strong> The community may fork and continue development independently</li>
+            <li><strong>Your Existing Copy:</strong> You can continue using any version you already have</li>
+        </ul>
+
+        <h3>Repository Access</h3>
+        <ul>
+            <li><strong>Repository Changes:</strong> The main repository may be archived or deleted</li>
+            <li><strong>Fork Rights:</strong> You can fork the repository to preserve access</li>
+            <li><strong>Local Copies:</strong> Your local copies remain yours to use</li>
+            <li><strong>Distribution Rights:</strong> You can distribute copies to ensure preservation</li>
+        </ul>
+
+        <div class="info-box">
+            <p><strong>Open Source Advantage:</strong> Unlike proprietary software, you never lose access to open source software. Even if development stops, you retain permanent usage rights.</p>
+        </div>
+
+        <h2 id="intellectual-property">💡 Intellectual Property Rights</h2>
+
+        <h3>Our Intellectual Property</h3>
+        <p>The Software and all related intellectual property rights are and remain the exclusive property of AiCortex Solutions:</p>
+
+        <ul>
+            <li><strong>Copyright:</strong> The Software is protected by copyright laws and international treaties</li>
+            <li><strong>Trademarks:</strong> ISO8583Studio and related marks are trademarks of AiCortex Solutions</li>
+            <li><strong>Trade Secrets:</strong> The Software contains proprietary and confidential information</li>
+            <li><strong>Patents:</strong> The Software may be protected by issued or pending patents</li>
+        </ul>
+
+        <h3>Your Data and Configurations</h3>
+        <p>You retain ownership of:</p>
+
+        <ul>
+            <li><strong>Configuration Data:</strong> Gateway configurations, message templates, and custom settings</li>
+            <li><strong>Transaction Data:</strong> Financial transaction data processed through the Software</li>
+            <li><strong>Custom Content:</strong> Documentation, procedures, and processes you create</li>
+            <li><strong>Integration Code:</strong> Custom code you develop to integrate with the Software</li>
+        </ul>
+
+        <h2 id="privacy">🔒 Privacy and Data Protection</h2>
+
+        <p>Data protection and privacy are governed by our separate Privacy Policy, which is incorporated by reference into this Agreement. Key points include:</p>
+
+        <ul>
+            <li><strong>Local Processing:</strong> Financial transaction data is processed locally on your systems</li>
+            <li><strong>Data Transmission:</strong> We do not collect or transmit your financial transaction data</li>
+            <li><strong>Usage Analytics:</strong> We may collect anonymized usage analytics to improve the Software</li>
+            <li><strong>Support Data:</strong> Data shared for support purposes is handled confidentially</li>
+        </ul>
+
+        <div class="info-box">
+            <p><strong>Compliance:</strong> The Software is designed to support compliance with PCI DSS, GDPR, and other applicable data protection regulations, but you are responsible for ensuring your own compliance.</p>
+        </div>
+
+        <h2 id="governing-law">⚖️ Governing Law and Jurisdiction</h2>
+
+        <h3>Governing Law</h3>
+        <p>This Agreement shall be governed by and construed in accordance with the laws of [Jurisdiction], without regard to its conflict of law principles.</p>
+
+        <h3>Dispute Resolution</h3>
+        <p>Any disputes arising under this Agreement shall be resolved as follows:</p>
+
+        <ul>
+            <li><strong>Negotiation:</strong> Good faith negotiation for 30 days before formal proceedings</li>
+            <li><strong>Mediation:</strong> Non-binding mediation if negotiation fails</li>
+            <li><strong>Arbitration:</strong> Binding arbitration for disputes over $10,000</li>
+            <li><strong>Court Jurisdiction:</strong> Courts of [Jurisdiction] for disputes under $10,000</li>
+        </ul>
+
+        <h3>Class Action Waiver</h3>
+        <div class="warning-box">
+            <p><strong>No Class Actions:</strong> You waive any right to participate in class action lawsuits or class-wide arbitration against AiCortex Solutions.</p>
+        </div>
+
+        <h2 id="general">📋 General Provisions</h2>
+
+        <h3>Entire Agreement</h3>
+        <p>This Agreement, together with the Privacy Policy and any additional terms for specific license types, constitutes the entire agreement between you and AiCortex Solutions regarding the Software.</p>
+
+        <h3>Modifications</h3>
+        <ul>
+            <li><strong>Agreement Changes:</strong> We may modify this Agreement with 30 days' notice</li>
+            <li><strong>Continued Use:</strong> Continued use after changes constitutes acceptance</li>
+            <li><strong>Rejection:</strong> You may terminate the Agreement if you reject modifications</li>
+        </ul>
+
+        <h3>Assignment</h3>
+        <ul>
+            <li><strong>No Assignment:</strong> You may not assign this Agreement without our written consent</li>
+            <li><strong>Our Assignment:</strong> We may assign this Agreement in connection with a merger or sale</li>
+            <li><strong>Successor Obligations:</strong> This Agreement binds successors and assigns</li>
+        </ul>
+
+        <h3>Severability</h3>
+        <p>If any provision of this Agreement is found to be unenforceable, the remainder shall continue in full force and effect.</p>
+
+        <h3>Waiver</h3>
+        <p>No waiver of any breach shall be deemed a waiver of any subsequent breach. Waivers must be in writing.</p>
+
+        <h3>Force Majeure</h3>
+        <p>Neither party shall be liable for delays or failures due to circumstances beyond their reasonable control.</p>
+
+        <!-- Contact Section -->
+        <div class="contact-section" id="contact">
+            <h2 class="contact-title">💬 Community and Support</h2>
+            <p class="contact-text">
+                ISO8583Studio is open source software. Support comes from the community, and contributions are welcome from everyone.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 24px 0; text-align: left;">
+                <div>
+                    <h4 style="color: white; margin-bottom: 8px;">💬 Community Support</h4>
+                    <a href="https://github.com/hpkaushik121/Iso8583studio/discussions" class="contact-email" style="display: block; margin-bottom: 12px;">GitHub Discussions</a>
+                    <p style="font-size: 14px; color: rgba(255, 255, 255, 0.8);">Community questions and discussions</p>
+                </div>
+
+                <div>
+                    <h4 style="color: white; margin-bottom: 8px;">🐛 Bug Reports</h4>
+                    <a href="https://github.com/hpkaushik121/Iso8583studio/issues" class="contact-email" style="display: block; margin-bottom: 12px;">GitHub Issues</a>
+                    <p style="font-size: 14px; color: rgba(255, 255, 255, 0.8);">Report bugs and request features</p>
+                </div>
+
+                <div>
+                    <h4 style="color: white; margin-bottom: 8px;">📚 Documentation</h4>
+                    <a href="https://github.com/hpkaushik121/Iso8583studio/wiki" class="contact-email" style="display: block; margin-bottom: 12px;">Project Wiki</a>
+                    <p style="font-size: 14px; color: rgba(255, 255, 255, 0.8);">Documentation and guides</p>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; margin-top: 20px;">
+                <h4 style="color: white; margin-bottom: 12px;">📧 Optional Professional Services</h4>
+                <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; line-height: 1.6;">
+                    For paid consulting, custom development, or enterprise support:<br>
+                    <a href="mailto:admin@aicortex.in" style="color: var(--primary-blue); text-decoration: none;">admin@aicortex.in</a>
+                </p>
+            </div>
+
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; margin-top: 20px;">
+                <h4 style="color: white; margin-bottom: 12px;">⭐ Open Source Repository</h4>
+                <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px; line-height: 1.6;">
+                    Source Code: <a href="https://github.com/hpkaushik121/Iso8583studio" style="color: var(--primary-blue); text-decoration: none;">https://github.com/hpkaushik121/Iso8583studio</a><br>
+                    License: Apache 2.0 License<br>
+                    Contributions: Welcome from the community
+                </p>
+            </div>
+
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px; margin-top: 20px;">
+                <p style="color: rgba(255, 255, 255, 0.8); font-size: 14px;">
+                    <strong>Remember:</strong> This is open source software. Support is provided by the community on a volunteer basis with no guarantees or service level agreements.
+                </p>
+            </div>
+        </div>
+
+        <div style="border-top: 2px solid var(--border-light); padding-top: 32px; margin-top: 48px; text-align: center;">
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                <strong>Terms Version:</strong> 1.0 (Open Source) | <strong>Effective Date:</strong> June 9, 2025 | <strong>Last Revised:</strong> June 9, 2025
+            </p>
+            <p style="color: var(--text-secondary-light); font-size: 14px;">
+                This open source software is distributed under the Apache License 2.0. Read the complete license text in the
+                <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/LICENSE" style="color: var(--primary-blue); text-decoration: none;">repository LICENSE file</a>.
+            </p>
+
+            <div style="margin-top: 24px; padding: 20px; background: rgba(106, 183, 255, 0.1); border: 1px solid rgba(106, 183, 255, 0.3); border-radius: 12px;">
+                <h4 style="color: var(--primary-blue); margin-bottom: 12px;">📄 Apache License 2.0 Summary</h4>
+                <p style="color: var(--text-secondary-light); font-size: 14px; line-height: 1.6;">
+                    <strong>Permissions:</strong> Commercial use, Modification, Distribution, Patent use, Private use<br>
+                    <strong>Conditions:</strong> License and copyright notice, State changes<br>
+                    <strong>Limitations:</strong> Liability, Trademark use, Warranty
+                </p>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 8px;">
+                    This is not legal advice. See the full Apache License 2.0 text for complete terms.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" onclick="scrollToTop()">↑</button>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-container">
+
+        <div class="footer-links">
+            <a href="./privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="./terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/README.md" class="footer-link">Documentation</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+
+        <div class="footer-copyright">
+            © 2024 AiCortex. All rights reserved. Built with ❤️ for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Enhanced scroll effects and animations
+    document.addEventListener('DOMContentLoaded', () => {
+        // Transparent header scroll effect
+        const header = document.querySelector('.header');
+        const backToTop = document.querySelector('.back-to-top');
+
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY > 50;
+
+            // Header transparency
+            header.classList.toggle('scrolled', scrolled);
+
+            // Back to top button
+            backToTop.classList.toggle('visible', window.scrollY > 300);
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+
+                if (targetElement) {
+                    const headerHeight = 80;
+                    const targetPosition = targetElement.offsetTop - headerHeight;
+
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+
+                    // Update URL without scrolling
+                    history.pushState(null, null, targetId);
+                }
+            });
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe content sections
+        document.querySelectorAll('.fade-in, h2, h3, .summary-cards').forEach(element => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px)';
+            element.style.transition = 'all 0.6s ease-out';
+            observer.observe(element);
+        });
+
+        // Enhanced TOC link highlighting
+        const sections = document.querySelectorAll('h2[id]');
+        const tocLinks = document.querySelectorAll('.toc-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            const scrollPosition = window.scrollY + 100;
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.offsetHeight;
+
+                if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                if (href === `#${current}`) {
+                    link.classList.add('active');
+                    link.style.color = 'var(--primary-blue)';
+                    link.style.fontWeight = '600';
+                } else {
+                    link.style.color = 'var(--text-secondary-light)';
+                    link.style.fontWeight = '500';
+                }
+            });
+        });
+
+        // Enhanced hover effects for interactive elements
+        document.querySelectorAll('.summary-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-4px)';
+                card.style.boxShadow = '0 8px 32px rgba(106, 183, 255, 0.3)';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.boxShadow = '';
+            });
+        });
+
+        // Copy link functionality for headers
+        document.querySelectorAll('h2[id], h3[id]').forEach(header => {
+            header.style.cursor = 'pointer';
+            header.title = 'Click to copy link';
+
+            header.addEventListener('click', () => {
+                const url = `${window.location.origin}${window.location.pathname}#${header.id}`;
+                navigator.clipboard.writeText(url).then(() => {
+                    // Visual feedback
+                    const originalColor = header.style.color;
+                    header.style.color = 'var(--success-green)';
+                    setTimeout(() => {
+                        header.style.color = originalColor;
+                    }, 1000);
+                });
+            });
+        });
+
+        // License table hover effects
+        document.querySelectorAll('.license-table tbody tr').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                row.style.backgroundColor = 'rgba(106, 183, 255, 0.1)';
+            });
+
+            row.addEventListener('mouseleave', () => {
+                row.style.backgroundColor = '';
+            });
+        });
+
+        // Auto-scroll to hash on page load
+        if (window.location.hash) {
+            setTimeout(() => {
+                const target = document.querySelector(window.location.hash);
+                if (target) {
+                    const headerHeight = 80;
+                    const targetPosition = target.offsetTop - headerHeight;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100);
+        }
+
+        // Enhanced summary card animations
+        document.querySelectorAll('.summary-card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.style.animation = 'fadeInUp 0.6s ease-out forwards';
+        });
+
+        // Progress indicator for reading
+        const createProgressBar = () => {
+            const progressBar = document.createElement('div');
+            progressBar.style.cssText = `
+                position: fixed;
+                top: 72px;
+                left: 0;
+                width: 0%;
+                height: 3px;
+                background: linear-gradient(90deg, var(--primary-blue), var(--accent-teal));
+                z-index: 999;
+                transition: width 0.1s ease;
+            `;
+            document.body.appendChild(progressBar);
+            return progressBar;
+        };
+
+        const progressBar = createProgressBar();
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            progressBar.style.width = scrollPercent + '%';
+        });
+
+        // Keyboard navigation for accessibility
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'k':
+                        e.preventDefault();
+                        // Focus search or navigation
+                        const firstTocLink = document.querySelector('.toc-link');
+                        if (firstTocLink) firstTocLink.focus();
+                        break;
+                    case 'Home':
+                        e.preventDefault();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        break;
+                    case 'End':
+                        e.preventDefault();
+                        scrollToTop();
+                        break;
+                }
+            }
+        });
+
+        // Print optimization
+        window.addEventListener('beforeprint', () => {
+            // Expand all collapsed sections for printing
+            document.querySelectorAll('.summary-card, .highlight-box, .warning-box, .info-box, .error-box').forEach(element => {
+                element.style.pageBreakInside = 'avoid';
+            });
+
+            // Ensure proper page breaks for sections
+            document.querySelectorAll('h2').forEach(element => {
+                element.style.pageBreakBefore = 'auto';
+                element.style.pageBreakAfter = 'avoid';
+            });
+        });
+    });
+
+    // Back to top functionality
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    // Enhanced error handling for form submissions
+    function handleContactForm(event) {
+        event.preventDefault();
+
+        // Basic form validation and submission logic
+        const form = event.target;
+        const formData = new FormData(form);
+
+        // Show loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.textContent = 'Sending...';
+        submitButton.disabled = true;
+
+        // Simulate form submission (replace with actual endpoint)
+        setTimeout(() => {
+            submitButton.textContent = 'Message Sent!';
+            submitButton.style.background = 'var(--success-green)';
+
+            setTimeout(() => {
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+                submitButton.style.background = '';
+                form.reset();
+            }, 2000);
+        }, 1000);
+    }
+
+    // License calculator functionality
+    function calculateLicenseCost(licenseType, users, duration) {
+        const pricing = {
+            personal: { monthly: 29, annual: 290 },
+            professional: { monthly: 99, annual: 990 },
+            team: { monthly: 199, annual: 1990 },
+            enterprise: { monthly: 499, annual: 4990 }
+        };
+
+        const baseCost = pricing[licenseType] ? pricing[licenseType][duration] : 0;
+        const userMultiplier = licenseType === 'enterprise' ? users : Math.min(users, 5);
+
+        return baseCost * userMultiplier;
+    }
+
+    // Export terms as PDF functionality
+    function exportTermsAsPDF() {
+        // This would integrate with a PDF generation library
+        alert('PDF export functionality would be implemented here with a proper PDF library like jsPDF or Puppeteer.');
+    }
+
+    // Terms acceptance tracking
+    function trackTermsAcceptance(version) {
+        const acceptanceData = {
+            version: version,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            ip: 'masked_for_privacy'
+        };
+
+        // Store acceptance record (would integrate with backend)
+        localStorage.setItem('terms_accepted', JSON.stringify(acceptanceData));
+
+        console.log('Terms acceptance recorded:', acceptanceData);
+    }
+
+    // Legal compliance helper functions
+    function checkLegalCompliance() {
+        const userLocation = getUserLocation(); // Would use geolocation API
+        const applicableLaws = getApplicableLaws(userLocation);
+
+        return {
+            gdprApplies: applicableLaws.includes('GDPR'),
+            ccpaApplies: applicableLaws.includes('CCPA'),
+            pipedaApplies: applicableLaws.includes('PIPEDA')
+        };
+    }
+
+    function getUserLocation() {
+        // Simplified location detection
+        return 'EU'; // Would use actual geolocation
+    }
+
+    function getApplicableLaws(location) {
+        const lawMap = {
+            'EU': ['GDPR'],
+            'CA': ['CCPA'],
+            'CAN': ['PIPEDA'],
+            'US': ['CCPA'],
+            'UK': ['GDPR', 'DPA']
+        };
+
+        return lawMap[location] || [];
+    }
+
+    // Terms version comparison
+    function compareTermsVersions(currentVersion, previousVersion) {
+        const changes = {
+            major: currentVersion.split('.')[0] !== previousVersion.split('.')[0],
+            minor: currentVersion.split('.')[1] !== previousVersion.split('.')[1],
+            patch: currentVersion.split('.')[2] !== previousVersion.split('.')[2]
+        };
+
+        return changes;
+    }
+
+    // Legal document accessibility enhancements
+    function enhanceAccessibility() {
+        // Add skip links
+        const skipLink = document.createElement('a');
+        skipLink.href = '#agreement';
+        skipLink.textContent = 'Skip to main content';
+        skipLink.style.cssText = `
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: var(--primary-blue);
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1001;
+        `;
+        skipLink.addEventListener('focus', () => {
+            skipLink.style.top = '6px';
+        });
+        skipLink.addEventListener('blur', () => {
+            skipLink.style.top = '-40px';
+        });
+        document.body.insertBefore(skipLink, document.body.firstChild);
+
+        // Add ARIA labels to important sections
+        document.querySelectorAll('h2').forEach((heading, index) => {
+            heading.setAttribute('tabindex', '0');
+            heading.setAttribute('aria-label', `Section ${index + 1}: ${heading.textContent}`);
+        });
+
+        // Enhance table accessibility
+        const table = document.querySelector('.license-table table');
+        if (table) {
+            table.setAttribute('role', 'table');
+            table.setAttribute('aria-label', 'License types and features comparison');
+
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                header.setAttribute('id', `header-${index}`);
+            });
+
+            const cells = table.querySelectorAll('td');
+            cells.forEach(cell => {
+                const headerIndex = Array.from(cell.parentNode.children).indexOf(cell);
+                cell.setAttribute('aria-describedby', `header-${headerIndex}`);
+            });
+        }
+    }
+
+    // Initialize accessibility enhancements
+    document.addEventListener('DOMContentLoaded', enhanceAccessibility);
+</script>
+
+<!-- Structured Data for Legal Document -->
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Terms and Conditions - ISO8583Studio",
+        "description": "Open source software terms and Apache License 2.0 agreement for ISO8583Studio financial transaction processing software",
+        "url": "https://iso8583.studio/terms-and-conditions.html",
+        "inLanguage": "en-US",
+        "publisher": {
+            "@type": "Organization",
+            "name": "AiCortex Solutions",
+            "url": "https://aicortex.in"
+        },
+        "datePublished": "2025-06-09",
+        "dateModified": "2025-06-09",
+        "mainEntity": {
+            "@type": "LegalDocument",
+            "name": "Open Source Software Agreement",
+            "text": "Terms and Conditions for ISO8583Studio under Apache License 2.0",
+            "jurisdiction": "Apache License 2.0"
+        },
+        "license": {
+            "@type": "CreativeWork",
+            "name": "Apache License 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0"
+        }
+    }
+</script>
+
+<!-- Additional Metadata -->
+<meta name="legal-document-type" content="Open Source Software Agreement">
+<meta name="legal-version" content="1.0">
+<meta name="legal-effective-date" content="2025-06-09">
+<meta name="legal-license" content="Apache License 2.0">
+<meta name="open-source" content="true">
+<meta name="commercial-use-allowed" content="true">
+<meta name="modification-allowed" content="true">
+<meta name="distribution-allowed" content="true">
+<meta name="patent-grant" content="true">
+
+</body>
+</html>

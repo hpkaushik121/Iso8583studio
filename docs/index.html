@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISO8583Studio - Financial Transaction Processing</title>
+    <title>ISO8583Studio - Desktop Tool for Financial Transaction Processing</title>
     <style>
         * {
             margin: 0;
@@ -11,1023 +11,1374 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            overflow-x: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            /* ISO8583Studio Brand Colors - Dark Theme */
+            --primary-blue: #6ab7ff;
+            --primary-blue-light: #9fd3ff;
+            --primary-blue-dark: #1e88e5;
+            --accent-teal: #64d8cb;
+            --accent-teal-light: #a0f4ea;
+            --accent-teal-dark: #26a69a;
+            --background-light: #252836;
+            --background-dark: #1a1d2e;
+            --card-light: #2F3142;
+            --card-dark: #1e1f2e;
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+            --warning-yellow: #ffd43b;
+            --border-light: #3d3d3d;
+            --border-dark: #2a2a2a;
+            --text-primary-light: #eceff1;
+            --text-secondary-light: #b0bec5;
         }
 
-        /* Animated Background */
-        .animated-bg {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary-light);
+            background: var(--background-dark);
+            overflow-x: hidden;
+        }
+
+        /* Transparent Header */
+        .header {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .floating-shapes {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .shape {
-            position: absolute;
-            opacity: 0.1;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .shape:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
-        .shape:nth-child(2) { top: 20%; left: 80%; animation-delay: 2s; }
-        .shape:nth-child(3) { top: 60%; left: 15%; animation-delay: 4s; }
-        .shape:nth-child(4) { top: 80%; left: 70%; animation-delay: 1s; }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(180deg); }
-        }
-
-        /* Navigation */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            right: 0;
+            height: 72px;
+            background: transparent;
             backdrop-filter: blur(20px);
             z-index: 1000;
-            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
             transition: all 0.3s ease;
         }
 
-        .nav-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .header.scrolled {
+            background: rgba(26, 29, 46, 0.9);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .header-container {
+            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        .nav-links {
             display: flex;
-            list-style: none;
-            gap: 2rem;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary-light);
+            font-size: 20px;
+            font-weight: 700;
         }
 
-        .nav-links a {
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--background-dark);
+            font-size: 16px;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav a {
             text-decoration: none;
-            color: #333;
+            color: var(--text-secondary-light);
+            font-size: 16px;
             font-weight: 500;
-            transition: color 0.3s ease;
+            transition: color 0.2s ease;
         }
 
-        .nav-links a:hover {
-            color: #667eea;
+        .nav a:hover {
+            color: var(--primary-blue);
         }
 
-        .cta-nav {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 25px;
+        .header-cta {
+            background: var(--primary-blue);
+            color: var(--background-dark);
+            padding: 10px 20px;
+            border-radius: 8px;
             text-decoration: none;
-            transition: transform 0.3s ease;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 20px rgba(106, 183, 255, 0.3);
         }
 
-        .cta-nav:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        .header-cta:hover {
+            background: var(--primary-blue-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(106, 183, 255, 0.4);
         }
 
         /* Hero Section */
         .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 140px 24px 60px;
             text-align: center;
-            padding: 0 2rem;
+            background: var(--background-dark);
             position: relative;
+            overflow: hidden;
+            min-height: 100vh;
         }
 
-        .hero-content {
-            max-width: 800px;
-            animation: fadeInUp 1s ease-out;
+        .hero-video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.3;
         }
 
-        .hero h1 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
-            font-weight: 800;
-            color: white;
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
+        .hero-video-background video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.4) contrast(1.2);
         }
 
-        .hero p {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 2rem;
-            max-width: 600px;
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(106, 183, 255, 0.1) 0%, rgba(26, 29, 46, 0.8) 70%);
+            z-index: 1;
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: 64px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--text-primary-light);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--text-secondary-light);
+            margin-bottom: 24px;
+            max-width: 900px;
             margin-left: auto;
             margin-right: auto;
         }
 
-        .cta-buttons {
+        .hero-platforms {
             display: flex;
-            gap: 1rem;
             justify-content: center;
+            gap: 20px;
+            margin-bottom: 48px;
             flex-wrap: wrap;
         }
 
-        .btn-primary {
-            background: white;
-            color: #667eea;
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            text-decoration: none;
+        .platform-badge {
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
             font-weight: 600;
-            transition: all 0.3s ease;
-            display: inline-flex;
+            color: var(--primary-blue);
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 8px;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-3px);
-        }
-
-        /* Features Section */
-        .features {
-            padding: 6rem 2rem;
-            background: white;
+        .hero-image {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto 80px;
+            background: linear-gradient(135deg, var(--card-dark) 0%, var(--card-light) 100%);
+            border-radius: 20px;
             position: relative;
+            overflow: hidden;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(106, 183, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            aspect-ratio: 16 / 9;
         }
 
-        .container {
+        .hero-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(106, 183, 255, 0.2) 0%, transparent 50%);
+            z-index: 1;
+            animation: glow-pulse 3s ease-in-out infinite alternate;
+        }
+
+        .hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 20px;
+            filter: brightness(1.1) contrast(1.1) saturate(1.2);
+        }
+
+        .hero-image-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-secondary-light);
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            z-index: 2;
+            background: rgba(47, 49, 66, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Features Ticker */
+        .features-ticker {
+            background: var(--card-light);
+            padding: 32px 0;
+            border-top: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+            overflow: hidden;
+        }
+
+        .ticker-container {
+            display: flex;
+            align-items: center;
+            animation: scroll-left 30s linear infinite;
+        }
+
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 48px;
+            white-space: nowrap;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary-light);
+        }
+
+        .ticker-bullet {
+            width: 6px;
+            height: 6px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(106, 183, 255, 0.5);
+        }
+
+        @keyframes scroll-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Section Styles */
+        .section {
+            padding: 120px 24px;
+            background: var(--background-dark);
+        }
+
+        .section-alt {
+            background: var(--background-light);
+        }
+
+        .section-container {
             max-width: 1200px;
             margin: 0 auto;
         }
 
         .section-title {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
-        .section-title h2 {
-            font-size: 3rem;
+            font-size: 48px;
             font-weight: 700;
-            color: #333;
-            margin-bottom: 1rem;
+            line-height: 1.2;
+            color: var(--text-primary-light);
+            margin-bottom: 24px;
+            letter-spacing: -0.01em;
+            text-align: center;
         }
 
-        .section-title p {
-            font-size: 1.1rem;
-            color: #666;
-            max-width: 600px;
-            margin: 0 auto;
+        .section-subtitle {
+            font-size: 20px;
+            color: var(--text-secondary-light);
+            margin-bottom: 48px;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-            margin-top: 4rem;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            position: relative;
+        /* Immersive Demo Environment */
+        .demo-environment {
+            background: linear-gradient(135deg, var(--card-dark) 0%, var(--background-light) 100%);
+            border-radius: 24px;
             overflow: hidden;
+            box-shadow:
+                0 40px 120px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(106, 183, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            margin: 80px 0;
         }
 
-        .feature-card::before {
+        .demo-environment::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 70%, rgba(106, 183, 255, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
         }
 
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-        }
-
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 1.5rem;
-            animation: pulse 2s infinite;
-        }
-
-        .feature-card h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 1rem;
-        }
-
-        .feature-card p {
-            color: #666;
-            line-height: 1.6;
-        }
-
-        /* How It Works Section */
-        .how-it-works {
-            padding: 6rem 2rem;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 3rem;
-            margin-top: 4rem;
-        }
-
-        .step {
-            text-align: center;
-            position: relative;
-        }
-
-        .step-number {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border-radius: 50%;
+        .demo-header {
+            background: rgba(42, 42, 42, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 20px 32px;
+            border-bottom: 1px solid var(--border-light);
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin: 0 auto 1.5rem;
+            justify-content: space-between;
             position: relative;
             z-index: 2;
         }
 
-        .step h3 {
-            font-size: 1.3rem;
+        .demo-title {
+            font-size: 18px;
             font-weight: 600;
-            color: #333;
-            margin-bottom: 1rem;
+            color: var(--text-primary-light);
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .step p {
-            color: #666;
-            line-height: 1.6;
+        .demo-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* Technologies Section */
-        .technologies {
-            padding: 6rem 2rem;
-            background: white;
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success-green);
+            border-radius: 50%;
+            animation: pulse-status 2s ease-in-out infinite;
         }
 
-        .tech-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
+        @keyframes pulse-status {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
         }
 
-        .tech-item {
-            background: #f8f9fa;
-            padding: 2rem;
-            border-radius: 15px;
+        .demo-screenshot {
+            padding: 60px;
+            background: linear-gradient(135deg, var(--card-dark) 0%, var(--background-light) 100%);
+            position: relative;
+            z-index: 2;
+        }
+
+        .screenshot-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            aspect-ratio: 16 / 9;
+            background: linear-gradient(135deg, var(--card-dark) 0%, var(--card-light) 100%);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                0 40px 120px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(106, 183, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .screenshot-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 40% 60%, rgba(106, 183, 255, 0.15) 0%, transparent 50%);
+            z-index: 1;
+            animation: glow-pulse 3s ease-in-out infinite alternate;
+        }
+
+        .screenshot-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-secondary-light);
+            font-size: 20px;
+            font-weight: 500;
             text-align: center;
+            z-index: 2;
+            background: rgba(47, 49, 66, 0.9);
+            padding: 32px;
+            border-radius: 16px;
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            backdrop-filter: blur(20px);
+        }
+
+        .screenshot-placeholder small {
+            font-size: 14px;
+            opacity: 0.8;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .floating-indicator {
+            position: absolute;
+            background: rgba(106, 183, 255, 0.2);
+            border: 1px solid rgba(106, 183, 255, 0.4);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--primary-blue);
+            font-weight: 600;
+            animation: float-up 4s ease-in-out infinite;
+            z-index: 3;
+        }
+
+        .floating-indicator.success {
+            background: rgba(81, 207, 102, 0.2);
+            border-color: rgba(81, 207, 102, 0.4);
+            color: var(--success-green);
+        }
+
+        .floating-indicator.warning {
+            background: rgba(255, 212, 59, 0.2);
+            border-color: rgba(255, 212, 59, 0.4);
+            color: var(--warning-yellow);
+        }
+
+        .floating-indicator.teal {
+            background: rgba(100, 216, 203, 0.2);
+            border-color: rgba(100, 216, 203, 0.4);
+            color: var(--accent-teal);
+        }
+
+        .indicator-1 {
+            top: 20px;
+            left: 20px;
+            animation-delay: 0s;
+        }
+
+        .indicator-2 {
+            top: 60px;
+            right: 30px;
+            animation-delay: 1s;
+        }
+
+        .indicator-3 {
+            bottom: 40px;
+            left: 30px;
+            animation-delay: 2s;
+        }
+
+        @keyframes float-up {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-20px) rotate(2deg); opacity: 1; }
+        }
+
+        /* Feature Highlights */
+        .feature-highlights {
+            padding: 60px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            background: var(--background-dark);
+            position: relative;
+            z-index: 2;
+        }
+
+        .highlight-card {
+            text-align: center;
+            padding: 24px;
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 16px;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
         }
 
-        .tech-item:hover {
-            border-color: #667eea;
-            transform: translateY(-5px);
+        .highlight-card:hover {
+            background: rgba(106, 183, 255, 0.2);
+            border-color: rgba(106, 183, 255, 0.5);
+            transform: translateY(-4px);
         }
 
-        .tech-icon {
+        .highlight-icon {
             width: 60px;
             height: 60px;
-            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 16px;
+            box-shadow: 0 0 20px rgba(106, 183, 255, 0.4);
+            transition: all 0.3s ease;
         }
 
-        /* CTA Section */
-        .final-cta {
-            padding: 6rem 2rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .highlight-card:hover .highlight-icon {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 0 30px rgba(106, 183, 255, 0.6);
+        }
+
+        .highlight-title {
+            color: var(--text-primary-light);
+            margin-bottom: 8px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .highlight-description {
+            color: var(--text-secondary-light);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Join the Movement Section */
+        .movement-section {
+            padding: 200px 24px;
+            background: linear-gradient(135deg, var(--background-dark) 0%, var(--card-dark) 50%, var(--background-dark) 100%);
+            position: relative;
+            overflow: hidden;
             text-align: center;
-            color: white;
         }
 
-        .final-cta h2 {
-            font-size: 2.5rem;
+        .movement-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(106, 183, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(100, 216, 203, 0.15) 0%, transparent 50%),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236ab7ff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            animation: movement-bg 30s ease-in-out infinite;
+        }
+
+        @keyframes movement-bg {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            33% { transform: scale(1.1) rotate(120deg); }
+            66% { transform: scale(0.9) rotate(240deg); }
+        }
+
+        .movement-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .movement-title {
+            font-size: 72px;
             font-weight: 700;
-            margin-bottom: 1rem;
+            line-height: 1.1;
+            margin-bottom: 32px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 50%, var(--primary-blue) 100%);
+            background-size: 200% 200%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-shift 4s ease-in-out infinite;
         }
 
-        .final-cta p {
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-            opacity: 0.9;
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .movement-subtitle {
+            font-size: 28px;
+            color: var(--text-secondary-light);
+            margin-bottom: 60px;
+            line-height: 1.4;
+        }
+
+        .movement-visual {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            aspect-ratio: 16 / 10;
+            background: linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--accent-teal-dark) 100%);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                0 60px 120px rgba(0, 0, 0, 0.6),
+                0 0 0 1px rgba(106, 183, 255, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .movement-visual::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 40%),
+                radial-gradient(circle at 70% 70%, rgba(100, 216, 203, 0.3) 0%, transparent 40%);
+            animation: visual-glow 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes visual-glow {
+            0% { opacity: 0.6; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .movement-visual img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 24px;
+            filter: brightness(1.2) contrast(1.1) saturate(1.3);
+        }
+
+        .movement-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            z-index: 1;
+        }
+
+        /* Floating particles */
+        .movement-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            animation: particle-float 8s ease-in-out infinite;
+            opacity: 0.6;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 4s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 5s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 6s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 7s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 8s; }
+
+        @keyframes particle-float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-100px) scale(1); opacity: 0; }
         }
 
         /* Footer */
-        footer {
-            background: #1a1a1a;
-            color: white;
-            padding: 3rem 2rem 1rem;
+        .footer {
+            background: var(--card-dark);
+            padding: 60px 24px 40px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
             text-align: center;
         }
 
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
+        .footer-social {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 12px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            background: rgba(106, 183, 255, 0.2);
+            border-color: rgba(106, 183, 255, 0.5);
+            transform: translateY(-2px);
         }
 
         .footer-links {
             display: flex;
             justify-content: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
+            gap: 32px;
+            margin-bottom: 32px;
             flex-wrap: wrap;
         }
 
-        .footer-links a {
-            color: #ccc;
+        .footer-link {
+            color: var(--text-secondary-light);
             text-decoration: none;
+            font-size: 14px;
             transition: color 0.3s ease;
         }
 
-        .footer-links a:hover {
-            color: #667eea;
+        .footer-link:hover {
+            color: var(--primary-blue);
         }
 
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
+        .footer-copyright {
+            color: var(--text-secondary-light);
+            font-size: 14px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 24px;
+        }
+
+        @keyframes glow-pulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.7; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .feature-highlights {
+                grid-template-columns: 1fr;
+                gap: 24px;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .fade-in {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease;
-        }
-
-        .fade-in.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .nav-links {
+            .nav {
                 display: none;
             }
+        }
 
-            .cta-buttons {
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 40px;
+            }
+
+            .section-title {
+                font-size: 36px;
+            }
+
+            .movement-title {
+                font-size: 48px;
+            }
+
+            .movement-subtitle {
+                font-size: 20px;
+            }
+
+            .footer-social {
+                gap: 20px;
+            }
+
+            .footer-links {
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero {
+                padding: 120px 16px 40px;
+            }
+
+            .section {
+                padding: 80px 16px;
+            }
+
+            .movement-section {
+                padding: 120px 16px;
+            }
+
+            .hero-title {
+                font-size: 32px;
+            }
+
+            .section-title {
+                font-size: 28px;
+            }
+
+            .movement-title {
+                font-size: 36px;
+            }
+
+            .footer-social {
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+
+            .footer-links {
                 flex-direction: column;
-                align-items: center;
-            }
-
-            .btn-primary, .btn-secondary {
-                width: 100%;
-                max-width: 300px;
-                justify-content: center;
+                gap: 16px;
             }
         }
-
-        /* Interactive Code Preview */
-        .code-preview {
-            background: #1e1e1e;
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 2rem 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .code-preview::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 30px;
-            background: #2d2d2d;
-            border-radius: 15px 15px 0 0;
-        }
-
-        .code-preview::after {
-            content: '● ● ●';
-            position: absolute;
-            top: 8px;
-            left: 15px;
-            color: #ff5f56;
-            font-size: 10px;
-        }
-
-        .code {
-            color: #d4d4d4;
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 0.9rem;
-            line-height: 1.6;
-            margin-top: 20px;
-        }
-
-        .keyword { color: #569cd6; }
-        .string { color: #ce9178; }
-        .comment { color: #6a9955; }
-        .number { color: #b5cea8; }
     </style>
 </head>
 <body>
-<!-- Animated Background -->
-<div class="animated-bg">
-    <div class="floating-shapes">
-        <svg class="shape" width="100" height="100" viewBox="0 0 100 100">
-            <rect width="100" height="100" fill="url(#gradient1)" rx="20"/>
-            <defs>
-                <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#667eea"/>
-                    <stop offset="100%" style="stop-color:#764ba2"/>
-                </linearGradient>
-            </defs>
-        </svg>
-        <svg class="shape" width="80" height="80" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="40" fill="url(#gradient2)"/>
-            <defs>
-                <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#764ba2"/>
-                    <stop offset="100%" style="stop-color:#667eea"/>
-                </linearGradient>
-            </defs>
-        </svg>
-        <svg class="shape" width="120" height="60" viewBox="0 0 120 60">
-            <ellipse cx="60" cy="30" rx="60" ry="30" fill="url(#gradient3)"/>
-            <defs>
-                <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#667eea"/>
-                    <stop offset="100%" style="stop-color:#764ba2"/>
-                </linearGradient>
-            </defs>
-        </svg>
-        <svg class="shape" width="90" height="90" viewBox="0 0 90 90">
-            <polygon points="45,5 85,70 5,70" fill="url(#gradient4)"/>
-            <defs>
-                <linearGradient id="gradient4" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#764ba2"/>
-                    <stop offset="100%" style="stop-color:#667eea"/>
-                </linearGradient>
-            </defs>
-        </svg>
+<!-- Transparent Header -->
+<header class="header">
+    <div class="header-container">
+        <a href="#" class="logo">
+            <div class="logo-icon">
+                <img src="images/app.png" class="logo-icon"/>
+            </div>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="#features">Features</a>
+            <a href="#protocols">Protocols</a>
+            <a href="#simulation">Simulation</a>
+            <a href="#docs">Documentation</a>
+        </nav>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Free</a>
     </div>
-</div>
-
-<!-- Navigation -->
-<nav id="navbar">
-    <div class="nav-container">
-        <a href="#" class="logo">ISO8583Studio</a>
-        <ul class="nav-links">
-            <li><a href="#features">Features</a></li>
-            <li><a href="#how-it-works">How It Works</a></li>
-            <li><a href="#technologies">Technologies</a></li>
-            <li><a href="#github">GitHub</a></li>
-        </ul>
-        <a href="https://github.com/hpkaushik121/Iso8583studio" class="cta-nav" target="_blank">Get Started</a>
-    </div>
-</nav>
+</header>
 
 <!-- Hero Section -->
 <section class="hero">
-    <div class="hero-content">
-        <h1>ISO8583Studio Transaction Processing Made Simple</h1>
-        <p>A powerful, open-source desktop application for financial institutions, payment processors, and developers to configure, test, and monitor ISO8583 gateway transactions with ease.</p>
-        <div class="cta-buttons">
-            <a href="https://github.com/hpkaushik121/Iso8583studio" class="btn-primary" target="_blank">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-                Download Free
-            </a>
-            <a href="#features" class="btn-secondary">Learn More</a>
-        </div>
+    <div class="hero-video-background">
+        <video autoplay muted loop playsinline>
+<!--            <source-->
+<!--                    src="https://v.ftcdn.net/08/82/10/69/700_F_882106903_IemET2wooZRBAJbwujrj8UXDA1HFqU2d_ST.mp4"-->
+<!--                    type="video/mp4">-->
+            <!-- <source src="path-to-your-dark-video.webm" type="video/webm"> -->
+        </video>
     </div>
-</section>
 
-<!-- Features Section -->
-<section class="features" id="features">
-    <div class="container">
-        <div class="section-title fade-in">
-            <h2>Powerful Features for Financial Processing</h2>
-            <p>Everything you need to configure, test, and monitor ISO8583 transactions in one comprehensive platform</p>
+    <div class="hero-overlay"></div>
+
+    <div class="hero-container">
+        <h1 class="hero-title">ISO8583Studio Transaction Processing Made Simple</h1>
+        <p class="hero-subtitle">Professional desktop application for Windows, macOS, and Linux. Configure gateways, simulate transactions, analyze ISO8583 messages, and monitor real-time financial data processing with enterprise-grade tools.</p>
+
+        <div class="hero-platforms">
+            <div class="platform-badge">
+                <span>🖥️</span> Windows
+            </div>
+            <div class="platform-badge">
+                <span>🍎</span> macOS
+            </div>
+            <div class="platform-badge">
+                <span>🐧</span> Linux
+            </div>
         </div>
 
-        <div class="features-grid">
-            <div class="feature-card fade-in">
-                <svg class="feature-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="configGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#667eea"/>
-                            <stop offset="100%" style="stop-color:#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="10" y="20" width="80" height="60" rx="8" fill="url(#configGrad)" opacity="0.2"/>
-                    <rect x="15" y="25" width="70" height="8" rx="4" fill="url(#configGrad)"/>
-                    <rect x="15" y="38" width="50" height="6" rx="3" fill="url(#configGrad)" opacity="0.7"/>
-                    <rect x="15" y="48" width="60" height="6" rx="3" fill="url(#configGrad)" opacity="0.7"/>
-                    <rect x="15" y="58" width="45" height="6" rx="3" fill="url(#configGrad)" opacity="0.7"/>
-                    <circle cx="75" cy="45" r="8" fill="url(#configGrad)"/>
-                </svg>
-                <h3>Gateway Configuration</h3>
-                <p>Intuitive interface for configuring Server, Client, and Proxy gateway types with comprehensive transmission settings, connection management, and security options.</p>
-            </div>
-
-            <div class="feature-card fade-in">
-                <svg class="feature-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="monitorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#667eea"/>
-                            <stop offset="100%" style="stop-color:#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="10" y="15" width="80" height="50" rx="5" fill="url(#monitorGrad)" opacity="0.2"/>
-                    <line x1="20" y1="25" x2="80" y2="25" stroke="url(#monitorGrad)" stroke-width="2"/>
-                    <line x1="20" y1="35" x2="70" y2="35" stroke="url(#monitorGrad)" stroke-width="2" opacity="0.7"/>
-                    <line x1="20" y1="45" x2="75" y2="45" stroke="url(#monitorGrad)" stroke-width="2" opacity="0.7"/>
-                    <line x1="20" y1="55" x2="65" y2="55" stroke="url(#monitorGrad)" stroke-width="2" opacity="0.7"/>
-                    <circle cx="50" cy="80" r="12" fill="url(#monitorGrad)"/>
-                    <path d="M45 75 L50 80 L55 75" stroke="white" stroke-width="2" fill="none"/>
-                </svg>
-                <h3>Real-time Monitoring</h3>
-                <p>Live transaction monitoring with detailed logs, performance metrics, connection statistics, and comprehensive error tracking for optimal system oversight.</p>
-            </div>
-
-            <div class="feature-card fade-in">
-                <svg class="feature-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="simulatorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#667eea"/>
-                            <stop offset="100%" style="stop-color:#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="15" y="20" width="25" height="40" rx="5" fill="url(#simulatorGrad)" opacity="0.3"/>
-                    <rect x="60" y="20" width="25" height="40" rx="5" fill="url(#simulatorGrad)" opacity="0.3"/>
-                    <path d="M45 35 L55 35" stroke="url(#simulatorGrad)" stroke-width="3"/>
-                    <path d="M52 32 L55 35 L52 38" stroke="url(#simulatorGrad)" stroke-width="2" fill="none"/>
-                    <circle cx="27" cy="30" r="3" fill="url(#simulatorGrad)"/>
-                    <circle cx="27" cy="40" r="3" fill="url(#simulatorGrad)"/>
-                    <circle cx="72" cy="30" r="3" fill="url(#simulatorGrad)"/>
-                    <circle cx="72" cy="40" r="3" fill="url(#simulatorGrad)"/>
-                    <rect x="20" y="70" width="60" height="8" rx="4" fill="url(#simulatorGrad)"/>
-                </svg>
-                <h3>Host Simulator</h3>
-                <p>Built-in host simulator for testing transactions without external dependencies, supporting custom message templates and automated response generation.</p>
-            </div>
-
-            <div class="feature-card fade-in">
-                <svg class="feature-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="formatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#667eea"/>
-                            <stop offset="100%" style="stop-color:#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="20" y="25" width="60" height="40" rx="5" fill="url(#formatGrad)" opacity="0.2"/>
-                    <text x="50" y="40" text-anchor="middle" fill="url(#formatGrad)" font-size="8" font-family="monospace">JSON</text>
-                    <text x="50" y="50" text-anchor="middle" fill="url(#formatGrad)" font-size="8" font-family="monospace">XML</text>
-                    <text x="50" y="60" text-anchor="middle" fill="url(#formatGrad)" font-size="8" font-family="monospace">HEX</text>
-                    <path d="M15 30 Q10 35 15 40" stroke="url(#formatGrad)" stroke-width="2" fill="none"/>
-                    <path d="M85 30 Q90 35 85 40" stroke="url(#formatGrad)" stroke-width="2" fill="none"/>
-                    <circle cx="50" cy="15" r="6" fill="url(#formatGrad)"/>
-                    <circle cx="50" cy="75" r="6" fill="url(#formatGrad)"/>
-                </svg>
-                <h3>Multi-Format Support</h3>
-                <p>Support for multiple message formats including Binary, Hex, JSON, XML, and Key-Value pairs with customizable YAML configuration for flexible data transformation.</p>
-            </div>
-
-            <div class="feature-card fade-in">
-                <svg class="feature-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="securityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#667eea"/>
-                            <stop offset="100%" style="stop-color:#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="35" y="40" width="30" height="25" rx="3" fill="url(#securityGrad)" opacity="0.3"/>
-                    <rect x="40" y="30" width="20" height="15" rx="10" fill="none" stroke="url(#securityGrad)" stroke-width="3"/>
-                    <circle cx="50" cy="55" r="3" fill="url(#securityGrad)"/>
-                    <rect x="48" y="58" width="4" height="5" fill="url(#securityGrad)"/>
-                    <path d="M25 20 Q50 10 75 20 L75 30 Q50 20 25 30 Z" fill="url(#securityGrad)" opacity="0.2"/>
-                    <circle cx="35" cy="25" r="2" fill="url(#securityGrad)"/>
-                    <circle cx="50" cy="22" r="2" fill="url(#securityGrad)"/>
-                    <circle cx="65" cy="25" r="2" fill="url(#securityGrad)"/>
-                </svg>
-                <h3>Advanced Security</h3>
-                <p>Comprehensive security features including encryption/decryption support, HSM integration, client authentication, and secure key management for financial transactions.</p>
-            </div>
-
-            <div class="feature-card fade-in">
-                <svg class="feature-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="crossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#667eea"/>
-                            <stop offset="100%" style="stop-color:#764ba2"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="20" y="30" width="15" height="40" rx="3" fill="url(#crossGrad)" opacity="0.3"/>
-                    <rect x="42" y="25" width="15" height="50" rx="3" fill="url(#crossGrad)" opacity="0.5"/>
-                    <rect x="64" y="35" width="15" height="30" rx="3" fill="url(#crossGrad)"/>
-                    <circle cx="27" cy="20" r="4" fill="url(#crossGrad)"/>
-                    <circle cx="49" cy="15" r="4" fill="url(#crossGrad)"/>
-                    <circle cx="71" cy="25" r="4" fill="url(#crossGrad)"/>
-                    <text x="50" y="85" text-anchor="middle" fill="url(#crossGrad)" font-size="10" font-weight="bold">Multi-Platform</text>
-                </svg>
-                <h3>Cross-Platform Desktop</h3>
-                <p>Built with Kotlin Multiplatform and Compose Desktop, runs seamlessly on Windows, macOS, and Linux with native performance and consistent user experience.</p>
+        <div class="hero-image">
+            <!-- <img src="path-to-your-hero-image.jpg" alt="ISO8583Studio Desktop Application" loading="lazy"> -->
+            <div class="hero-image-placeholder">
+                🖥️ ISO8583Studio Desktop Application<br>
+                <small>Replace with actual screenshot of the desktop application interface</small>
             </div>
         </div>
     </div>
 </section>
 
-<!-- How It Works Section -->
-<section class="how-it-works" id="how-it-works">
-    <div class="container">
-        <div class="section-title fade-in">
-            <h2>How It Works</h2>
-            <p>Get started with ISO8583Studio in just a few simple steps</p>
+<!-- Features Ticker -->
+<section class="features-ticker">
+    <div class="ticker-container">
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            TCP/IP Gateways
         </div>
-
-        <div class="steps">
-            <div class="step fade-in">
-                <div class="step-number">1</div>
-                <h3>Download & Install</h3>
-                <p>Download the latest release from GitHub and install on your preferred operating system. No complex setup required.</p>
-            </div>
-
-            <div class="step fade-in">
-                <div class="step-number">2</div>
-                <h3>Configure Gateway</h3>
-                <p>Set up your gateway configuration with our intuitive interface. Choose between Server, Client, or Proxy modes and configure connection settings.</p>
-            </div>
-
-            <div class="step fade-in">
-                <div class="step-number">3</div>
-                <h3>Test & Monitor</h3>
-                <p>Use the built-in host simulator to test transactions and monitor in real-time. View logs, statistics, and troubleshoot issues effortlessly.</p>
-            </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            RS232 Serial
         </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            Dial-Up Support
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            REST/SOAP APIs
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            JSON/XML/ByteArray
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            Host Simulation
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            Message Analysis
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            Template Modification
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            Log Visualization
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            Unsolicited Messages
+        </div>
+        <!-- Duplicate for seamless loop -->
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            TCP/IP Gateways
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            RS232 Serial
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            Dial-Up Support
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-bullet"></div>
+            REST/SOAP APIs
+        </div>
+    </div>
+</section>
 
-        <!-- Interactive Demo -->
-        <div class="code-preview fade-in">
-            <div class="code">
-                <span class="comment">// Sample ISO8583 Configuration</span><br>
-                <span class="keyword">val</span> config = <span class="keyword">GatewayConfig</span>(<br>
-                &nbsp;&nbsp;<span class="string">name</span> = <span class="string">"Payment Gateway"</span>,<br>
-                &nbsp;&nbsp;<span class="string">gatewayType</span> = <span class="keyword">GatewayType.SERVER</span>,<br>
-                &nbsp;&nbsp;<span class="string">serverAddress</span> = <span class="string">"127.0.0.1"</span>,<br>
-                &nbsp;&nbsp;<span class="string">serverPort</span> = <span class="number">8080</span>,<br>
-                &nbsp;&nbsp;<span class="string">maxConcurrentConnection</span> = <span class="number">100</span><br>
-                )<br><br>
-                <span class="comment">// Start monitoring transactions</span><br>
-                <span class="keyword">gateway</span>.<span class="keyword">startMonitoring</span>()
+<!-- Gateway Configuration Section -->
+<section class="section">
+    <div class="section-container">
+        <h2 class="section-title">Configure gateways. Multiple protocols.</h2>
+        <p class="section-subtitle">Set up Server, Client, or Proxy gateways with support for TCP/IP, RS232 serial, Dial-Up, and REST/SOAP protocols. Handle ByteArray, JSON, XML, and PlainText formats with ease.</p>
+
+        <div class="demo-environment">
+            <div class="demo-header">
+                <div class="demo-title">
+                    <span>🔧</span>
+                    Gateway Configuration - Multi-Protocol Setup
+                </div>
+                <div class="demo-status">
+                    <div class="status-dot"></div>
+                    <span style="color: var(--success-green); font-weight: 600;">Configured</span>
+                </div>
+            </div>
+
+            <div class="demo-screenshot">
+                <div class="screenshot-container">
+                    <div class="screenshot-placeholder">
+                        ⚙️ Gateway Configuration Interface<br>
+                        <small>Replace with screenshot showing gateway setup with multiple protocols</small>
+                    </div>
+
+                    <div class="floating-indicator success indicator-1">
+                        ✓ TCP/IP Server Active
+                    </div>
+
+                    <div class="floating-indicator warning indicator-2">
+                        📡 RS232 Configured
+                    </div>
+
+                    <div class="floating-indicator teal indicator-3">
+                        🌐 REST API Ready
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-highlights">
+                <div class="highlight-card">
+                    <div class="highlight-icon">🖥️</div>
+                    <div class="highlight-title">Server/Client/Proxy</div>
+                    <div class="highlight-description">Configure any gateway type with flexible connection modes and advanced routing capabilities.</div>
+                </div>
+
+                <div class="highlight-card" style="background: rgba(255, 212, 59, 0.1); border-color: rgba(255, 212, 59, 0.3);">
+                    <div class="highlight-icon" style="background: linear-gradient(135deg, var(--warning-yellow) 0%, var(--primary-blue) 100%);">📡</div>
+                    <div class="highlight-title">Multiple Protocols</div>
+                    <div class="highlight-description">TCP/IP, RS232 Serial, Dial-Up, REST/SOAP support with automatic protocol detection.</div>
+                </div>
+
+                <div class="highlight-card" style="background: rgba(100, 216, 203, 0.1); border-color: rgba(100, 216, 203, 0.3);">
+                    <div class="highlight-icon" style="background: linear-gradient(135deg, var(--accent-teal) 0%, var(--success-green) 100%);">🔄</div>
+                    <div class="highlight-title">Format Support</div>
+                    <div class="highlight-description">Handle ByteArray, JSON, XML, PlainText with real-time format conversion.</div>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Technologies Section -->
-<section class="technologies" id="technologies">
-    <div class="container">
-        <div class="section-title fade-in">
-            <h2>Built with Modern Technologies</h2>
-            <p>Leveraging cutting-edge frameworks and tools for optimal performance</p>
-        </div>
+<!-- Transaction Simulation Section -->
+<section class="section section-alt">
+    <div class="section-container">
+        <h2 class="section-title">Simulate transactions. Test thoroughly.</h2>
+        <p class="section-subtitle">Comprehensive host simulation with ISO8583 message builder, automated testing, unsolicited message handling, and real-time transaction analysis tools.</p>
 
-        <div class="tech-grid">
-            <div class="tech-item fade-in">
-                <svg class="tech-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="kotlinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#7F52FF"/>
-                            <stop offset="100%" style="stop-color:#FF6B35"/>
-                        </linearGradient>
-                    </defs>
-                    <polygon points="20,80 20,20 50,20 80,50 50,80" fill="url(#kotlinGrad)"/>
-                    <polygon points="20,20 50,20 50,50 20,50" fill="url(#kotlinGrad)" opacity="0.7"/>
-                </svg>
-                <h4>Kotlin Multiplatform</h4>
-                <p>Cross-platform development with shared business logic</p>
+        <div class="demo-environment">
+            <div class="demo-header">
+                <div class="demo-title">
+                    <span>🧪</span>
+                    Host Simulator - Transaction Testing Environment
+                </div>
+                <div class="demo-status">
+                    <div class="status-dot"></div>
+                    <span style="color: var(--success-green); font-weight: 600;">Simulating</span>
+                </div>
             </div>
 
-            <div class="tech-item fade-in">
-                <svg class="tech-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="composeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#4285F4"/>
-                            <stop offset="100%" style="stop-color:#34A853"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="20" y="20" width="60" height="60" rx="10" fill="url(#composeGrad)" opacity="0.3"/>
-                    <circle cx="35" cy="35" r="8" fill="url(#composeGrad)"/>
-                    <circle cx="65" cy="35" r="8" fill="url(#composeGrad)"/>
-                    <circle cx="35" cy="65" r="8" fill="url(#composeGrad)"/>
-                    <circle cx="65" cy="65" r="8" fill="url(#composeGrad)"/>
-                    <circle cx="50" cy="50" r="6" fill="url(#composeGrad)"/>
-                </svg>
-                <h4>Compose Desktop</h4>
-                <p>Modern declarative UI framework for desktop applications</p>
+            <div class="demo-screenshot">
+                <div class="screenshot-container">
+                    <div class="screenshot-placeholder">
+                        🧪 Host Simulator & Message Builder<br>
+                        <small>Replace with screenshot of simulation interface and ISO8583 message tools</small>
+                    </div>
+
+                    <div class="floating-indicator teal indicator-1">
+                        ✓ Message Built
+                    </div>
+
+                    <div class="floating-indicator warning indicator-2">
+                        ⚡ Simulation Running
+                    </div>
+
+                    <div class="floating-indicator indicator-3">
+                        📊 Analysis Complete
+                    </div>
+                </div>
             </div>
 
-            <div class="tech-item fade-in">
-                <svg class="tech-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="isoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#FF6B6B"/>
-                            <stop offset="100%" style="stop-color:#4ECDC4"/>
-                        </linearGradient>
-                    </defs>
-                    <rect x="15" y="30" width="70" height="40" rx="5" fill="url(#isoGrad)" opacity="0.3"/>
-                    <text x="50" y="45" text-anchor="middle" fill="url(#isoGrad)" font-size="12" font-weight="bold">8583</text>
-                    <rect x="20" y="35" width="60" height="6" rx="3" fill="url(#isoGrad)" opacity="0.7"/>
-                    <rect x="20" y="55" width="60" height="6" rx="3" fill="url(#isoGrad)" opacity="0.7"/>
-                    <circle cx="25" cy="20" r="3" fill="url(#isoGrad)"/>
-                    <circle cx="50" cy="15" r="3" fill="url(#isoGrad)"/>
-                    <circle cx="75" cy="20" r="3" fill="url(#isoGrad)"/>
-                </svg>
-                <h4>ISO8583 Protocol</h4>
-                <p>Full compliance with international financial messaging standards</p>
-            </div>
+            <div class="feature-highlights">
+                <div class="highlight-card" style="background: rgba(100, 216, 203, 0.1); border-color: rgba(100, 216, 203, 0.3);">
+                    <div class="highlight-icon" style="background: linear-gradient(135deg, var(--accent-teal) 0%, var(--primary-blue) 100%);">🛠️</div>
+                    <div class="highlight-title">ISO8583 Builder</div>
+                    <div class="highlight-description">Interactive message builder with field validation, template modification, and format preview.</div>
+                </div>
 
-            <div class="tech-item fade-in">
-                <svg class="tech-icon" viewBox="0 0 100 100">
-                    <defs>
-                        <linearGradient id="springGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#6DB33F"/>
-                            <stop offset="100%" style="stop-color:#8BC34A"/>
-                        </linearGradient>
-                    </defs>
-                    <circle cx="50" cy="50" r="25" fill="none" stroke="url(#springGrad)" stroke-width="4"/>
-                    <path d="M35 35 Q50 25 65 35 Q50 45 35 35" fill="url(#springGrad)" opacity="0.7"/>
-                    <path d="M35 65 Q50 55 65 65 Q50 75 35 65" fill="url(#springGrad)" opacity="0.7"/>
-                    <circle cx="50" cy="50" r="5" fill="url(#springGrad)"/>
-                </svg>
-                <h4>Spring Framework</h4>
-                <p>Enterprise-grade backend services and dependency injection</p>
+                <div class="highlight-card" style="background: rgba(255, 212, 59, 0.1); border-color: rgba(255, 212, 59, 0.3);">
+                    <div class="highlight-icon" style="background: linear-gradient(135deg, var(--warning-yellow) 0%, var(--accent-teal) 100%);">📨</div>
+                    <div class="highlight-title">Unsolicited Messages</div>
+                    <div class="highlight-description">Handle and simulate unsolicited messages with automated response generation.</div>
+                </div>
+
+                <div class="highlight-card">
+                    <div class="highlight-icon" style="background: linear-gradient(135deg, var(--primary-blue) 0%, var(--success-green) 100%);">📈</div>
+                    <div class="highlight-title">Request Analysis</div>
+                    <div class="highlight-description">Deep transaction analysis with pattern recognition and performance metrics.</div>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Final CTA Section -->
-<section class="final-cta">
-    <div class="container">
-        <h2>Ready to Streamline Your Financial Transactions?</h2>
-        <p>Join developers and financial institutions worldwide who trust ISO8583Studio for their transaction processing needs.</p>
-        <div class="cta-buttons">
-            <a href="https://github.com/hpkaushik121/Iso8583studio" class="btn-primary" target="_blank">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                </svg>
-                Get Started Free
-            </a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/README.md" class="btn-secondary" target="_blank">View Documentation</a>
+<!-- Log Visualization Section -->
+<section class="section">
+    <div class="section-container">
+        <h2 class="section-title">Visualize logs. Monitor everything.</h2>
+        <p class="section-subtitle">Advanced log visualization with real-time monitoring, template-based parsing, and comprehensive analytics for all your financial transaction data.</p>
+
+        <div class="demo-environment">
+            <div class="demo-header">
+                <div class="demo-title">
+                    <span>📊</span>
+                    Log Visualization & Real-time Monitoring
+                </div>
+                <div class="demo-status">
+                    <div class="status-dot"></div>
+                    <span style="color: var(--success-green); font-weight: 600;">Monitoring</span>
+                </div>
+            </div>
+
+            <div class="demo-screenshot">
+                <div class="screenshot-container">
+                    <div class="screenshot-placeholder">
+                        📈 Log Visualization Dashboard<br>
+                        <small>Replace with screenshot showing log analysis and monitoring interface</small>
+                    </div>
+
+                    <div class="floating-indicator success indicator-1">
+                        ✓ Live Monitoring
+                    </div>
+
+                    <div class="floating-indicator indicator-2">
+                        📊 Data Parsed
+                    </div>
+
+                    <div class="floating-indicator teal indicator-3">
+                        📋 Template Applied
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-highlights">
+                <div class="highlight-card">
+                    <div class="highlight-icon">📊</div>
+                    <div class="highlight-title">Real-time Monitoring</div>
+                    <div class="highlight-description">Live transaction monitoring with customizable dashboards and alert systems.</div>
+                </div>
+
+                <div class="highlight-card" style="background: rgba(100, 216, 203, 0.1); border-color: rgba(100, 216, 203, 0.3);">
+                    <div class="highlight-icon" style="background: linear-gradient(135deg, var(--accent-teal) 0%, var(--primary-blue) 100%);">📋</div>
+                    <div class="highlight-title">Template Modification</div>
+                    <div class="highlight-description">Customize ISO8583 templates with field mapping and validation rules.</div>
+                </div>
+
+                <div class="highlight-card" style="background: rgba(255, 212, 59, 0.1); border-color: rgba(255, 212, 59, 0.3);">
+                    <div class="highlight-icon" style="background: linear-gradient(135deg, var(--warning-yellow) 0%, var(--success-green) 100%);">📈</div>
+                    <div class="highlight-title">Advanced Analytics</div>
+                    <div class="highlight-description">Comprehensive log analysis with pattern detection and performance insights.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Join the Movement Section -->
+<section class="movement-section">
+    <div class="movement-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="movement-container">
+        <h2 class="movement-title">Join the Movement</h2>
+        <p class="movement-subtitle">Unlock the future of financial transaction processing with ISO8583Studio.<br>Remember, this journey is just getting started.</p>
+
+        <div class="movement-visual">
+            <!-- <img src="path-to-movement-image.jpg" alt="ISO8583Studio Future Vision" loading="lazy"> -->
+            <div class="movement-placeholder">
+                🚀 The Future of Financial Technology<br>
+                <span style="font-size: 16px; opacity: 0.8;">Replace with visionary image showcasing the tool's impact</span>
+            </div>
         </div>
     </div>
 </section>
 
 <!-- Footer -->
-<footer>
-    <div class="footer-content">
-        <div class="footer-links">
-            <a href="https://github.com/hpkaushik121/Iso8583studio" target="_blank">GitHub Repository</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/issues" target="_blank">Report Issues</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/LICENSE" target="_blank">License</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/wiki" target="_blank">Documentation</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" target="_blank">Releases</a>
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-social">
+            <a href="https://github.com/users/hpkaushik121/projects/1" class="social-link" title="Roadmap">
+                <span>🐦</span>
+            </a>
+            <a href="https://www.linkedin.com/in/sourabh-kaushik/" class="social-link" title="LinkedIn">
+                <span>💼</span>
+            </a>
+            <a href="https://github.com/hpkaushik121" class="social-link" title="GitHub">
+                <span>🐙</span>
+            </a>
+            <a href="https://sourabhkaushik.dev" class="social-link" title="Portfolio">
+                <span>📺</span>
+            </a>
+            <a href="https://hpkaushik121.medium.com/" class="social-link" title="Medium">
+                <span>💬</span>
+            </a>
         </div>
-        <p>&copy; 2024 ISO8583Studio. Open Source Project. MIT License.</p>
-        <p>Built with ❤️ for the financial technology community</p>
+
+        <div class="footer-links">
+            <a href="./privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="./terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/README.md" class="footer-link">Documentation</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+
+        <div class="footer-copyright">
+            © 2024 AiCortex. All rights reserved. Built with ❤️ for the financial technology community.
+        </div>
     </div>
 </footer>
 
 <script>
-    // Smooth scrolling for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+    // Enhanced immersive animations
+    document.addEventListener('DOMContentLoaded', () => {
+        // Transparent header scroll effect
+        const header = document.querySelector('.header');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
             }
         });
-    });
 
-    // Navbar background change on scroll
-    window.addEventListener('scroll', () => {
-        const navbar = document.getElementById('navbar');
-        if (window.scrollY > 100) {
-            navbar.style.background = 'rgba(255, 255, 255, 0.98)';
-            navbar.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
-        } else {
-            navbar.style.background = 'rgba(255, 255, 255, 0.95)';
-            navbar.style.boxShadow = 'none';
-        }
-    });
-
-    // Intersection Observer for fade-in animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
-        });
-    }, observerOptions);
-
-    // Observe all fade-in elements
-    document.querySelectorAll('.fade-in').forEach(el => {
-        observer.observe(el);
-    });
-
-    // Enhanced floating shapes animation
-    const shapes = document.querySelectorAll('.shape');
-    shapes.forEach((shape, index) => {
-        // Add random movement to shapes
-        const randomX = Math.random() * 100 - 50;
-        const randomY = Math.random() * 100 - 50;
-        const randomRotation = Math.random() * 360;
-        const randomScale = 0.8 + Math.random() * 0.4;
-
-        shape.style.transform = `translate(${randomX}px, ${randomY}px) rotate(${randomRotation}deg) scale(${randomScale})`;
-
-        // Animate shapes continuously
-        setInterval(() => {
-            const newX = Math.random() * 50 - 25;
-            const newY = Math.random() * 50 - 25;
-            const newRotation = Math.random() * 360;
-
-            shape.style.transition = 'transform 4s ease-in-out';
-            shape.style.transform = `translate(${randomX + newX}px, ${randomY + newY}px) rotate(${newRotation}deg) scale(${randomScale})`;
-        }, 4000 + index * 1000);
-    });
-
-    // Typewriter effect for code preview
-    const codeElement = document.querySelector('.code');
-    if (codeElement) {
-        const originalText = codeElement.innerHTML;
-        codeElement.innerHTML = '';
-
-        let index = 0;
-        const typeWriter = () => {
-            if (index < originalText.length) {
-                codeElement.innerHTML = originalText.slice(0, index + 1);
-                index++;
-                setTimeout(typeWriter, 30);
-            }
+        // Enhanced scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
         };
 
-        // Start typewriter when code comes into view
-        const codeObserver = new IntersectionObserver((entries) => {
+        const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    setTimeout(typeWriter, 500);
-                    codeObserver.unobserve(entry.target);
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+
+                    // Special animation for demo environment
+                    if (entry.target.classList.contains('demo-environment')) {
+                        setTimeout(() => {
+                            entry.target.style.boxShadow = '0 60px 180px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(106, 183, 255, 0.5)';
+                        }, 500);
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe sections
+        document.querySelectorAll('.section, .movement-section, .demo-environment').forEach(section => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(50px)';
+            section.style.transition = 'all 1s ease-out';
+            observer.observe(section);
+        });
+
+        // Enhanced particle system
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+            particle.style.background = Math.random() > 0.5 ? 'var(--primary-blue)' : 'var(--accent-teal)';
+
+            const particleContainer = document.querySelector('.movement-particles');
+            if (particleContainer) {
+                particleContainer.appendChild(particle);
+
+                setTimeout(() => {
+                    particle.remove();
+                }, 8000);
+            }
+        }
+
+        // Create particles continuously
+        setInterval(createParticle, 800);
+
+        // Enhanced floating elements animation
+        const floatingElements = document.querySelectorAll('.floating-indicator');
+        floatingElements.forEach((element, index) => {
+            setInterval(() => {
+                element.style.transform = `translateY(${Math.sin(Date.now() * 0.001 + index) * 5}px) rotate(${Math.sin(Date.now() * 0.0008 + index) * 1}deg)`;
+            }, 50);
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
                 }
             });
         });
 
-        codeObserver.observe(codeElement.closest('.code-preview'));
-    }
+        // Enhanced demo hover effects
+        document.querySelectorAll('.highlight-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                const icon = card.querySelector('.highlight-icon');
+                if (icon) {
+                    icon.style.transform = 'scale(1.1) rotate(5deg)';
+                    icon.style.boxShadow = '0 0 30px rgba(106, 183, 255, 0.6)';
+                }
+            });
 
-    // Feature cards hover effect enhancement
-    document.querySelectorAll('.feature-card').forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            const icon = card.querySelector('.feature-icon');
-            if (icon) {
-                icon.style.transform = 'scale(1.1) rotate(5deg)';
-                icon.style.transition = 'transform 0.3s ease';
-            }
+            card.addEventListener('mouseleave', () => {
+                const icon = card.querySelector('.highlight-icon');
+                if (icon) {
+                    icon.style.transform = 'scale(1) rotate(0deg)';
+                    icon.style.boxShadow = '0 0 20px rgba(106, 183, 255, 0.4)';
+                }
+            });
         });
 
-        card.addEventListener('mouseleave', () => {
-            const icon = card.querySelector('.feature-icon');
-            if (icon) {
-                icon.style.transform = 'scale(1) rotate(0deg)';
-            }
-        });
-    });
+        // Video background management
+        const video = document.querySelector('.hero-video-background video');
+        if (video) {
+            video.addEventListener('loadeddata', () => {
+                video.style.opacity = '0.3';
+            });
 
-    // Tech items rotation animation on hover
-    document.querySelectorAll('.tech-item').forEach(item => {
-        item.addEventListener('mouseenter', () => {
-            const icon = item.querySelector('.tech-icon');
-            if (icon) {
-                icon.style.transform = 'rotateY(180deg)';
-                icon.style.transition = 'transform 0.6s ease';
-            }
-        });
-
-        item.addEventListener('mouseleave', () => {
-            const icon = item.querySelector('.tech-icon');
-            if (icon) {
-                icon.style.transform = 'rotateY(0deg)';
-            }
-        });
-    });
-
-    // Step numbers animation
-    document.querySelectorAll('.step-number').forEach((step, index) => {
-        setTimeout(() => {
-            step.style.animation = 'pulse 1s ease-in-out';
-        }, index * 200);
-    });
-
-    // CTA buttons hover enhancement
-    document.querySelectorAll('.btn-primary, .btn-secondary').forEach(btn => {
-        btn.addEventListener('mouseenter', () => {
-            btn.style.transform = 'translateY(-3px) scale(1.02)';
-        });
-
-        btn.addEventListener('mouseleave', () => {
-            btn.style.transform = 'translateY(0) scale(1)';
-        });
-    });
-
-    // Parallax effect for hero section
-    window.addEventListener('scroll', () => {
-        const scrolled = window.pageYOffset;
-        const heroContent = document.querySelector('.hero-content');
-        const shapes = document.querySelector('.floating-shapes');
-
-        if (heroContent && scrolled < window.innerHeight) {
-            heroContent.style.transform = `translateY(${scrolled * 0.5}px)`;
-            if (shapes) {
-                shapes.style.transform = `translateY(${scrolled * 0.3}px) rotate(${scrolled * 0.05}deg)`;
-            }
+            video.addEventListener('error', () => {
+                // Fallback to animated background if video fails to load
+                const videoContainer = document.querySelector('.hero-video-background');
+                if (videoContainer) {
+                    videoContainer.style.background = `
+                        radial-gradient(circle at 20% 80%, rgba(106, 183, 255, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(100, 216, 203, 0.15) 0%, transparent 50%),
+                        linear-gradient(45deg, rgba(26, 29, 46, 0.8) 0%, rgba(47, 49, 66, 0.8) 100%)
+                    `;
+                    videoContainer.style.animation = 'movement-bg 20s ease-in-out infinite';
+                }
+            });
         }
-    });
 
-    // Add loading animation
-    window.addEventListener('load', () => {
-        document.body.style.opacity = '0';
-        document.body.style.transition = 'opacity 1s ease-in-out';
-        setTimeout(() => {
-            document.body.style.opacity = '1';
-        }, 100);
+        // Platform badges animation
+        document.querySelectorAll('.platform-badge').forEach((badge, index) => {
+            badge.style.animationDelay = `${index * 0.2}s`;
+            badge.style.animation = 'slideInUp 0.6s ease-out forwards';
+        });
     });
 </script>
 </body>
