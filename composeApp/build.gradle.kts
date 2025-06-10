@@ -52,6 +52,8 @@ kotlin {
             implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:3.1.3")
             implementation("io.ktor:ktor-client-logging-jvm:3.1.3")
             implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
+            implementation(project(":api"))
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

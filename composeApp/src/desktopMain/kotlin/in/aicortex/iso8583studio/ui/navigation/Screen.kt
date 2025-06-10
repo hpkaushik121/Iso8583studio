@@ -11,4 +11,5 @@ sealed class Screen {
     object AdvancedOptions : Screen()
     object Monitor : Screen()
     object HostSimulator : Screen()
+    object EMV4_1 : Screen()
 }

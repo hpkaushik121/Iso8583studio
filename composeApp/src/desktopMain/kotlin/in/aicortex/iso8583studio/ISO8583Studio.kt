@@ -24,6 +24,7 @@ import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.screens.components.StatusBadge
 import `in`.aicortex.iso8583studio.ui.screens.about.AboutDialog
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
+import `in`.aicortex.iso8583studio.ui.navigation.Screen
 import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
 import iso8583studio.composeapp.generated.resources.Res
 import iso8583studio.composeapp.generated.resources.app
@@ -153,6 +154,13 @@ class ISO8583Studio {
                             }
                             Item("Quit") {
                                 exitApplication()
+                            }
+                        }
+                        Menu(text = "EMV"){
+                            Menu(text = "Application Cryptogram") {
+                                Item("EMV v4.1") {
+                                    navigationController.navigateTo(Screen.EMV4_1)
+                                }
                             }
                         }
                     }

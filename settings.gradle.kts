@@ -33,3 +33,7 @@ plugins {
 }
 
 include(":composeApp")
+include(":kmp-payment-crypto")
+include(":core-crypto")
+include(":payment-crypto")
+include(":api")

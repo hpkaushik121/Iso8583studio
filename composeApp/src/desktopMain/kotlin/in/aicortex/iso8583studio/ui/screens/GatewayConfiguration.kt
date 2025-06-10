@@ -5,6 +5,7 @@ import androidx.compose.ui.awt.ComposeWindow
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.navigation.Screen
+import `in`.aicortex.iso8583studio.ui.screens.Emv.EmvCryptoCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.AdvancedOptionsTab
 import `in`.aicortex.iso8583studio.ui.screens.config.GatewayTypeTab
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorScreen
@@ -83,6 +84,13 @@ fun GatewayConfiguration(navigationController: NavigationController,
 //                    navigationController.updateKeys(updatedKeys)
 //                }
             })
+
+        Screen.EMV4_1 -> EmvCryptoCalculatorScreen(
+            window = window,
+            onBack = {
+                navigationController.goBack()
+            }
+        )
     }
 }
 
