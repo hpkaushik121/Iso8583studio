@@ -43,3 +43,13 @@ enum class ArpcMethod(val displayName: String) {
     METHOD_1("Method 1"),
     METHOD_2("Method 2")
 }
+
+enum class ValidationState {
+    VALID, WARNING, ERROR, EMPTY
+}
+
+data class FieldValidation(
+    val state: ValidationState,
+    val message: String = "",
+    val helperText: String = ""
+)

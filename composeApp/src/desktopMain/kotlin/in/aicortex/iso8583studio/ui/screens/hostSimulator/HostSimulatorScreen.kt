@@ -53,6 +53,7 @@ import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -73,12 +74,16 @@ enum class HostSimulatorTabs(val title: String, val icon: ImageVector) {
 @Composable
 fun HostSimulatorScreen(
     window: ComposeWindow,
+    navigationController: NavigationController,
     config: GatewayConfig?,
     onBack: () -> Unit,
     onSaveClick: () -> Unit,
     onError: ResultDialogInterface? = null,
 ) {
-    var gw: GatewayServiceImpl? = null
+    var gw: GatewayServiceImpl? = navigationController.getManagedGatewayService(
+        window,
+        onError = onError
+    )
     val coroutineScope = rememberCoroutineScope()
     Scaffold(
         topBar = {
@@ -99,14 +104,9 @@ fun HostSimulatorScreen(
         },
         backgroundColor = MaterialTheme.colors.background
     ) { paddingValues ->
-        if (config != null) {
-            gw = GatewayServiceImpl(config)
-            gw!!.composeWindow = window
-            if (onError != null) {
-                gw!!.setShowErrorListener(onError)
-            }
+        if (gw != null) {
             HostSimulator(
-                gw = gw!!,
+                gw = gw,
                 onSaveClick = onSaveClick,
                 modifier = Modifier.padding(paddingValues)
             )

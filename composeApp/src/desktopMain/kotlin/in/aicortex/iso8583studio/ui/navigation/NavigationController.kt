@@ -2,10 +2,14 @@ package `in`.aicortex.iso8583studio.ui.navigation
 
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.awt.ComposeWindow
+import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.SecurityKey
+import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,8 +18,8 @@ import kotlin.random.Random
 
 
 /**
- * Navigation controller for the Security Gateway Configuration app
- * Manages navigation and state between different screens
+ * Navigation controller for the Security Gateway Configuration app.
+ * Manages navigation and state between different screens using a stack.
  */
 class NavigationController {
     // Private mutable state
@@ -24,13 +28,72 @@ class NavigationController {
     // Public immutable state for observing
     val state: StateFlow<GatewayConfigurationState> = _state.asStateFlow()
 
-    // Current screen - start with config list
-    var currentScreen by mutableStateOf<Screen>(Screen.GatewayType)
-        private set
+    // Cache to hold stateful GatewayServiceImpl instances. The key is the GatewayConfig ID.
+    private val gatewayServices = mutableMapOf<Int, GatewayServiceImpl>()
 
-    // Navigation methods
+    // --- Stack-based navigation ---
+    private val navigationStack = mutableStateListOf<Screen>(Screen.GatewayType)
+
+    // The current screen is always the last item in the stack.
+    val currentScreen: Screen
+        get() = navigationStack.last()
+
+    /**
+     * Retrieves a managed instance of GatewayServiceImpl for the currently selected configuration.
+     * This function ensures that the same service instance is used for a given configuration,
+     * preserving its state (like active connections) across navigation events.
+     *
+     * @param window The ComposeWindow required by the service.
+     * @param onError The error handling interface.
+     * @return A stateful GatewayServiceImpl instance, or null if no configuration is selected.
+     */
+    fun getManagedGatewayService(window: ComposeWindow, onError: ResultDialogInterface?): GatewayServiceImpl? {
+        val config = _state.value.configList.value.getOrNull(_state.value.selectedConfigIndex) ?: return null
+
+        // Get the existing service from the cache, or create a new one if it doesn't exist.
+        val service = gatewayServices.getOrPut(config.id) {
+            GatewayServiceImpl(config)
+        }
+
+        // Always ensure the latest window and listeners are attached.
+        service.composeWindow = window
+        if (onError != null) {
+            service.setShowErrorListener(onError)
+        }
+
+        return service
+    }
+
+    /**
+     * Stops all running gateway services and clears the cache.
+     * Should be called when the application is closing to ensure graceful shutdown.
+     */
+    suspend fun stopAndClearAllServices() {
+        gatewayServices.values.forEach { it.stop() }
+        gatewayServices.clear()
+    }
+
+    /**
+     * Navigates to a given screen.
+     * If the screen is already in the back stack, it's moved to the top.
+     * Otherwise, it's added to the top of the stack.
+     * Example: a -> b -> c. Navigating to 'b' results in: a -> c -> b.
+     */
     fun navigateTo(screen: Screen) {
-        currentScreen = screen
+        // If the screen is already in the stack, remove its previous instance.
+        navigationStack.remove(screen)
+        // Add the screen to the end of the list, making it the new "top" of the stack.
+        navigationStack.add(screen)
+    }
+
+    /**
+     * Navigates to the previous screen in the stack.
+     * If there's only one screen, this does nothing.
+     */
+    fun goBack() {
+        if (navigationStack.size > 1) {
+            navigationStack.removeLast()
+        }
     }
 
     // Tab navigation
@@ -66,9 +129,16 @@ class NavigationController {
         selectTab(0)
     }
 
-    fun deleteCurrentConfig() {
+    suspend fun deleteCurrentConfig() {
         val currentIndex = _state.value.selectedConfigIndex
         if (currentIndex >= 0) {
+            // Stop and remove the service associated with the config being deleted.
+            val configId = _state.value.configList.value.getOrNull(currentIndex)?.id
+            if (configId != null) {
+                gatewayServices[configId]?.stop()
+                gatewayServices.remove(configId)
+            }
+
             _state.update {
                 val newList = it.configList.value.toMutableList().apply {
                     removeAt(currentIndex)
@@ -90,6 +160,8 @@ class NavigationController {
                 }
             }
 
+            // After deleting, reset the navigation stack to the main screen.
+            navigationStack.clear()
             navigateTo(Screen.GatewayType)
         }
     }
@@ -138,9 +210,5 @@ class NavigationController {
 
     fun openHostSimulator() {
         navigateTo(Screen.HostSimulator)
-    }
-
-    fun goBack() {
-        navigateTo(Screen.GatewayType)
     }
 }

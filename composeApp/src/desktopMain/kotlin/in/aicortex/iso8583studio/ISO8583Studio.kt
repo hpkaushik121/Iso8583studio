@@ -5,7 +5,6 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.MenuBar
@@ -156,12 +155,149 @@ class ISO8583Studio {
                                 exitApplication()
                             }
                         }
+
+
+                        Menu(text = "Generic") {
+                            Item(text = "Hashes") {  }
+                            Item(text = "Character Encoding") {  }
+                            Item(text = "BCD") {  }
+                            Item(text = "Check Digits") {  }
+                            Item(text = "Base64") {  }
+                            Item(text = "Base94") {  }
+                            Item(text = "RSA DER Public Key") {  }
+                            Item(text = "UUID") {  }
+                        }
+
+                        Menu(text = "Payments") {
+                            Item("AS2805") { }
+                            Item("Bitmap") { }
+                            Menu ("Card Validation") {
+                                Item("CVVs") {  }
+                                Item("AMEX CSCs") {  }
+                                Item("MasterCard dynamic CVC3") {  }
+                            }
+                            Menu("DUKPT") {
+                                Item("ISO 9797") {  }
+                                Item("AES") {  }
+                            }
+                            Menu("MAC Algorithms") {
+                                Item("ISO/IEC 9797-1") {  }
+                                Item("ANSI X9.9 & X9.19") {  }
+                                Item("AS2805 4.1") {  }
+                                Item("TDES CBC-MAC") {  }
+                                Item("HMAC") {  }
+                                Item("CMAC") {  }
+                                Item("Retail") {  }
+                            }
+                            Item("MDC Hash") {  }
+                            Menu("PIN Blocks") {
+                                Item("General") {  }
+                                Item("AES") {  }
+                            }
+                            Item("PIN Offset") {  }
+                            Item("PIN PVV") {  }
+                            Item("Visa Certificates") {  }
+                            Item("ZKA") {  }
+                        }
+
                         Menu(text = "EMV"){
                             Menu(text = "Application Cryptogram") {
                                 Item("EMV v4.1") {
                                     navigationController.navigateTo(Screen.EMV4_1)
                                 }
+                                Item("EMV v4.2") {
+                                    navigationController.navigateTo(Screen.EMV4_2)
+                                }
+                                Item("MasterCard") {
+                                    navigationController.navigateTo(Screen.EMVMasterCardCrypto)
+                                }
+                                Item("VSDC") {
+                                    navigationController.navigateTo(Screen.EMVVsdcCrypto)
+                                }
                             }
+                            Item(text = "SDA"){
+                                navigationController.navigateTo(Screen.SDA)
+                            }
+
+                            Item(text = "DDA"){
+                                navigationController.navigateTo(Screen.DDA)
+                            }
+
+                            Menu(text = "ICC Dynamic Number"){
+                                Item("MasterCard (EMV 3.1.1)") {
+                                    navigationController.navigateTo(Screen.ICCDynamicNumberMasterCard)
+                                }
+                            }
+
+                            Menu(text = "Data Storage Partial Key"){
+                                Item("MasterCard") {
+                                    navigationController.navigateTo(Screen.DataStoragePartialKeyMaterCard)
+                                }
+                            }
+                            Menu(text = "Secure Messaging"){
+                                Item("MasterCard") {
+                                    navigationController.navigateTo(Screen.SecureMessagingMasterCard)
+                                }
+                                Item("Visa") {
+                                    navigationController.navigateTo(Screen.SecureMessagingVisa)
+                                }
+                            }
+                            Menu(text = "HCE"){
+                                Item("Visa") {
+                                    navigationController.navigateTo(Screen.HceVisa)
+                                }
+                            }
+                            Item(text = "CAP Token Computation"){
+                                navigationController.navigateTo(Screen.CapTokenComputation)
+                            }
+                            Separator()
+                            Item(text = "ATR Parser"){
+                                navigationController.navigateTo(Screen.AtrParser)
+                            }
+
+                            Item(text = "EMV Data Parser"){
+                                navigationController.navigateTo(Screen.EmvDataParser)
+                            }
+
+                            Item(text = "EMV Tag Dictionary"){
+                                navigationController.navigateTo(Screen.EmvTagDictionary)
+                            }
+
+                            Item(text = "APDU response query"){
+                                navigationController.navigateTo(Screen.ApduResponseQuery)
+                            }
+                        }
+
+                        Menu(text = "Cipher") {
+                            Item(text = "AES") {  }
+                            Item(text = "DES") {  }
+                            Item(text = "RSA") {  }
+                            Item(text = "Thales RSA") {  }
+                            Item(text = "ECDSA") {  }
+                            Item(text = "FPE") {  }
+                        }
+
+                        Menu(text = "Keys") {
+                            Item("Keys DEA") {  }
+                            Item("Keyshare Generator") {  }
+                            Menu("Keys HSM") {
+                                Item("Futurex") {  }
+                                Item("Atalla") {  }
+                                Item("SafeNet") {  }
+                                Item("Thales") {  }
+                            }
+                            Menu("Key Blocks") {
+                                Item("Thales") {  }
+                                Item("TR-31") {  }
+                            }
+                            Menu("SSL Certificates") {  }
+                        }
+
+                        Menu("Development") {
+                            Item("Secure Padding") {  }
+                            Item("String Builder") {  }
+                            Item("Trace Parser") {  }
+                            Item("Bit Shift") {  }
                         }
                     }
                     if(showAboutDialog){
