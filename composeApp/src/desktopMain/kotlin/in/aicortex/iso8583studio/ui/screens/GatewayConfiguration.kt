@@ -2,6 +2,8 @@ package `in`.aicortex.iso8583studio.ui.screens
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.awt.ComposeWindow
+import `in`.aicortex.iso8583studio.data.BitAttribute
+import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.navigation.Screen
@@ -27,7 +29,23 @@ import `in`.aicortex.iso8583studio.ui.screens.Emv.hce.VisaHceCryptoScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.CapTokenComputationScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.EmvDataParserScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.EmvTagDictionaryScreen
+import `in`.aicortex.iso8583studio.ui.screens.cipher.AesCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.apduquery.ApduResponseQueryScreen
+import `in`.aicortex.iso8583studio.ui.screens.cipher.DesCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.Base94EncoderDecoderScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.Base64EncoderDecoderScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.CheckDigitScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.BcdConverterScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.CharacterEncodingScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.HashCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.cipher.RsaCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.rsader.RsaDerKeyScreen
+import `in`.aicortex.iso8583studio.ui.screens.cipher.ThalesRsaScreen
+import `in`.aicortex.iso8583studio.ui.screens.cipher.EcdsaCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.fpe.FpeCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.MessageParserScreen
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorTabs
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.UnsolicitedMessageTab
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -174,6 +192,25 @@ fun GatewayConfiguration(
         Screen.EmvDataParser -> EmvDataParserScreen(window = window) { navigationController.goBack() }
         Screen.EmvTagDictionary -> EmvTagDictionaryScreen(window = window) { navigationController.goBack() }
         Screen.ApduResponseQuery -> ApduResponseQueryScreen(window = window) { navigationController.goBack() }
+        Screen.HashCalculator -> HashCalculatorScreen(window = window) { navigationController.goBack() }
+        Screen.CharacterEncoder -> CharacterEncodingScreen(window = window) { navigationController.goBack() }
+        Screen.BcdCalculator -> BcdConverterScreen(window = window) { navigationController.goBack() }
+        Screen.CheckDigit -> CheckDigitScreen(window = window) { navigationController.goBack() }
+        Screen.Base64Calculator -> Base64EncoderDecoderScreen (window = window) { navigationController.goBack() }
+        Screen.MessageParser -> MessageParserScreen(
+            window = window,
+            navigationController = navigationController,
+            onError = appState.resultDialogInterface!!,
+            onBack = { navigationController.goBack() }
+        )
+        Screen.Base94Calculator -> Base94EncoderDecoderScreen (window = window) { navigationController.goBack() }
+        Screen.RsaDerPubKeyCalculator -> RsaDerKeyScreen (window = window) { navigationController.goBack() }
+        Screen.AesCalculator -> AesCalculatorScreen(window = window) { navigationController.goBack() }
+        Screen.DesCalculator -> DesCalculatorScreen(window = window) { navigationController.goBack() }
+        Screen.RsaCalculator -> RsaCalculatorScreen (window = window) { navigationController.goBack() }
+        Screen.ThalesRsaCalculator -> ThalesRsaScreen(window = window) { navigationController.goBack() }
+        Screen.EcdsaCalculator -> EcdsaCalculatorScreen(window = window) { navigationController.goBack() }
+        Screen.FpeCalculator -> FpeCalculatorScreen (window = window) { navigationController.goBack() }
     }
 }
 
@@ -194,8 +231,7 @@ private fun selectTab(
             }
         },
         onSaveAllConfigs = { navigationController.saveAllConfigs() },
-        onOpenMonitor = { navigationController.openMonitor() },
-        onOpenHostSimulator = { navigationController.openHostSimulator() },
+        onOpenHostSimulator = { navigationController.navigateTo(Screen.HostSimulator) },
         onTabSelected = { navigationController.selectTab(it) },
         content = content
     )

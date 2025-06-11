@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -27,17 +28,22 @@ import `in`.aicortex.iso8583studio.ui.navigation.Screen
 import `in`.aicortex.iso8583studio.ui.screens.GatewayConfiguration
 import iso8583studio.composeapp.generated.resources.Res
 import iso8583studio.composeapp.generated.resources.app
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import java.awt.Desktop
 
 enum class DialogType {
     SUCCESS, ERROR, NONE
 }
-
 class ISO8583Studio {
+
+
     companion object {
         @JvmStatic
         fun main(args: Array<String>) = application {
+            var isDarkTheme by mutableStateOf(isSystemInDarkTheme())
 
             // Set the custom exception handler for the current thread
             Thread.currentThread().uncaughtExceptionHandler = ExceptionHandler()
@@ -52,6 +58,7 @@ class ISO8583Studio {
                     size = DpSize(width = 1800.dp, height = 800.dp),
                 )
             }
+            var showAboutDialog by remember { mutableStateOf(false) }
             val isoCoroutine = rememberCoroutineScope()
 
 
@@ -62,7 +69,7 @@ class ISO8583Studio {
                     state = windowState,
                     icon = painterResource(Res.drawable.app)
                 ) {
-                    var showAboutDialog by remember { mutableStateOf(false) }
+
                     MenuBar {
                         Menu(
                             text = "File"
@@ -148,9 +155,12 @@ class ISO8583Studio {
                                 }
 
                             }
-                            Item("About") {
-                                showAboutDialog = true
+                            if(!Desktop.isDesktopSupported()){
+                                Item("About") {
+                                    showAboutDialog = true
+                                }
                             }
+
                             Item("Quit") {
                                 exitApplication()
                             }
@@ -158,14 +168,14 @@ class ISO8583Studio {
 
 
                         Menu(text = "Generic") {
-                            Item(text = "Hashes") {  }
-                            Item(text = "Character Encoding") {  }
-                            Item(text = "BCD") {  }
-                            Item(text = "Check Digits") {  }
-                            Item(text = "Base64") {  }
-                            Item(text = "Base94") {  }
-                            Item(text = "RSA DER Public Key") {  }
-                            Item(text = "UUID") {  }
+                            Item(text = "Hashes") { navigationController.navigateTo(Screen.HashCalculator) }
+                            Item(text = "Character Encoding") { navigationController.navigateTo(Screen.CharacterEncoder)  }
+                            Item(text = "BCD") { navigationController.navigateTo(Screen.BcdCalculator) }
+                            Item(text = "Check Digits") { navigationController.navigateTo(Screen.CheckDigit) }
+                            Item(text = "Base64") { navigationController.navigateTo(Screen.Base64Calculator) }
+                            Item(text = "Base94") { navigationController.navigateTo(Screen.Base94Calculator) }
+                            Item(text = "Message Parser") { navigationController.navigateTo(Screen.MessageParser) }
+                            Item(text = "RSA DER Public Key") { navigationController.navigateTo(Screen.RsaDerPubKeyCalculator) }
                         }
 
                         Menu(text = "Payments") {
@@ -269,12 +279,12 @@ class ISO8583Studio {
                         }
 
                         Menu(text = "Cipher") {
-                            Item(text = "AES") {  }
-                            Item(text = "DES") {  }
-                            Item(text = "RSA") {  }
-                            Item(text = "Thales RSA") {  }
-                            Item(text = "ECDSA") {  }
-                            Item(text = "FPE") {  }
+                            Item(text = "AES") { navigationController.navigateTo(Screen.AesCalculator) }
+                            Item(text = "DES") { navigationController.navigateTo(Screen.DesCalculator) }
+                            Item(text = "RSA") { navigationController.navigateTo(Screen.RsaCalculator) }
+                            Item(text = "Thales RSA") { navigationController.navigateTo(Screen.ThalesRsaCalculator) }
+                            Item(text = "ECDSA") { navigationController.navigateTo(Screen.EcdsaCalculator) }
+                            Item(text = "FPE") { navigationController.navigateTo(Screen.FpeCalculator) }
                         }
 
                         Menu(text = "Keys") {

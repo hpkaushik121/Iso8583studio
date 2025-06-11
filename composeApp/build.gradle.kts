@@ -115,7 +115,8 @@ compose.desktop {
                 "-Dsun.java2d.opengl=false",
                 "-Djava.awt.headless=false",
                 "-Dprism.verbose=true",
-                "-Djavafx.verbose=true"
+                "-Djavafx.verbose=true",
+                "-Dapple.awt.application.appearance=system"
             ))
 
 

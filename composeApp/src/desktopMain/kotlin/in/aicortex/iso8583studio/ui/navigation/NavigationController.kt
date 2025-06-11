@@ -183,32 +183,4 @@ class NavigationController {
         _state.value.save()
     }
 
-    // Key management methods
-//    fun updateKeys(keys: List<SecurityKey>) {
-//        _state.update { it.copy(keysList = keys) }
-//    }
-//
-//    fun addKey(key: SecurityKey) {
-//        _state.update { it.copy(keysList = it.keysList + key) }
-//    }
-//
-//    fun deleteKey(index: Int) {
-//        if (index >= 0 && index < _state.value.keysList.size) {
-//            _state.update {
-//                val newList = it.keysList.toMutableList().apply {
-//                    removeAt(index)
-//                }
-//                it.copy(keysList = newList)
-//            }
-//        }
-//    }
-
-    // Monitor and Host Simulator navigation
-    fun openMonitor() {
-        navigateTo(Screen.Monitor)
-    }
-
-    fun openHostSimulator() {
-        navigateTo(Screen.HostSimulator)
-    }
 }
