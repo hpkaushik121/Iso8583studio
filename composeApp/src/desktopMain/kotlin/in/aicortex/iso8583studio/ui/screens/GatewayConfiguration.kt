@@ -2,8 +2,6 @@ package `in`.aicortex.iso8583studio.ui.screens
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.awt.ComposeWindow
-import `in`.aicortex.iso8583studio.data.BitAttribute
-import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.ui.navigation.GatewayConfigurationState
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.navigation.Screen
@@ -42,10 +40,11 @@ import `in`.aicortex.iso8583studio.ui.screens.cipher.RsaCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.rsader.RsaDerKeyScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.ThalesRsaScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.EcdsaCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.keys.DeaKeysScreen
 import `in`.aicortex.iso8583studio.ui.screens.fpe.FpeCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.MessageParserScreen
-import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorTabs
-import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.UnsolicitedMessageTab
+import `in`.aicortex.iso8583studio.ui.screens.keys.FuturexKeysScreen
+import `in`.aicortex.iso8583studio.ui.screens.keys.KeyshareGeneratorScreen
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -211,6 +210,9 @@ fun GatewayConfiguration(
         Screen.ThalesRsaCalculator -> ThalesRsaScreen(window = window) { navigationController.goBack() }
         Screen.EcdsaCalculator -> EcdsaCalculatorScreen(window = window) { navigationController.goBack() }
         Screen.FpeCalculator -> FpeCalculatorScreen (window = window) { navigationController.goBack() }
+        Screen.DeaKeyCalculator -> DeaKeysScreen (window = window) { navigationController.goBack() }
+        Screen.KeyshareGenerator -> KeyshareGeneratorScreen (window = window) { navigationController.goBack() }
+        Screen.FuturexKeyCalculator -> FuturexKeysScreen(window = window) { navigationController.goBack() }
     }
 }
 
@@ -230,7 +232,7 @@ private fun selectTab(
                 navigationController.deleteCurrentConfig()
             }
         },
-        onSaveAllConfigs = { navigationController.saveAllConfigs() },
+        onSaveAllConfigs = { scope.launch { navigationController.saveAllConfigs() } },
         onOpenHostSimulator = { navigationController.navigateTo(Screen.HostSimulator) },
         onTabSelected = { navigationController.selectTab(it) },
         content = content

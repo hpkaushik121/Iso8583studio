@@ -288,10 +288,10 @@ class ISO8583Studio {
                         }
 
                         Menu(text = "Keys") {
-                            Item("Keys DEA") {  }
-                            Item("Keyshare Generator") {  }
+                            Item("Keys DEA") { navigationController.navigateTo(Screen.DeaKeyCalculator) }
+                            Item("Keyshare Generator") { navigationController.navigateTo(Screen.KeyshareGenerator) }
                             Menu("Keys HSM") {
-                                Item("Futurex") {  }
+                                Item("Futurex") { navigationController.navigateTo(Screen.FuturexKeyCalculator) }
                                 Item("Atalla") {  }
                                 Item("SafeNet") {  }
                                 Item("Thales") {  }

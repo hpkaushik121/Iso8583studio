@@ -178,8 +178,8 @@ class NavigationController {
         }
     }
 
-    fun saveAllConfigs() {
-        // In a real app, this would save to disk/database
+    suspend fun saveAllConfigs() {
+        stopAndClearAllServices()
         _state.value.save()
     }
 

@@ -41,4 +41,7 @@ sealed class Screen {
     object ThalesRsaCalculator : Screen()
     object EcdsaCalculator : Screen()
     object FpeCalculator : Screen()
+    object DeaKeyCalculator : Screen()
+    object KeyshareGenerator : Screen()
+    object FuturexKeyCalculator : Screen()
 }
