@@ -88,7 +88,7 @@ object HashLogManager {
 }
 
 @Composable
-fun HashCalculatorScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun HashCalculatorScreen( onBack: () -> Unit) {
     Scaffold(
         topBar = { AppBarWithBack(title = "Hash Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background

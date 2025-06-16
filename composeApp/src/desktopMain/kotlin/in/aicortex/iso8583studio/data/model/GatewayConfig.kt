@@ -1,11 +1,14 @@
 package `in`.aicortex.iso8583studio.data.model
 
 import androidx.compose.runtime.key
+import `in`.aicortex.iso8583studio.StudioVersion
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.BitTemplate
+import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
 import `in`.aicortex.iso8583studio.domain.utils.MtiMapping
 import `in`.aicortex.iso8583studio.domain.utils.TPDUMapping
+import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable
@@ -22,8 +25,8 @@ data class Something(
  */
 @Serializable
 data class GatewayConfig(
-    var id: Int = 0,
-    var name: String,
+    override var id: String,
+    override var name: String,
     var cipherType: CipherType = CipherType.DES,
     var serverPort: Int = 0,
     var destinationPort: Int = 0,
@@ -41,7 +44,7 @@ data class GatewayConfig(
     var privateKey: ByteArray? = byteArrayOf(),
     var iv: ByteArray? = byteArrayOf(),
     var checkSignature: SignatureChecking = SignatureChecking.NONE,
-    var description: String = "",
+    override var description: String = "",
     var createDate: Long = System.currentTimeMillis(),
     var createBy: String = "",
     var clientID: String = "",
@@ -116,8 +119,13 @@ data class GatewayConfig(
     var customizeMessageDest: Boolean = false,
     var ignoreRequestHeaderDest: Int = 5,
     var fixedResponseHeaderDest: ByteArray? = null,
-    var messageLengthTypeDest: MessageLengthType = MessageLengthType.BCD
-) {
+    var messageLengthTypeDest: MessageLengthType = MessageLengthType.BCD,
+    override val simulatorType: SimulatorType = SimulatorType.HOST,
+    override val enabled: Boolean = true,
+    override val createdDate: Long  = System.currentTimeMillis(),
+    override val modifiedDate: Long = System.currentTimeMillis(),
+    override val version: String = StudioVersion
+): SimulatorConfig {
 
 
     fun getSimulatedTransaction(isFirst: Boolean = true): List<Transaction> {
@@ -428,7 +436,7 @@ data class GatewayConfig(
     }
 
     override fun hashCode(): Int {
-        var result = id
+        var result = id.hashCode()
         result = 31 * result + serverPort
         result = 31 * result + destinationPort
         result = 31 * result + maxLogSizeInMB

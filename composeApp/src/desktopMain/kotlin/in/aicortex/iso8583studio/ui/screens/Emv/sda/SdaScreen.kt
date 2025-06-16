@@ -132,7 +132,7 @@ object SdaLogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun SdaScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }

@@ -107,7 +107,7 @@ private object FpeLogManager {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun FpeCalculatorScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun FpeCalculatorScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = FpeTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

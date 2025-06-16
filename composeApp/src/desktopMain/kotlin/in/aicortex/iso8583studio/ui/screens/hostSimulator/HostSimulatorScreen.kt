@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -44,6 +45,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
@@ -80,19 +82,21 @@ fun HostSimulatorScreen(
     onSaveClick: () -> Unit,
     onError: ResultDialogInterface? = null,
 ) {
-    var gw: GatewayServiceImpl? = navigationController.getManagedGatewayService(
-        window,
-        onError = onError
-    )
+    var gw: GatewayServiceImpl? = null
     val coroutineScope = rememberCoroutineScope()
+    DisposableEffect(LocalLifecycleOwner.current) {
+        onDispose {
+            coroutineScope.launch {
+                gw?.stop()
+            }
+        }
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
                 title = "Host Simulator - ${config?.name ?: "Unknown"}",
                 onBackClick = {
-                    coroutineScope.launch {
-                        gw?.stop()
-                    }
+
                     onBack()
                 },
                 actions = {
@@ -104,7 +108,12 @@ fun HostSimulatorScreen(
         },
         backgroundColor = MaterialTheme.colors.background
     ) { paddingValues ->
-        if (gw != null) {
+        if (config != null) {
+            gw = GatewayServiceImpl(config)
+            gw.composeWindow = window
+            if (onError != null) {
+                gw.setShowErrorListener(onError)
+            }
             HostSimulator(
                 gw = gw,
                 onSaveClick = onSaveClick,

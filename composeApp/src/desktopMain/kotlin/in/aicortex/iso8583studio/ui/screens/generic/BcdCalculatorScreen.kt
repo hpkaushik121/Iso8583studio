@@ -126,7 +126,7 @@ enum class BcdTabs(val title: String, val icon: ImageVector) {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun BcdConverterScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun BcdConverterScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = BcdTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

@@ -108,7 +108,7 @@ object CharacterEncodingService {
 }
 
 @Composable
-fun CharacterEncodingScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun CharacterEncodingScreen( onBack: () -> Unit) {
     Scaffold(
         topBar = { AppBarWithBack(title = "Character Encoding Converter", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background

@@ -23,6 +23,7 @@ import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.WarningYellow
+import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 
 /**
@@ -30,7 +31,7 @@ import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
  */
 @Composable
 fun MonitorScreen(
-    config: GatewayConfig?,
+    appState: UnifiedSimulatorState,
     onBack: () -> Unit
 ) {
     // Mock data for demonstration purposes
@@ -92,7 +93,7 @@ fun MonitorScreen(
     Scaffold(
         topBar = {
             AppBarWithBack(
-                title = "Monitor - ${config?.name ?: "Unknown"}",
+                title = "Monitor - ${appState.currentConfig?.name ?: "Unknown"}",
                 onBackClick = onBack,
                 actions = {
                     IconButton(onClick = { /* Clear logs */ }) {

@@ -136,7 +136,7 @@ object DdaLogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DdaScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }

@@ -129,7 +129,7 @@ object VsdcLogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun VsdcCryptoScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }

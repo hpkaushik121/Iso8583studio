@@ -110,7 +110,7 @@ object IccDnLogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun IccDynamicNumberScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     Scaffold(

@@ -127,7 +127,7 @@ private object DeaKeysCryptoService {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun DeaKeysScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun DeaKeysScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = DeaKeysTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

@@ -129,7 +129,7 @@ object MastercardLogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MastercardCryptoScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }

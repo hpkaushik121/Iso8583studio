@@ -109,7 +109,7 @@ object VisaLogManager {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun VisaSecureMessagingScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun VisaSecureMessagingScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = VisaSecureMessagingTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

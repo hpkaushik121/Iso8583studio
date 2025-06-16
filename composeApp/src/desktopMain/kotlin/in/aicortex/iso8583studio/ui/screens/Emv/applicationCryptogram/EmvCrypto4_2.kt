@@ -149,7 +149,7 @@ object Emv42LogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun EmvCrypto4_2(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }

@@ -122,7 +122,7 @@ private enum class AesTabs(val title: String, val icon: ImageVector) {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun AesCalculatorScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun AesCalculatorScreen( onBack: () -> Unit) {
     Scaffold(
         topBar = { AppBarWithBack(title = "AES Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background

@@ -117,7 +117,7 @@ private object ThalesRsaCryptoService {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun ThalesRsaScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun ThalesRsaScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = ThalesRsaTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

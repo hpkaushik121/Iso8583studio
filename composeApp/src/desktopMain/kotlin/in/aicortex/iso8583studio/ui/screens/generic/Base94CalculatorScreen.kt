@@ -130,7 +130,7 @@ private enum class Base94Tabs(val title: String, val icon: ImageVector) {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun Base94EncoderDecoderScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun Base94EncoderDecoderScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = Base94Tabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

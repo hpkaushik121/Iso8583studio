@@ -112,7 +112,7 @@ object SecureMessagingLogManager {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun MastercardSecureMessagingScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun MastercardSecureMessagingScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = SecureMessagingTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

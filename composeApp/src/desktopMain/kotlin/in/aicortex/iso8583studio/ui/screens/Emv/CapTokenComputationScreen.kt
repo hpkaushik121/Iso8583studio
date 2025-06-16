@@ -99,7 +99,7 @@ object CapLogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun CapTokenComputationScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     Scaffold(

@@ -101,7 +101,7 @@ object TagDictionaryLogManager {
 // --- Main Screen ---
 @Composable
 fun EmvTagDictionaryScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     Scaffold(

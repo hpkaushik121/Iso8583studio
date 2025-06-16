@@ -110,7 +110,7 @@ object VisaHceLogManager {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun VisaHceCryptoScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun VisaHceCryptoScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = VisaHceCryptoTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

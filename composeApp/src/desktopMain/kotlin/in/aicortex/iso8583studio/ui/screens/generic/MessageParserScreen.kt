@@ -24,24 +24,10 @@ import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.UnsolicitedMessageTa
 
 @Composable
 fun MessageParserScreen(
-    window: ComposeWindow,
     navigationController: NavigationController,
     onError: ResultDialogInterface,
     onBack: () -> Unit
 ) {
-    var selectedField = remember { mutableStateOf<BitAttribute?>(null) }
-    var selectedFieldIndex = remember { mutableStateOf<Int?>(null) }
-    var showBitmapAnalysis = remember { mutableStateOf(false) }
-    var showMessageParser = remember { mutableStateOf(true) }
-    var isFirst = remember {
-        mutableStateOf(true)
-    }
-    var animationTrigger = remember { mutableStateOf(0) }
-    var rawMessage = remember { mutableStateOf("") }
-    var parseError = remember { mutableStateOf<String?>(null) }
-    var currentFields = remember { mutableStateOf<Array<BitAttribute>?>(null) }
-    var currentBitmap = remember { mutableStateOf<ByteArray?>(null) }
-    var searchQuery = remember { mutableStateOf("") }
     Scaffold(
         topBar = { AppBarWithBack(title = "Message Parser", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -50,25 +36,7 @@ fun MessageParserScreen(
             modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            navigationController.getManagedGatewayService(
-                window,
-                onError = onError
-            )?.let {
-                UnsolicitedMessageTab(
-                    gw = it,
-                    selectedField = selectedField,
-                    selectedFieldIndex = selectedFieldIndex,
-                    showBitmapAnalysis = showBitmapAnalysis,
-                    showMessageParser = showMessageParser,
-                    isFirst = isFirst,
-                    animationTrigger = animationTrigger,
-                    rawMessage = rawMessage,
-                    parseError = parseError,
-                    currentFields = currentFields,
-                    currentBitmap = currentBitmap,
-                    searchQuery = searchQuery
-                )
-            }
+
         }
     }
 }

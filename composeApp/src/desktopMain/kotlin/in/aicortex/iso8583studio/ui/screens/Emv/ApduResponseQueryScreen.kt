@@ -136,7 +136,7 @@ object ApduLogManager {
 // --- MAIN SCREEN ---
 @Composable
 fun ApduResponseQueryScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     Scaffold(

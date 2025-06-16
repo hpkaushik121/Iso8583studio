@@ -140,7 +140,7 @@ private object KeyshareCryptoService {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun KeyshareGeneratorScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun KeyshareGeneratorScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = KeyshareTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

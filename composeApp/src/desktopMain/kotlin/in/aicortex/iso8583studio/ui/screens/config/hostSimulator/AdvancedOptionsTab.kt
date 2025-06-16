@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio.ui.screens.config
+package `in`.aicortex.iso8583studio.ui.screens.config.hostSimulator
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

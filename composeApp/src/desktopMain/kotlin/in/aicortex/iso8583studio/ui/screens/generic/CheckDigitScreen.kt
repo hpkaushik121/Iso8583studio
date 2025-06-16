@@ -118,7 +118,7 @@ object CheckDigitService {
 
 
 @Composable
-fun CheckDigitScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun CheckDigitScreen( onBack: () -> Unit) {
     Scaffold(
         topBar = { AppBarWithBack(title = "Check Digit Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background

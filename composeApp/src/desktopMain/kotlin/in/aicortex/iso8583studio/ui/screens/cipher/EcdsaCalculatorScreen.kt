@@ -113,7 +113,7 @@ private object EcdsaCryptoService {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun EcdsaCalculatorScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun EcdsaCalculatorScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = EcdsaTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

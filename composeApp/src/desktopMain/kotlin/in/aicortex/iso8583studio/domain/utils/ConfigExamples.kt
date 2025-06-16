@@ -2,6 +2,8 @@ package `in`.aicortex.iso8583studio.domain.utils
 
 import `in`.aicortex.iso8583studio.data.model.CodeFormat
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 // Usage Example with YAML Configuration
 object ConfigExamples {
@@ -154,9 +156,10 @@ fun demonstrateUsage() {
     println(String(hexOutput))
 }
 
+@OptIn(ExperimentalUuidApi::class)
 fun createDefaultGatewayConfig(): GatewayConfig {
     return GatewayConfig(
-        id = 1,
+        id = Uuid.random().toHexDashString(),
         name = "Test"
     )
 }

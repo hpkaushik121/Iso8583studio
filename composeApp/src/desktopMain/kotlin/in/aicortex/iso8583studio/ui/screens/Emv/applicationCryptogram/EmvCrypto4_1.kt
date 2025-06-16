@@ -377,7 +377,7 @@ object ValidationUtils {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun EmvCrypto4_1(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }

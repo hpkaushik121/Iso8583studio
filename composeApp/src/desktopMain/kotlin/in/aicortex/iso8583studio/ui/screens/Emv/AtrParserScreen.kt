@@ -78,7 +78,7 @@ object AtrParserLogManager {
 
 @Composable
 fun AtrParserScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     Scaffold(

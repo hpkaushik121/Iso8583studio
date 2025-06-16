@@ -106,7 +106,7 @@ private object DesCryptoService {
 }
 
 @Composable
-fun DesCalculatorScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun DesCalculatorScreen( onBack: () -> Unit) {
     Scaffold(
         topBar = { AppBarWithBack(title = "DES/3DES Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background

@@ -36,7 +36,6 @@ import `in`.aicortex.iso8583studio.domain.utils.EMVTag
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.screens.components.StatusBadge
-import `in`.aicortex.iso8583studio.ui.screens.config.GatewayTypeTab
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
 

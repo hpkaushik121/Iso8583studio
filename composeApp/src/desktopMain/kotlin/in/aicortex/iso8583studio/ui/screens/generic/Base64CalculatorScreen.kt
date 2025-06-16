@@ -127,7 +127,7 @@ enum class Base64Tabs(val title: String, val icon: ImageVector) {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun Base64EncoderDecoderScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun Base64EncoderDecoderScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = Base64Tabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

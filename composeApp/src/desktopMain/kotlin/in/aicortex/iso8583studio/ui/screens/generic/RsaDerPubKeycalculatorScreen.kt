@@ -109,7 +109,7 @@ private enum class RsaDerTabs(val title: String, val icon: ImageVector) {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun RsaDerKeyScreen(window: ComposeWindow? = null, onBack: () -> Unit) {
+fun RsaDerKeyScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = RsaDerTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]

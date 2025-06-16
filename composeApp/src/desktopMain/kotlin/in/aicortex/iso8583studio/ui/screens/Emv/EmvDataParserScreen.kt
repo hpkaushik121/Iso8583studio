@@ -82,7 +82,7 @@ object EmvParserLogManager {
 
 @Composable
 fun EmvDataParserScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     Scaffold(

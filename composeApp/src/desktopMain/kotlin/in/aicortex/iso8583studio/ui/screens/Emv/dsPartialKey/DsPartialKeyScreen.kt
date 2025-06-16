@@ -127,7 +127,7 @@ object DsLogManager {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DsPartialKeyScreen(
-    window: ComposeWindow? = null,
+    
     onBack: () -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }

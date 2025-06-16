@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import `in`.aicortex.iso8583studio.ui.SuccessGreen
 
 /**
  * Under Development Warning Composable for ISO8583Studio
@@ -71,6 +72,12 @@ enum class DevelopmentStatus(
         icon = Icons.Default.Engineering,
         color = Color(0xFF607D8B), // Blue Grey
         description = "This feature is temporarily unavailable for maintenance."
+    ),
+    STABLE(
+        title = "STABLE",
+        icon = Icons.Default.Check,
+        color = SuccessGreen,
+        description = "This feature is working in its full potential."
     )
 }
 

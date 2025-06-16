@@ -4,8 +4,383 @@ import RestAuthConfig
 import RestMessageFormat
 import RestRetryConfig
 import RestSslConfig
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.ui.graphics.vector.ImageVector
+import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import kotlinx.serialization.Serializable
-import java.nio.charset.Charset
+import androidx.compose.material.icons.filled.*
+import cafe.adriel.voyager.core.screen.Screen
+import `in`.aicortex.iso8583studio.ui.navigation.Destination
+
+enum class StudioTool(
+    val label: String,
+    val description: String,
+    val icon: ImageVector,
+    val isPopular: Boolean = false,
+    val isNew: Boolean = false,
+    val status: DevelopmentStatus = DevelopmentStatus.STABLE,
+    val screen: Screen,
+){
+    // SIMULATORS
+    HOST_SIMULATOR(
+        "Host Simulator",
+        "Payment host response simulation",
+        Icons.Default.Router,
+        isPopular = true,
+        screen = Destination.HostSimulatorConfig,
+    ),
+
+    HSM_SIMULATOR(
+        "HSM Simulator",
+        "Hardware Security Module simulation",
+        Icons.Default.Security,
+        status = DevelopmentStatus.BETA,
+        screen = Destination.HSMSimulatorConfig
+    ),
+    ECR_SIMULATOR(
+        "ECR Simulstor",
+        "Electronic Cash Register simulation",
+        Icons.Default.PointOfSale,
+        status = DevelopmentStatus.UNDER_DEVELOPMENT,
+        screen = Destination.POSTerminalConfig
+    ),
+
+
+    POS_TERMINAL(
+        "POS Terminal",
+        "Point of Sale terminal simulation",
+        Icons.Default.PhoneAndroid,
+        status = DevelopmentStatus.UNDER_DEVELOPMENT,
+        screen = Destination.POSTerminalConfig
+    ),
+
+    ATM_SIMULATOR(
+        "ATM Simulator",
+        "ATM transaction simulation",
+        Icons.Default.LocalAtm,
+        status = DevelopmentStatus.UNDER_DEVELOPMENT,
+        screen = Destination.ATMSimulatorConfig
+    ),
+
+    PAYMENT_SWITCH(
+        "Payment Switch",
+        "Transaction routing simulation",
+        Icons.Default.Hub,
+        status = DevelopmentStatus.COMING_SOON,
+        screen = Destination.PaymentSwitchConfig
+    ),
+
+    ACQUIRER_GATEWAY(
+        "Acquirer Gateway",
+        "Merchant processing simulation",
+        Icons.Default.AccountBalance,
+        status = DevelopmentStatus.COMING_SOON,
+        screen = Destination.AcquirerGatewayConfig
+
+    ),
+
+    ISSUER_SYSTEM(
+        "Issuer System",
+        "Card issuer simulation",
+        Icons.Default.CorporateFare,
+        status = DevelopmentStatus.COMING_SOON,
+        screen = Destination.IssuerSystemConfig
+    ),
+
+    // EMV TOOLS
+    APDU_SIMULATOR(
+        "APDU Simulator",
+        "Smart card APDU commands",
+        Icons.Default.CreditCard,
+        isPopular = true,
+        screen = Destination.ApduSimulatorConfig
+    ),
+
+    EMV_41_CRYPTO(
+        "EMV 4.1 Crypto",
+        "EMV 4.1 cryptogram validation",
+        Icons.Default.Lock,
+        screen = Destination.EMV4_1
+    ),
+
+    EMV_42_CRYPTO(
+        "EMV 4.2 Crypto",
+        "EMV 4.2 cryptogram validation",
+        Icons.Default.Lock,
+        screen = Destination.EMV4_2
+    ),
+
+    MASTERCARD_CRYPTO(
+        "MasterCard Crypto",
+        "MasterCard cryptography",
+        Icons.Default.Payment,
+        screen = Destination.EMVMasterCardCrypto
+    ),
+
+    VSDC_CRYPTO(
+        "VSDC Crypto",
+        "Visa Smart Debit/Credit",
+        Icons.Default.Payment,
+        screen = Destination.EMVVsdcCrypto
+    ),
+
+    SDA_VERIFICATION(
+        "SDA Verification",
+        "Static Data Authentication",
+        Icons.Default.VerifiedUser,
+        screen = Destination.SDA
+    ),
+
+    DDA_VERIFICATION(
+        "DDA Verification",
+        "Dynamic Data Authentication",
+        Icons.Default.VerifiedUser,
+        screen = Destination.DDA
+    ),
+
+    CAP_TOKEN(
+        "CAP Token",
+        "Chip Authentication Program",
+        Icons.Default.Token,
+        screen = Destination.CapTokenComputation
+    ),
+
+    HCE_VISA(
+        "HCE Visa",
+        "Host Card Emulation",
+        Icons.Default.Nfc,
+        isNew = true,
+        screen = Destination.HceVisa
+    ),
+
+    SECURE_MESSAGING(
+        "Secure Messaging",
+        "EMV secure messaging",
+        Icons.Default.Message,
+        screen = Destination.SecureMessagingMasterCard
+    ),
+
+    ATR_PARSER(
+        "ATR Parser",
+        "Answer To Reset parser",
+        Icons.Default.Code,
+        screen = Destination.AtrParser
+    ),
+
+    EMV_DATA_PARSER(
+        "EMV Data Parser",
+        "EMV data structure parser",
+        Icons.Default.DataObject,
+        screen = Destination.EmvDataParser
+    ),
+
+    EMV_TAG_DICTIONARY(
+        "EMV Tag Dictionary",
+        "EMV tag reference",
+        Icons.Default.Book,
+        screen = Destination.EmvTagDictionary
+    ),
+
+    // CRYPTOGRAPHY TOOLS
+    AES_CALCULATOR(
+        "AES Calculator",
+        "AES encryption/decryption",
+        Icons.Default.Lock,
+        isPopular = true,
+        screen = Destination.AesCalculator
+    ),
+
+    DES_CALCULATOR(
+        "DES Calculator",
+        "DES/3DES operations",
+        Icons.Default.Lock,
+        screen = Destination.DesCalculator
+    ),
+
+    RSA_CALCULATOR(
+        "RSA Calculator",
+        "RSA public key operations",
+        Icons.Default.Key,
+        screen = Destination.RsaCalculator
+    ),
+
+    ECDSA_CALCULATOR(
+        "ECDSA Calculator",
+        "Elliptic curve cryptography",
+        Icons.Default.Timeline,
+        screen = Destination.EcdsaCalculator
+    ),
+
+    HASH_CALCULATOR(
+        "Hash Calculator",
+        "MD5, SHA-1, SHA-256",
+        Icons.Default.Tag,
+        isPopular = true,
+        screen = Destination.HashCalculator
+    ),
+
+    THALES_RSA(
+        "Thales RSA",
+        "Thales HSM operations",
+        Icons.Default.Security,
+        screen = Destination.ThalesRsaCalculator
+    ),
+
+    FPE_CALCULATOR(
+        "FPE Calculator",
+        "Format Preserving Encryption",
+        Icons.Default.FormatPaint,
+        isNew = true,
+        screen = Destination.FpeCalculator
+    ),
+
+    // KEY MANAGEMENT TOOLS
+    DEA_KEYS(
+        "DEA Keys",
+        "Data Encryption Algorithm",
+        Icons.Default.VpnKey,
+        screen = Destination.DeaKeyCalculator
+    ),
+
+    KEYSHARE_GENERATOR(
+        "Keyshare Generator",
+        "Key component generation",
+        Icons.Default.Share,
+        screen = Destination.KeyshareGenerator
+    ),
+
+    THALES_KEYS(
+        "Thales Keys",
+        "Thales HSM operations",
+        Icons.Default.Security,
+        screen = Destination.ThalesKeyCalculator
+    ),
+
+    FUTUREX_KEYS(
+        "Futurex Keys",
+        "Futurex HSM operations",
+        Icons.Default.Security,
+        screen = Destination.FuturexKeyCalculator
+    ),
+
+    ATALLA_KEYS(
+        "Atalla Keys",
+        "Atalla HSM operations",
+        Icons.Default.Security,
+        screen = Destination.AtallaKeyCalculator
+    ),
+
+    SAFENET_KEYS(
+        "SafeNet Keys",
+        "SafeNet HSM operations",
+        Icons.Default.Security,
+        screen = Destination.SafeNetKeyCalculator
+    ),
+
+    THALES_KEY_BLOCKS(
+        "Thales Key Blocks",
+        "Thales key block format",
+        Icons.Default.ViewModule,
+        screen = Destination.ThalesKeyBlockCalculator
+    ),
+
+    TR31_KEY_BLOCKS(
+        "TR-31 Key Blocks",
+        "ANSI TR-31 key blocks",
+        Icons.Default.ViewModule,
+        screen = Destination.TR31KeyBlockCalculator
+    ),
+
+    SSL_CERTIFICATE(
+        "SSL Certificate",
+        "SSL/TLS utilities",
+        Icons.Default.Note,
+        screen = Destination.SslCertificate
+    ),
+
+    RSA_DER_KEYS(
+        "RSA DER Keys",
+        "RSA DER format",
+        Icons.Default.Code,
+        screen = Destination.RsaDerPubKeyCalculator
+    ),
+
+    // ISO8583 UTILITIES
+    CVV_CALCULATOR(
+        "CVV Calculator",
+        "Card Verification Value",
+        Icons.Default.CreditCard,
+        isPopular = true,
+        screen = Destination.CvvCalculator
+    ),
+
+    AMEX_CSC(
+        "AMEX CSC",
+        "American Express CSC",
+        Icons.Default.CreditCard,
+        screen = Destination.AmexCscCalculator
+    ),
+
+    AS2805_CALCULATOR(
+        "AS2805 Calculator",
+        "Australian payment standard",
+        Icons.Default.LocationOn,
+        screen = Destination.As2805Calculator
+    ),
+
+    BITMAP_CALCULATOR(
+        "Bitmap Calculator",
+        "ISO8583 bitmap utilities",
+        Icons.Default.GridOn,
+        screen = Destination.BitmapCalculator
+    ),
+
+    MESSAGE_PARSER(
+        "Message Parser",
+        "ISO8583 message parser",
+        Icons.Default.DataObject,
+        screen = Destination.MessageParser
+    ),
+
+    // CONVERTERS AND UTILITIES
+    BASE64_ENCODER(
+        "Base64 Encoder",
+        "Base64 encoding/decoding",
+        Icons.Default.Code,
+        isPopular = true,
+        screen = Destination.Base64Calculator
+    ),
+
+    BASE94_ENCODER(
+        "Base94 Encoder",
+        "Base94 encoding/decoding",
+        Icons.Default.Code,
+        screen = Destination.Base94Calculator
+    ),
+
+    BCD_CONVERTER(
+        "BCD Converter",
+        "Binary Coded Decimal",
+        Icons.Default.Numbers,
+        isPopular = true,
+        screen = Destination.BcdCalculator
+    ),
+
+    CHARACTER_ENCODER(
+        "Character Encoder",
+        "Character encoding utilities",
+        Icons.Default.TextFields,
+        screen = Destination.CharacterEncoder
+    ),
+
+    CHECK_DIGIT(
+        "Check Digit",
+        "Luhn and other algorithms",
+        Icons.Default.CheckCircle,
+        isPopular = true,
+        screen = Destination.CheckDigit
+    );}
 
 
 /**

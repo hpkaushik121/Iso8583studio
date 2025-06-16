@@ -70,11 +70,11 @@ enum class LogCategory(val displayName: String, val icon: ImageVector) {
  * Enhanced Log Entry with additional metadata
  */
 data class LogEntry(
-    val id: String = generateLogId(),
     val timestamp: String,
     var type: LogType,
     var message: String,
     var details: String? = null,
+    val id: String = generateLogId(),
     var source: String? = null,
     var sessionId: String? = null,
     var correlationId: String? = null,
