@@ -52,4 +52,8 @@ data class FieldValidation(
     val state: ValidationState,
     val message: String = "",
     val helperText: String = ""
-)
+){
+    fun isValid(): Boolean{
+        return true
+    }
+}

@@ -1,6 +1,5 @@
 package `in`.aicortex.iso8583studio
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -206,30 +205,29 @@ class ISO8583Studio {
                                 Menu("Card Validation") {
                                     Item("CVVs") { navigationController.navigateTo(Destination.CvvCalculator) }
                                     Item("AMEX CSCs") { navigationController.navigateTo(Destination.AmexCscCalculator) }
-                                    Item("MasterCard dynamic CVC3") { }
+                                    Item("MasterCard dynamic CVC3") { navigationController.navigateTo(Destination.Cvc3MasterCardScreen)  }
                                 }
                                 Menu("DUKPT") {
-                                    Item("ISO 9797") { }
-                                    Item("AES") { }
+                                    Item("ISO 9797") { navigationController.navigateTo(Destination.DukptIso9797) }
+                                    Item("AES") { navigationController.navigateTo(Destination.DukptIsoAES) }
                                 }
                                 Menu("MAC Algorithms") {
-                                    Item("ISO/IEC 9797-1") { }
-                                    Item("ANSI X9.9 & X9.19") { }
-                                    Item("AS2805 4.1") { }
-                                    Item("TDES CBC-MAC") { }
-                                    Item("HMAC") { }
-                                    Item("CMAC") { }
-                                    Item("Retail") { }
+                                    Item("ISO/IEC 9797-1") { navigationController.navigateTo(Destination.Isoies97971mac) }
+                                    Item("ANSI X9.9 & X9.19") { navigationController.navigateTo(Destination.AnsiMac) }
+                                    Item("AS2805 4.1") { navigationController.navigateTo(Destination.AS2805MacScreen)  }
+                                    Item("TDES CBC-MAC") { navigationController.navigateTo(Destination.TDESCBCMACScreen) }
+                                    Item("HMAC") { navigationController.navigateTo(Destination.HMACScreen) }
+                                    Item("CMAC") { navigationController.navigateTo(Destination.CMACScreen) }
+                                    Item("Retail") { navigationController.navigateTo(Destination.RetailMACScreen) }
                                 }
-                                Item("MDC Hash") { }
+                                Item("MDC Hash") { navigationController.navigateTo(Destination.MdcHashCalculatorScreen) }
                                 Menu("PIN Blocks") {
-                                    Item("General") { }
-                                    Item("AES") { }
+                                    Item("General") { navigationController.navigateTo(Destination.PinBlockGeneralScreen) }
+                                    Item("AES") { navigationController.navigateTo(Destination.AESPinBlockScreen) }
                                 }
-                                Item("PIN Offset") { }
-                                Item("PIN PVV") { }
-                                Item("Visa Certificates") { }
-                                Item("ZKA") { }
+                                Item("PIN Offset") { navigationController.navigateTo(Destination.PinOffsetScreen)  }
+                                Item("PIN PVV") { navigationController.navigateTo(Destination.PinPvvScreen) }
+                                Item("ZKA") { navigationController.navigateTo(Destination.ZKAScreen) }
                             }
 
                             Menu(text = "EMV") {
@@ -337,12 +335,12 @@ class ISO8583Studio {
                                 }
                             }
 
-                            Menu("Development") {
-                                Item("Secure Padding") { }
-                                Item("String Builder") { }
-                                Item("Trace Parser") { }
-                                Item("Bit Shift") { }
-                            }
+//                            Menu("Development") {
+//                                Item("Secure Padding") { }
+//                                Item("String Builder") { }
+//                                Item("Trace Parser") { }
+//                                Item("Bit Shift") { }
+//                            }
                         }
                         if (showAboutDialog) {
                             AboutDialog(onCloseRequest = {

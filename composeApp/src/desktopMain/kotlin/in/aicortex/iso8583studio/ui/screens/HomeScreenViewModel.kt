@@ -17,18 +17,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import cafe.adriel.voyager.core.model.ScreenModel
+import `in`.aicortex.iso8583studio.data.model.StudioTool
+import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.landing.ToolSuite
 
 class HomeScreenViewModel : ScreenModel {
     var searchQuery = mutableStateOf("")
     var selectedCategory = mutableStateOf<ToolSuite?>(null)
     var isLoaded = mutableStateOf(false)
-    val tools = getAllEnhancedTools()
+    val tools = StudioTool.values()
     var overviewVisibility = mutableStateOf(false)
     var displayQuoteText =  mutableStateOf("")
     val popularTools = tools.filter { it.isPopular }
     val newTools =
-        tools.filter { it.status == ToolStatus.NEW || it.status == ToolStatus.BETA || it.status == ToolStatus.EXPERIMENTAL }
+        tools.filter { it.status == DevelopmentStatus.COMING_SOON || it.status == DevelopmentStatus.UNDER_DEVELOPMENT || it.status == DevelopmentStatus.BETA || it.status == DevelopmentStatus.EXPERIMENTAL }
 
     // Data sources and models from the original code (unchanged)
     val paymentQuotes = listOf(
@@ -47,81 +49,5 @@ class HomeScreenViewModel : ScreenModel {
         "⚡ \"Real-time payments demand real-time testing capabilities.\" - System Architecture",
         "⏱️ \"Every millisecond matters in high-frequency payment processing.\" - Performance Engineering",
         "🔐 \"Payment tokenization: Hiding sensitive data in plain sight.\" - Data Protection"
-    )
-}
-
-
-data class EnhancedStudioTool(
-    val name: String,
-    val description: String,
-    val icon: ImageVector,
-    val isPopular: Boolean = false,
-    val category: String = "General",
-    val usageCount: Int = 0,
-    val status: ToolStatus = ToolStatus.STABLE
-)
-
-enum class ToolStatus(val color: Color, val label: String) {
-    STABLE(Color(0xFF4CAF50), "Stable"),
-    BETA(Color(0xFFFF9800), "Beta"),
-    NEW(Color(0xFF2196F3), "New"),
-    EXPERIMENTAL(Color(0xFF9C27B0), "Experimental")
-}
-
-
-private fun getAllEnhancedTools(): List<EnhancedStudioTool> {
-    return listOf(
-        EnhancedStudioTool(
-            "Host Simulator", "Payment host response simulation", Icons.Default.Router,
-            isPopular = true, category = "Simulation", usageCount = 1247, status = ToolStatus.STABLE
-        ),
-        EnhancedStudioTool(
-            "AES Calculator",
-            "AES encryption/decryption",
-            Icons.Default.Lock,
-            isPopular = true,
-            category = "Cryptography",
-            usageCount = 2156,
-            status = ToolStatus.STABLE
-        ),
-        EnhancedStudioTool(
-            "CVV Calculator",
-            "Card Verification Value",
-            Icons.Default.CreditCard,
-            isPopular = true,
-            category = "Card Processing",
-            usageCount = 987,
-            status = ToolStatus.STABLE
-        ),
-        EnhancedStudioTool(
-            "Base64 Encoder", "Base64 encoding/decoding", Icons.Default.Code,
-            isPopular = false, category = "Encoding", usageCount = 1654, status = ToolStatus.STABLE
-        ),
-        EnhancedStudioTool(
-            "Hash Calculator",
-            "MD5, SHA-1, SHA-256",
-            Icons.Default.Tag,
-            isPopular = false,
-            category = "Cryptography",
-            usageCount = 1432,
-            status = ToolStatus.STABLE
-        ),
-        EnhancedStudioTool(
-            "APDU Simulator", "Smart card APDU commands", Icons.Default.Nfc,
-            isPopular = true, category = "Smart Cards", usageCount = 765, status = ToolStatus.NEW
-        ),
-        EnhancedStudioTool(
-            "HSM Commander", "Interact with Hardware Security Modules", Icons.Default.Security,
-            isPopular = false, category = "HSM", usageCount = 453, status = ToolStatus.BETA
-        ),
-        EnhancedStudioTool(
-            "PIN Block Tool",
-            "Calculate and verify PIN blocks",
-            Icons.Default.Password,
-            isPopular = true,
-            category = "Cryptography",
-            usageCount = 1890,
-            status = ToolStatus.EXPERIMENTAL
-        )
     )
 }

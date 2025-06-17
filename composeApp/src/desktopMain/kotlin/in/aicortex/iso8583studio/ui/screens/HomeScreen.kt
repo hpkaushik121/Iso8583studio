@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.data.model.StudioTool
 import `in`.aicortex.iso8583studio.ui.screens.HomeScreenViewModel
+import `in`.aicortex.iso8583studio.ui.screens.OverviewContent
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
 import kotlinx.coroutines.delay
@@ -113,9 +114,26 @@ enum class ToolSuite(
         tools = listOf(
             StudioTool.CVV_CALCULATOR,
             StudioTool.AMEX_CSC,
+            StudioTool.MESSAGE_PARSER,
             StudioTool.AS2805_CALCULATOR,
             StudioTool.BITMAP_CALCULATOR,
-            StudioTool.MESSAGE_PARSER
+            StudioTool.MASTERCARD_CSC,
+            StudioTool.DUKPT_ISO_9797,
+            StudioTool.DUKPT_ISO_AES,
+            StudioTool.ISO_IES_9797_1_MAC,
+            StudioTool.ANSI_MAC,
+            StudioTool.AS2805_MAC,
+            StudioTool.TDES_CBC_MAC,
+            StudioTool.HMAC_MAC,
+            StudioTool.CMAC_MAC,
+            StudioTool.RETAIL_MAC,
+            StudioTool.MDC_HASH,
+            StudioTool.PIN_BLOCK_GENERAL,
+            StudioTool.PIN_BLOCK_AES,
+            StudioTool.PIN_OFFSET_IBM,
+            StudioTool.PIN_PVV,
+            StudioTool.ZKA,
+
         )
     ),
 
@@ -246,7 +264,8 @@ fun HomeScreen(
                         )
                     } else {
                         // Show overview with stats and quote
-                        OverviewContent(viewModel)
+                        OverviewContent(viewModel,
+                            onToolSelected = onToolSelected)
                     }
                 }
             }

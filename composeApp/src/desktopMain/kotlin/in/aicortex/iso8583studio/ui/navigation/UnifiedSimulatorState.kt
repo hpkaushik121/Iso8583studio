@@ -33,6 +33,7 @@ enum class SimulatorType(val displayName: String, val description: String) {
     HSM("HSM Simulator", "Hardware Security Module Simulator"),
     APDU("APDU Simulator", "Smart Card APDU Command Simulator"),
     POS("POS Simulator", "Point of Sale Terminal Simulator"),
+    ECR("ECR Simulator", "Point of Sale Terminal Simulator"),
     ATM("ATM Simulator", "Automated Teller Machine Simulator"),
     CARD("Card Simulator", "Payment Card Simulator"),
     SWITCH("Switch Simulator", "Payment Network Switch Simulator"),

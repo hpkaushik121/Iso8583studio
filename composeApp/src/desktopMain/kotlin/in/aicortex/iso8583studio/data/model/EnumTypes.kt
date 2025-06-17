@@ -43,7 +43,7 @@ enum class StudioTool(
         "Electronic Cash Register simulation",
         Icons.Default.PointOfSale,
         status = DevelopmentStatus.UNDER_DEVELOPMENT,
-        screen = Destination.POSTerminalConfig
+        screen = Destination.EcrSimulatorConfigScreen
     ),
 
 
@@ -310,7 +310,7 @@ enum class StudioTool(
     CVV_CALCULATOR(
         "CVV Calculator",
         "Card Verification Value",
-        Icons.Default.CreditCard,
+        Icons.Default.Password,
         isPopular = true,
         screen = Destination.CvvCalculator
     ),
@@ -320,6 +320,102 @@ enum class StudioTool(
         "American Express CSC",
         Icons.Default.CreditCard,
         screen = Destination.AmexCscCalculator
+    ),
+    MASTERCARD_CSC(
+        "MasterCard CVC",
+        "Master Card CVC3",
+        Icons.Default.Style,
+        screen = Destination.Cvc3MasterCardScreen
+    ),
+    DUKPT_ISO_9797(
+        "DUKPT ISO 9797",
+        "Derived unique key per transaction (ISO 9797)",
+        Icons.Default.VpnKey,
+        screen = Destination.DukptIso9797
+    ),
+    DUKPT_ISO_AES(
+        "DUKPT ISO AES",
+        "Derived unique key per transaction (AES)",
+        Icons.Default.VpnKey,
+        screen = Destination.DukptIsoAES
+    ),
+    ISO_IES_9797_1_MAC(
+        "ISO/IEC 9797-1",
+        "MACs according to the ISO/IEC 9797-1 standard",
+        Icons.Default.Security,
+        screen = Destination.Isoies97971mac
+    ),
+    ANSI_MAC(
+        "ANSI X9.9 & X9.19",
+        "MACs according to the ISO/IEC 9797-1 standard",
+        Icons.Default.VerifiedUser,
+        screen = Destination.AnsiMac
+    ),
+    AS2805_MAC(
+        "AS2805.4.1 MAC Calculator",
+        "MACs according to the AS2805.4.1 standard",
+        Icons.Default.Verified,
+        screen = Destination.AS2805MacScreen
+    ),
+    TDES_CBC_MAC(
+        "TDES-CBC MAC Calculator",
+        "MACs according to the TDES-CBC standard",
+        Icons.Default.EnhancedEncryption,
+        screen = Destination.TDESCBCMACScreen
+    ),
+    HMAC_MAC(
+        "HMAC MAC Calculator",
+        "MACs according to the HMAC standard",
+        Icons.Default.Key,
+        screen = Destination.HMACScreen
+    ),
+    CMAC_MAC(
+        "CMAC MAC Calculator",
+        "MACs according to the CMAC standard",
+        Icons.Default.EnhancedEncryption,
+        screen = Destination.CMACScreen
+    ),
+    RETAIL_MAC(
+        "Retail MAC Calculator",
+        "MACs according to the Retail standard",
+        Icons.Default.ShoppingCart,
+        screen = Destination.RetailMACScreen
+    ),
+    MDC_HASH(
+        "MDC Hash Calculator",
+        "MDC (Modification Detection Code) Hash Calculator",
+        Icons.Default.Password,
+        screen = Destination.MdcHashCalculatorScreen
+    ),
+    PIN_BLOCK_GENERAL(
+        "PIN Block Calculator",
+        "Encoding and Decoding PIN Blocks",
+        Icons.Default.Pin,
+        screen = Destination.PinBlockGeneralScreen
+    ),
+    PIN_BLOCK_AES(
+        "PIN Block(AES) Calculator",
+        "Encoding and Decoding PIN Blocks using AES",
+        Icons.Default.Dialpad,
+        screen = Destination.AESPinBlockScreen
+    ),
+    PIN_OFFSET_IBM(
+        "PIN Offset (IBM 3624)",
+        "Generating and recovering PINs using the IBM 3624 PIN Offset method",
+        Icons.Default.Calculate,
+        screen = Destination.PinOffsetScreen
+    ),
+    PIN_PVV(
+        "PIN PVV Calculator",
+        "PIN PVV (PIN Verification Value) Calculator",
+        Icons.Default.Fingerprint,
+        screen = Destination.PinPvvScreen
+    ),
+    ZKA(
+        "ZKA",
+        "ZKA (Zone Key Administration) operations",
+        Icons.Default.VpnLock,
+        screen = Destination.ZKAScreen
     ),
 
     AS2805_CALCULATOR(

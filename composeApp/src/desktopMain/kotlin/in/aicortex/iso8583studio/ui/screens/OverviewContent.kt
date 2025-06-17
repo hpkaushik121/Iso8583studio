@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio.ui.screens.landing
+package `in`.aicortex.iso8583studio.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -27,16 +27,18 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.StudioVersion
-import `in`.aicortex.iso8583studio.ui.screens.EnhancedStudioTool
-import `in`.aicortex.iso8583studio.ui.screens.HomeScreenViewModel
+import `in`.aicortex.iso8583studio.data.model.StudioTool
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -47,7 +49,8 @@ import java.util.*
  * It uses a LazyVerticalGrid for a more dynamic and scalable layout.
  */
 @Composable
-fun OverviewContent(viewModel: HomeScreenViewModel) {
+fun OverviewContent(viewModel: HomeScreenViewModel,
+                    onToolSelected:(StudioTool) -> Unit) {
 
 
     LaunchedEffect(Unit) {
@@ -81,7 +84,7 @@ fun OverviewContent(viewModel: HomeScreenViewModel) {
         }
 
         items(viewModel.popularTools.size) { index ->
-            StudioToolCard(tool = viewModel.popularTools[index])
+            StudioToolCard(tool = viewModel.popularTools[index],onToolSelected = onToolSelected)
         }
 
         // Span the full width for the "Daily Wisdom" quote
@@ -95,7 +98,7 @@ fun OverviewContent(viewModel: HomeScreenViewModel) {
                 DashboardSectionTitle("🚀 What's New", "Check out the latest additions")
             }
             items(viewModel.newTools.size) { index ->
-                StudioToolCard(tool = viewModel.newTools[index])
+                StudioToolCard(tool = viewModel.newTools[index],onToolSelected = onToolSelected)
             }
         }
     }
@@ -219,7 +222,8 @@ private fun DashboardSectionTitle(title: String, subtitle: String) {
 }
 
 @Composable
-private fun StudioToolCard(tool: EnhancedStudioTool) {
+private fun StudioToolCard(tool: StudioTool,
+                           onToolSelected: (StudioTool) -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     var isScaled by remember { mutableStateOf(false) }
     val scale = animateFloatAsState(
@@ -230,7 +234,7 @@ private fun StudioToolCard(tool: EnhancedStudioTool) {
         ),
         label = "toolCardScale"
     ).value
-
+    val coroutineScope = rememberCoroutineScope()
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -239,7 +243,12 @@ private fun StudioToolCard(tool: EnhancedStudioTool) {
                 interactionSource = interactionSource,
                 indication = null
             ) {
-                isScaled = !isScaled // Example interaction
+                coroutineScope.launch {
+                    isScaled = true
+                    delay(50)
+                    isScaled = false
+                }
+                onToolSelected(tool)
             },
         elevation = 2.dp,
         shape = RoundedCornerShape(12.dp)
@@ -357,10 +366,10 @@ private fun DailyWisdomQuote(viewModel: HomeScreenViewModel) {
 private fun TypewriterText(
     viewModel: HomeScreenViewModel,
     text: String,
-    style: androidx.compose.ui.text.TextStyle,
+    style: TextStyle,
     color: Color,
     fontStyle: FontStyle,
-    lineHeight: androidx.compose.ui.unit.TextUnit
+    lineHeight: TextUnit
 ) {
     if(viewModel.displayQuoteText.value != text){
         LaunchedEffect(text) {

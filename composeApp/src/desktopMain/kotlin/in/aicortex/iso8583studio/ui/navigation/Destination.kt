@@ -32,19 +32,23 @@ import `in`.aicortex.iso8583studio.ui.screens.cipher.ThalesRsaScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.acquirerGateway.AcquiringGatewayConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.apduSimulator.ApduSimulatorConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.atmSimulator.AtmSimulatorConfigScreen
+import `in`.aicortex.iso8583studio.ui.screens.config.ecrSimulator.EcrSimulatorConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.hostSimulator.HostSimulatorConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.hsmSimulator.HsmSimulatorConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.issuerSystem.IssuerSystemConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.paymentSwitch.PaymentSwitchConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.posTerminal.PosTerminalConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.fpe.FpeCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.AESPinBlockScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.Base64EncoderDecoderScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.Base94EncoderDecoderScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.BcdConverterScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.CharacterEncodingScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.CheckDigitScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.dukpt.DukptIso9797Screen
 import `in`.aicortex.iso8583studio.ui.screens.generic.HashCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.MessageParserScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.PinBlockGeneralScreen
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.keys.DeaKeysScreen
 import `in`.aicortex.iso8583studio.ui.screens.keys.KeyshareGeneratorScreen
@@ -57,8 +61,21 @@ import `in`.aicortex.iso8583studio.ui.screens.landing.HomeScreen
 import `in`.aicortex.iso8583studio.ui.screens.monitor.MonitorScreen
 import `in`.aicortex.iso8583studio.ui.screens.payments.As2805CalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.payments.BitmapScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.MDCHashScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.PinOffsetScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.PinPvvScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.ZKAScreen
 import `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation.AmexCvvScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation.CVC3Screen
 import `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation.CvvCalculatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.dukpt.DUKPTAESScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.ANSIMACScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.AS2805MACScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.CMACScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.HMACScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.ISO9797Screen
+import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.RetailMACScreen
+import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.TDESCBCMACScreen
 import `in`.aicortex.iso8583studio.ui.screens.rsader.RsaDerKeyScreen
 import `in`.aicortex.iso8583studio.ui.screens.thaleskeys.ThalesKeysScreen
 import `in`.aicortex.iso8583studio.ui.screens.tr31keyblock.Tr31KeyBlockScreen
@@ -422,10 +439,119 @@ sealed class Destination : Screen {
         }
     }
 
+    object DukptIso9797 :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            DukptIso9797Screen { navigationController.goBack() }
+        }
+    }
+
+    object DukptIsoAES :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            DUKPTAESScreen { navigationController.goBack() }
+        }
+    }
+
+    object Isoies97971mac :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            ISO9797Screen { navigationController.goBack() }
+        }
+    }
+    object AnsiMac :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            ANSIMACScreen { navigationController.goBack() }
+        }
+    }
+    object AS2805MacScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            AS2805MACScreen { navigationController.goBack() }
+        }
+    }
+
+    object TDESCBCMACScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            TDESCBCMACScreen { navigationController.goBack() }
+        }
+    }
+
+    object HMACScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            HMACScreen { navigationController.goBack() }
+        }
+    }
+
+    object CMACScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            CMACScreen { navigationController.goBack() }
+        }
+    }
+
+    object RetailMACScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            RetailMACScreen { navigationController.goBack() }
+        }
+    }
+    object MdcHashCalculatorScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            MDCHashScreen { navigationController.goBack() }
+        }
+    }
+    object PinBlockGeneralScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            PinBlockGeneralScreen { navigationController.goBack() }
+        }
+    }
+
+    object AESPinBlockScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            AESPinBlockScreen { navigationController.goBack() }
+        }
+    }
+    object PinOffsetScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            PinOffsetScreen { navigationController.goBack() }
+        }
+    }
+    object PinPvvScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            PinPvvScreen { navigationController.goBack() }
+        }
+    }
+
+    object ZKAScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            ZKAScreen { navigationController.goBack() }
+        }
+    }
+
     object AmexCscCalculator :Screen{
         @Composable override fun Content() {
             val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
             AmexCvvScreen() { navigationController.goBack() }
+        }
+    }
+
+
+    object Cvc3MasterCardScreen : Screen {
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            CVC3Screen{
+                navigationController.goBack()
+            }
         }
     }
 
@@ -445,6 +571,15 @@ sealed class Destination : Screen {
         @Composable override fun Content() {
             val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
             PosTerminalConfigScreen(
+                navigationController = navigationController,
+                appState = appState.value
+            )
+        }
+    }
+    object EcrSimulatorConfigScreen :Screen{
+        @Composable override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            EcrSimulatorConfigScreen(
                 navigationController = navigationController,
                 appState = appState.value
             )
@@ -496,7 +631,6 @@ sealed class Destination : Screen {
                 appState = appState.value)
         }
     }
-
     object ATMSimulator :Screen{
         @Composable override fun Content() {
             // TODO: Implement ATMSimulator Screen
