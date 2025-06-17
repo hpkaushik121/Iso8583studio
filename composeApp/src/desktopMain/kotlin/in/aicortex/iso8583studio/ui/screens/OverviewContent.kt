@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.StudioVersion
 import `in`.aicortex.iso8583studio.data.model.StudioTool
+import `in`.aicortex.iso8583studio.ui.screens.landing.ToolSuite
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -168,8 +169,12 @@ private fun HeaderDashboard() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                MetricItem("47+", "Tools", Icons.Default.Build, Modifier.weight(1f))
-                MetricItem("8", "Simulators", Icons.Default.Router, Modifier.weight(1f))
+                MetricItem("${
+                    ToolSuite.values().sumOf {
+                        it.tools.size
+                    } - ToolSuite.CORE_SIMULATORS.tools.size
+                }+", "Tools", Icons.Default.Build, Modifier.weight(1f))
+                MetricItem("${ToolSuite.CORE_SIMULATORS.tools.size}", "Simulators", Icons.Default.Router, Modifier.weight(1f))
                 MetricItem("15+", "HSM Vendors", Icons.Default.Security, Modifier.weight(1f))
                 MetricItem("100%", "ISO Compliant", Icons.Default.Verified, Modifier.weight(1f))
             }

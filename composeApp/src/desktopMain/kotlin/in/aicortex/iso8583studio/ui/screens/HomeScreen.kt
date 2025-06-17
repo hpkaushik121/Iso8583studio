@@ -486,7 +486,9 @@ private fun FloatingSearchBar(
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
                 Text(
-                    "Search across all 47 tools and simulators...",
+                    "Search across all ${ToolSuite.values().sumOf {
+                        it.tools.size
+                    }} tools and simulators...",
                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                 )
             },
