@@ -10,6 +10,7 @@ import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.data.model.ConnectionStatus
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.domain.ImportResult
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -238,10 +239,26 @@ data class POSSimulatorConfig(
     val merchantid: Int,
     val acquirerid: Int,
     val supportedCards: List<CardType> = emptyList(),
+    val simulatedTransactionsToDest: List<Transaction> = emptyList(),
     val paymentMethods: List<PaymentMethod> = emptyList(),
-    val emvConfig: EMVConfig,
-    val contactlessConfig: ContactlessConfig,
-    val pinpadConfig: PinpadConfig
+    val emvConfig: EMVConfig = EMVConfig(),
+    val contactlessConfig: ContactlessConfig = ContactlessConfig(),
+    val pinpadConfig: PinpadConfig = PinpadConfig(),
+    var profileName: String = "New POS Profile",
+    // Hardware
+    var pinEntryOptions: String = "Integrated PIN pad",
+    var cardReaderTypes: String = "Triple-head reader (MSR + chip + contactless)",
+    var displayConfig: String = "Dual displays (merchant + customer)",
+    var receiptPrinting: String = "Thermal receipt printer",
+    // Transaction
+    var terminalCapabilities: Set<String> = setOf("Offline transaction processing", "Void and refund processing"),
+    var transactionLimits: String = "Standard Retail Limits",
+    // Security
+    var encryptionSecurity: Set<String> = setOf("End-to-end encryption (E2EE)", "PCI DSS compliance level"),
+    var authMethods: String = "PIN verification",
+    // Network & Software
+    var connectivity: String = "Ethernet/LAN connection",
+    var osType: String = "Proprietary OS"
 ) : SimulatorConfig
 
 // Supporting data classes for HSM
