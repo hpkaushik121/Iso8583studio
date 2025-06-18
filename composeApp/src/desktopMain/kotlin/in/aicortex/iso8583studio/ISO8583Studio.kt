@@ -160,10 +160,8 @@ class ISO8583Studio {
                                     }
 
                                 }
-                                if (!Desktop.isDesktopSupported()) {
-                                    Item("About") {
-                                        showAboutDialog = true
-                                    }
+                                Item("About") {
+                                    showAboutDialog = true
                                 }
 
                                 Item("Quit") {
