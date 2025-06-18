@@ -7,6 +7,9 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.ui.Studio.appState
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.APDUSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import `in`.aicortex.iso8583studio.ui.screens.Emv.AtrParserScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.CapTokenComputationScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.EmvDataParserScreen
@@ -631,7 +634,10 @@ sealed class Destination : Screen {
         @Composable
         override fun Content() {
             val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
-            HsmSimulatorScreen { navigationController.goBack() }
+            HsmSimulatorScreen(
+                config = appState.value.currentConfig(SimulatorType.HSM) as `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig,
+                onBack = { navigationController.goBack() }
+            )
         }
     }
 

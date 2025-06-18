@@ -1,6 +1,5 @@
 package `in`.aicortex.iso8583studio.data.model
 
-import androidx.compose.runtime.key
 import `in`.aicortex.iso8583studio.StudioVersion
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.BitTemplate
@@ -8,7 +7,7 @@ import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
 import `in`.aicortex.iso8583studio.domain.utils.MtiMapping
 import `in`.aicortex.iso8583studio.domain.utils.TPDUMapping
-import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import iso8583studio.composeapp.generated.resources.Res
 import kotlinx.serialization.Serializable

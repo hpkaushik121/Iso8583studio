@@ -1,65 +1,96 @@
-package `in`.aicortex.iso8583studio.ui.screens.config.hostSimulator
+package `in`.aicortex.iso8583studio.ui.screens.config
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.*
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Card
+import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.OutlinedButton
+import androidx.compose.material.Surface
+import androidx.compose.material.Tab
+import androidx.compose.material.TabRow
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.ui.BorderLight
-import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
-import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
-import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
 import java.awt.Cursor
 
-private enum class HostSimulatorConfigTabs(val label: String) {
-    GATEWAY_TYPE("Gateway Type"),
-    TRANSMISSION_SETTINGS("Transmission Settings"),
-    LOG_SETTINGS("Log Settings"),
-    ADVANCED_OPTIONS("Advanced Options")
-}
+data class ConfigTab(
+    val id: Int = (Math.random() * 10000).toInt(),
+    val label: String,
+    val content: @Composable () -> Unit
+)
 
-/**
- * Host Simulator Configuration Container
- * Left panel: Configuration list and management
- * Right panel: Selected configuration editing with simulator launch
- */
+data class ContainerConfig(
+    val tabs: List<ConfigTab>,
+    val icon: ImageVector,
+    val label: String,
+    val simulatorConfigs: List<SimulatorConfig>,
+    val currentConfig: () -> SimulatorConfig?,
+    val containerStatus: DevelopmentStatus = DevelopmentStatus.UNDER_DEVELOPMENT
+)
+
 @Composable
-fun HostSimulatorConfigContainer(
-    navigationController: NavigationController,
-    appState: UnifiedSimulatorState,
-    onSelectConfig: (GatewayConfig) -> Unit,
+fun SimulatorConfigLayout(
+    config: ContainerConfig,
+    onSelectConfig: (SimulatorConfig) -> Unit,
     createNewConfig: () -> Unit,
-    onDeleteConfig: () -> Unit,
+    onDeleteConfig: (SimulatorConfig) -> Unit,
     onSaveAllConfigs: () -> Unit,
-    onLaunchSimulator: () -> Unit,
+    onLaunchSimulator: (SimulatorConfig) -> Unit,
 ) {
-    val tabs = HostSimulatorConfigTabs.values().toList()
-    var selectedTab by remember { mutableStateOf(HostSimulatorConfigTabs.GATEWAY_TYPE) }
-
     // State for the left panel width
-    var leftPanelWidth by remember { mutableStateOf(appState.panelWidth) }
+    var leftPanelWidth by remember { mutableStateOf(380.dp) }
     // State for tracking if user is currently resizing
     var isResizing by remember { mutableStateOf(false) }
+
+    var selectedTabIndex by remember { mutableStateOf(0) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -89,14 +120,14 @@ fun HostSimulatorConfigContainer(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Computer,
-                                contentDescription = "Host Simulator",
+                                imageVector = config.icon,
+                                contentDescription = config.label,
                                 modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colors.primary
                             )
                             Column {
                                 Text(
-                                    "Host Simulator",
+                                    config.label,
                                     style = MaterialTheme.typography.h6,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -109,7 +140,7 @@ fun HostSimulatorConfigContainer(
                         }
 
                         UnderDevelopmentChip(
-                            status = DevelopmentStatus.EXPERIMENTAL
+                            status = config.containerStatus
                         )
 
                         // Configuration list
@@ -129,7 +160,7 @@ fun HostSimulatorConfigContainer(
                                     .verticalScroll(scrollState),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                if (appState.hostConfigs.value.isEmpty()) {
+                                if (config.simulatorConfigs.isEmpty()) {
                                     // Empty state
                                     Box(
                                         modifier = Modifier
@@ -161,13 +192,16 @@ fun HostSimulatorConfigContainer(
                                         }
                                     }
                                 } else {
-                                    appState.hostConfigs.value.forEachIndexed { index, config ->
-                                        val isSelected = index == appState.selectedConfigIndex.value[SimulatorType.HOST]
-                                        HostSimulatorConfigItem(
-                                            config = config,
+                                    config.simulatorConfigs.forEachIndexed { index, simConfig ->
+                                        val isSelected =
+                                            simConfig.id == config.currentConfig()?.id
+                                        SimulatorConfigItem(
+                                            config = simConfig,
                                             isSelected = isSelected,
-                                            onClick = { onSelectConfig(config)
-                                            changeCount += 1}
+                                            onClick = {
+                                                onSelectConfig(simConfig)
+                                                changeCount += 1
+                                            }
                                         )
                                     }
                                 }
@@ -197,8 +231,10 @@ fun HostSimulatorConfigContainer(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     OutlinedButton(
-                                        onClick = { createNewConfig()
-                                                  changeCount += 1},
+                                        onClick = {
+                                            createNewConfig()
+                                            changeCount += 1
+                                        },
                                         modifier = Modifier.weight(1f),
                                         colors = ButtonDefaults.outlinedButtonColors(
                                             contentColor = MaterialTheme.colors.primary
@@ -214,10 +250,14 @@ fun HostSimulatorConfigContainer(
                                     }
 
                                     OutlinedButton(
-                                        onClick = { onDeleteConfig()
-                                                  changeCount+=1},
+                                        onClick = {
+                                            config.currentConfig()?.let {
+                                                onDeleteConfig(it)
+                                                changeCount += 1
+                                            }
+
+                                        },
                                         modifier = Modifier.weight(1f),
-                                        enabled = appState.selectedConfigIndex.value[SimulatorType.HOST]!! >= 0,
                                         colors = ButtonDefaults.outlinedButtonColors(
                                             contentColor = MaterialTheme.colors.error
                                         )
@@ -251,7 +291,7 @@ fun HostSimulatorConfigContainer(
                         }
 
                         // Launch Simulator section
-                        if (appState.currentConfig(SimulatorType.HOST) != null) {
+                        if (config.currentConfig() != null) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = 2.dp,
@@ -281,13 +321,13 @@ fun HostSimulatorConfigContainer(
                                     }
 
                                     Text(
-                                        "Configuration: ${appState.currentConfig(SimulatorType.HOST)?.name}",
+                                        "Configuration: ${config.currentConfig()?.name}",
                                         style = MaterialTheme.typography.caption,
                                         color = Color.White.copy(alpha = 0.9f)
                                     )
 
                                     Button(
-                                        onClick = { onLaunchSimulator() },
+                                        onClick = { config.currentConfig()?.let { onLaunchSimulator(it) } },
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = ButtonDefaults.buttonColors(
                                             backgroundColor = Color.White,
@@ -301,7 +341,7 @@ fun HostSimulatorConfigContainer(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            "Launch Host Simulator",
+                                            "Launch ${config.label}",
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -326,7 +366,6 @@ fun HostSimulatorConfigContainer(
                                     change.consume()
                                     leftPanelWidth = (leftPanelWidth + dragAmount.x.toDp())
                                         .coerceIn(350.dp, 600.dp)
-                                    appState.panelWidth = leftPanelWidth
                                 }
                             )
                         }
@@ -346,7 +385,7 @@ fun HostSimulatorConfigContainer(
                 }
 
                 // Right panel - Configuration Editor
-                if (appState.hostConfigs.value.isNotEmpty() && appState.currentConfig(SimulatorType.HOST) != null) {
+                if (config.simulatorConfigs.isNotEmpty() && config.currentConfig() != null) {
                     Card(
                         modifier = Modifier
                             .weight(1f)
@@ -359,7 +398,7 @@ fun HostSimulatorConfigContainer(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 // Tab selection
                                 TabRow(
-                                    selectedTabIndex = selectedTab.ordinal,
+                                    selectedTabIndex = selectedTabIndex,
                                     backgroundColor = MaterialTheme.colors.surface,
                                     contentColor = MaterialTheme.colors.primary,
                                     divider = {
@@ -369,14 +408,14 @@ fun HostSimulatorConfigContainer(
                                         )
                                     }
                                 ) {
-                                    tabs.forEachIndexed { index, tab ->
+                                    config.tabs.forEachIndexed { index, tab ->
                                         Tab(
-                                            selected = selectedTab.ordinal == index,
-                                            onClick = { selectedTab = tabs[index] },
+                                            selected = selectedTabIndex == index,
+                                            onClick = { selectedTabIndex = index },
                                             text = {
                                                 Text(
                                                     tab.label,
-                                                    fontWeight = if (selectedTab.ordinal == index) FontWeight.Bold else FontWeight.Normal,
+                                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
                                                     style = MaterialTheme.typography.caption
                                                 )
                                             },
@@ -401,27 +440,7 @@ fun HostSimulatorConfigContainer(
                                             .fillMaxSize()
                                             .verticalScroll(scrollState)
                                     ) {
-                                        when (selectedTab) {
-                                            HostSimulatorConfigTabs.GATEWAY_TYPE -> GatewayTypeTab(
-                                                config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
-                                            ) { updatedConfig ->
-                                                appState.updateConfig(updatedConfig)
-                                            }
-
-                                            HostSimulatorConfigTabs.TRANSMISSION_SETTINGS -> TransmissionSettingsTab(
-                                                config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
-                                            ) { updatedConfig ->
-                                                appState.updateConfig(updatedConfig)
-                                            }
-
-                                            HostSimulatorConfigTabs.LOG_SETTINGS -> LogSettingsTab(
-                                                config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
-                                            ) { updatedConfig ->
-                                                appState.updateConfig(updatedConfig)
-                                            }
-
-                                            HostSimulatorConfigTabs.ADVANCED_OPTIONS -> AdvancedOptionsTab()
-                                        }
+                                        config.tabs[selectedTabIndex].content()
                                     }
                                 }
                             }
@@ -465,8 +484,10 @@ fun HostSimulatorConfigContainer(
                                 )
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Button(
-                                    onClick = { createNewConfig()
-                                              changeCount+=1},
+                                    onClick = {
+                                        createNewConfig()
+                                        changeCount += 1
+                                    },
                                     colors = ButtonDefaults.buttonColors(
                                         backgroundColor = MaterialTheme.colors.primary
                                     )
@@ -492,8 +513,8 @@ fun HostSimulatorConfigContainer(
  * Individual configuration item component
  */
 @Composable
-private fun HostSimulatorConfigItem(
-    config: GatewayConfig,
+private fun SimulatorConfigItem(
+    config: SimulatorConfig,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -545,11 +566,13 @@ private fun HostSimulatorConfigItem(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                     }
-                    if(config.description.isNotEmpty()){
+                    if (config.description.isNotEmpty()) {
                         Text(
                             config.description,
                             style = MaterialTheme.typography.caption,
-                            color = if (isSelected) Color.White.copy(alpha = 0.8f) else MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            color = if (isSelected) Color.White.copy(alpha = 0.8f) else MaterialTheme.colors.onSurface.copy(
+                                alpha = 0.6f
+                            )
                         )
                     }
 

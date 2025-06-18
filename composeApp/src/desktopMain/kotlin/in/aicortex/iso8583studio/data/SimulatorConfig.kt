@@ -1,6 +1,6 @@
 package `in`.aicortex.iso8583studio.data
 
-import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 
 /**
  * Base interface for all simulator configurations

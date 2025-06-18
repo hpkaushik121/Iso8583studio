@@ -61,12 +61,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.ui.navigation.AuthenticationPolicy
-import `in`.aicortex.iso8583studio.ui.navigation.HSMCapability
-import `in`.aicortex.iso8583studio.ui.navigation.HSMSimulatorConfig
-import `in`.aicortex.iso8583studio.ui.navigation.HSMVendor
-import `in`.aicortex.iso8583studio.ui.navigation.OperatingMode
-import `in`.aicortex.iso8583studio.ui.navigation.TamperResistanceLevel
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.AuthenticationPolicy
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMCapability
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMVendor
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.OperatingMode
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.TamperResistanceLevel
 
 
 
@@ -182,8 +182,8 @@ fun HSMProfileTab(
 
                 // Firmware Version
                 OutlinedTextField(
-                    value = currentConfig.profile.firmwareVersion,
-                    onValueChange = { currentConfig = currentConfig.copy(profile = currentConfig.profile.copy(firmwareVersion = it)) },
+                    value = currentConfig.deviceInfo.firmwareVersion,
+                    onValueChange = { currentConfig = currentConfig.copy(deviceInfo = currentConfig.deviceInfo.copy(firmwareVersion = it)) },
                     label = { Text("Firmware Version") },
                     placeholder = { Text("e.g., 2.70.0, 7.4.0") },
                     modifier = Modifier.fillMaxWidth(),
@@ -299,9 +299,9 @@ fun HSMProfileTab(
             icon = Icons.Default.Speed
         ) {
             HSMCapabilitiesSelector(
-                selectedCapabilities = currentConfig.profile.capabilities,
+                selectedCapabilities = currentConfig.deviceInfo.capabilities,
                 onCapabilitiesChanged = {
-                    currentConfig = currentConfig.copy(profile = currentConfig.profile.copy(capabilities = it))
+                    currentConfig = currentConfig.copy(deviceInfo = currentConfig.deviceInfo.copy(capabilities = it))
                 }
             )
         }

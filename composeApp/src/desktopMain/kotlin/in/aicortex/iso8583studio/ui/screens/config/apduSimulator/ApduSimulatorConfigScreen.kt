@@ -1,24 +1,59 @@
 package `in`.aicortex.iso8583studio.ui.screens.config.apduSimulator
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.runtime.Composable
-import `in`.aicortex.iso8583studio.ui.navigation.APDUSimulatorConfig
-import `in`.aicortex.iso8583studio.ui.navigation.CardType
-import `in`.aicortex.iso8583studio.ui.navigation.ConnectionInterface
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.APDUSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.CardType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.ConnectionInterface
 import `in`.aicortex.iso8583studio.ui.navigation.Destination
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
-import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
-import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.config.ConfigTab
+import `in`.aicortex.iso8583studio.ui.screens.config.ContainerConfig
+import `in`.aicortex.iso8583studio.ui.screens.config.SimulatorConfigLayout
 
 @Composable
 fun ApduSimulatorConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-
+    val tabs = listOf(
+        ConfigTab(
+            label = "Basic",
+            content = {
+                BasicConfigTab()
+            }
+        ),
+        ConfigTab(
+            label = "Applications",
+            content = {
+                ApplicationAidTab()
+            }
+        ),
+        ConfigTab(
+            label = "File System",
+            content = {
+                FileSystemTab()
+            }
+        ),
+        ConfigTab(
+            label = "Cryptography",
+            content = {
+                CryptoManagementTab()
+            }
+        ),
+        ConfigTab(
+            label = "Behavior",
+            content = {
+                BehaviorRuleManagementTab()
+            }
+        )
+    )
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -27,31 +62,41 @@ fun ApduSimulatorConfigScreen(
         },
         backgroundColor = MaterialTheme.colors.background
     ) {
-        ApduSimulatorScreen(
-            appState = appState,
-            onAddProfile = {
-                val newProfile = APDUSimulatorConfig(name = "New APDU Profile", status = ProfileStatus.Issues,
-                    cardType = CardType.CUSTOM,
-                    id = appState.generateConfigId(),
-                    connectionInterface = ConnectionInterface.PC_SC)
-                appState.addConfig(newProfile)
-
+        SimulatorConfigLayout(
+            config = ContainerConfig(
+                tabs = tabs,
+                label = "APDU Simulator",
+                currentConfig = {
+                    appState.currentConfig(SimulatorType.APDU) as APDUSimulatorConfig?
+                },
+                simulatorConfigs = appState.apduConfigs.value,
+                icon = Icons.Default.Security
+            ),
+            onSelectConfig = { appState.selectConfig(it.id) },
+            createNewConfig = {
+                appState.addConfig(
+                    APDUSimulatorConfig(
+                        name = "Card-${appState.apduConfigs.value.size + 1}",
+                        cardType = CardType.CUSTOM,
+                        id = appState.generateConfigId(),
+                        connectionInterface = ConnectionInterface.PC_SC
+                    ))
             },
-            onDeleteProfile = {
+            onDeleteConfig = {
                 appState.currentConfig(SimulatorType.APDU)?.id?.let { appState.deleteConfig(it) }
-                    },
-            onSaveChanges = {
+            },
+            onSaveAllConfigs = {
+                appState.updateConfig(
+                    (appState.currentConfig(SimulatorType.APDU) as APDUSimulatorConfig?)?.copy(
+                        modifiedDate = System.currentTimeMillis()
+                    )
+                )
                 appState.save()
             },
-            onProfileUpdate = {
-                appState.updateConfig(it)
-            },
             onLaunchSimulator = {
-                navigationController.navigateTo(Destination.ApduSimulator)
-            },
-            onSelectProfile = {
-                appState.selectConfig(it.id)
+                navigationController.navigateTo(Destination.HSMSimulator)
             }
+
         )
     }
 }

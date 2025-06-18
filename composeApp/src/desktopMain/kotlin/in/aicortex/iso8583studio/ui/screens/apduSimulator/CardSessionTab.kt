@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,12 +31,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.CardServiceImpl
-import `in`.aicortex.iso8583studio.ui.navigation.CardType
-import `in`.aicortex.iso8583studio.ui.navigation.ConnectionInterface
-import kotlinx.coroutines.CoroutineScope
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.CardType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.ConnectionInterface
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Card Session Control Tab - Primary interface for EMV card session management

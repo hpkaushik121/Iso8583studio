@@ -1,10 +1,8 @@
 package `in`.aicortex.iso8583studio.domain.utils
 
-import `in`.aicortex.iso8583studio.ui.navigation.ApduCommand
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.ApduCommand
 import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
 import java.security.SecureRandom
-import kotlin.experimental.and
 
 /**
  * Professional APDU utility class for EMV card processing

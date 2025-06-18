@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.apduSimulator
 
-import `in`.aicortex.iso8583studio.ui.navigation.APDUSimulatorConfig
-import `in`.aicortex.iso8583studio.ui.navigation.ConnectionInterface
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.APDUSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.ConnectionInterface
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
 import kotlinx.coroutines.CoroutineScope
 
@@ -28,11 +28,9 @@ import androidx.compose.material.TabRowDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
-import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DeviceHub
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -56,7 +54,6 @@ import `in`.aicortex.iso8583studio.data.rememberCardCoroutineScope
 import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.CardServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.ApduUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
-import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import kotlinx.coroutines.delay

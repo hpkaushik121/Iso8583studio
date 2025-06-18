@@ -1,35 +1,77 @@
 package `in`.aicortex.iso8583studio.ui.screens.config.hostSimulator
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.ui.navigation.Destination
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
-import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
-import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
-import kotlinx.coroutines.launch
-import kotlin.random.Random
+import `in`.aicortex.iso8583studio.ui.screens.config.ConfigTab
+import `in`.aicortex.iso8583studio.ui.screens.config.ContainerConfig
+import `in`.aicortex.iso8583studio.ui.screens.config.SimulatorConfigLayout
 
 @Composable
 fun HostSimulatorConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-
-    Column {
-        AppBarWithBack(
-            title = "Host Simulator Configuration",
-            onBackClick = { navigationController.goBack() })
-        HostSimulatorConfigContainer(
-            navigationController = navigationController,
-            appState = appState,
+    val tabsList = listOf(
+        ConfigTab(
+            label = "Gateway Type",
+            content = {
+                GatewayTypeTab(
+                    config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
+                ) { updatedConfig ->
+                    appState.updateConfig(updatedConfig)
+                }
+            }
+        ),
+        ConfigTab(
+            label = "Transmission Settings",
+            content = {
+                TransmissionSettingsTab(
+                    config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
+                ) { updatedConfig ->
+                    appState.updateConfig(updatedConfig)
+                }
+            }
+        ),
+        ConfigTab(
+            label = "Log Settings",
+            content = {
+                LogSettingsTab(
+                    config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
+                ) { updatedConfig ->
+                    appState.updateConfig(updatedConfig)
+                }
+            }
+        ),
+        ConfigTab(
+            label = "Advanced Options",
+            content = { AdvancedOptionsTab() }
+        )
+    )
+    Scaffold(
+        topBar = {
+            AppBarWithBack(
+                title = "Host Simulator Configuration",
+                onBackClick = { navigationController.goBack() })
+        },
+        backgroundColor = MaterialTheme.colors.background
+    ) {
+        SimulatorConfigLayout(
+            config = ContainerConfig(
+                tabs = tabsList,
+                icon = Icons.Default.Computer,
+                label = "Host Simulator",
+                simulatorConfigs = appState.hostConfigs.value,
+                currentConfig = { appState.currentConfig(SimulatorType.HOST) }
+            ),
             onSelectConfig = { appState.selectConfig(it.id) },
             createNewConfig = {
                 appState.addConfig(
@@ -40,7 +82,11 @@ fun HostSimulatorConfigScreen(
                 )
             },
             onDeleteConfig = {
-                appState.currentConfig(SimulatorType.HOST)?.id?.let { appState.deleteConfig(it) }
+                appState.deleteConfig(it.id)
+            },
+            onLaunchSimulator = {
+                appState.selectConfig(it.id)
+                navigationController.navigateTo(Destination.HostSimulator)
             },
             onSaveAllConfigs = {
                 appState.updateConfig(
@@ -49,8 +95,9 @@ fun HostSimulatorConfigScreen(
                     )
                 )
                 appState.save()
-            },
-            onLaunchSimulator = { navigationController.navigateTo(Destination.HostSimulator) },
+            }
+
         )
+
     }
 }

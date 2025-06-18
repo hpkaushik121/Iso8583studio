@@ -13,9 +13,9 @@ import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.domain.utils.ApduUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
-import `in`.aicortex.iso8583studio.ui.navigation.APDUSimulatorConfig
-import `in`.aicortex.iso8583studio.ui.navigation.ApduCommand
-import `in`.aicortex.iso8583studio.ui.navigation.ConnectionInterface
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.APDUSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.ApduCommand
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.ConnectionInterface
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 

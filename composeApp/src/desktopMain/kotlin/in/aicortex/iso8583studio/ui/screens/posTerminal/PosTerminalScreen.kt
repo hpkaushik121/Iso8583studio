@@ -25,11 +25,9 @@ import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.POSSimulatorService
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
-import `in`.aicortex.iso8583studio.ui.navigation.POSSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
-import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.ISO8583SettingsScreen
-import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Iso8583TemplateScreen
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import kotlinx.coroutines.delay

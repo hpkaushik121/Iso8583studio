@@ -14,17 +14,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.logging.ISO8583Colors
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.logging.SampleLogEntries
-import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
-import `in`.aicortex.iso8583studio.ui.WarningYellow
-import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
-import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 
 /**

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -20,19 +19,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.ui.navigation.CertificateType
-import `in`.aicortex.iso8583studio.ui.navigation.CompressionType
-import `in`.aicortex.iso8583studio.ui.navigation.ConnectionType
-import `in`.aicortex.iso8583studio.ui.navigation.MessageFraming
-import `in`.aicortex.iso8583studio.ui.navigation.NetworkConfig
-import `in`.aicortex.iso8583studio.ui.navigation.PerformanceSettings
-import `in`.aicortex.iso8583studio.ui.navigation.ProtocolSettings
-import `in`.aicortex.iso8583studio.ui.navigation.ProtocolVersion
-import `in`.aicortex.iso8583studio.ui.navigation.RestApiConfig
-import `in`.aicortex.iso8583studio.ui.navigation.SSLTLSConfig
-import `in`.aicortex.iso8583studio.ui.navigation.SSLTLSVersion
-import `in`.aicortex.iso8583studio.ui.navigation.SerialConfig
-import `in`.aicortex.iso8583studio.ui.navigation.WebSocketConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.CertificateType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.CompressionType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ConnectionType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.MessageFraming
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.NetworkConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.PerformanceSettings
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ProtocolSettings
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ProtocolVersion
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.RestApiConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.SSLTLSConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.SSLTLSVersion
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.SerialConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.WebSocketConfig
 
 
 @Composable
