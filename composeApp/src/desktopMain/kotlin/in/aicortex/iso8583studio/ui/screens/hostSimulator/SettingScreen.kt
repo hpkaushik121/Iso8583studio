@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -52,9 +51,8 @@ import `in`.aicortex.iso8583studio.data.rememberIsoCoroutineScope
 import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.domain.FileImporter
 import `in`.aicortex.iso8583studio.domain.ImportResult
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
-import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
-import `in`.aicortex.iso8583studio.domain.service.SimulatedRequest
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.utils.ExportResult
 import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.domain.utils.concatPathAndQuery

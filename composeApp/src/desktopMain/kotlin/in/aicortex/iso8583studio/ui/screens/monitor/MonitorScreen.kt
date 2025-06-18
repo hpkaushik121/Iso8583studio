@@ -23,6 +23,7 @@ import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.WarningYellow
+import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 
@@ -93,7 +94,7 @@ fun MonitorScreen(
     Scaffold(
         topBar = {
             AppBarWithBack(
-                title = "Monitor - ${appState.currentConfig?.name ?: "Unknown"}",
+                title = "Monitor - ${appState.currentConfig(SimulatorType.HOST)?.name ?: "Unknown"}",
                 onBackClick = onBack,
                 actions = {
                     IconButton(onClick = { /* Clear logs */ }) {

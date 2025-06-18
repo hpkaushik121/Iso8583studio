@@ -10,11 +10,10 @@ import `in`.aicortex.iso8583studio.data.model.HttpInfo
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.ParsingFeature
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
-import `in`.aicortex.iso8583studio.domain.service.PlaceholderProcessor
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.utils.packWithFormat
 import `in`.aicortex.iso8583studio.domain.utils.unpackFromFormat
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.BitmapField
-import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.net.Socket
 import java.nio.charset.Charset

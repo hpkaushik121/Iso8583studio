@@ -15,65 +15,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import `in`.aicortex.iso8583studio.data.BitAttribute
-import `in`.aicortex.iso8583studio.data.Iso8583Data
-import `in`.aicortex.iso8583studio.data.model.GatewayConfig
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.POSSimulatorService
 import `in`.aicortex.iso8583studio.logging.LogEntry
-import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.navigation.POSSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
-import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.*
-import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
-import java.io.InputStream
-import java.io.OutputStream
-import java.net.Socket
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.*
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.ISO8583SettingsScreen
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Iso8583TemplateScreen
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-// --- DATA & SERVICE LAYER FOR POS SIMULATOR ---
-
-// Dedicated service for POS client logic
-class POSSimulatorService(
-    private val isoConfig: POSSimulatorConfig // For packing/unpacking messages
-) {
-    var hostAddress by mutableStateOf("127.0.0.1")
-    var hostPort by mutableStateOf(8080)
-
-    private var clientSocket: Socket? = null
-    private var outputStream: OutputStream? = null
-    private var inputStream: InputStream? = null
-    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    var isConnected by mutableStateOf(false)
-        private set
-
-    // --- UI Callbacks ---
-    var onLog: (LogEntry) -> Unit = {}
-    var onRequestSent: (String) -> Unit = {}
-    var onResponseReceived: (String) -> Unit = {}
-    var onConnectionStateChange: (Boolean) -> Unit = {}
-
-
-
-
-    private fun createLog(type: LogType, message: String, details: String? = null): LogEntry {
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-        return LogEntry(timestamp, type, message, details)
-    }
-}
-
+// Aligned Enum with Icons, matching the HostSimulator theme
 private enum class POSTerminalSimulatorTabs(val title: String, val icon: ImageVector) {
     TRANSACTIONS("Transactions", Icons.Default.SwapHoriz),
     LOGS("Logs", Icons.Default.Article),
@@ -85,8 +47,8 @@ private enum class POSTerminalSimulatorTabs(val title: String, val icon: ImageVe
 
 @Composable
 fun POSTerminalSimulatorScreen(
-    window: ComposeWindow, // Assuming this is needed for file dialogs etc.
-    config: POSSimulatorConfig?, // This now defines the ISO8583 message structure
+    window: ComposeWindow,
+    config: POSSimulatorConfig?,
     onBack: () -> Unit,
     onSaveClick: () -> Unit,
 ) {
@@ -97,9 +59,7 @@ fun POSTerminalSimulatorScreen(
         return
     }
 
-    // Initialize the dedicated service for the POS terminal
     val posService = remember { POSSimulatorService(config) }
-
 
     Scaffold(
         topBar = {
@@ -135,6 +95,7 @@ fun POSTerminalSimulator(
     var request by remember { mutableStateOf("") }
     var response by remember { mutableStateOf("") }
     val logEntries = remember { mutableStateListOf<LogEntry>() }
+    val coroutineScope = rememberCoroutineScope()
 
     // Wire up service callbacks to UI state
     posService.onConnectionStateChange = { isConnected = it }
@@ -146,13 +107,42 @@ fun POSTerminalSimulator(
     val tabList = POSTerminalSimulatorTabs.values().toList()
 
     Column(modifier = modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTabIndex) {
+        // TabRow aligned with HostSimulator's style
+        TabRow(
+            selectedTabIndex = selectedTabIndex,
+            backgroundColor = MaterialTheme.colors.surface,
+            contentColor = MaterialTheme.colors.primary,
+            indicator = { tabPositions ->
+                TabRowDefaults.Indicator(
+                    modifier = Modifier.customTabIndicatorOffset(tabPositions[selectedTabIndex]),
+                    height = 3.dp,
+                    color = MaterialTheme.colors.primary
+                )
+            }
+        ) {
             tabList.forEachIndexed { index, tab ->
                 Tab(
                     selected = selectedTabIndex == index,
                     onClick = { selectedTabIndex = index },
-                    icon = { Icon(tab.icon, contentDescription = tab.title) },
-                    text = { Text(tab.title) }
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.title,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                tab.title,
+                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    },
+                    selectedContentColor = MaterialTheme.colors.primary,
+                    unselectedContentColor = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                 )
             }
         }
@@ -161,26 +151,37 @@ fun POSTerminalSimulator(
             when (tabList[selectedTabIndex]) {
                 POSTerminalSimulatorTabs.TRANSACTIONS -> POSTransactionTab(
                     posService = posService,
-                    isoConfig = isoConfig,
                     isConnected = isConnected,
+                    onConnectDisconnect = {
+                        coroutineScope.launch {
+//                            if (posService.isConnected) posService.disconnect() else posService.connect()
+                        }
+                    },
+                    onTransactionSend = { transaction ->
+                        coroutineScope.launch {
+//                            posService.sendTransaction(transaction)
+                        }
+                    },
                     request = request,
                     response = response,
-                    onClearClick = { request = ""; response = "" }
+                    onClearClick = { request = ""; response = "" },
+                    isoConfig = isoConfig
                 )
+                // Re-using the LogTab composable from hostSimulator for consistency
                 POSTerminalSimulatorTabs.LOGS -> LogTab(
                     logEntries = logEntries,
                     onClearClick = { logEntries.clear() },
                     connectionCount = if (isConnected) 1 else 0,
                     concurrentConnections = if (isConnected) 1 else 0,
-                    bytesIncoming = 0, // Simplified for this example
-                    bytesOutgoing = 0, // Simplified for this example
+                    bytesIncoming = 0, // Simplified for POS client
+                    bytesOutgoing = 0, // Simplified for POS client
                 )
                 POSTerminalSimulatorTabs.SETTINGS -> POSSettingsTab(
                     posService = posService,
-                    isoConfig = isoConfig,
                     onSaveClick = onSaveClick
                 )
-                POSTerminalSimulatorTabs.TEMPLATE -> Text("PENDING") /*Iso8583TemplateScreen(
+                // Re-using the Iso8583TemplateScreen for consistency
+                POSTerminalSimulatorTabs.TEMPLATE -> Text("Pending") /*Iso8583TemplateScreen(
                     config = isoConfig,
                     onSaveClick = onSaveClick
                 )*/
@@ -192,11 +193,13 @@ fun POSTerminalSimulator(
 @Composable
 fun POSTransactionTab(
     posService: POSSimulatorService,
-    isoConfig: POSSimulatorConfig,
     isConnected: Boolean,
+    onConnectDisconnect: () -> Unit,
+    onTransactionSend: (Transaction) -> Unit,
     request: String,
     response: String,
-    onClearClick: () -> Unit
+    onClearClick: () -> Unit,
+    isoConfig: POSSimulatorConfig
 ) {
     val transactions = remember { isoConfig.simulatedTransactionsToDest.toMutableStateList() }
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
@@ -205,15 +208,14 @@ fun POSTransactionTab(
     val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Control Panel
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(
-                    onClick = {  },
+                    onClick = onConnectDisconnect,
                     colors = ButtonDefaults.buttonColors(backgroundColor = if (isConnected) MaterialTheme.colors.error else SuccessGreen)
                 ) {
                     Icon(if (isConnected) Icons.Default.PowerOff else Icons.Default.Power, contentDescription = "Connect/Disconnect", tint = Color.White)
@@ -229,21 +231,18 @@ fun POSTransactionTab(
             }
         }
 
-        // Main content area
         Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Left Panel: Transaction List & Send Button
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Card(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    Column {
-                        Text("Select Transaction", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.h6)
-                        LazyColumn(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(transactions) { transaction ->
-                                TransactionListItem(
-                                    transaction = transaction,
-                                    isSelected = selectedTransaction?.id == transaction.id,
-                                    onClick = { selectedTransaction = transaction }
-                                )
-                            }
+                Panel(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    Text("Select Transaction", fontWeight = FontWeight.Bold)
+                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(4.dp)) {
+                        items(transactions) { transaction ->
+                            TransactionListItem(
+                                transaction = transaction,
+                                isSelected = selectedTransaction?.id == transaction.id,
+                                onClick = { selectedTransaction = transaction }
+                            )
                         }
                     }
                 }
@@ -252,7 +251,8 @@ fun POSTransactionTab(
                         selectedTransaction?.let {
                             coroutineScope.launch {
                                 isSending = true
-                                delay(500) // UI feedback delay
+                                onTransactionSend(it)
+                                delay(500) // Visual feedback
                                 isSending = false
                             }
                         }
@@ -270,21 +270,16 @@ fun POSTransactionTab(
                 }
             }
 
-            // Right Panel: Request and Response
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Panel(modifier = Modifier.weight(1f)) {
                     Text("Request Sent", fontWeight = FontWeight.Bold)
                     Divider(modifier = Modifier.padding(vertical = 4.dp))
-                    Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        SelectionContainer { Text(request, fontFamily = FontFamily.Monospace, fontSize = 12.sp) }
-                    }
+                    SelectionContainer { Text(request, modifier = Modifier.verticalScroll(rememberScrollState()), fontFamily = FontFamily.Monospace, fontSize = 12.sp) }
                 }
                 Panel(modifier = Modifier.weight(1f)) {
                     Text("Response Received", fontWeight = FontWeight.Bold)
                     Divider(modifier = Modifier.padding(vertical = 4.dp))
-                    Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        SelectionContainer { Text(response, fontFamily = FontFamily.Monospace, fontSize = 12.sp) }
-                    }
+                    SelectionContainer { Text(response, modifier = Modifier.verticalScroll(rememberScrollState()), fontFamily = FontFamily.Monospace, fontSize = 12.sp) }
                 }
             }
         }
@@ -292,13 +287,12 @@ fun POSTransactionTab(
 }
 
 @Composable
-fun POSSettingsTab(posService: POSSimulatorService, isoConfig: POSSimulatorConfig, onSaveClick: () -> Unit) {
+fun POSSettingsTab(posService: POSSimulatorService, onSaveClick: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // --- Connection Settings ---
-        var address by remember { mutableStateOf(posService.hostAddress) }
-        var port by remember { mutableStateOf(posService.hostPort.toString()) }
+        var address by remember(posService.hostAddress) { mutableStateOf(posService.hostAddress) }
+        var port by remember(posService.hostPort) { mutableStateOf(posService.hostPort.toString()) }
 
-        Card {
+        Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Host Connection Settings", style = MaterialTheme.typography.h6)
                 OutlinedTextField(
@@ -319,18 +313,14 @@ fun POSSettingsTab(posService: POSSimulatorService, isoConfig: POSSimulatorConfi
                     onClick = {
                         posService.hostAddress = address
                         posService.hostPort = port.toIntOrNull() ?: 8080
+                        onSaveClick() // Persist the change
                     },
                     enabled = !posService.isConnected
                 ) {
-                    Text("Apply Connection Settings")
+                    Text("Apply & Save Settings")
                 }
             }
         }
-
-        // --- Transaction Template Management ---
-        // For simplicity, we pass the GatewayConfig to the existing settings screen.
-        // A more advanced implementation would have a dedicated settings screen for POS transactions.
-//        ISO8583SettingsScreen(gw = GatewayServiceImpl(isoConfig), onSaveClick = onSaveClick)
     }
 }
 
@@ -343,12 +333,12 @@ fun TransactionListItem(transaction: Transaction, isSelected: Boolean, onClick: 
         border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colors.primary) else null
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(transaction.description, fontWeight = FontWeight.Bold)
                 Text("MTI: ${transaction.mti}", style = MaterialTheme.typography.caption)
             }
             if (isSelected) {
-                Icon(Icons.Default.CheckCircle, "Selected", tint = MaterialTheme.colors.primary)
+                Icon(Icons.Default.CheckCircle, "Selected", tint = MaterialTheme.colors.primary, modifier = Modifier.padding(start = 8.dp))
             }
         }
     }
@@ -360,4 +350,18 @@ private fun StatusIndicator(text: String, color: Color, icon: ImageVector) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
         Text(text, color = color, style = MaterialTheme.typography.caption, fontWeight = FontWeight.Medium)
     }
+}
+
+// Custom tab indicator offset extension, adopted from HostSimulator
+fun Modifier.customTabIndicatorOffset(
+    currentTabPosition: TabPosition
+): Modifier = composed {
+    val indicatorWidth = 32.dp
+    val currentTabWidth = currentTabPosition.width
+    val indicatorOffset = currentTabPosition.left + (currentTabWidth - indicatorWidth) / 2
+
+    fillMaxWidth()
+        .wrapContentSize(Alignment.BottomStart)
+        .offset(x = indicatorOffset)
+        .width(indicatorWidth)
 }

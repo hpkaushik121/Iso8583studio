@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio.domain.service
+package `in`.aicortex.iso8583studio.domain.service.hostSimulatorService
 
 import androidx.compose.runtime.Composable
 import `in`.aicortex.iso8583studio.data.GatewayClient
@@ -136,10 +136,10 @@ interface GatewayService {
     /**
      * Add callback for data received from source
      */
-    fun onReceiveFromSource(callback:  ( Iso8583Data?) -> Unit)
+    fun onReceiveFromSource(callback:  (Iso8583Data?) -> Unit)
 
     /**
      * Add callback for data received from destination
      */
-    fun onReceiveFromDest(callback:  ( Iso8583Data?) -> Unit)
+    fun onReceiveFromDest(callback:  (Iso8583Data?) -> Unit)
 }

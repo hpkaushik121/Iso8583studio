@@ -1,493 +1,359 @@
+// HSMSimulatorScreen.kt
 package `in`.aicortex.iso8583studio.ui.screens.config.hsmSimulator
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.ui.BorderLight
+import `in`.aicortex.iso8583studio.ui.navigation.ConnectionType
+import `in`.aicortex.iso8583studio.ui.navigation.EncryptionLevel
+import `in`.aicortex.iso8583studio.ui.navigation.HSMProfile
 import `in`.aicortex.iso8583studio.ui.navigation.HSMSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.HSMStatus
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
+import `in`.aicortex.iso8583studio.ui.navigation.NetworkConfig
+import `in`.aicortex.iso8583studio.ui.navigation.OperatingMode
+import `in`.aicortex.iso8583studio.ui.navigation.PerformanceConfig
+import `in`.aicortex.iso8583studio.ui.navigation.SecurityConfig
+import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
-import java.awt.Cursor
-import kotlin.random.Random
+import org.jetbrains.exposed.v1.core.arrayParam
 
-private enum class HSMSimulatorConfigTabs(val label: String) {
-    HSM_SETUP("HSM Setup"),
-    KEY_MANAGEMENT("Key Management"),
-    CRYPTO_CONFIG("Crypto Config"),
-    SECURITY_POLICIES("Security Policies")
-}
-
+// ============================================================================
+// CONFIGURATION SCREEN
+// ============================================================================
 /**
- * HSM Simulator Configuration Container
- * Left panel: HSM configuration profiles and management
- * Right panel: Selected profile editing with simulator launch
+ * HSM Configuration Management Screen
  */
 @Composable
 fun HSMSimulatorConfigContainer(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
-    onSelectConfig: (HSMSimulatorConfig) -> Unit,
-    onAddConfig: () -> Unit,
-    onDeleteConfig: () -> Unit,
-    onSaveAllConfigs: () -> Unit,
-    onLaunchSimulator: () -> Unit,
+    onConfigSelected: (HSMSimulatorConfig) -> Unit,
+    onCreateNew: () -> Unit,
+    onDelete: () -> Unit,
+    onLaunch: () -> Unit,
 ) {
-    val tabs = HSMSimulatorConfigTabs.values().toList()
-    var selectedTab by remember { mutableStateOf(HSMSimulatorConfigTabs.HSM_SETUP) }
+    var changeCounter by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableStateOf(0) }
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Left Panel - Configuration List
+        HSMConfigListPanel(
+            navigationController = navigationController,
+            appState = appState,
+            onConfigSelected = {
+                onConfigSelected(it)
+                changeCounter += 1
+            },
+            onCreateNew = onCreateNew,
+            onDelete = onDelete,
+            onLaunch = onLaunch,
+            modifier = Modifier.width(350.dp)
+        )
 
-    // State for the left panel width
-    var leftPanelWidth by remember { mutableStateOf(appState.panelWidth) }
-    // State for tracking if user is currently resizing
-    var isResizing by remember { mutableStateOf(false) }
+        Divider(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(1.dp)
+        )
+        key(changeCounter) {
+            // Right Panel - Configuration Editor
+            if (appState.hsmConfigs.value.isNotEmpty()) {
+                HSMConfigEditorPanel(
+                    config = appState.currentConfig(SimulatorType.HSM) as HSMSimulatorConfig,
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    onConfigUpdated = { hsmConfig ->
+                        appState.updateConfig(hsmConfig)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                EmptyConfigurationPanel(
+                    onCreateNew = onCreateNew,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colors.background
+/**
+ * Left Panel - HSM Configuration List
+ */
+/**
+ * Enhanced HSM Configuration List Panel with Host Simulator Theming
+ */
+@Composable
+fun HSMConfigListPanel(
+    navigationController: NavigationController,
+    appState: UnifiedSimulatorState,
+    onConfigSelected: (HSMSimulatorConfig) -> Unit,
+    onCreateNew: () -> Unit,
+    onDelete: () -> Unit,
+    onLaunch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var changeCounter by remember { mutableStateOf(0) }
+    Card(
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(12.dp),
+        elevation = 2.dp,
+        shape = RoundedCornerShape(8.dp)
     ) {
-        Row(modifier = Modifier.fillMaxSize()) {
-            // Left panel - HSM Simulator Configuration Profiles
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header with HSM icon
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = "HSM Simulator",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colors.primary
+                )
+                Column {
+                    Text(
+                        "HSM Simulator",
+                        style = MaterialTheme.typography.h6,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Configurations",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            // Development status chip
+            UnderDevelopmentChip(
+                status = DevelopmentStatus.BETA
+            )
+
+            // Configuration list container
             Card(
                 modifier = Modifier
-                    .width(leftPanelWidth)
-                    .fillMaxHeight()
-                    .padding(12.dp),
-                elevation = 2.dp,
+                    .weight(1f)
+                    .fillMaxWidth(),
+                elevation = 0.dp,
+                backgroundColor = MaterialTheme.colors.surface.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .fillMaxSize()
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Header with HSM icon
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = "HSM Simulator",
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colors.primary
-                        )
-                        Column {
-                            Text(
-                                "HSM Simulator",
-                                style = MaterialTheme.typography.h6,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "Configuration Profiles",
-                                style = MaterialTheme.typography.caption,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    UnderDevelopmentChip(
-                        status = DevelopmentStatus.EXPERIMENTAL
-                    )
-
-                    // Profile list
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        elevation = 0.dp,
-                        backgroundColor = MaterialTheme.colors.surface.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        val scrollState = rememberScrollState()
-                        Column(
+                    if (appState.hsmConfigs.value.isEmpty()) {
+                        // Empty state
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(8.dp)
-                                .verticalScroll(scrollState),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (appState.hsmConfigs.value.isEmpty()) {
-                                // Empty state
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.VpnKey,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(48.dp),
-                                            tint = MaterialTheme.colors.primary.copy(alpha = 0.5f)
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            "No HSM Profiles",
-                                            style = MaterialTheme.typography.subtitle2,
-                                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                                        )
-                                        Text(
-                                            "Create your first HSM configuration profile",
-                                            style = MaterialTheme.typography.caption,
-                                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                                        )
-                                    }
-                                }
-                            } else {
-                                appState.hsmConfigs.value.forEachIndexed { index, config ->
-                                    val isSelected = index == appState.selectedConfigIndex
-                                    HSMConfigProfileItem(
-                                        config = config,
-                                        isSelected = isSelected,
-                                        onClick = { onSelectConfig(config) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Profile management section
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = 1.dp,
-                        backgroundColor = MaterialTheme.colors.surface,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                "Profile Management",
-                                style = MaterialTheme.typography.subtitle2,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = { onAddConfig() },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colors.primary
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "Add",
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("New", style = MaterialTheme.typography.caption)
-                                }
-
-                                OutlinedButton(
-                                    onClick = { onDeleteConfig() },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = appState.selectedConfigIndex >= 0,
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colors.error
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Delete", style = MaterialTheme.typography.caption)
-                                }
-                            }
-
-                            Button(
-                                onClick = { onSaveAllConfigs() },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = MaterialTheme.colors.primary
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Save,
-                                    contentDescription = "Save All",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Save All Profiles")
-                            }
-                        }
-                    }
-
-                    // HSM Status and Launch section
-                    if (appState.currentConfig != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = 2.dp,
-                            backgroundColor = MaterialTheme.colors.secondary,
-                            shape = RoundedCornerShape(8.dp)
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "Launch",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = Color.White
-                                    )
-                                    Text(
-                                        "Ready to Launch",
-                                        style = MaterialTheme.typography.subtitle2,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-
-                                Text(
-                                    "Profile: ${Random.nextInt()}",
-                                    style = MaterialTheme.typography.caption,
-                                    color = Color.White.copy(alpha = 0.9f)
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colors.primary.copy(alpha = 0.5f)
                                 )
-
-                                // HSM Status indicators
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    HSMStatusChip(
-                                        label = "Keys",
-                                        count = "24",
-                                        icon = Icons.Default.VpnKey
-                                    )
-                                    HSMStatusChip(
-                                        label = "Slots",
-                                        count = "8",
-                                        icon = Icons.Default.Storage
-                                    )
-                                }
-
-                                Button(
-                                    onClick = { onLaunchSimulator() },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = Color.White,
-                                        contentColor = MaterialTheme.colors.secondary
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Security,
-                                        contentDescription = "Launch HSM Simulator",
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "Launch HSM Simulator",
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "No Configs Found",
+                                    style = MaterialTheme.typography.subtitle2,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    "Create your first HSM configuration to begin",
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                                )
                             }
                         }
-                    }
-                }
-            }
+                    } else {
 
-            // Resizable divider
-            Box(
-                modifier = Modifier
-                    .width(8.dp)
-                    .fillMaxHeight()
-                    .background(Color.Transparent)
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragStart = { isResizing = true },
-                            onDragEnd = { isResizing = false },
-                            onDragCancel = { isResizing = false },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                leftPanelWidth = (leftPanelWidth + dragAmount.x.toDp())
-                                    .coerceIn(350.dp, 600.dp)
-                                appState.panelWidth = leftPanelWidth
-                            }
-                        )
-                    }
-                    .cursorForHorizontalResize()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .width(4.dp)
-                        .height(32.dp)
-                        .shadow(1.dp, RoundedCornerShape(2.dp))
-                        .background(
-                            color = if (isResizing) MaterialTheme.colors.primary else BorderLight,
-                            shape = RoundedCornerShape(2.dp)
-                        )
-                )
-            }
-
-            // Right panel - HSM Configuration Editor
-            if (appState.hsmConfigs.value.isNotEmpty() && appState.currentConfig != null) {
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(12.dp),
-                    elevation = 2.dp,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            // Tab selection
-                            TabRow(
-                                selectedTabIndex = selectedTab.ordinal,
-                                backgroundColor = MaterialTheme.colors.surface,
-                                contentColor = MaterialTheme.colors.primary,
-                                divider = {
-                                    Divider(
-                                        color = BorderLight,
-                                        thickness = 1.dp
-                                    )
-                                }
-                            ) {
-                                tabs.forEachIndexed { index, tab ->
-                                    Tab(
-                                        selected = selectedTab.ordinal == index,
-                                        onClick = { selectedTab = tabs[index] },
-                                        text = {
-                                            Text(
-                                                tab.label,
-                                                fontWeight = if (selectedTab.ordinal == index) FontWeight.Bold else FontWeight.Normal,
-                                                style = MaterialTheme.typography.caption
-                                            )
-                                        },
-                                        selectedContentColor = MaterialTheme.colors.primary,
-                                        unselectedContentColor = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                                    )
-                                }
-                            }
-
-                            // Tab content
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .padding(top = 16.dp)
-                            ) {
-                                val scrollState = rememberScrollState()
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .verticalScroll(scrollState)
-                                ) {
-                                    when (selectedTab) {
-                                        HSMSimulatorConfigTabs.HSM_SETUP -> HSMSetupTab(
-                                            config = appState.currentConfig!! as HSMSimulatorConfig
-                                        ) { updatedConfig ->
-//                                            navigationController.saveConfig(updatedConfig)
-                                        }
-                                        HSMSimulatorConfigTabs.KEY_MANAGEMENT -> KeyManagementTab(
-                                            config = appState.currentConfig!! as HSMSimulatorConfig
-                                        ) { updatedConfig ->
-//                                            navigationController.saveConfig(updatedConfig)
-                                        }
-                                        HSMSimulatorConfigTabs.CRYPTO_CONFIG -> CryptoConfigTab(
-                                            config = appState.currentConfig!! as HSMSimulatorConfig
-                                        ) { updatedConfig ->
-//                                            navigationController.saveConfig(updatedConfig)
-                                        }
-                                        HSMSimulatorConfigTabs.SECURITY_POLICIES -> SecurityPoliciesTab(
-                                            config = appState.currentConfig!! as HSMSimulatorConfig
-                                        ) { updatedConfig ->
-//                                            navigationController.saveConfig(updatedConfig)
-                                        }
+                        key(changeCounter) {
+                            appState.hsmConfigs.value.forEachIndexed { index, config ->
+                                val isSelected =
+                                    index == appState.selectedConfigIndex.value[SimulatorType.HSM]
+                                HSMConfigItem(
+                                    config = config,
+                                    isSelected = isSelected,
+                                    onClick = {
+                                        onConfigSelected(config)
+                                        changeCounter += 1
                                     }
-                                }
+                                )
                             }
                         }
                     }
                 }
-            } else {
-                // Empty state when no configuration selected
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(12.dp),
-                    elevation = 2.dp,
-                    shape = RoundedCornerShape(8.dp)
+            }
+
+            // Configuration management section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = 1.dp,
+                backgroundColor = MaterialTheme.colors.surface,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Text(
+                        "Management",
+                        style = MaterialTheme.typography.subtitle2,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                        OutlinedButton(
+                            onClick = onCreateNew,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colors.primary
+                            )
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colors.primary.copy(alpha = 0.5f)
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add",
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("New", style = MaterialTheme.typography.caption)
+                        }
+
+                        OutlinedButton(
+                            onClick = onDelete,
+                            modifier = Modifier.weight(1f),
+                            enabled = appState.hsmConfigs.value.isNotEmpty(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colors.error
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Delete", style = MaterialTheme.typography.caption)
+                        }
+                    }
+
+                    Button(
+                        onClick = { /* TODO: Implement save all */ },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Save,
+                            contentDescription = "Save All",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save All Configurations")
+                    }
+                }
+            }
+
+            // Launch Simulator section
+            if (appState.currentConfig(SimulatorType.HSM) != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = 2.dp,
+                    backgroundColor = MaterialTheme.colors.secondary,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Launch",
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.White
+                            )
                             Text(
-                                "No HSM Profile Selected",
-                                style = MaterialTheme.typography.h6,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                                "Ready to Launch",
+                                style = MaterialTheme.typography.subtitle2,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        key(changeCounter) {
+
+
+                            val currentConfig =
+                                appState.currentConfig(SimulatorType.HSM) as HSMSimulatorConfig
                             Text(
-                                "Create or select an HSM configuration profile to begin",
-                                style = MaterialTheme.typography.body2,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                                "Configuration: ${currentConfig.name.ifEmpty { "Unnamed HSM" }}",
+                                style = MaterialTheme.typography.caption,
+                                color = Color.White.copy(alpha = 0.9f)
                             )
-                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text(
+                                "Vendor: ${currentConfig.vendor.displayName} ${currentConfig.model}",
+                                style = MaterialTheme.typography.caption,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+
                             Button(
-                                onClick = { onAddConfig() },
+                                onClick = onLaunch,
+                                modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = MaterialTheme.colors.primary
+                                    backgroundColor = Color.White,
+                                    contentColor = MaterialTheme.colors.secondary
                                 )
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add",
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = "Launch HSM Simulator",
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Create HSM Profile")
+                                Text(
+                                    "Launch HSM Simulator",
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -498,17 +364,17 @@ fun HSMSimulatorConfigContainer(
 }
 
 /**
- * Individual HSM configuration profile item component
+ * Enhanced HSM Configuration Item with Host Simulator styling
  */
 @Composable
-private fun HSMConfigProfileItem(
-    config: HSMSimulatorConfig, // Replace with your actual HSM config type
+fun HSMConfigItem(
+    config: HSMSimulatorConfig,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = if (isSelected) 4.dp else 1.dp,
+        elevation = 0.dp,
         backgroundColor = if (isSelected) MaterialTheme.colors.primary else MaterialTheme.colors.surface,
         shape = RoundedCornerShape(8.dp)
     ) {
@@ -518,7 +384,9 @@ private fun HSMConfigProfileItem(
             shape = RoundedCornerShape(8.dp),
             elevation = ButtonDefaults.elevation(
                 defaultElevation = 0.dp,
-                pressedElevation = 0.dp
+                pressedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                focusedElevation = 0.dp
             ),
             colors = ButtonDefaults.buttonColors(
                 backgroundColor = Color.Transparent,
@@ -540,45 +408,311 @@ private fun HSMConfigProfileItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = if (isSelected) Icons.Default.Security else Icons.Default.VpnKey,
-                            contentDescription = "HSM Profile",
+                            imageVector = if (isSelected) Icons.Default.Shield else Icons.Default.Security,
+                            contentDescription = "HSM Configuration",
                             modifier = Modifier.size(16.dp),
                             tint = if (isSelected) Color.White else MaterialTheme.colors.primary
                         )
                         Text(
-                            config.deviceInfo.deviceName,
+                            config.name.ifEmpty { "Unnamed HSM" },
                             style = MaterialTheme.typography.subtitle2,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                     }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "PKCS#11",
-                            style = MaterialTheme.typography.caption,
-                            color = if (isSelected) Color.White.copy(alpha = 0.8f) else MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+
+                    Text(
+                        "${config.vendor.displayName} ${config.model}",
+                        style = MaterialTheme.typography.caption,
+                        color = if (isSelected) Color.White.copy(alpha = 0.8f) else MaterialTheme.colors.onSurface.copy(
+                            alpha = 0.6f
                         )
+                    )
+
+                    if (config.profile.firmwareVersion.isNotEmpty()) {
                         Text(
-                            "•",
+                            "Firmware: ${config.profile.firmwareVersion}",
                             style = MaterialTheme.typography.caption,
-                            color = if (isSelected) Color.White.copy(alpha = 0.6f) else MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
-                        )
-                        Text(
-                            "24 Keys",
-                            style = MaterialTheme.typography.caption,
-                            color = if (isSelected) Color.White.copy(alpha = 0.8f) else MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            color = if (isSelected) Color.White.copy(alpha = 0.7f) else MaterialTheme.colors.onSurface.copy(
+                                alpha = 0.5f
+                            )
                         )
                     }
                 }
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "Selected",
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Status badge
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSelected) Color.White.copy(alpha = 0.2f) else config.status.color,
+                        modifier = Modifier.padding(2.dp)
+                    ) {
+                        Text(
+                            text = config.status.displayName,
+                            style = MaterialTheme.typography.caption,
+                            color = if (isSelected) Color.White else Color.White,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Selected",
+                            modifier = Modifier.size(18.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Enhanced Empty Configuration Panel to match Host Simulator style
+ */
+@Composable
+fun EmptyConfigurationPanel(
+    onCreateNew: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(12.dp),
+        elevation = 2.dp,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colors.primary.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "No Configuration Selected",
+                    style = MaterialTheme.typography.h6,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Create or select a configuration to start editing",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onCreateNew,
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = MaterialTheme.colors.primary
                     )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Create Configuration")
+                }
+            }
+        }
+    }
+}
+
+
+/**
+ * Right Panel - Configuration Editor
+ */
+@Composable
+fun HSMConfigEditorPanel(
+    config: HSMSimulatorConfig,
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    onConfigUpdated: (HSMSimulatorConfig) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tabs = listOf(
+        "Profile" to Icons.Default.Memory,
+        "Network" to Icons.Default.NetworkWifi,
+        "Security" to Icons.Default.Security,
+        "Performance" to Icons.Default.Speed,
+        "Keys" to Icons.Default.VpnKey,
+        "Advanced" to Icons.Default.Settings
+    )
+
+    Card(
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(12.dp),
+        elevation = 2.dp,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Tab selection - matching host simulator right panel design
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    backgroundColor = MaterialTheme.colors.surface,
+                    contentColor = MaterialTheme.colors.primary,
+                    divider = {
+                        Divider(
+                            color = BorderLight,
+                            thickness = 1.dp
+                        )
+                    }
+                ) {
+                    tabs.forEachIndexed { index, (title, icon) ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { onTabSelected(index) },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        title,
+                                        fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                                        style = MaterialTheme.typography.caption
+                                    )
+                                }
+                            },
+                            selectedContentColor = MaterialTheme.colors.primary,
+                            unselectedContentColor = MaterialTheme.colors.onSurface.copy(
+                                alpha = 0.7f
+                            )
+                        )
+                    }
+                }
+
+                // Tab content - matching host simulator scroll behavior exactly
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    val scrollState = rememberScrollState()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                    ) {
+                        when (selectedTab) {
+                            0 -> HSMProfileTab(config = config) {
+                                onConfigUpdated(it)
+                            }
+
+                            1 -> NetworkConfigTab(config.network) {
+                                onConfigUpdated(config.copy(network = it))
+                            }
+
+                            2 -> SecurityConfigTab(config.security) {
+                                onConfigUpdated(config.copy(security = it))
+                            }
+
+                            3 -> PerformanceConfigTab(config.performance) {
+                                onConfigUpdated(config.copy(performance = it))
+                            }
+
+//                            4 -> KeyManagementTab(config) { updatedConfig ->
+//                                onConfigUpdated(updatedConfig)
+//                            }
+
+//                            5 -> AdvancedConfigTab(config) { updatedConfig ->
+//                                onConfigUpdated(updatedConfig)
+//                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// ============================================================================
+// TAB IMPLEMENTATIONS (PLACEHOLDERS)
+// ============================================================================
+
+@Composable
+fun SecurityConfigTab(
+    security: SecurityConfig,
+    onUpdate: (SecurityConfig) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "Security Configuration",
+            style = MaterialTheme.typography.h6,
+            fontWeight = FontWeight.Bold
+        )
+
+        Card(elevation = 1.dp) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Authentication", style = MaterialTheme.typography.subtitle1)
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = security.authenticationRequired,
+                        onCheckedChange = { onUpdate(security.copy(authenticationRequired = it)) }
+                    )
+                    Text("Require Authentication")
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = security.auditEnabled,
+                        onCheckedChange = { onUpdate(security.copy(auditEnabled = it)) }
+                    )
+                    Text("Enable Audit Trail")
+                }
+
+                Text("Encryption Level", style = MaterialTheme.typography.subtitle2)
+                EncryptionLevel.values().forEach { level ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = security.encryptionLevel == level,
+                            onClick = { onUpdate(security.copy(encryptionLevel = level)) }
+                        )
+                        Text(level.name, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        }
+
+        Card(elevation = 1.dp) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Compliance Frameworks", style = MaterialTheme.typography.subtitle1)
+
+                security.complianceFrameworks.forEach { framework ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = true, // TODO: Connect to actual state
+                            onCheckedChange = { /* TODO: Implement */ }
+                        )
+                        Text(framework, modifier = Modifier.padding(start = 8.dp))
+                    }
                 }
             }
         }
@@ -586,64 +720,48 @@ private fun HSMConfigProfileItem(
 }
 
 @Composable
-private fun HSMStatusChip(
-    label: String,
-    count: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+fun PerformanceConfigTab(
+    performance: PerformanceConfig,
+    onUpdate: (PerformanceConfig) -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = Color.White.copy(alpha = 0.2f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(12.dp),
-                tint = Color.White
-            )
-            Text(
-                "$count $label",
-                style = MaterialTheme.typography.caption,
-                color = Color.White,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    }
-}
-
-
-
-
-@Composable
-private fun MonitoringTab(config: Any, onConfigUpdate: (Any) -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            "Monitoring Configuration",
+            "Performance Configuration",
             style = MaterialTheme.typography.h6,
             fontWeight = FontWeight.Bold
         )
-        Text(
-            "Configure logging, auditing, and performance monitoring settings",
-            style = MaterialTheme.typography.body2,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-        )
-        // Add monitoring specific UI components here
-    }
-}
 
-/**
- * Extension function to set the cursor for horizontal resize
- */
-fun Modifier.cursorForHorizontalResize(): Modifier = composed {
-    val interactionSource = remember { MutableInteractionSource() }
-    this.hoverable(interactionSource)
-        .pointerHoverIcon(PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR)))
+        Card(elevation = 1.dp) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Throughput Settings", style = MaterialTheme.typography.subtitle1)
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = performance.maxTPS.toString(),
+                        onValueChange = {
+                            it.toIntOrNull()?.let { tps ->
+                                onUpdate(performance.copy(maxTPS = tps))
+                            }
+                        },
+                        label = { Text("Max TPS") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = performance.responseTimeTarget.toString(),
+                        onValueChange = {
+                            it.toIntOrNull()?.let { target ->
+                                onUpdate(performance.copy(responseTimeTarget = target))
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
 }

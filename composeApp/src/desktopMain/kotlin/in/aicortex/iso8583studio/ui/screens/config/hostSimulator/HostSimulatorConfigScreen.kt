@@ -22,7 +22,7 @@ fun HostSimulatorConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    appState.selectedSimulatorType = SimulatorType.HOST
+
     Column {
         AppBarWithBack(
             title = "Host Simulator Configuration",
@@ -40,11 +40,11 @@ fun HostSimulatorConfigScreen(
                 )
             },
             onDeleteConfig = {
-                appState.currentConfig?.id?.let { appState.deleteConfig(it) }
+                appState.currentConfig(SimulatorType.HOST)?.id?.let { appState.deleteConfig(it) }
             },
             onSaveAllConfigs = {
                 appState.updateConfig(
-                    (appState.currentConfig as GatewayConfig).copy(
+                    (appState.currentConfig(SimulatorType.HOST) as GatewayConfig).copy(
                         modifiedDate = System.currentTimeMillis()
                     )
                 )

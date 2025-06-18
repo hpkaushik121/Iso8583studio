@@ -4,7 +4,7 @@ package `in`.aicortex.iso8583studio.data
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry

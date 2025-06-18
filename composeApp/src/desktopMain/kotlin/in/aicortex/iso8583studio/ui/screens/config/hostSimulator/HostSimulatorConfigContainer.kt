@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
+import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
@@ -161,7 +162,7 @@ fun HostSimulatorConfigContainer(
                                     }
                                 } else {
                                     appState.hostConfigs.value.forEachIndexed { index, config ->
-                                        val isSelected = index == appState.selectedConfigIndex
+                                        val isSelected = index == appState.selectedConfigIndex.value[SimulatorType.HOST]
                                         HostSimulatorConfigItem(
                                             config = config,
                                             isSelected = isSelected,
@@ -216,7 +217,7 @@ fun HostSimulatorConfigContainer(
                                         onClick = { onDeleteConfig()
                                                   changeCount+=1},
                                         modifier = Modifier.weight(1f),
-                                        enabled = appState.selectedConfigIndex >= 0,
+                                        enabled = appState.selectedConfigIndex.value[SimulatorType.HOST]!! >= 0,
                                         colors = ButtonDefaults.outlinedButtonColors(
                                             contentColor = MaterialTheme.colors.error
                                         )
@@ -250,7 +251,7 @@ fun HostSimulatorConfigContainer(
                         }
 
                         // Launch Simulator section
-                        if (appState.currentConfig != null) {
+                        if (appState.currentConfig(SimulatorType.HOST) != null) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = 2.dp,
@@ -280,7 +281,7 @@ fun HostSimulatorConfigContainer(
                                     }
 
                                     Text(
-                                        "Configuration: ${appState.currentConfig?.name}",
+                                        "Configuration: ${appState.currentConfig(SimulatorType.HOST)?.name}",
                                         style = MaterialTheme.typography.caption,
                                         color = Color.White.copy(alpha = 0.9f)
                                     )
@@ -345,7 +346,7 @@ fun HostSimulatorConfigContainer(
                 }
 
                 // Right panel - Configuration Editor
-                if (appState.hostConfigs.value.isNotEmpty() && appState.currentConfig != null) {
+                if (appState.hostConfigs.value.isNotEmpty() && appState.currentConfig(SimulatorType.HOST) != null) {
                     Card(
                         modifier = Modifier
                             .weight(1f)
@@ -402,19 +403,19 @@ fun HostSimulatorConfigContainer(
                                     ) {
                                         when (selectedTab) {
                                             HostSimulatorConfigTabs.GATEWAY_TYPE -> GatewayTypeTab(
-                                                config = appState.currentConfig!! as GatewayConfig
+                                                config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
                                             ) { updatedConfig ->
                                                 appState.updateConfig(updatedConfig)
                                             }
 
                                             HostSimulatorConfigTabs.TRANSMISSION_SETTINGS -> TransmissionSettingsTab(
-                                                config = appState.currentConfig!! as GatewayConfig
+                                                config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
                                             ) { updatedConfig ->
                                                 appState.updateConfig(updatedConfig)
                                             }
 
                                             HostSimulatorConfigTabs.LOG_SETTINGS -> LogSettingsTab(
-                                                config = appState.currentConfig!! as GatewayConfig
+                                                config = appState.currentConfig(SimulatorType.HOST)!! as GatewayConfig
                                             ) { updatedConfig ->
                                                 appState.updateConfig(updatedConfig)
                                             }

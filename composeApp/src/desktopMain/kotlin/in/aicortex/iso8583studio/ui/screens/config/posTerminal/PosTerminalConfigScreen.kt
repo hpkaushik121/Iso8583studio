@@ -17,7 +17,7 @@ fun PosTerminalConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    appState.selectedSimulatorType = SimulatorType.POS
+//    appState.selectedSimulatorType = SimulatorType.POS
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -30,7 +30,7 @@ fun PosTerminalConfigScreen(
             appState = appState,
             onSaveAllConfigs = {
                 appState.updateConfig(
-                    (appState.currentConfig as POSSimulatorConfig).copy(
+                    (appState.currentConfig(SimulatorType.POS) as POSSimulatorConfig).copy(
                         modifiedDate = System.currentTimeMillis()
                     )
                 )
@@ -40,7 +40,7 @@ fun PosTerminalConfigScreen(
                 navigationController.navigateTo(Destination.POSTerminal)
             },
             onDeleteConfig = {
-                appState.currentConfig?.id?.let { appState.deleteConfig(it) }
+                appState.currentConfig(SimulatorType.POS)?.id?.let { appState.deleteConfig(it) }
             },
             onAddConfig = {
                 appState.addConfig(

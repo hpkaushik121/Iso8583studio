@@ -31,7 +31,7 @@ import `in`.aicortex.iso8583studio.data.model.AddtionalOption
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.model.GatewayType
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.EMVTag
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.ui.ErrorRed

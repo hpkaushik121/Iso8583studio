@@ -14,7 +14,7 @@ fun IssuerSystemConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    appState.selectedSimulatorType = SimulatorType.ISSUER
+//    appState.selectedSimulatorType = SimulatorType.ISSUER
     Scaffold(
         topBar = {
             AppBarWithBack(

@@ -2,13 +2,10 @@ package `in`.aicortex.iso8583studio.ui.screens.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
@@ -33,16 +30,11 @@ import androidx.compose.ui.window.rememberDialogState
 import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.model.CodeFormat
-import `in`.aicortex.iso8583studio.domain.service.ExecutionProgressCallback
-import `in`.aicortex.iso8583studio.domain.service.ExecutionResult
-import `in`.aicortex.iso8583studio.domain.service.ISO8583MethodExecutor
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.ExecutionProgressCallback
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.ExecutionResult
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.ISO8583MethodExecutor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import java.time.LocalDateTime
 
 data class FieldMapping(
     val bitNumber: Int,

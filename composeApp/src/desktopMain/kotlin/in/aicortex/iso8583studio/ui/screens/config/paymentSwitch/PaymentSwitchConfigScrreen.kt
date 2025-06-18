@@ -14,7 +14,7 @@ fun PaymentSwitchConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    appState.selectedSimulatorType = SimulatorType.SWITCH
+//    appState.selectedSimulatorType = SimulatorType.SWITCH
     Scaffold(
         topBar = {
             AppBarWithBack(

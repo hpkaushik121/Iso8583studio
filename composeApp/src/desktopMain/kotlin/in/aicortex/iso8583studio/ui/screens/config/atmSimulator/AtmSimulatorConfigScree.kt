@@ -14,7 +14,7 @@ fun AtmSimulatorConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    appState.selectedSimulatorType = SimulatorType.ATM
+//    appState.selectedSimulatorType = SimulatorType.ATM
     Scaffold(
         topBar = {
             AppBarWithBack(

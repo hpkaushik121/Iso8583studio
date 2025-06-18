@@ -6,7 +6,7 @@ import `in`.aicortex.iso8583studio.data.model.LoggingOption
 import `in`.aicortex.iso8583studio.data.model.ObscureType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 
 

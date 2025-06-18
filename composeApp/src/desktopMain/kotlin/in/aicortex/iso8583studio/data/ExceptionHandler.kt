@@ -4,7 +4,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.CardServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
 import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
 
@@ -54,6 +55,39 @@ class IsoCoroutine(val gatewayServiceImpl: GatewayServiceImpl?,override val coro
     }
 }
 
+class CardCoroutine(val cardServiceImpl: CardServiceImpl?,override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.IO) : CoroutineScope {
+    var onError: ((Throwable) -> Unit)? = null
+    fun launchSafely(
+         onError: ((Throwable) -> Unit)? = null,
+        block: suspend CoroutineScope.() -> Unit
+    ): Job {
+        this@CardCoroutine.onError = onError
+        return launch(context = coroutineContext) {
+            try {
+                block()
+            } catch (e: Throwable) {
+                e.printStackTrace()
+                onException(e)
+            }
+        }
+    }
+
+    fun onException(e: Throwable){
+
+        onError?.let {
+            it(e)
+        } ?: run {
+            cardServiceImpl?.showError {
+                Text("Error: ${e.message}")
+            }
+        }
+    }
+
+    fun cancel() {
+        coroutineContext.cancelChildren()
+    }
+}
+
 
 @Composable
 fun rememberIsoCoroutineScope(gatewayServiceImpl: GatewayServiceImpl): IsoCoroutine {
@@ -63,6 +97,19 @@ fun rememberIsoCoroutineScope(gatewayServiceImpl: GatewayServiceImpl): IsoCorout
     return remember {
         IsoCoroutine(
             gatewayServiceImpl,
+            scope.coroutineContext + SupervisorJob()
+        )
+    }
+}
+
+@Composable
+fun rememberCardCoroutineScope(cardServiceImpl: CardServiceImpl): CardCoroutine {
+
+    val scope = rememberCoroutineScope()
+
+    return remember {
+        CardCoroutine(
+            cardServiceImpl,
             scope.coroutineContext + SupervisorJob()
         )
     }

@@ -23,6 +23,7 @@ import `in`.aicortex.iso8583studio.ui.screens.Emv.sda.SdaScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging.MastercardSecureMessagingScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging.VisaSecureMessagingScreen
 import `in`.aicortex.iso8583studio.ui.screens.HomeScreenViewModel
+import `in`.aicortex.iso8583studio.ui.screens.apduSimulator.APDUSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.apduquery.ApduResponseQueryScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.AesCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.DesCalculatorScreen
@@ -137,7 +138,7 @@ sealed class Destination : Screen {
             appState.value.window?.let {
                 HostSimulatorScreen(
                     window = it,
-                    config = appState.value.currentConfig as GatewayConfig,
+                    config = appState.value.currentConfig(SimulatorType.HOST) as GatewayConfig,
                     navigationController = navigationController,
                     onBack = { navigationController.goBack() },
                     onError = appState.value.resultDialogInterface!!,
@@ -641,7 +642,7 @@ sealed class Destination : Screen {
             appState.value.window?.let {
                 POSTerminalSimulatorScreen(
                     window = it,
-                    config = appState.value.currentConfig as POSSimulatorConfig,
+                    config = appState.value.currentConfig(SimulatorType.POS) as POSSimulatorConfig,
                     onBack = { navigationController.goBack() },
                     onSaveClick = { appState.value.save() }
                 )
@@ -757,7 +758,17 @@ sealed class Destination : Screen {
     object ApduSimulator : Screen {
         @Composable
         override fun Content() {
-            // TODO: Implement ApduSimulator Screen
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            appState.value.window?.let {
+                APDUSimulatorScreen(
+                    window = it,
+                    config = appState.value.currentConfig(SimulatorType.APDU) as APDUSimulatorConfig,
+                    onBack = { navigationController.goBack() },
+                    onSaveClick = { appState.value.save() },
+                    onError = appState.value.resultDialogInterface,
+                    navigationController = navigationController
+                )
+            }
         }
     }
 }

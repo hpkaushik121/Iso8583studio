@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio.domain.service
+package `in`.aicortex.iso8583studio.domain.service.hostSimulatorService
 
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig

@@ -12,23 +12,21 @@ import `in`.aicortex.iso8583studio.data.model.EDialupStatus
 import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import `in`.aicortex.iso8583studio.data.model.GatewayMessageType
 import `in`.aicortex.iso8583studio.data.model.GatewayType
-import `in`.aicortex.iso8583studio.data.model.HttpInfo
 import `in`.aicortex.iso8583studio.data.model.LoggingOption
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
-import `in`.aicortex.iso8583studio.data.model.SignatureChecking
 import `in`.aicortex.iso8583studio.data.model.SpecialFeature
 import `in`.aicortex.iso8583studio.data.model.TransactionStatus
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToBin
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToString
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bytesCopy
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.getBytesFromBytes
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.intToMessageLength
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.messageLengthToInt
-import `in`.aicortex.iso8583studio.domain.service.SimulatedResponse
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.SimulatedResponse
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
@@ -44,14 +42,10 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import org.apache.commons.logging.Log
 import java.net.Socket
 import java.net.SocketException
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import kotlin.collections.getValue
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 class GatewayClient {

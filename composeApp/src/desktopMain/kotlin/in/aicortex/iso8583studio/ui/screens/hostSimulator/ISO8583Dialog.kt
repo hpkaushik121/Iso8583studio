@@ -37,7 +37,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import `in`.aicortex.iso8583studio.data.BitAttribute
-import `in`.aicortex.iso8583studio.domain.service.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
 
 /**
  * Main composable for ISO8583 message editor dialog

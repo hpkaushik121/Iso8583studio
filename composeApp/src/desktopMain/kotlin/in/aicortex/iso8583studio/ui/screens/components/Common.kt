@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
@@ -32,7 +33,9 @@ fun SectionHeader(
         Text(
             text = title,
             style = MaterialTheme.typography.h6,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
 
         if (actionContent != null) {

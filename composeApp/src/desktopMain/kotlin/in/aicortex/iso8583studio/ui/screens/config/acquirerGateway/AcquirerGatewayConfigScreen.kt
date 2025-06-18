@@ -14,7 +14,7 @@ fun AcquiringGatewayConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    appState.selectedSimulatorType = SimulatorType.ACQUIRER
+    // SimulatorType.ACQUIRER
     Scaffold(
         topBar = {
             AppBarWithBack(

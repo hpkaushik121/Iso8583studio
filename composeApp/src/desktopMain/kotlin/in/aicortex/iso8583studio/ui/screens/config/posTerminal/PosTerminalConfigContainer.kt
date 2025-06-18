@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.navigation.POSSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.navigation.PaymentMethod
+import `in`.aicortex.iso8583studio.ui.navigation.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.themedScrollbarStyle
 import org.springframework.util.Assert.state
@@ -89,17 +90,17 @@ fun POSSimulatorConfigContainer(
             }
 
             // Right Panel - Configuration Editor
-            if(appState.posConfigs.value.isNotEmpty() && appState.currentConfig != null){
+            if (appState.posConfigs.value.isNotEmpty() && appState.currentConfig(SimulatorType.POS) != null) {
                 ConfigEditorPanel(
                     modifier = Modifier.weight(1f),
-                    currentConfig = appState.currentConfig as POSSimulatorConfig,
+                    currentConfig = appState.currentConfig(SimulatorType.POS) as POSSimulatorConfig,
                     tabs = tabs,
                     selectedTab = selectedTab,
                     onTabSelected = { selectedTab = it },
                     onAddConfig = onAddConfig,
                     onConfigUpdate = onConfigUpdate
                 )
-            }else{
+            } else {
                 // Empty state when no configuration selected
                 Card(
                     modifier = Modifier
@@ -148,7 +149,7 @@ fun POSSimulatorConfigContainer(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Create HSM Profile")
+                                Text("Create POS Terminal Profile")
                             }
                         }
                     }
@@ -227,12 +228,18 @@ private fun ConfigProfilePanel(
                     if (appState.posConfigs.value.isEmpty()) {
                         EmptyProfileListPrompt()
                     } else {
-                        appState.posConfigs.value.forEachIndexed { index, config ->
-                            POSConfigProfileItem(
-                                config = config,
-                                isSelected = index == appState.selectedConfigIndex,
-                                onClick = { onSelectConfig(config) }
-                            )
+                        var changeCounter by remember { mutableStateOf(0) }
+                        key(changeCounter) {
+                            appState.posConfigs.value.forEachIndexed { index, config ->
+                                POSConfigProfileItem(
+                                    config = config,
+                                    isSelected = index == appState.selectedConfigIndex.value[SimulatorType.POS],
+                                    onClick = {
+                                        onSelectConfig(config)
+                                        changeCounter += 1
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -249,15 +256,15 @@ private fun ConfigProfilePanel(
                     onAddConfig = onAddConfig,
                     onDeleteConfig = onDeleteConfig,
                     onSaveAllConfigs = onSaveAllConfigs,
-                    isDeleteEnabled = appState.selectedConfigIndex >= 0
+                    isDeleteEnabled = appState.selectedConfigIndex.value[SimulatorType.POS]!! >= 0
                 )
             }
 
 
             // Launch Section
-            if (appState.currentConfig != null) {
+            if (appState.currentConfig(SimulatorType.POS) != null) {
                 LaunchSimulatorCard(
-                    configName = (appState.currentConfig!! as POSSimulatorConfig).name,
+                    configName = (appState.currentConfig(SimulatorType.POS)!! as POSSimulatorConfig).name,
                     onLaunchSimulator = onLaunchSimulator
                 )
             }
@@ -310,7 +317,12 @@ private fun POSConfigProfileItem(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
-            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
+            elevation = ButtonDefaults.elevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+                hoveredElevation = 0.dp,
+                focusedElevation = 0.dp
+            ),
             colors = ButtonDefaults.buttonColors(
                 backgroundColor = Color.Transparent,
                 contentColor = if (isSelected) Color.White else MaterialTheme.colors.onSurface

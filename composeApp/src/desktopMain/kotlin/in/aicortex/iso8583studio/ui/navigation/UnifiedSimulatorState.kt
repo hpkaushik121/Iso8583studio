@@ -1,8 +1,15 @@
 package `in`.aicortex.iso8583studio.ui.navigation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cable
+import androidx.compose.material.icons.filled.Http
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
@@ -10,6 +17,8 @@ import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.data.model.ConnectionStatus
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.domain.ImportResult
+import `in`.aicortex.iso8583studio.domain.utils.ApduUtil
+import `in`.aicortex.iso8583studio.ui.screens.config.apduSimulator.ProfileStatus
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -19,6 +28,8 @@ import kotlinx.serialization.modules.subclass
 import java.awt.SystemColor
 import java.io.File
 import java.nio.file.Files
+import java.util.UUID
+import kotlin.String
 import kotlin.random.Random
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -81,11 +92,12 @@ data class HSMSimulatorConfig(
 
     // HSM-specific properties
     val slotCount: Int = 8,
+    val maxSessions: Int = 8,
     val pkcs11Compliance: Boolean = true,
     val fipsLevel: FIPSLevel = FIPSLevel.LEVEL_2,
     val supportedAlgorithms: List<CryptoAlgorithm> = emptyList(),
     val keyStorage: KeyStorageConfig = KeyStorageConfig(),
-    val authenticationPolicy: AuthenticationPolicy = AuthenticationPolicy(),
+    val authenticationPolicy: AuthenticationPolicy = AuthenticationPolicy.PASSWORD,
     val auditConfig: AuditConfig = AuditConfig(),
     val performanceSettings: PerformanceSettings = PerformanceSettings(),
 
@@ -95,10 +107,137 @@ data class HSMSimulatorConfig(
     val securitySettings: SecuritySettings = SecuritySettings(),
     val initializationSettings: InitializationSettings = InitializationSettings(),
     val complianceSettings: ComplianceSettings = ComplianceSettings(),
-    val networkSettings: NetworkSettings = NetworkSettings(),
     val cryptoConfig: CryptoConfig = CryptoConfig(),
-    val securityPolicies: SecurityPolicies = SecurityPolicies()
+    val securityPolicies: SecurityPolicies = SecurityPolicies(),
+
+    val vendor: HSMVendor = HSMVendor.THALES,
+    val model: String = "",
+    val status: HSMStatus = HSMStatus.INACTIVE,
+    val profile: HSMProfile = HSMProfile(),
+    val network: NetworkConfig = NetworkConfig(),
+    val security: SecurityConfig = SecurityConfig(),
+    val performance: PerformanceConfig = PerformanceConfig(),
+    val keyManagement: KeyManagementConfig = KeyManagementConfig(),
+    val advanced: AdvancedConfig = AdvancedConfig(),
+    val operatingMode: OperatingMode = OperatingMode.MAINTENANCE
 ) : SimulatorConfig
+
+
+/**
+ * HSM Vendor enumeration
+ */
+@Serializable
+enum class HSMVendor(val displayName: String, val models: List<String>) {
+    THALES("Thales", listOf("payShield 9000", "payShield 10K")),
+    SAFENET("SafeNet Luna", listOf("Network Attached", "PCIe", "USB")),
+    UTIMACO("Utimaco CryptoServer", listOf("Se", "CP5")),
+    FUTUREX("Futurex Excrypt", listOf("KMES", "VirtuCrypt")),
+    NCIPHER("nCipher nShield", listOf("Connect", "Solo", "Edge")),
+    GENERIC("Generic/Custom HSM", listOf("Custom Model"))
+}
+
+/**
+ * HSM Status enumeration
+ */
+@Serializable
+enum class HSMStatus(val displayName: String, val color: Color) {
+    ACTIVE("Active", Color(0xFF4CAF50)),
+    INACTIVE("Inactive", Color(0xFF9E9E9E)),
+    ERROR("Error", Color(0xFFF44336)),
+    WARNING("Warning", Color(0xFFFF9800)),
+    STARTING("Starting", Color(0xFF2196F3)),
+    STOPPING("Stopping", Color(0xFFFF5722))
+}
+
+/**
+ * HSM Profile configuration
+ */
+@Serializable
+data class HSMProfile(
+    val firmwareVersion: String = "1.0.0",
+    val operatingMode: OperatingMode = OperatingMode.MAINTENANCE,
+    val supportedCommands: List<HSMCommand> = emptyList(),
+    val capabilities: Set<HSMCapability> = setOf<HSMCapability>()
+)
+
+
+/**
+ * Security configuration
+ */
+@Serializable
+data class SecurityConfig(
+    val authenticationRequired: Boolean = true,
+    val encryptionLevel: EncryptionLevel = EncryptionLevel.HIGH,
+    val auditEnabled: Boolean = true,
+    val complianceFrameworks: List<String> = listOf("FIPS-140-2")
+)
+
+/**
+ * Performance configuration
+ */
+@Serializable
+data class PerformanceConfig(
+    val maxTPS: Int = 1000,
+    val responseTimeTarget: Int = 100,
+    val threadPoolSize: Int = 10,
+    val enableMetrics: Boolean = true
+)
+
+/**
+ * Key management configuration
+ */
+@Serializable
+data class KeyManagementConfig(
+    val maxKeys: Int = 10000,
+    val keyStoreType: String = "PKCS11",
+    val supportedAlgorithms: List<String> = listOf("AES", "RSA", "ECC")
+)
+
+/**
+ * Advanced configuration
+ */
+@Serializable
+data class AdvancedConfig(
+    val debugMode: Boolean = false,
+    val verboseLogging: Boolean = false,
+    val pluginsEnabled: Boolean = false
+)
+
+/**
+ * Supporting enums and data classes
+ */
+@Serializable
+enum class OperatingMode(val displayName: String) {
+    INITIALIZATION("Initialization"),
+    OPERATIONAL("Operational"),
+    MAINTENANCE("Maintenance"),
+    SECURE_TRANSPORT("Secure Transport")
+}
+@Serializable
+enum class ConnectionType { TCP_IP, SERIAL, REST_API, WEBSOCKET }
+@Serializable
+enum class EncryptionLevel { LOW, MEDIUM, HIGH, MAXIMUM }
+
+@Serializable
+enum class HSMCapability(val displayName: String) {
+    SYMMETRIC_CRYPTO("Symmetric Cryptography"),
+    ASYMMETRIC_CRYPTO("Asymmetric Cryptography"),
+    HASH_FUNCTIONS("Hash Functions"),
+    RANDOM_NUMBER_GEN("Random Number Generation"),
+    KEY_DERIVATION("Key Derivation"),
+    DIGITAL_SIGNING("Digital Signing"),
+    SSL_TLS_ACCELERATION("SSL/TLS Acceleration"),
+    CODE_SIGNING("Code Signing"),
+    DATABASE_ENCRYPTION("Database Encryption"),
+    PAYMENT_PROCESSING("Payment Processing")
+}
+@Serializable
+data class HSMCommand(
+    val code: String,
+    val name: String,
+    val category: String
+)
+
 
 
 @Serializable
@@ -115,6 +254,7 @@ data class SecurityPolicies(
         HSMUser("user", "Crypto User")
     )
 )
+
 @Serializable
 data class HSMUser(val username: String, val role: String)
 
@@ -162,9 +302,19 @@ data class SecuritySettings(
     val pinRetryLimit: Int = 3,
     val minPinLength: Int = 4,
     val maxPinLength: Int = 8,
-    val tamperResistance: Boolean = true,
+    val tamperResistance: TamperResistanceLevel = TamperResistanceLevel.FIPS_140_2_LEVEL_2,
     val secureMessaging: Boolean = true
 )
+
+@Serializable
+enum class TamperResistanceLevel(val displayName: String) {
+    FIPS_140_2_LEVEL_1("FIPS 140-2 Level 1"),
+    FIPS_140_2_LEVEL_2("FIPS 140-2 Level 2"),
+    FIPS_140_2_LEVEL_3("FIPS 140-2 Level 3"),
+    FIPS_140_2_LEVEL_4("FIPS 140-2 Level 4"),
+    COMMON_CRITERIA_EAL4("Common Criteria EAL4+"),
+    COMMON_CRITERIA_EAL5("Common Criteria EAL5+")
+}
 
 @Serializable
 data class InitializationSettings(
@@ -186,16 +336,117 @@ data class ComplianceSettings(
 )
 
 @Serializable
-data class NetworkSettings(
-    val enableNetworkAccess: Boolean = true,
-    val bindAddress: String = "127.0.0.1",
-    val port: Int = 9999,
-    val maxConnections: Int = 10,
-    val connectionTimeout: Int = 30,
-    val enableSSL: Boolean = false,
-    val sslCertPath: String = "",
-    val sslKeyPath: String = ""
+data class NetworkConfig(
+    val connectionType: ConnectionType = ConnectionType.TCP_IP,
+    val ipAddress: String = "127.0.0.1",
+    val port: Int = 8080,
+    val bindAddress: String = "0.0.0.0",
+    val sslTlsConfig: SSLTLSConfig = SSLTLSConfig(),
+    val performanceSettings: PerformanceSettings = PerformanceSettings(),
+    val protocolSettings: ProtocolSettings = ProtocolSettings(),
+    val serialConfig: SerialConfig = SerialConfig(),
+    val restApiConfig: RestApiConfig = RestApiConfig(),
+    val webSocketConfig: WebSocketConfig = WebSocketConfig()
 )
+
+
+
+@Serializable
+enum class SSLTLSVersion(val displayName: String) {
+    TLS_1_0("TLS 1.0"),
+    TLS_1_1("TLS 1.1"),
+    TLS_1_2("TLS 1.2"),
+    TLS_1_3("TLS 1.3"),
+    SSL_3_0("SSL 3.0 (Legacy)")
+}
+@Serializable
+enum class CertificateType(val displayName: String) {
+    X509("X.509 Certificate"),
+    PKCS12("PKCS#12 Bundle"),
+    PEM("PEM Format"),
+    DER("DER Format"),
+    JKS("Java KeyStore")
+}
+@Serializable
+enum class CompressionType(val displayName: String) {
+    NONE("None"),
+    GZIP("GZIP"),
+    DEFLATE("Deflate"),
+    LZ4("LZ4"),
+    SNAPPY("Snappy")
+}
+@Serializable
+enum class MessageFraming(val displayName: String) {
+    LENGTH_PREFIX("Length Prefix"),
+    DELIMITER_BASED("Delimiter Based"),
+    FIXED_LENGTH("Fixed Length"),
+    HTTP_CHUNKED("HTTP Chunked"),
+    WEBSOCKET_FRAMES("WebSocket Frames")
+}
+@Serializable
+enum class ProtocolVersion(val displayName: String) {
+    HTTP_1_0("HTTP/1.0"),
+    HTTP_1_1("HTTP/1.1"),
+    HTTP_2_0("HTTP/2.0"),
+    HTTP_3_0("HTTP/3.0"),
+    WEBSOCKET_13("WebSocket RFC 6455"),
+    CUSTOM("Custom Protocol")
+}
+@Serializable
+data class SSLTLSConfig(
+    val enabled: Boolean = false,
+    val version: SSLTLSVersion = SSLTLSVersion.TLS_1_2,
+    val certificateType: CertificateType = CertificateType.X509,
+    val certificatePath: String = "",
+    val privateKeyPath: String = "",
+    val keyStorePassword: String = "",
+    val trustStoreEnabled: Boolean = false,
+    val trustStorePath: String = "",
+    val clientAuthRequired: Boolean = false,
+    val cipherSuites: Set<String> = emptySet()
+)
+
+@Serializable
+data class ProtocolSettings(
+    val messageFraming: MessageFraming = MessageFraming.LENGTH_PREFIX,
+    val protocolVersion: ProtocolVersion = ProtocolVersion.HTTP_1_1,
+    val customHeaders: Map<String, String> = emptyMap(),
+    val compressionType: CompressionType = CompressionType.NONE,
+    val compressionLevel: Int = 6,
+    val messageDelimiter: String = "\n",
+    val fixedMessageLength: Int = 1024,
+    val lengthFieldSize: Int = 4,
+    val lengthFieldOffset: Int = 0
+)
+@Serializable
+data class SerialConfig(
+    val portName: String = "COM1",
+    val baudRate: Int = 115200,
+    val dataBits: Int = 8,
+    val stopBits: Int = 1,
+    val parity: String = "NONE",
+    val flowControl: String = "NONE"
+)
+
+
+@Serializable
+data class RestApiConfig(
+    val baseUrl: String = "",
+    val apiVersion: String = "v1",
+    val authType: String = "Bearer",
+    val apiKey: String = "",
+    val rateLimitRpm: Int = 1000,
+    val retryAttempts: Int = 3
+)
+@Serializable
+data class WebSocketConfig(
+    val subProtocols: List<String> = emptyList(),
+    val maxFrameSize: Int = 65536,
+    val pingIntervalMs: Int = 30000,
+    val closeTimeoutMs: Int = 5000
+)
+
+
 
 /**
  * APDU Simulator Configuration
@@ -204,21 +455,103 @@ data class NetworkSettings(
 data class APDUSimulatorConfig(
     override val id: String,
     override val name: String,
-    override val description: String,
+    override val description: String = "",
     override val simulatorType: SimulatorType = SimulatorType.APDU,
     override val enabled: Boolean = true,
-    override val createdDate: Long,
-    override val modifiedDate: Long,
+    override val createdDate: Long = System.currentTimeMillis(),
+    override val modifiedDate: Long = System.currentTimeMillis(),
     override val version: String = "1.0",
 
     // APDU-specific properties
-    val cardType: CardType = CardType.EMV,
+    val cardType: CardType = CardType.EMV_CONTACT,
     val atr: String = "3B9F95801FC78031E073FE211B63004C45544F4E",
     val applications: List<CardApplication> = emptyList(),
-    val fileSystem: CardFileSystem,
-    val securityDomain: SecurityDomain,
-    val scriptCommands: List<APDUScript> = emptyList()
+    val fileSystem: CardFileSystem = CardFileSystem(),
+    val securityDomain: SecurityDomain = SecurityDomain(),
+    val scriptCommands: List<APDUScript> = emptyList(),
+
+    val connectionInterface: ConnectionInterface,
+    val readerName: String = "",
+    val applicationAid: String = "",
+    val maxSessionTime: Int = 300,
+    val logFileName: String = "card_simulator.log",
+    val maxLogSizeInMB: Int = 10,
+    val tlvTemplate: Map<String, String> = emptyMap(),
+    val apduCommandSet: List<ApduCommand> = emptyList(),
+    var emvVersion: String = "EMV 4.3",
+    var cardNumber: String = "",
+    var expiryDate: String = "", // MM/YY format
+    var cvv: String = "",
+    var cardholderName: String = "",
+    // Status
+    var status: ProfileStatus,
+    var isTestProfile: Boolean = false,
+    var inUse: Boolean = false,
+    // Interface Config
+    var contactEnabled: Boolean = true,
+    var contactlessEnabled: Boolean = true,
+    var magstripeEnabled: Boolean = false,
+    val initialState: String = "Active",
+    val pinAttemptsRemaining: String = "3",
+    val blockOnPinExhaustion: Boolean = true,
+    val blockOnTransactionLimit: Boolean = false,
 ) : SimulatorConfig
+
+enum class ConnectionInterface {
+    PC_SC,     // PC/SC smart card readers
+    NFC,       // NFC communication
+    MOCK,      // Mock/simulated interface
+    USB        // USB card readers
+}
+
+@Serializable
+// Supporting data classes
+data class ApduCommand(
+    val cla: Byte,
+    val ins: Byte,
+    val p1: Byte,
+    val p2: Byte,
+    val lc: Int,
+    val data: ByteArray,
+    val le: Int,
+    val raw: ByteArray
+) {
+    fun toHexString(): String = ApduUtil.bytesToHexString(raw)
+
+    fun getInstructionName(): String = ApduUtil.getInstructionDescription(ins)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ApduCommand
+
+        if (cla != other.cla) return false
+        if (ins != other.ins) return false
+        if (p1 != other.p1) return false
+        if (p2 != other.p2) return false
+        if (lc != other.lc) return false
+        if (!data.contentEquals(other.data)) return false
+        if (le != other.le) return false
+        if (!raw.contentEquals(other.raw)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = cla.toInt()
+        result = 31 * result + ins.toInt()
+        result = 31 * result + p1.toInt()
+        result = 31 * result + p2.toInt()
+        result = 31 * result + lc
+        result = 31 * result + data.contentHashCode()
+        result = 31 * result + le
+        result = 31 * result + raw.contentHashCode()
+        return result
+    }
+}
+
+
 
 /**
  * POS Simulator Configuration
@@ -251,10 +584,16 @@ data class POSSimulatorConfig(
     var displayConfig: String = "Dual displays (merchant + customer)",
     var receiptPrinting: String = "Thermal receipt printer",
     // Transaction
-    var terminalCapabilities: Set<String> = setOf("Offline transaction processing", "Void and refund processing"),
+    var terminalCapabilities: Set<String> = setOf(
+        "Offline transaction processing",
+        "Void and refund processing"
+    ),
     var transactionLimits: String = "Standard Retail Limits",
     // Security
-    var encryptionSecurity: Set<String> = setOf("End-to-end encryption (E2EE)", "PCI DSS compliance level"),
+    var encryptionSecurity: Set<String> = setOf(
+        "End-to-end encryption (E2EE)",
+        "PCI DSS compliance level"
+    ),
     var authMethods: String = "PIN verification",
     // Network & Software
     var connectivity: String = "Ethernet/LAN connection",
@@ -284,12 +623,13 @@ data class KeyStorageConfig(
 )
 
 @Serializable
-data class AuthenticationPolicy(
-    val requiresLogin: Boolean = true,
-    val maxLoginAttempts: Int = 3,
-    val sessionTimeout: Long = 3600000L, // 1 hour
-    val strongAuthentication: Boolean = false
-)
+enum class AuthenticationPolicy(val displayName: String) {
+    PASSWORD("Password Authentication"),
+    SMART_CARD("Smart Card"),
+    BIOMETRIC("Biometric"),
+    MULTI_FACTOR("Multi-Factor Authentication")
+}
+
 
 @Serializable
 data class AuditConfig(
@@ -309,7 +649,12 @@ data class PerformanceSettings(
 // Supporting data classes for APDU
 @Serializable
 enum class CardType {
-    EMV, MIFARE_CLASSIC, MIFARE_DESFIRE, JAVACARD, MULTOS, CUSTOM
+    EMV_CONTACT,
+    EMV_CONTACTLESS,
+    MIFARE_CLASSIC,
+    MIFARE_DESFIRE,
+    JAVA_CARD,
+    CUSTOM,
 }
 
 @Serializable
@@ -393,11 +738,16 @@ data class UnifiedSimulatorState(
     val hsmConfigs: MutableState<List<HSMSimulatorConfig>> = mutableStateOf(emptyList()),
     val apduConfigs: MutableState<List<APDUSimulatorConfig>> = mutableStateOf(emptyList()),
     val posConfigs: MutableState<List<POSSimulatorConfig>> = mutableStateOf(emptyList()),
+    val ecrConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
+    val atmConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
+    val cardConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
+    val switchConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
+    val acquirerConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
+    val issuerConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
 
     // General state
     var resultDialogInterface: ResultDialogInterface? = null,
-    var selectedSimulatorType: SimulatorType = SimulatorType.HOST,
-    var selectedConfigIndex: Int = -1,
+    var selectedConfigIndex: MutableState<MutableMap<SimulatorType, Int>> = mutableStateOf(mutableMapOf()),
     val selectedTabIndex: Int = 0,
     var panelWidth: Dp = 340.dp,
     var connectionStatus: ConnectionStatus? = null,
@@ -423,6 +773,9 @@ data class UnifiedSimulatorState(
             load()
             isLoaded = true
         }
+        SimulatorType.values().forEach {
+                type -> selectedConfigIndex.value[type] = 0
+        }
     }
 
     /**
@@ -444,19 +797,22 @@ data class UnifiedSimulatorState(
             else -> emptyList() // For future simulator types
         }
     }
-
+    
+   
     /**
      * Get current selected configuration
      */
-    val currentConfig: SimulatorConfig?
-        get() {
-            val configs = getConfigsByType(selectedSimulatorType)
-            return if (selectedConfigIndex >= 0 && selectedConfigIndex < configs.size) {
-                configs[selectedConfigIndex]
-            } else {
-                null
-            }
+    fun currentConfig(simulatorType: SimulatorType): SimulatorConfig? {
+        val configs = getConfigsByType(simulatorType)
+        return if (selectedConfigIndex.value[simulatorType]!!>= 0 && selectedConfigIndex.value[simulatorType]!!< configs.size) {
+            configs[selectedConfigIndex.value[simulatorType]!!]
+        } else if (configs.isNotEmpty()) {
+            selectedConfigIndex.value[simulatorType] = 0
+            configs[0]
+        } else {
+            null
         }
+    }
 
     /**
      * Add a new configuration (automatically detects type)
@@ -465,27 +821,22 @@ data class UnifiedSimulatorState(
         when (config) {
             is GatewayConfig -> {
                 hostConfigs.value = hostConfigs.value + config
-                // Auto-select newly added config
-                selectedSimulatorType = SimulatorType.HOST
-                selectedConfigIndex = hostConfigs.value.size - 1
+                selectedConfigIndex.value[config.simulatorType] = hostConfigs.value.size - 1
             }
 
             is HSMSimulatorConfig -> {
                 hsmConfigs.value = hsmConfigs.value + config
-                selectedSimulatorType = SimulatorType.HSM
-                selectedConfigIndex = hsmConfigs.value.size - 1
+                selectedConfigIndex.value[config.simulatorType] = hsmConfigs.value.size - 1
             }
 
             is APDUSimulatorConfig -> {
                 apduConfigs.value = apduConfigs.value + config
-                selectedSimulatorType = SimulatorType.APDU
-                selectedConfigIndex = apduConfigs.value.size - 1
+                selectedConfigIndex.value[config.simulatorType] = apduConfigs.value.size - 1
             }
 
             is POSSimulatorConfig -> {
                 posConfigs.value = posConfigs.value + config
-                selectedSimulatorType = SimulatorType.POS
-                selectedConfigIndex = posConfigs.value.size - 1
+                selectedConfigIndex.value[config.simulatorType] = posConfigs.value.size - 1
             }
         }
         save()
@@ -541,54 +892,63 @@ data class UnifiedSimulatorState(
     fun deleteConfig(configId: String): Boolean {
         // Try to find and delete from each type
         var found = false
-
-        // Check HOST configs
-        val hostIndex = hostConfigs.value.indexOfFirst { it.id == configId }
-        if (hostIndex >= 0) {
-            hostConfigs.value = hostConfigs.value.filter { it.id != configId }
-            if (selectedSimulatorType == SimulatorType.HOST) {
-                selectedConfigIndex = if (hostConfigs.value.isNotEmpty()) {
-                    minOf(selectedConfigIndex, hostConfigs.value.size - 1)
-                } else -1
+        val type = getConfigType(configId)
+        when(type){
+            SimulatorType.HOST -> {
+                // Check HOST configs
+                val hostIndex = hostConfigs.value.indexOfFirst { it.id == configId }
+                if (hostIndex >= 0) {
+                    hostConfigs.value = hostConfigs.value.filter { it.id != configId }
+                    selectedConfigIndex.value[type] = if (hostConfigs.value.isNotEmpty()) {
+                        minOf(selectedConfigIndex.value[type]!!, hostConfigs.value.size - 1)
+                    } else -1
+                    found = true
+                }
             }
-            found = true
+            SimulatorType.HSM -> {
+                // Check HSM configs
+                val hsmIndex = hsmConfigs.value.indexOfFirst { it.id == configId }
+                if (hsmIndex >= 0) {
+                    hsmConfigs.value = hsmConfigs.value.filter { it.id != configId }
+                    selectedConfigIndex.value[type] = if (hsmConfigs.value.isNotEmpty()) {
+                        minOf(selectedConfigIndex.value[type]!!, hsmConfigs.value.size - 1)
+                    } else -1
+                    found = true
+                }
+            }
+            SimulatorType.APDU -> {
+
+                // Check APDU configs
+                val apduIndex = apduConfigs.value.indexOfFirst { it.id == configId }
+                if (apduIndex >= 0) {
+                    apduConfigs.value = apduConfigs.value.filter { it.id != configId }
+                    selectedConfigIndex.value[type] = if (apduConfigs.value.isNotEmpty()) {
+                        minOf(selectedConfigIndex.value[type]!!, apduConfigs.value.size - 1)
+                    } else -1
+                    found = true
+                }
+            }
+            SimulatorType.POS -> {
+                // Check POS configs
+                val posIndex = posConfigs.value.indexOfFirst { it.id == configId }
+                if (posIndex >= 0) {
+                    posConfigs.value = posConfigs.value.filter { it.id != configId }
+                    selectedConfigIndex.value[type] = if (posConfigs.value.isNotEmpty()) {
+                        minOf(selectedConfigIndex.value[type]!!, posConfigs.value.size - 1)
+                    } else -1
+                    found = true
+                }
+
+            }
+            SimulatorType.ECR -> TODO()
+            SimulatorType.ATM -> TODO()
+            SimulatorType.CARD -> TODO()
+            SimulatorType.SWITCH -> TODO()
+            SimulatorType.ACQUIRER -> TODO()
+            SimulatorType.ISSUER -> TODO()
+            null -> TODO()
         }
 
-        // Check HSM configs
-        val hsmIndex = hsmConfigs.value.indexOfFirst { it.id == configId }
-        if (hsmIndex >= 0) {
-            hsmConfigs.value = hsmConfigs.value.filter { it.id != configId }
-            if (selectedSimulatorType == SimulatorType.HSM) {
-                selectedConfigIndex = if (hsmConfigs.value.isNotEmpty()) {
-                    minOf(selectedConfigIndex, hsmConfigs.value.size - 1)
-                } else -1
-            }
-            found = true
-        }
-
-        // Check APDU configs
-        val apduIndex = apduConfigs.value.indexOfFirst { it.id == configId }
-        if (apduIndex >= 0) {
-            apduConfigs.value = apduConfigs.value.filter { it.id != configId }
-            if (selectedSimulatorType == SimulatorType.APDU) {
-                selectedConfigIndex = if (apduConfigs.value.isNotEmpty()) {
-                    minOf(selectedConfigIndex, apduConfigs.value.size - 1)
-                } else -1
-            }
-            found = true
-        }
-
-        // Check POS configs
-        val posIndex = posConfigs.value.indexOfFirst { it.id == configId }
-        if (posIndex >= 0) {
-            posConfigs.value = posConfigs.value.filter { it.id != configId }
-            if (selectedSimulatorType == SimulatorType.POS) {
-                selectedConfigIndex = if (posConfigs.value.isNotEmpty()) {
-                    minOf(selectedConfigIndex, posConfigs.value.size - 1)
-                } else -1
-            }
-            found = true
-        }
 
         if (found) {
             save()
@@ -600,8 +960,8 @@ data class UnifiedSimulatorState(
     /**
      * Delete the currently selected configuration
      */
-    fun deleteCurrentConfig(): Boolean {
-        return currentConfig?.let { config ->
+    fun deleteCurrentConfig(simulatorType: SimulatorType): Boolean {
+        return currentConfig(simulatorType)?.let { config ->
             deleteConfig(config.id)
         } ?: false
     }
@@ -777,12 +1137,10 @@ data class UnifiedSimulatorState(
      */
     fun selectConfig(configId: String): Boolean {
         val config = findConfigById(configId) ?: return false
-
-        selectedSimulatorType = config.simulatorType
         val configs = getConfigsByType(config.simulatorType)
-        selectedConfigIndex = configs.indexOfFirst { it.id == configId }
+        selectedConfigIndex.value[config.simulatorType] = configs.indexOfFirst { it.id == configId }
 
-        return selectedConfigIndex >= 0
+        return selectedConfigIndex.value[config.simulatorType]!! >= 0
     }
 
     /**
@@ -811,6 +1169,12 @@ data class UnifiedSimulatorState(
                 hsmConfigs = hsmConfigs.value,
                 apduConfigs = apduConfigs.value,
                 posConfigs = posConfigs.value,
+                ecrConfigs = ecrConfigs.value,
+                atmConfigs = atmConfigs.value,
+                cardConfigs = cardConfigs.value,
+                switchConfigs = switchConfigs.value,
+                issuerConfigs = issuerConfigs.value,
+                acquirerConfigs = acquirerConfigs.value,
                 exportedAt = System.currentTimeMillis(),
                 version = "1.0"
             )
@@ -851,6 +1215,12 @@ data class UnifiedSimulatorState(
                 hsmConfigs = hsmConfigs.value,
                 apduConfigs = apduConfigs.value,
                 posConfigs = posConfigs.value,
+                ecrConfigs = ecrConfigs.value,
+                atmConfigs = atmConfigs.value,
+                cardConfigs = cardConfigs.value,
+                switchConfigs = switchConfigs.value,
+                acquirerConfigs = acquirerConfigs.value,
+                issuerConfigs = issuerConfigs.value,
                 exportedAt = System.currentTimeMillis(),
                 version = "1.0"
             )
@@ -882,26 +1252,41 @@ data class UnifiedSimulatorState(
                 json.decodeFromString<SimulatorConfigCollection>(String(fileContent))
 
             // Load configurations
-            hostConfigs.value = configCollection.hostConfigs
-            hsmConfigs.value = configCollection.hsmConfigs
-            apduConfigs.value = configCollection.apduConfigs
-            posConfigs.value = configCollection.posConfigs
+            SimulatorType.values().forEach {
+                when(it){
+                    SimulatorType.HOST -> {
+                        hostConfigs.value = configCollection.hostConfigs
+                    }
+                    SimulatorType.HSM -> {
+                        hsmConfigs.value = configCollection.hsmConfigs
+                    }
+                    SimulatorType.APDU -> {
+                        apduConfigs.value = configCollection.apduConfigs
+                    }
+                    SimulatorType.POS -> {
+                        posConfigs.value = configCollection.posConfigs
+                    }
 
-            // Set initial selection
-            if (hostConfigs.value.isNotEmpty()) {
-                selectedSimulatorType = SimulatorType.HOST
-                selectedConfigIndex = 0
-            } else if (hsmConfigs.value.isNotEmpty()) {
-                selectedSimulatorType = SimulatorType.HSM
-                selectedConfigIndex = 0
-            } else if (apduConfigs.value.isNotEmpty()) {
-                selectedSimulatorType = SimulatorType.APDU
-                selectedConfigIndex = 0
-            } else if (posConfigs.value.isNotEmpty()) {
-                selectedSimulatorType = SimulatorType.POS
-                selectedConfigIndex = 0
+                    SimulatorType.ECR -> {
+                        ecrConfigs.value = configCollection.ecrConfigs
+                    }
+                    SimulatorType.ATM -> {
+                        atmConfigs.value = configCollection.atmConfigs
+                    }
+                    SimulatorType.CARD -> {
+                        cardConfigs.value = configCollection.cardConfigs
+                    }
+                    SimulatorType.SWITCH -> {
+                        switchConfigs.value = configCollection.switchConfigs
+                    }
+                    SimulatorType.ACQUIRER -> {
+                        acquirerConfigs.value = configCollection.acquirerConfigs
+                    }
+                    SimulatorType.ISSUER -> {
+                        issuerConfigs.value = configCollection.issuerConfigs
+                    }
+                }
             }
-
             save()
             ImportResult.Success(
                 fileExtension = file.extension,
@@ -998,10 +1383,16 @@ data class UnifiedSimulatorState(
  */
 @Serializable
 data class SimulatorConfigCollection(
-    val hostConfigs: List<GatewayConfig> = emptyList(),
-    val hsmConfigs: List<HSMSimulatorConfig> = emptyList(),
-    val apduConfigs: List<APDUSimulatorConfig> = emptyList(),
-    val posConfigs: List<POSSimulatorConfig> = emptyList(),
+    val hostConfigs: List<GatewayConfig> ,
+    val hsmConfigs: List<HSMSimulatorConfig> ,
+    val apduConfigs: List<APDUSimulatorConfig> ,
+    val posConfigs: List<POSSimulatorConfig> ,
+    val ecrConfigs: List<String> ,
+    val atmConfigs: List<String> ,
+    val cardConfigs: List<String> ,
+    val switchConfigs: List<String> ,
+    val acquirerConfigs: List<String> ,
+    val issuerConfigs: List<String> ,
     val exportedAt: Long,
     val version: String
 )

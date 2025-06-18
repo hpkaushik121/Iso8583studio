@@ -14,7 +14,7 @@ fun EcrSimulatorConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    appState.selectedSimulatorType = SimulatorType.ECR
+//    appState.selectedSimulatorType = SimulatorType.ECR
     Scaffold(
         topBar = {
             AppBarWithBack(
