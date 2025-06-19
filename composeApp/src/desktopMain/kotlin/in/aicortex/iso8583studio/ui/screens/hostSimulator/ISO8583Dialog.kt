@@ -37,14 +37,14 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import `in`.aicortex.iso8583studio.data.BitAttribute
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 
 /**
  * Main composable for ISO8583 message editor dialog
  */
 @Composable
 fun Iso8583EditorDialog(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     initialMessage: Iso8583Data? = null,
     onDismiss: () -> Unit,
     onConfirm: (Iso8583Data) -> Unit,
@@ -174,7 +174,7 @@ fun Iso8583EditorDialog(
  */
 @Composable
 private fun Iso8583Header(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     message: Iso8583Data,
     onMessageTypeChanged: (String) -> Unit,
     onTpduChanged: (String) -> Unit,

@@ -118,7 +118,7 @@ class KeyManagement(
     }
 
     // Constructors
-    protected constructor() : this(
+    constructor() : this(
         CipherType.DES,
         ByteArray(8),
         ByteArray(8),

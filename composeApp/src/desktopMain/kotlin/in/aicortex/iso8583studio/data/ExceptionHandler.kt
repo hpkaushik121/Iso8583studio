@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.CardServiceImpl
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
 
@@ -21,7 +21,7 @@ class ExceptionHandler : Thread.UncaughtExceptionHandler {
 }
 
 
-class IsoCoroutine(val gatewayServiceImpl: GatewayServiceImpl?,override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.IO) :
+class IsoCoroutine(val gatewayServiceImpl: HostSimulator?, override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.IO) :
     CoroutineScope {
     var onError: ((Throwable) -> Unit)? = null
     fun launchSafely(
@@ -90,7 +90,7 @@ class CardCoroutine(val cardServiceImpl: CardServiceImpl?,override val coroutine
 
 
 @Composable
-fun rememberIsoCoroutineScope(gatewayServiceImpl: GatewayServiceImpl): IsoCoroutine {
+fun rememberIsoCoroutineScope(gatewayServiceImpl: HostSimulator): IsoCoroutine {
 
     val scope = rememberCoroutineScope()
 

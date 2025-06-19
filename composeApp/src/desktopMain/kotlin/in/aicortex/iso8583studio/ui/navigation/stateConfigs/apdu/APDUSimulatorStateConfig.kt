@@ -51,6 +51,8 @@ data class APDUSimulatorConfig(
     val pinAttemptsRemaining: String = "3",
     val blockOnPinExhaustion: Boolean = true,
     val blockOnTransactionLimit: Boolean = false,
+    override val serverAddress: String = "",
+    override val serverPort: Int = 8080,
 ) : SimulatorConfig
 
 enum class ConnectionInterface {

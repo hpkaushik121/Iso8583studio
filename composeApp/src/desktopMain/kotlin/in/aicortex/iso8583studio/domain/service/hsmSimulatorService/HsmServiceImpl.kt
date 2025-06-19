@@ -1,8 +1,23 @@
 package `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService
 
+import androidx.compose.runtime.Composable
+import `in`.aicortex.iso8583studio.data.GatewayClient
+import `in`.aicortex.iso8583studio.data.Iso8583Data
+import `in`.aicortex.iso8583studio.data.KeyManagement
+import `in`.aicortex.iso8583studio.data.PermanentConnection
+import `in`.aicortex.iso8583studio.data.ResultDialogInterface
+import `in`.aicortex.iso8583studio.data.SimulatorConfig
+import `in`.aicortex.iso8583studio.data.SimulatorData
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.Simulator
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.CommandStatus
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ConnectionType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.CryptographicAlgorithm
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HsmCommand
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HsmCommandType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HsmResponse
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HsmStatistics
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,131 +27,22 @@ import kotlinx.datetime.Instant
 import java.net.ServerSocket
 import java.net.Socket
 import java.security.SecureRandom
+import java.time.LocalDateTime
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
 
-
-enum class HsmCommandType(val code: String, val description: String) {
-    GENERATE_KEY("GK", "Generate Key"),
-    ENCRYPT_DATA("ED", "Encrypt Data"),
-    DECRYPT_DATA("DD", "Decrypt Data"),
-    VERIFY_PIN("VP", "Verify PIN"),
-    GENERATE_MAC("GM", "Generate MAC"),
-    VERIFY_MAC("VM", "Verify MAC"),
-    RANDOM_NUMBER("RN", "Generate Random Number"),
-    KEY_EXCHANGE("KE", "Key Exchange"),
-    DIGITAL_SIGN("DS", "Digital Signature"),
-    VERIFY_SIGNATURE("VS", "Verify Signature"),
-    IMPORT_KEY("IK", "Import Key"),
-    EXPORT_KEY("EK", "Export Key"),
-    DELETE_KEY("DK", "Delete Key"),
-    STATUS_CHECK("SC", "Status Check"),
-    RESET_HSM("RH", "Reset HSM")
-}
-
-enum class HsmStatus {
-    STOPPED,
-    STARTING,
-    RUNNING,
-    STOPPING,
-    ERROR,
-    MAINTENANCE
-}
-
-// HSM Command Data Classes
-data class HsmCommand(
-    val id: String,
-    val commandType: HsmCommandType,
-    val timestamp: Instant,
-    val sourceIp: String,
-    val requestData: ByteArray,
-    val keyId: String? = null,
-    val algorithm: CryptographicAlgorithm? = null,
-    val status: CommandStatus = CommandStatus.PENDING
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as HsmCommand
-        return id == other.id
-    }
-
-    override fun hashCode(): Int = id.hashCode()
-}
-
-data class HsmResponse(
-    val commandId: String,
-    val responseCode: String,
-    val responseData: ByteArray,
-    val processingTime: Long,
-    val timestamp: Instant,
-    val errorMessage: String? = null
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as HsmResponse
-        return commandId == other.commandId
-    }
-
-    override fun hashCode(): Int = commandId.hashCode()
-}
-
-enum class CommandStatus {
-    PENDING,
-    PROCESSING,
-    SUCCESS,
-    ERROR,
-    TIMEOUT
-}
-
-data class HsmStatistics(
-    val totalCommands: Long = 0,
-    val successfulCommands: Long = 0,
-    val failedCommands: Long = 0,
-    val averageResponseTime: Double = 0.0,
-    val activeConnections: Int = 0,
-    val keysGenerated: Long = 0,
-    val encryptionOperations: Long = 0,
-    val decryptionOperations: Long = 0,
-    val signatureOperations: Long = 0,
-    val uptime: Long = 0
-)
-
-// HSM Key Management
-data class HsmKey(
-    val keyId: String,
-    val keyType: String,
-    val algorithm: CryptographicAlgorithm,
-    val creationTime: Instant,
-    val expirationTime: Instant?,
-    val usageCount: Long = 0,
-    val maxUsage: Long? = null,
-    val keyData: ByteArray,
-    val isActive: Boolean = true
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as HsmKey
-        return keyId == other.keyId
-    }
-
-    override fun hashCode(): Int = keyId.hashCode()
-}
-
 // Main HSM Service Implementation
 class HsmServiceImpl(
-    var hsmConfiguration: HSMSimulatorConfig
-) {
+    override var configuration: HSMSimulatorConfig
+) : Simulator {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var serverSocket: ServerSocket? = null
     private val activeConnections = mutableSetOf<Socket>()
 
     // State Management
-    private val _status = MutableStateFlow(HsmStatus.STOPPED)
-    val status: StateFlow<HsmStatus> = _status.asStateFlow()
+    private val _status = MutableStateFlow(false)
+    val status: StateFlow<Boolean> = _status.asStateFlow()
 
     private val _statistics = MutableStateFlow(HsmStatistics())
     val statistics: StateFlow<HsmStatistics> = _statistics.asStateFlow()
@@ -153,139 +59,75 @@ class HsmServiceImpl(
     // Lifecycle Management
     private var startTime: Instant? = null
 
-    fun isStarted(): Boolean = _status.value == HsmStatus.RUNNING
-
-    fun isStopped(): Boolean = _status.value == HsmStatus.STOPPED
-
-    suspend fun start(): Boolean {
-        if (_status.value == HsmStatus.RUNNING) return true
-
-        return try {
-            _status.value = HsmStatus.STARTING
-            startTime = Clock.System.now()
-
-            when (hsmConfiguration.network.connectionType) {
-                ConnectionType.TCP_IP -> startTcpServer()
-                ConnectionType.REST_API -> startRestServer()
-                else -> startSimulatedService()
-            }
-
-            // Initialize default keys
-            initializeDefaultKeys()
-
-            // Start monitoring
-            startStatisticsMonitoring()
-
-            _status.value = HsmStatus.RUNNING
-            logOperation("HSM Service started on ${hsmConfiguration.network.ipAddress}:${hsmConfiguration.network.port}")
-            true
-        } catch (e: Exception) {
-            _status.value = HsmStatus.ERROR
-            logError("Failed to start HSM service: ${e.message}")
-            false
-        }
+    override fun getConnectionCount(): Int {
+        return activeConnections.size
     }
 
-    suspend fun stop(): Boolean {
-        if (_status.value == HsmStatus.STOPPED) return true
 
-        return try {
-            _status.value = HsmStatus.STOPPING
-
-            // Close all active connections
-            activeConnections.forEach { it.close() }
-            activeConnections.clear()
-
-            // Close server socket
-            serverSocket?.close()
-            serverSocket = null
-
-            // Cancel all coroutines
-            scope.coroutineContext.cancel()
-
-            _status.value = HsmStatus.STOPPED
-            logOperation("HSM Service stopped")
-            true
-        } catch (e: Exception) {
-            logError("Error stopping HSM service: ${e.message}")
-            false
-        }
+    override fun getBytesIncoming(): Int {
+       return 0
     }
 
-    private suspend fun startTcpServer() {
-        serverSocket = ServerSocket(hsmConfiguration.network.port)
-
-        scope.launch {
-            while (_status.value == HsmStatus.RUNNING || _status.value == HsmStatus.STARTING) {
-                try {
-                    val clientSocket = serverSocket?.accept()
-                    clientSocket?.let { socket ->
-                        if (activeConnections.size < hsmConfiguration.maxSessions) {
-                            activeConnections.add(socket)
-                            launch { handleClient(socket) }
-                        } else {
-                            socket.close()
-                            logOperation("Connection rejected: Maximum connections reached")
-                        }
-                    }
-                } catch (e: Exception) {
-                    if (_status.value == HsmStatus.RUNNING) {
-                        logError("Error accepting connection: ${e.message}")
-                    }
-                }
-            }
-        }
+    override fun getBytesOutgoing(): Int {
+        return 0
     }
 
-    private suspend fun startRestServer() {
-        // Simulated REST server implementation
-        scope.launch {
-            logOperation("REST HSM service started")
-            while (_status.value == HsmStatus.RUNNING) {
-                delay(1000)
-                // Simulate REST endpoint handling
-            }
-        }
+    override fun writeLog(log: LogEntry) {
+
     }
 
-    private suspend fun startSimulatedService() {
-        scope.launch {
-            logOperation("Simulated HSM service started")
-            while (_status.value == HsmStatus.RUNNING) {
-                delay(1000)
-                // Generate some test commands for demonstration
-                if (Random.nextFloat() < 0.1) { // 10% chance per second
-                    generateTestCommand()
-                }
-            }
-        }
+    override fun showError(item: @Composable (() -> Unit)) {
+
     }
 
-    private suspend fun handleClient(socket: Socket) {
-        try {
-            val input = socket.getInputStream()
-            val output = socket.getOutputStream()
+    override fun showSuccess(item: @Composable (() -> Unit)) {
 
-            while (socket.isConnected && _status.value == HsmStatus.RUNNING) {
-                val buffer = ByteArray(1024)
-                val bytesRead = input.read(buffer)
-
-                if (bytesRead > 0) {
-                    val requestData = buffer.copyOf(bytesRead)
-                    val command = parseCommand(requestData, socket.inetAddress.hostAddress)
-                    val response = processCommand(command)
-
-                    output.write(formatResponse(response))
-                    output.flush()
-                }
-            }
-        } catch (e: Exception) {
-            logError("Error handling client: ${e.message}")
-        } finally {
-            activeConnections.remove(socket)
-            socket.close()
-        }
     }
+
+    override fun showWarning(item: @Composable (() -> Unit)) {
+
+    }
+
+    override fun setShowErrorListener(resultDialogInterface: ResultDialogInterface) {
+
+    }
+
+    override fun onSentToDest(callback: (SimulatorData?) -> Unit) {
+
+    }
+
+    override fun onSentToSource(callback: (SimulatorData?) -> Unit) {
+
+    }
+
+    override fun beforeWriteLog(callback: (LogEntry) -> Unit) {
+
+    }
+
+
+    override fun onReceiveFromSource(callback: (SimulatorData?) -> Unit) {
+
+    }
+
+    override fun onReceiveFromDest(callback: (SimulatorData?) -> Unit) {
+
+    }
+
+    override fun <T : SimulatorConfig> setConfiguration(config: T) {
+        this.configuration = config as HSMSimulatorConfig
+    }
+
+    override suspend fun start() = withContext(Dispatchers.IO) {
+    }
+
+    override suspend fun stop() = withContext(Dispatchers.IO) {
+
+    }
+
+    override fun isStarted(): Boolean {
+        return _status.value
+    }
+
 
     private fun parseCommand(data: ByteArray, sourceIp: String): HsmCommand {
         val commandCode = String(data.take(2).toByteArray())
@@ -295,7 +137,6 @@ class HsmServiceImpl(
         return HsmCommand(
             id = generateCommandId(),
             commandType = commandType,
-            timestamp = Clock.System.now(),
             sourceIp = sourceIp,
             requestData = data
         )
@@ -520,21 +361,6 @@ class HsmServiceImpl(
 //        keyStore["DEFAULT_KEY_001"] = defaultKey
     }
 
-    private fun startStatisticsMonitoring() {
-        scope.launch {
-            while (_status.value == HsmStatus.RUNNING) {
-                delay(1000) // Update every second
-                val uptime = startTime?.let {
-                    Clock.System.now().toEpochMilliseconds() - it.toEpochMilliseconds()
-                } ?: 0
-
-                _statistics.value = _statistics.value.copy(
-                    activeConnections = activeConnections.size,
-                    uptime = uptime
-                )
-            }
-        }
-    }
 
     private fun updateStatistics(
         success: Boolean = false,
@@ -574,7 +400,6 @@ class HsmServiceImpl(
         val testCommand = HsmCommand(
             id = generateCommandId(),
             commandType = randomType,
-            timestamp = Clock.System.now(),
             sourceIp = "127.0.0.1",
             requestData = "${randomType.code}TestData".toByteArray()
         )
@@ -601,9 +426,6 @@ class HsmServiceImpl(
         _responses.value = emptyList()
     }
 
-    fun exportKeys(): List<HsmKey> = emptyList()
-
-    fun getConfiguration(): HSMSimulatorConfig = hsmConfiguration
 
 //    fun updateConfiguration(newConfig: HsmConfiguration) {
 //        configuration = newConfig

@@ -51,7 +51,7 @@ import `in`.aicortex.iso8583studio.data.rememberIsoCoroutineScope
 import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.domain.FileImporter
 import `in`.aicortex.iso8583studio.domain.ImportResult
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.PlaceholderProcessor
 import `in`.aicortex.iso8583studio.domain.utils.ExportResult
 import `in`.aicortex.iso8583studio.domain.utils.FileExporter
@@ -129,7 +129,7 @@ enum class MatchOperator(val displayName: String, val symbol: String) {
 
 @Composable
 fun ISO8583SettingsScreen(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     onSaveClick: () -> Unit
 ) {
     // Use mutableStateListOf for proper recomposition
@@ -404,13 +404,13 @@ fun ISO8583SettingsScreen(
 
 @Composable
 private fun EnhancedHeader(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     onFieldInfoClick: () -> Unit,
     onExportClick: () -> Unit,
     onImportClick: () -> Unit,
     onSaveClick: () -> Unit,
     onToggle:(Boolean) -> Unit,
-    isFirst:Boolean ,
+    isFirst:Boolean,
 ) {
     Card(
         elevation = 4.dp,

@@ -59,9 +59,11 @@ fun HsmResponseConfigScreen(
 ) {
     // Use mutableStateListOf for proper recomposition
     val hsmCommands = remember {
-        hsm.hsmConfiguration.simulatedCommandsToSource.ifEmpty { listOf(HsmCommand(commandCode = "A0",
-            commandName = "",
-            description = "",
+        hsm.configuration.simulatedCommandsToSource.ifEmpty { listOf(HsmCommand(keyId = "A0",
+            sourceIp = "",
+            commandType = HsmCommandType.GENERATE_KEY,
+            requestData = byteArrayOf(),
+            algorithm = CryptographicAlgorithm.AES,
             id = "213")) }.toMutableStateList()
     }
 
@@ -83,7 +85,7 @@ fun HsmResponseConfigScreen(
 
     // Stage function that updates the HSM config
     val stageCommands = {
-        hsm.hsmConfiguration.simulatedCommandsToSource = hsmCommands
+        hsm.configuration.simulatedCommandsToSource = hsmCommands
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -117,8 +119,6 @@ fun HsmResponseConfigScreen(
                 onDuplicateCommand = { command ->
                     val duplicatedCommand = command.copy(
                         id = generateHsmCommandId(),
-                        description = "${command.description} (Copy)",
-                        parameters = command.parameters?.map { it.copy() }?.toMutableList()
                     )
                     hsmCommands.add(duplicatedCommand)
                     stageCommands()
@@ -525,11 +525,7 @@ private fun EnhancedHsmCommandCard(
                     modifier = Modifier
                         .size(8.dp)
                         .background(
-                            if (command.keyMatching.enabled) {
-                                Color.Green
-                            } else {
-                                MaterialTheme.colors.primary
-                            },
+                            MaterialTheme.colors.primary,
                             shape = CircleShape
                         )
                 )
@@ -539,7 +535,7 @@ private fun EnhancedHsmCommandCard(
                 // HSM Command info
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = command.description.ifEmpty { "Unnamed HSM Command" },
+                        text = command.commandType.name.ifEmpty { "Unnamed HSM Command" },
                         fontWeight = FontWeight.Medium,
                         fontSize = 14.sp,
                         color = if (isSelected) {
@@ -552,14 +548,11 @@ private fun EnhancedHsmCommandCard(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        if (command.commandCode.isNotEmpty()) {
-                            HsmCommandBadge("CMD", command.commandCode)
+                        if (command.keyId?.isNotEmpty() == true) {
+                            HsmCommandBadge("CMD", command.keyId)
                         }
-                        if (command.commandName.isNotEmpty()) {
-                            HsmCommandBadge("TYPE", command.commandName)
-                        }
-                        if (command.keyMatching.enabled) {
-                            HsmCommandBadge("KEY", "✓", Color.Green)
+                        if (command.commandType.name.isNotEmpty()) {
+                            HsmCommandBadge("TYPE", command.commandType.name)
                         }
                     }
                 }
@@ -748,15 +741,15 @@ private fun HsmParametersTab(
     parameterChangeCounter: Int = 0 // FIX 10: Add parameter change counter
 ) {
     // FIX 11: Create computed properties that depend on parameter change counter
-    val activeParametersCount by remember(command.parameters, parameterChangeCounter) {
+    val activeParametersCount by remember(command.requestData, parameterChangeCounter) {
         derivedStateOf {
-            command.parameters?.count { it.value.isNotEmpty() } ?: 0
+            command.requestData.size
         }
     }
 
-    val activeParameters by remember(command.parameters, parameterChangeCounter) {
+    val activeParameters by remember(command.requestData, parameterChangeCounter) {
         derivedStateOf {
-            command.parameters?.withIndex()?.filter { it.value.value.isNotEmpty() } ?: emptyList()
+            command.requestData
         }
     }
 
@@ -786,73 +779,74 @@ private fun HsmParametersTab(
             }
 
             // Quick Add Parameters Bar
-            QuickAddHsmParametersBar(
-                commandCode = command.commandCode,
-                existingParameters = activeParameters.map { it.value.name }.toSet(),
-                onParametersAdded = { parameterTypes ->
-                    val updatedParameters = command.parameters?.toMutableList() ?: mutableListOf()
-                    var hasChanges = false
-                    parameterTypes.forEach { type ->
-                        val existingParam = updatedParameters.find { it.name == type.displayName }
-                        if (existingParam == null) {
-                            updatedParameters.add(
-                                HsmParameter(
-                                    name = type.displayName,
-                                    type = type,
-                                    required = isRequiredParameter(type),
-                                    description = getParameterDescription(type),
-                                    value = "",
-                                    maxLength = getParameterMaxLength(type),
-                                    format = getParameterFormat(type)
-                                )
-                            )
-                            hasChanges = true
-                        }
+            command.keyId?.let {
+                QuickAddHsmParametersBar(
+                    commandCode = it,
+                    onParametersAdded = { parameterTypes ->
+//                        val updatedParameters = command.requestData.toMutableList()
+//                        var hasChanges = false
+//                        parameterTypes.forEach { type ->
+//                            val existingParam = updatedParameters.find { it.name == type.displayName }
+//                            if (existingParam == null) {
+//                                updatedParameters.add(
+//                                    HsmParameter(
+//                                        name = type.displayName,
+//                                        type = type,
+//                                        required = isRequiredParameter(type),
+//                                        description = getParameterDescription(type),
+//                                        value = "",
+//                                        maxLength = getParameterMaxLength(type),
+//                                        format = getParameterFormat(type)
+//                                    )
+//                                )
+//                                hasChanges = true
+//                            }
+//                        }
+//                        if (hasChanges) {
+//                            onCommandUpdated(command.copy(parameters = updatedParameters))
+//                        }
                     }
-                    if (hasChanges) {
-                        onCommandUpdated(command.copy(parameters = updatedParameters))
-                    }
-                }
-            )
+                )
+            }
 
             // Parameters List
-            if (activeParameters.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    itemsIndexed(
-                        items = activeParameters,
-                        key = { _, (index, parameter) ->
-                            "${command.id}_param_${index}_${parameter.value.isNotEmpty()}_${parameterChangeCounter}"
-                        }
-                    ) { _, (index, parameter) ->
-                        EnhancedHsmParameterRow(
-                            parameter = parameter,
-                            onParameterChange = { newValue ->
-                                val updatedParameters =
-                                    command.parameters?.toMutableList() ?: mutableListOf()
-                                if (index < updatedParameters.size) {
-                                    updatedParameters[index] =
-                                        updatedParameters[index].copy(value = newValue)
-                                    onCommandUpdated(command.copy(parameters = updatedParameters))
-                                }
-                            },
-                            onRemove = {
-                                val updatedParameters =
-                                    command.parameters?.toMutableList() ?: mutableListOf()
-                                if (index < updatedParameters.size) {
-                                    updatedParameters[index] =
-                                        updatedParameters[index].copy(value = "")
-                                    onCommandUpdated(command.copy(parameters = updatedParameters))
-                                }
-                            },
-                            updateKey = parameterChangeCounter
-                        )
-                    }
-                }
-            } else {
+//            if (activeParameters.isNotEmpty()) {
+//                LazyColumn(
+//                    modifier = Modifier.weight(1f),
+//                    contentPadding = PaddingValues(8.dp),
+//                    verticalArrangement = Arrangement.spacedBy(4.dp)
+//                ) {
+//                    itemsIndexed(
+//                        items = activeParameters,
+//                        key = { _, (index, parameter) ->
+//                            "${command.id}_param_${index}_${parameter.value.isNotEmpty()}_${parameterChangeCounter}"
+//                        }
+//                    ) { _, (index, parameter) ->
+//                        EnhancedHsmParameterRow(
+//                            parameter = parameter,
+//                            onParameterChange = { newValue ->
+//                                val updatedParameters =
+//                                    command.parameters?.toMutableList() ?: mutableListOf()
+//                                if (index < updatedParameters.size) {
+//                                    updatedParameters[index] =
+//                                        updatedParameters[index].copy(value = newValue)
+//                                    onCommandUpdated(command.copy(parameters = updatedParameters))
+//                                }
+//                            },
+//                            onRemove = {
+//                                val updatedParameters =
+//                                    command.parameters?.toMutableList() ?: mutableListOf()
+//                                if (index < updatedParameters.size) {
+//                                    updatedParameters[index] =
+//                                        updatedParameters[index].copy(value = "")
+//                                    onCommandUpdated(command.copy(parameters = updatedParameters))
+//                                }
+//                            },
+//                            updateKey = parameterChangeCounter
+//                        )
+//                    }
+//                }
+//            } else {
                 EmptyHsmParametersList()
             }
 
@@ -874,41 +868,41 @@ private fun HsmParametersTab(
                     Text("Add Parameters")
                 }
 
-                if (showAddParameterDialog) {
-                    EnhancedAddHsmParameterDialog(
-                        commandCode = command.commandCode,
-                        existingParameters = activeParameters.map { it.value.name }.toSet(),
-                        onSave = { parameterTypes ->
-                            val updatedParameters =
-                                command.parameters?.toMutableList() ?: mutableListOf()
-                            var hasChanges = false
-                            parameterTypes.forEach { type ->
-                                val existingParam =
-                                    updatedParameters.find { it.name == type.displayName }
-                                if (existingParam == null) {
-                                    updatedParameters.add(
-                                        HsmParameter(
-                                            name = type.displayName,
-                                            type = type,
-                                            required = isRequiredParameter(type),
-                                            description = getParameterDescription(type),
-                                            value = "",
-                                            maxLength = getParameterMaxLength(type),
-                                            format = getParameterFormat(type)
-                                        )
-                                    )
-                                    hasChanges = true
-                                }
-                            }
-                            if (hasChanges) {
-                                onCommandUpdated(command.copy(parameters = updatedParameters))
-                            }
-                            showAddParameterDialog = false
-                        },
-                        onDismiss = { showAddParameterDialog = false }
-                    )
-                }
-            }
+//                if (showAddParameterDialog) {
+//                    EnhancedAddHsmParameterDialog(
+//                        commandCode = command.commandCode,
+//                        existingParameters = activeParameters.map { it.value.name }.toSet(),
+//                        onSave = { parameterTypes ->
+//                            val updatedParameters =
+//                                command.parameters?.toMutableList() ?: mutableListOf()
+//                            var hasChanges = false
+//                            parameterTypes.forEach { type ->
+//                                val existingParam =
+//                                    updatedParameters.find { it.name == type.displayName }
+//                                if (existingParam == null) {
+//                                    updatedParameters.add(
+//                                        HsmParameter(
+//                                            name = type.displayName,
+//                                            type = type,
+//                                            required = isRequiredParameter(type),
+//                                            description = getParameterDescription(type),
+//                                            value = "",
+//                                            maxLength = getParameterMaxLength(type),
+//                                            format = getParameterFormat(type)
+//                                        )
+//                                    )
+//                                    hasChanges = true
+//                                }
+//                            }
+//                            if (hasChanges) {
+//                                onCommandUpdated(command.copy(parameters = updatedParameters))
+//                            }
+//                            showAddParameterDialog = false
+//                        },
+//                        onDismiss = { showAddParameterDialog = false }
+//                    )
+//                }
+//            }
         }
     }
 }
@@ -1535,49 +1529,46 @@ private fun HsmConfigurationTab(command: HsmCommand) {
         item {
             HsmConfigSection("Basic Information") {
                 HsmConfigRow("Command ID", command.id)
-                HsmConfigRow("Description", command.description)
-                if (command.commandCode.isNotEmpty()) {
-                    HsmConfigRow("Command Code", command.commandCode)
+                if (command.keyId?.isNotEmpty() ==true) {
+                    HsmConfigRow("Command Code", command.keyId)
                 }
-                if (command.commandName.isNotEmpty()) {
-                    HsmConfigRow("Command Name", command.commandName)
-                }
+                HsmConfigRow("Command Name", command.commandType.name)
             }
         }
 
-        item {
-            HsmConfigSection("Parameter Statistics") {
-                val parameterCount = command.parameters?.count { it.value.isNotEmpty() } ?: 0
-                val totalParameters = command.parameters?.size ?: 0
-                val requiredParams = command.parameters?.count { it.required } ?: 0
-                HsmConfigRow("Parameters Configured", "$parameterCount of $totalParameters")
-                HsmConfigRow("Required Parameters", "$requiredParams")
-                HsmConfigRow(
-                    "Configuration Type",
-                    if (command.keyMatching.enabled) "Advanced (Key Matching)" else "Basic (HSM Command)"
-                )
-            }
-        }
-
-        if (command.keyMatching.enabled) {
-            item {
-                HsmConfigSection("Key Matching Configuration") {
-                    HsmConfigRow("Priority", command.keyMatching.priority.toString())
-                    HsmConfigRow(
-                        "Key ID Matching",
-                        if (command.keyMatching.keyIdMatching.enabled) "Enabled" else "Disabled"
-                    )
-                    if (command.keyMatching.keyIdMatching.enabled) {
-                        HsmConfigRow("Key Type", command.keyMatching.keyIdMatching.keyType)
-                        HsmConfigRow("Key ID", command.keyMatching.keyIdMatching.keyId)
-                    }
-                    HsmConfigRow(
-                        "Session Matchers",
-                        "${command.keyMatching.sessionMatching.size} configured"
-                    )
-                }
-            }
-        }
+//        item {
+//            HsmConfigSection("Parameter Statistics") {
+//                val parameterCount = command.parameters?.count { it.value.isNotEmpty() } ?: 0
+//                val totalParameters = command.parameters?.size ?: 0
+//                val requiredParams = command.parameters?.count { it.required } ?: 0
+//                HsmConfigRow("Parameters Configured", "$parameterCount of $totalParameters")
+//                HsmConfigRow("Required Parameters", "$requiredParams")
+//                HsmConfigRow(
+//                    "Configuration Type",
+//                    if (command.keyMatching.enabled) "Advanced (Key Matching)" else "Basic (HSM Command)"
+//                )
+//            }
+//        }
+//
+//        if (command.keyMatching.enabled) {
+//            item {
+//                HsmConfigSection("Key Matching Configuration") {
+//                    HsmConfigRow("Priority", command.keyMatching.priority.toString())
+//                    HsmConfigRow(
+//                        "Key ID Matching",
+//                        if (command.keyMatching.keyIdMatching.enabled) "Enabled" else "Disabled"
+//                    )
+//                    if (command.keyMatching.keyIdMatching.enabled) {
+//                        HsmConfigRow("Key Type", command.keyMatching.keyIdMatching.keyType)
+//                        HsmConfigRow("Key ID", command.keyMatching.keyIdMatching.keyId)
+//                    }
+//                    HsmConfigRow(
+//                        "Session Matchers",
+//                        "${command.keyMatching.sessionMatching.size} configured"
+//                    )
+//                }
+//            }
+//        }
     }
 }
 
@@ -1641,25 +1632,25 @@ private fun HsmKeyConfigurationTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            // Key Matching Section
-            HsmKeyMatchingCard(
-                keyMatching = command.keyMatching,
-                onKeyMatchingChange = { newMatching ->
-                    onCommandUpdated(command.copy(keyMatching = newMatching))
-                }
-            )
-        }
-
-        item {
-            // Response Mapping Section
-            HsmResponseMappingCard(
-                responseMapping = command.responseMapping,
-                onResponseMappingChange = { newMapping ->
-                    onCommandUpdated(command.copy(responseMapping = newMapping))
-                }
-            )
-        }
+//        item {
+//            // Key Matching Section
+//            HsmKeyMatchingCard(
+//                keyMatching = command.keyMatching,
+//                onKeyMatchingChange = { newMatching ->
+//                    onCommandUpdated(command.copy(keyMatching = newMatching))
+//                }
+//            )
+//        }
+//
+//        item {
+//            // Response Mapping Section
+//            HsmResponseMappingCard(
+//                responseMapping = command.responseMapping,
+//                onResponseMappingChange = { newMapping ->
+//                    onCommandUpdated(command.copy(responseMapping = newMapping))
+//                }
+//            )
+//        }
     }
 }
 
@@ -2267,19 +2258,18 @@ private fun EnhancedAddHsmCommandDialog(
     onSave: (HsmCommand) -> Unit,
     hsm: HsmServiceImpl
 ) {
-    var commandCode by remember { mutableStateOf(command?.commandCode ?: "") }
-    var commandName by remember { mutableStateOf(command?.commandName ?: "") }
-    var description by remember { mutableStateOf(command?.description ?: "") }
-    var keyMatching by remember {
-        mutableStateOf(
-            command?.keyMatching ?: KeyMatching()
-        )
-    }
-    var responseMapping by remember {
-        mutableStateOf(
-            command?.responseMapping ?: HsmResponseMapping()
-        )
-    }
+    var commandCode by remember { mutableStateOf(command?.keyId ?: "") }
+    var commandName by remember { mutableStateOf(command?.commandType?.name ?: "") }
+//    var keyMatching by remember {
+//        mutableStateOf(
+//            command?.keyMatching ?: KeyMatching()
+//        )
+//    }
+//    var responseMapping by remember {
+//        mutableStateOf(
+//            command?.responseMapping ?: HsmResponseMapping()
+//        )
+//    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -2337,30 +2327,30 @@ private fun EnhancedAddHsmCommandDialog(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item {
-                        HsmCommandBasicInformationCard(
-                            description = description,
-                            onDescriptionChange = { description = it },
-                            commandCode = commandCode,
-                            onCommandCodeChange = { commandCode = it },
-                            commandName = commandName,
-                            onCommandNameChange = { commandName = it }
-                        )
-                    }
+//                    item {
+//                        HsmCommandBasicInformationCard(
+//                            description = description,
+//                            onDescriptionChange = { description = it },
+//                            commandCode = commandCode,
+//                            onCommandCodeChange = { commandCode = it },
+//                            commandName = commandName,
+//                            onCommandNameChange = { commandName = it }
+//                        )
+//                    }
 
-                    item {
-                        HsmKeyConfigurationCard(
-                            keyMatching = keyMatching,
-                            onKeyMatchingChange = { keyMatching = it }
-                        )
-                    }
+//                    item {
+//                        HsmKeyConfigurationCard(
+//                            keyMatching = keyMatching,
+//                            onKeyMatchingChange = { keyMatching = it }
+//                        )
+//                    }
 
-                    item {
-                        HsmResponseConfigurationCard(
-                            responseMapping = responseMapping,
-                            onResponseMappingChange = { responseMapping = it }
-                        )
-                    }
+//                    item {
+//                        HsmResponseConfigurationCard(
+//                            responseMapping = responseMapping,
+//                            onResponseMappingChange = { responseMapping = it }
+//                        )
+//                    }
                 }
 
                 // Footer Actions
@@ -2383,20 +2373,19 @@ private fun EnhancedAddHsmCommandDialog(
 
                         Button(
                             onClick = {
-                                val newCommand = HsmCommand(
-                                    id = command?.id ?: generateHsmCommandId(),
-                                    commandCode = commandCode,
-                                    commandName = commandName,
-                                    description = description,
-                                    parameters = command?.parameters?.toMutableList()
-                                        ?: getDefaultHsmParameters(commandCode).toMutableList(),
-                                    keyMatching = keyMatching,
-                                    responseMapping = responseMapping
-                                )
-                                onSave(newCommand)
+//                                val newCommand = HsmCommand(
+//                                    id = command?.id ?: generateHsmCommandId(),
+//                                    commandCode = commandCode,
+//                                    commandName = commandName,
+//                                    description = description,
+//                                    parameters = command?.parameters?.toMutableList()
+//                                        ?: getDefaultHsmParameters(commandCode).toMutableList(),
+//                                    keyMatching = keyMatching,
+//                                    responseMapping = responseMapping
+//                                )
+//                                onSave(newCommand)
                             },
                             modifier = Modifier.weight(1f),
-                            enabled = description.isNotBlank() && commandCode.isNotBlank()
                         ) {
                             Icon(
                                 if (isEditing) Icons.Default.Save else Icons.Default.Add,
@@ -2655,7 +2644,7 @@ private fun HsmDeleteConfirmationDialog(
         title = { Text("Delete HSM Command") },
         text = {
             Text(
-                "Are you sure you want to delete the command '${command.description}' (${command.commandCode})?"
+                "Are you sure you want to delete the command "
             )
         },
         confirmButton = {

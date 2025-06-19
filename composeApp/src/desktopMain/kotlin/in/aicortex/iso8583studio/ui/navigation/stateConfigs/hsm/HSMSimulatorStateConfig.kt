@@ -22,8 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
-
+import kotlin.time.Clock
 
 
 /**
@@ -55,21 +56,117 @@ data class HSMSimulatorConfig(
     val security: SecurityConfiguration = SecurityConfiguration(),
     val keyManagement: KeyManagementConfiguration = KeyManagementConfiguration(),
     val advanced: AdvancedOptionsConfiguration = AdvancedOptionsConfiguration(),
-    val operatingMode: OperatingMode = OperatingMode.MAINTENANCE
-) : SimulatorConfig
+    val operatingMode: OperatingMode = OperatingMode.MAINTENANCE,
+
+) : SimulatorConfig{
+    override val serverAddress: String
+        get() { return network.ipAddress }
+    override val serverPort: Int
+        get() { return network.port }
+}
+
+@Serializable
+enum class HsmCommandType(val code: String, val description: String) {
+    GENERATE_KEY("GK", "Generate Key"),
+    ENCRYPT_DATA("ED", "Encrypt Data"),
+    DECRYPT_DATA("DD", "Decrypt Data"),
+    VERIFY_PIN("VP", "Verify PIN"),
+    GENERATE_MAC("GM", "Generate MAC"),
+    VERIFY_MAC("VM", "Verify MAC"),
+    RANDOM_NUMBER("RN", "Generate Random Number"),
+    KEY_EXCHANGE("KE", "Key Exchange"),
+    DIGITAL_SIGN("DS", "Digital Signature"),
+    VERIFY_SIGNATURE("VS", "Verify Signature"),
+    IMPORT_KEY("IK", "Import Key"),
+    EXPORT_KEY("EK", "Export Key"),
+    DELETE_KEY("DK", "Delete Key"),
+    STATUS_CHECK("SC", "Status Check"),
+    RESET_HSM("RH", "Reset HSM")
+}
 
 
-// HSM Data Models
 @Serializable
 data class HsmCommand(
     val id: String,
-    val commandCode: String,
-    val commandName: String,
-    val description: String,
-    val parameters: MutableList<HsmParameter>? = null,
-    val keyMatching: KeyMatching = KeyMatching(),
-    val responseMapping: HsmResponseMapping = HsmResponseMapping()
+    val commandType: HsmCommandType,
+    val timestamp: Long = System.currentTimeMillis(),
+    val sourceIp: String,
+    val requestData: ByteArray,
+    val keyId: String? = null,
+    val algorithm: CryptographicAlgorithm? = null,
+    val status: CommandStatus = CommandStatus.PENDING
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as HsmCommand
+        return id == other.id
+    }
+
+    override fun hashCode(): Int = id.hashCode()
+}
+@Serializable
+data class HsmResponse(
+    val commandId: String,
+    val responseCode: String,
+    val responseData: ByteArray,
+    val processingTime: Long,
+    val timestamp: Instant,
+    val errorMessage: String? = null
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as HsmResponse
+        return commandId == other.commandId
+    }
+
+    override fun hashCode(): Int = commandId.hashCode()
+}
+@Serializable
+enum class CommandStatus {
+    PENDING,
+    PROCESSING,
+    SUCCESS,
+    ERROR,
+    TIMEOUT
+}
+@Serializable
+data class HsmStatistics(
+    val totalCommands: Long = 0,
+    val successfulCommands: Long = 0,
+    val failedCommands: Long = 0,
+    val averageResponseTime: Double = 0.0,
+    val activeConnections: Int = 0,
+    val keysGenerated: Long = 0,
+    val encryptionOperations: Long = 0,
+    val decryptionOperations: Long = 0,
+    val signatureOperations: Long = 0,
+    val uptime: Long = 0
 )
+
+@Serializable
+data class HsmKey(
+    val keyId: String,
+    val keyType: String,
+    val algorithm: CryptographicAlgorithm,
+    val creationTime: Instant,
+    val expirationTime: Instant?,
+    val usageCount: Long = 0,
+    val maxUsage: Long? = null,
+    val keyData: ByteArray,
+    val isActive: Boolean = true
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as HsmKey
+        return keyId == other.keyId
+    }
+
+    override fun hashCode(): Int = keyId.hashCode()
+}
+
 
 @Serializable
 data class HsmParameter(

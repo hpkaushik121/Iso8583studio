@@ -38,7 +38,7 @@ data class Iso8583Data(
     private var m_LengthInAsc: Boolean = false,
     var emvShowOptions: EMVShowOption = EMVShowOption.None
 
-) {
+) : SimulatorData {
 
 
     companion object {
@@ -269,7 +269,7 @@ data class Iso8583Data(
     /**
      * Pack message with no length type
      */
-    fun pack(isHttpInfo: Boolean = true): ByteArray = packWithFormat(
+    override fun pack(isHttpInfo: Boolean): ByteArray = packWithFormat(
         outputFormat = (if (isFirst) config.codeFormatSource else config.codeFormatDest)
             ?: CodeFormat.BYTE_ARRAY,
         messageLengthType = if (isFirst) config.messageLengthTypeSource else config.messageLengthTypeDest,
@@ -476,7 +476,7 @@ data class Iso8583Data(
     /**
      * Get raw message from buffer
      */
-    var rawMessage: ByteArray = byteArrayOf()
+    override var rawMessage: ByteArray = byteArrayOf()
     var bitmap: ByteArray? = byteArrayOf()
     var otherKAttributes: MutableMap<String?,String?> = mutableMapOf()
     var httpInfo: HttpInfo? = null
@@ -484,7 +484,7 @@ data class Iso8583Data(
     /**
      * Unpack ISO 8583 message
      */
-    fun unpack(input: ByteArray) = unpackFromFormat(
+    override fun unpack(input: ByteArray) = unpackFromFormat(
         inputData = input,
         inputFormat = config.codeFormatSource ?: CodeFormat.BYTE_ARRAY,
         mappingConfig = config.getFormatMappingConfig(isFirst)
@@ -511,7 +511,7 @@ data class Iso8583Data(
     /**
      * Generate log format of the message
      */
-    fun logFormat(): String = logFormat(MAX_BITS)
+    override fun logFormat(): String = logFormat(MAX_BITS)
 
     /**
      * Generate log format up to specified bit

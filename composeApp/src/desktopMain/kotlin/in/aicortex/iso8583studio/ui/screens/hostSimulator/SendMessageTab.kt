@@ -78,7 +78,7 @@ import androidx.compose.ui.window.Dialog
 import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.getValue
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
@@ -97,7 +97,7 @@ import javax.swing.filechooser.FileNameExtensionFilter
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 internal fun SendMessageTab(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     logText: List<LogEntry>,
     onClearClick: () -> Unit = {},
 ) {

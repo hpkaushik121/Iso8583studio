@@ -13,6 +13,8 @@ import `in`.aicortex.iso8583studio.data.PermanentConnection
 import `in`.aicortex.iso8583studio.data.RS232Handler
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.SSLTcpClient
+import `in`.aicortex.iso8583studio.data.SimulatorConfig
+import `in`.aicortex.iso8583studio.data.SimulatorData
 import `in`.aicortex.iso8583studio.data.model.ActionWhenDisconnect
 import `in`.aicortex.iso8583studio.data.model.CipherMode
 import `in`.aicortex.iso8583studio.data.model.CipherType
@@ -54,7 +56,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 /**
  * Implementation of the Gateway service
  */
-class GatewayServiceImpl : GatewayService {
+class HostSimulator : Simulator {
     private lateinit var _configuration: GatewayConfig
     override val configuration: GatewayConfig
         get() = _configuration
@@ -101,7 +103,7 @@ class GatewayServiceImpl : GatewayService {
     var resultDialogInterface: ResultDialogInterface? = null
 
     private var _endeService: KeyManagement? = null
-    override val endeService: KeyManagement
+    val endeService: KeyManagement
         get() {
             if (_endeService == null) {
                 initializeEncryptionService()
@@ -134,8 +136,8 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Set a new gateway configuration
      */
-    override fun setConfiguration(config: GatewayConfig) {
-        _configuration = config
+    override fun<T : SimulatorConfig> setConfiguration(config: T) {
+        _configuration = config as GatewayConfig
 
         // Initialize encryption service if needed
         if (config.checkSignature == SignatureChecking.ONE_PASSWORD) {
@@ -310,14 +312,14 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Get the list of active client connections
      */
-    override fun getConnectionList(): List<GatewayClient> {
+    fun getConnectionList(): List<GatewayClient> {
         return activeClients.toList()
     }
 
     /**
      * Get the main permanent connection if it exists
      */
-    override fun getMainPermanentConnection(): PermanentConnection? {
+     fun getMainPermanentConnection(): PermanentConnection? {
         return permanentConnections[9999]
     }
 
@@ -338,21 +340,21 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Get the time when the gateway was started
      */
-    override fun getStartTime(): LocalDateTime? {
+    fun getStartTime(): LocalDateTime? {
         return startTime
     }
 
     /**
      * Get the time when the gateway was stopped
      */
-    override fun getStopTime(): LocalDateTime? {
+    fun getStopTime(): LocalDateTime? {
         return stopTime
     }
 
     /**
      * Create a new client
      */
-    override fun createClient(): GatewayClient {
+    fun createClient(): GatewayClient {
         val client = GatewayClient(this)
         client.clientID = configuration.clientID
 
@@ -511,7 +513,7 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Get statistics about gateway operations
      */
-    override fun getStatistics(): String {
+    fun getStatistics(): String {
         val statsBuilder = StringBuilder()
 
         statsBuilder.append("|STA|Connection: ${connectionCount.get()}\r\n")
@@ -553,7 +555,7 @@ class GatewayServiceImpl : GatewayService {
     /**
      * Get a string representation of all client connections
      */
-    override fun getConnectionListString(): String {
+    fun getConnectionListString(): String {
         val builder = StringBuilder("|CON|")
 
         // Check for stale connections
@@ -1139,16 +1141,16 @@ class GatewayServiceImpl : GatewayService {
         this.resultDialogInterface = resultDialogInterface
     }
 
-    override fun onSentToDest(callback: (Iso8583Data?) -> Unit) {
+    override fun onSentToDest(callback: (SimulatorData?) -> Unit) {
         this.sentToDest = callback
     }
 
-    override fun onSentToSource(callback: (Iso8583Data?) -> Unit) {
+    override fun onSentToSource(callback: (SimulatorData?) -> Unit) {
         this.sentToSource = callback
     }
 
 
-    override fun beforeReceive(callback:  (GatewayClient) -> Unit) {
+    fun beforeReceive(callback:  (GatewayClient) -> Unit) {
         beforeReceiveCallbacks = callback
     }
 
@@ -1156,15 +1158,15 @@ class GatewayServiceImpl : GatewayService {
         beforeWriteLogCallbacks = callback
     }
 
-    override fun onAdminResponse(callback: suspend (GatewayClient, ByteArray) -> ByteArray?) {
+    fun onAdminResponse(callback: suspend (GatewayClient, ByteArray) -> ByteArray?) {
         adminResponseCallbacks = callback
     }
 
-    override fun onReceiveFromSource(callback: (Iso8583Data?) -> Unit) {
+    override fun onReceiveFromSource(callback: (SimulatorData?) -> Unit) {
         receivedFromSource = callback
     }
 
-    override fun onReceiveFromDest(callback: (Iso8583Data?) -> Unit) {
+    override fun onReceiveFromDest(callback: (SimulatorData?) -> Unit) {
         receivedFromDest = callback
     }
 

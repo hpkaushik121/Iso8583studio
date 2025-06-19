@@ -87,7 +87,7 @@ import kotlin.text.toLong
  */
 @Composable
 fun LogTab(
-    logText: String ="",
+    label: String? = null,
     onClearClick: () -> Unit,
     connectionCount: Int,
     concurrentConnections: Int,
@@ -107,6 +107,7 @@ fun LogTab(
             shape = RoundedCornerShape(8.dp)
         ) {
             LogPanelWithAutoScroll(
+                label = label,
                 onClearClick = onClearClick,
                 logEntries = logEntries,
                 selectedLogTypes = selectedLogTypes,
@@ -180,6 +181,7 @@ fun LogTab(
 
 @Composable
 internal fun LogPanelWithAutoScroll(
+    label: String? = null,
     onClearClick: () -> Unit,
     logEntries: List<LogEntry> = emptyList(),
     selectedLogTypes: Set<LogType> = LogType.values().toSet(),
@@ -263,7 +265,7 @@ internal fun LogPanelWithAutoScroll(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                "Transaction Log",
+                text = label ?: "Logs",
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colors.primary
             )

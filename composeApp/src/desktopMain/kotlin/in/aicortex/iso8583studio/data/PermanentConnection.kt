@@ -4,7 +4,7 @@ package `in`.aicortex.iso8583studio.data
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
@@ -14,7 +14,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import org.apache.commons.logging.Log
 import java.net.Socket
 import java.time.Duration
 import java.time.LocalDateTime
@@ -24,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap
  * PermanentConnection class for maintaining a persistent connection to a host
  */
 class PermanentConnection(
-    private val gatewayHandler: GatewayServiceImpl,
+    private val gatewayHandler: HostSimulator,
     private val hostIp: String,
     internal val port: Int,
     private val nii: Int

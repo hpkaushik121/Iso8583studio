@@ -51,12 +51,12 @@ import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.rememberIsoCoroutineScope
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
-import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.SimulatorHandlerTab
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -82,7 +82,7 @@ fun HostSimulatorScreen(
     onSaveClick: () -> Unit,
     onError: ResultDialogInterface? = null,
 ) {
-    var gw: GatewayServiceImpl? = null
+    var gw: HostSimulator? = null
     val coroutineScope = rememberCoroutineScope()
     DisposableEffect(LocalLifecycleOwner.current) {
         onDispose {
@@ -109,7 +109,7 @@ fun HostSimulatorScreen(
         backgroundColor = MaterialTheme.colors.background
     ) { paddingValues ->
         if (config != null) {
-            gw = GatewayServiceImpl(config)
+            gw = HostSimulator(config)
             gw.composeWindow = window
             if (onError != null) {
                 gw.setShowErrorListener(onError)
@@ -138,7 +138,7 @@ fun HostSimulatorScreen(
 @OptIn(ExperimentalAtomicApi::class)
 @Composable
 fun HostSimulator(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     onSaveClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -334,8 +334,8 @@ fun HostSimulator(
                 .padding(16.dp)
         ) {
             when (tabList[selectedTabIndex]) {
-                HostSimulatorTabs.HOST_HANDLER -> ISO8583TransactionTab(
-                    gw = gw,
+                HostSimulatorTabs.HOST_HANDLER -> SimulatorHandlerTab(
+                    simulator = gw,
                     isStarted = isStarted,
                     onStartStopClick = {
                         coroutineScope.launchSafely {

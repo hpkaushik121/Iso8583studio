@@ -17,6 +17,7 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.SimulatorHandlerTab
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -26,7 +27,9 @@ object HsmLogManager {
     private val _logEntries = mutableStateListOf<LogEntry>()
     val logEntries: SnapshotStateList<LogEntry> get() = _logEntries
 
-    fun clearLogs() { _logEntries.clear() }
+    fun clearLogs() {
+        _logEntries.clear()
+    }
 
     fun addLog(entry: LogEntry) {
         _logEntries.add(0, entry)
@@ -67,7 +70,7 @@ fun HsmSimulatorScreen(
 
 
     Scaffold(
-        topBar = { AppBarWithBack(title = "HSM Simulator", onBackClick = onBack) },
+        topBar = { AppBarWithBack(title = "HSM Simulator - ${config.name}", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
     ) { paddingValues ->
         HsmSimulator(
@@ -96,10 +99,20 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                     selected = selectedTabIndex == index,
                     onClick = { selectedTabIndex = index },
                     text = {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            Icon(imageVector = tab.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(tab.title, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal)
+                            Text(
+                                tab.title,
+                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
+                            )
                         }
                     }
                 )
@@ -108,8 +121,30 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
 
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             when (tabList[selectedTabIndex]) {
-                HsmSimulatorTabs.HANDLER -> HsmHandlerTab(hsm = hsm)
-                HsmSimulatorTabs.KEY_MANAGEMENT -> Text("Pending")
+                HsmSimulatorTabs.HANDLER -> SimulatorHandlerTab(
+                    simulator = hsm,
+                    isStarted = hsm.isStarted(),
+                    onStartStopClick = {
+
+                    },
+                    onClearClick = {},
+                    transactionCount = "0",
+                    isHoldMessage = false,
+                    onHoldMessageChange = { },
+                    holdMessageTime = "0",
+                    onHoldMessageTimeChange = {},
+                    waitingRemain = "0",
+                    onSendClick = {
+
+                    },
+                    request = "",
+                    rawRequest = "",
+                    response = "",
+                    rawResponse = "",
+
+                    )
+
+                HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsmConfig = hsm.configuration)
                 HsmSimulatorTabs.LOGS -> LogTab(
                     logEntries = HsmLogManager.logEntries,
                     onClearClick = { HsmLogManager.clearLogs() },
@@ -118,6 +153,7 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                     bytesOutgoing = 0L,
                     concurrentConnections = 0
                 )
+
                 HsmSimulatorTabs.HSM_RESPONSE_CONFIG -> HsmResponseConfigScreen(hsm = hsm) {
 
                 }
@@ -127,17 +163,15 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
 }
 
 
-
-
-
 // Custom tab indicator offset extension
-private fun Modifier.customTabIndicatorOffset(currentTabPosition: TabPosition): Modifier = composed {
-    val indicatorWidth = 32.dp
-    val currentTabWidth = currentTabPosition.width
-    val indicatorOffset = currentTabPosition.left + (currentTabWidth - indicatorWidth) / 2
+private fun Modifier.customTabIndicatorOffset(currentTabPosition: TabPosition): Modifier =
+    composed {
+        val indicatorWidth = 32.dp
+        val currentTabWidth = currentTabPosition.width
+        val indicatorOffset = currentTabPosition.left + (currentTabWidth - indicatorWidth) / 2
 
-    fillMaxWidth()
-        .wrapContentSize(Alignment.BottomStart)
-        .offset(x = indicatorOffset)
-        .width(indicatorWidth)
-}
+        fillMaxWidth()
+            .wrapContentSize(Alignment.BottomStart)
+            .offset(x = indicatorOffset)
+            .width(indicatorWidth)
+    }

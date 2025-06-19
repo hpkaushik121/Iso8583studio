@@ -1,4 +1,4 @@
-package `in`.aicortex.iso8583studio.ui.screens.hostSimulator
+package `in`.aicortex.iso8583studio.ui.screens.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,19 +14,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.Simulator
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.WarningYellow
-import `in`.aicortex.iso8583studio.ui.screens.components.Panel
-import `in`.aicortex.iso8583studio.ui.screens.components.PrimaryButton
-import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
 
 @Composable
-fun ISO8583TransactionTab(
-    gw: GatewayServiceImpl,
+fun SimulatorHandlerTab(
+    simulator: Simulator,
     isStarted: Boolean,
     onStartStopClick: () -> Unit,
     onClearClick: () -> Unit,
@@ -40,7 +39,8 @@ fun ISO8583TransactionTab(
     request: String,
     rawRequest: String,
     response: String,
-    rawResponse: String
+    rawResponse: String,
+    isServer: Boolean = true
 ) {
     // Minimize states for each quadrant (both vertical and horizontal)
     var isFormattedRequestMinimized by remember { mutableStateOf(false) }
@@ -53,17 +53,19 @@ fun ISO8583TransactionTab(
     var isRawResponseMinimizedHorizontal by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Compact Status Bar
-        if (gw.isStarted()) {
-            CompactStatusBar(
-                serverAddress = gw.configuration.serverAddress,
-                serverPort = gw.configuration.serverPort,
-                transactionCount = transactionCount
-            )
+        if (isServer) {
+            // Compact Status Bar
+            if (simulator.isStarted()) {
+                CompactStatusBar(
+                    serverAddress = simulator.configuration.serverAddress,
+                    serverPort = simulator.configuration.serverPort,
+                    transactionCount = transactionCount
+                )
+            }
         }
-
         // Compact Control Panel
         CompactControlPanel(
+            isServer = isServer,
             isStarted = isStarted,
             onStartStopClick = onStartStopClick,
             onClearClick = onClearClick,
@@ -73,7 +75,7 @@ fun ISO8583TransactionTab(
             onHoldMessageTimeChange = onHoldMessageTimeChange,
             waitingRemain = waitingRemain,
             onSendClick = onSendClick,
-            gatewayStarted = gw.isStarted()
+            gatewayStarted = simulator.isStarted()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -319,7 +321,7 @@ private fun CompactStatusBar(
                 "$serverAddress:$serverPort",
                 style = MaterialTheme.typography.caption.copy(fontSize = 10.sp),
                 fontWeight = FontWeight.Medium,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = FontFamily.Monospace,
                 color = MaterialTheme.colors.onSurface
             )
 
@@ -336,6 +338,7 @@ private fun CompactStatusBar(
 
 @Composable
 private fun CompactControlPanel(
+    isServer: Boolean,
     isStarted: Boolean,
     onStartStopClick: () -> Unit,
     onClearClick: () -> Unit,
@@ -360,29 +363,34 @@ private fun CompactControlPanel(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // Left side - Gateway controls
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    onClick = onStartStopClick,
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = if (isStarted) MaterialTheme.colors.error else MaterialTheme.colors.primary
-                    ),
-                    modifier = Modifier.height(32.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isStarted) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        if (isStarted) "Stop" else "Start",
-                        style = MaterialTheme.typography.caption,
-                        fontWeight = FontWeight.Medium
-                    )
+                if (isServer) {
+
+
+                    Button(
+                        onClick = onStartStopClick,
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = if (isStarted) MaterialTheme.colors.error else MaterialTheme.colors.primary
+                        ),
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isStarted) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            if (isStarted) "Stop" else "Start",
+                            style = MaterialTheme.typography.caption,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
 
                 OutlinedButton(
@@ -505,7 +513,7 @@ private fun CompactControlPanel(
 private fun QuadrantPanel(
     modifier: Modifier = Modifier,
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     content: String,
     colorScheme: Color,
     onMinimizeVertical: () -> Unit,
@@ -591,7 +599,7 @@ private fun QuadrantPanel(
                     unfocusedIndicatorColor = Color.Transparent
                 ),
                 textStyle = LocalTextStyle.current.copy(
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    fontFamily = FontFamily.Monospace,
                     fontSize = 13.sp
                 )
             )
@@ -603,7 +611,7 @@ private fun QuadrantPanel(
 private fun MinimizedVerticalQuadrant(
     modifier: Modifier = Modifier,
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     colorScheme: Color,
     onClick: () -> Unit
 ) {
@@ -673,7 +681,7 @@ private fun MinimizedVerticalQuadrant(
 @Composable
 private fun MinimizedHorizontalQuadrant(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     colorScheme: Color,
     onClick: () -> Unit
 ) {

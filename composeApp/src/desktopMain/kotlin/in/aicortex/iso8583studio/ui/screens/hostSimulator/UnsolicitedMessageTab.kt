@@ -31,7 +31,7 @@ import `in`.aicortex.iso8583studio.data.model.AddtionalOption
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.model.GatewayType
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import `in`.aicortex.iso8583studio.domain.utils.EMVTag
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 import `in`.aicortex.iso8583studio.ui.ErrorRed
@@ -45,7 +45,7 @@ enum class ParseStatus { SUCCESS, WARNING, ERROR }
 
 @Composable
 fun UnsolicitedMessageTab(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     selectedField: MutableState<BitAttribute?>,
     selectedFieldIndex: MutableState<Int?>,
     showBitmapAnalysis: MutableState<Boolean>,
@@ -286,7 +286,7 @@ fun ProfessionalHeader(
     currentFields: Array<BitAttribute>?,
     showBitmapAnalysis: Boolean,
     showMessageParser: Boolean,
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     isFirst: Boolean,
     onBitmapToggle: () -> Unit,
     onParserToggle: () -> Unit,
@@ -1117,7 +1117,7 @@ fun EnhancedLegendItem(
 
 @Composable
 fun EnhancedFieldsListCard(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     fields: Array<BitAttribute>,
     searchQuery: String,
     selectedField: BitAttribute?,
@@ -1233,7 +1233,7 @@ fun EnhancedFieldsListCard(
 fun EnhancedFieldItem(
     field: BitAttribute,
     isSelected: Boolean,
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     fieldNumber: Int,
     onClick: () -> Unit,
     animationTrigger: Int,
@@ -1374,7 +1374,7 @@ fun EnhancedFieldTypeChip(type: BitType, modifier: Modifier = Modifier) {
 
 @Composable
 fun EnhancedFieldDetailsPanel(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     selectedField: BitAttribute?,
     selectedFieldIndex: Int?,
     onFieldSelect: (BitAttribute, Int) -> Unit,
@@ -1410,7 +1410,7 @@ fun EnhancedFieldDetailsPanel(
 
 @Composable
 fun EnhancedFieldDetailContent(
-    gw: GatewayServiceImpl,
+    gw: HostSimulator,
     selectedFieldIndex: Int?,
     field: BitAttribute,
     onFieldSelect: (BitAttribute, Int) -> Unit,

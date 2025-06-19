@@ -9,6 +9,8 @@ interface SimulatorConfig {
     val id: String
     val name: String
     val description: String
+    val serverAddress: String
+    val serverPort: Int
     val simulatorType: SimulatorType
     val enabled: Boolean
     val createdDate: Long

@@ -50,7 +50,9 @@ data class POSSimulatorConfig(
     var authMethods: String = "PIN verification",
     // Network & Software
     var connectivity: String = "Ethernet/LAN connection",
-    var osType: String = "Proprietary OS"
+    var osType: String = "Proprietary OS",
+    override val serverAddress: String = "localhost",
+    override val serverPort: Int = 8080,
 ) : SimulatorConfig
 
 

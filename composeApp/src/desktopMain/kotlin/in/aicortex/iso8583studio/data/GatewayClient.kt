@@ -19,7 +19,7 @@ import `in`.aicortex.iso8583studio.data.model.TransactionStatus
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToBin
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToString
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bytesCopy
@@ -53,7 +53,7 @@ class GatewayClient {
     private var m_SecondConnection: Socket? = null
     private var m_SecondRestConnection: HttpClient? = null
     var timeOut: Int = 30
-    private var gatewayHandler: GatewayServiceImpl? = null
+    private var gatewayHandler: HostSimulator? = null
     private var _cipherType: CipherType = CipherType.DES
     var tags: Any? = null
     private var m_SslIncoming: SSLTcpClient? = null
@@ -200,7 +200,7 @@ class GatewayClient {
             }
         }
 
-    val myGateway: GatewayServiceImpl?
+    val myGateway: HostSimulator?
         get() = gatewayHandler
 
     private var csk: String
@@ -248,7 +248,7 @@ class GatewayClient {
         m_FirstConnection = Socket(gatewayServer, port)
     }
 
-    constructor(server: GatewayServiceImpl) {
+    constructor(server: HostSimulator) {
         gatewayHandler = server
         m_Index = server.connectionCount.get()
         _cipherType = server.configuration.cipherType

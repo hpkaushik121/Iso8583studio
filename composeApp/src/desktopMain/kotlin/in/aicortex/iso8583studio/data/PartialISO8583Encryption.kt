@@ -2,11 +2,10 @@ package `in`.aicortex.iso8583studio.data
 
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
-import `in`.aicortex.iso8583studio.data.model.LoggingOption
 import `in`.aicortex.iso8583studio.data.model.ObscureType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.GatewayServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
 
 
@@ -18,7 +17,7 @@ class PartialISO8583Encryption(
     private val ObscuredBits: IntArray
 ) {
     private var m_EncryptionDataBit: Int = 40
-    private lateinit var GatewayHandler: GatewayServiceImpl
+    private lateinit var GatewayHandler: HostSimulator
 
     /**
      * Decodes the encrypted ISO8583 message
@@ -224,7 +223,7 @@ class PartialISO8583Encryption(
     /**
      * Sets the Gateway instance and registers event handlers
      */
-    fun setActive(gw: GatewayServiceImpl) {
+    fun setActive(gw: HostSimulator) {
         GatewayHandler = gw
 //        gw.onReceiveFromSource(::gw_OnReceiveFromSource)
 //        gw.onReceiveFromDest (::gw_OnReceiveFromDest)
