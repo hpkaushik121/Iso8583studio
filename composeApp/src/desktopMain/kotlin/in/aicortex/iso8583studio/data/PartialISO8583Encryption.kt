@@ -6,7 +6,8 @@ import `in`.aicortex.iso8583studio.data.model.ObscureType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
+import `in`.aicortex.iso8583studio.domain.utils.Utils
 
 
 /**
@@ -71,10 +72,10 @@ class PartialISO8583Encryption(
                     var len2 = _input.size
 
                     if (input[obscuredBit]?.lengthAttribute == BitLength.LLVAR) {
-                        _arInput = IsoUtil.getBytesFromBytes(_input, 0, 1)
+                        _arInput = Utils.getBytesFromBytes(_input, 0, 1)
                         len2 = IsoUtil.bcdToBin(_arInput)
                     } else if (input[obscuredBit]?.lengthAttribute == BitLength.LLLVAR) {
-                        _arInput = IsoUtil.getBytesFromBytes(_input, 0, 2)
+                        _arInput = Utils.getBytesFromBytes(_input, 0, 2)
                         len2 = IsoUtil.bcdToBin(_arInput)
                     }
 
@@ -82,7 +83,7 @@ class PartialISO8583Encryption(
                     if (input[obscuredBit]?.typeAtribute == BitType.BCD) {
                         len2 = (len2 + 1) / 2
                     }
-                    input[obscuredBit]?.data = IsoUtil.getBytesFromBytes(_input, _arInput.size, len2)
+                    input[obscuredBit]?.data = Utils.getBytesFromBytes(_input, _arInput.size, len2)
                 }
             }
         } else {
@@ -101,7 +102,7 @@ class PartialISO8583Encryption(
 
                 if (index4 < ObscuredBits.size) {
                     if (m_ObscureType == ObscureType.ReplacedByEncryptedData && input[bitnumber]?.isSet == true) {
-                        IsoUtil.getBytesFromBytes(data1, offset, len1)
+                        Utils.getBytesFromBytes(data1, offset, len1)
                             .copyInto(numArray2[index4]!!, numArray2[index4]!!.size - len1)
 
                         val decryptedData = GatewayHandler.endeService.decryptMessage(
@@ -112,10 +113,10 @@ class PartialISO8583Encryption(
                         )
                         numArray1[index4] = decryptedData
 
-                        IsoUtil.getBytesFromBytes(numArray1[index4]!!, 0, input[bitnumber]?.data?.size ?:0)
+                        Utils.getBytesFromBytes(numArray1[index4]!!, 0, input[bitnumber]?.data?.size ?:0)
                             .copyInto(input[bitnumber]?.data ?: byteArrayOf(0), 0)
                     } else if (m_ObscureType == ObscureType.ReplacedByZero && input[bitnumber]?.isSet ==true) {
-                        IsoUtil.getBytesFromBytes(data1, offset, len1)
+                        Utils.getBytesFromBytes(data1, offset, len1)
                             .copyInto(numArray2[index4]!!, 0)
 
                         val decryptedData = GatewayHandler.endeService.decryptMessage(
@@ -126,7 +127,7 @@ class PartialISO8583Encryption(
                         )
                         numArray1[index4] = decryptedData
 
-                        IsoUtil.getBytesFromBytes(numArray1[index4]!!, 0, input[bitnumber]?.data?.size ?: 0)
+                        Utils.getBytesFromBytes(numArray1[index4]!!, 0, input[bitnumber]?.data?.size ?: 0)
                             .copyInto(input[bitnumber]?.data ?: byteArrayOf(0), 0)
                     }
                 }
@@ -193,9 +194,9 @@ class PartialISO8583Encryption(
                     index1 = index3 + 1
 
                     if (length - (numArray3?.size ?: 0) > 0) {
-                        IsoUtil.getBytesFromBytes(numArray2[index2]!!, 0, numArray3?.size ?: 0)
+                        Utils.getBytesFromBytes(numArray2[index2]!!, 0, numArray3?.size ?: 0)
                             .copyInto(numArray3 ?: byteArrayOf(0), 0)
-                        IsoUtil.getBytesFromBytes(numArray2[index2]!!, numArray3?.size ?: 0, length - (numArray3?.size ?: 0))
+                        Utils.getBytesFromBytes(numArray2[index2]!!, numArray3?.size ?: 0, length - (numArray3?.size ?: 0))
                             .copyInto(_input, index1)
                         index1 += length - (numArray3?.size ?: 0)
                     }
@@ -216,7 +217,7 @@ class PartialISO8583Encryption(
         }
 
         if (index1 > 0) {
-            input.packBit(m_EncryptionDataBit, IsoUtil.getBytesFromBytes(_input, 0, index1))
+            input.packBit(m_EncryptionDataBit, Utils.getBytesFromBytes(_input, 0, index1))
         }
     }
 

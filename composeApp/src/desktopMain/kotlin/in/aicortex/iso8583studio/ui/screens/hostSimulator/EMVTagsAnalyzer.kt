@@ -23,7 +23,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import `in`.aicortex.iso8583studio.domain.utils.EMVTag
 import `in`.aicortex.iso8583studio.domain.utils.EMVTagParser
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.*

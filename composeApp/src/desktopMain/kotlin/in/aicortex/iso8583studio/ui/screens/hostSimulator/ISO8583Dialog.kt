@@ -30,7 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import `in`.aicortex.iso8583studio.data.Iso8583Data
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
 import androidx.compose.material.TextField
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState

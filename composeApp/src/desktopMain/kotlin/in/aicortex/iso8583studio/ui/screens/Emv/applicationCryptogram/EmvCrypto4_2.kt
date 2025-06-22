@@ -1,8 +1,5 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram
 
-import ai.cortex.core.crypto.data.FieldValidation
-import ai.cortex.core.crypto.data.PaddingMethod
-import ai.cortex.core.crypto.data.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -25,19 +22,21 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.data.model.FieldValidation
+import `in`.aicortex.iso8583studio.data.model.ValidationState
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
+import ai.cortex.core.types.PaddingMethods
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -333,7 +332,7 @@ private fun CryptogramTab42() {
     var sessionKey by remember { mutableStateOf("D920B6730B9267079220F8491F2FCD68") }
     var terminalData by remember { mutableStateOf("000000010000") }
     var iccData by remember { mutableStateOf("9F370411223344") }
-    var paddingMethod by remember { mutableStateOf(PaddingMethod.METHOD_1_ISO_9797) }
+    var paddingMethod by remember { mutableStateOf(PaddingMethods.METHOD_1_ISO_9797) }
     var isLoading by remember { mutableStateOf(false) }
 
     val isFormValid = listOf(
@@ -351,16 +350,16 @@ private fun CryptogramTab42() {
         Spacer(Modifier.height(4.dp))
         ModernDropdownField(
             label = "Padding Method",
-            value = paddingMethod.displayName,
-            options = PaddingMethod.values().map { it.displayName },
-            onSelectionChanged = { index -> paddingMethod = PaddingMethod.values()[index] }
+            value = paddingMethod.name,
+            options = PaddingMethods.values().map { it.name },
+            onSelectionChanged = { index -> paddingMethod = PaddingMethods.values()[index] }
         )
         Spacer(Modifier.height(8.dp))
         ModernButton(
             text = "Generate ARQC",
             onClick = {
                 isLoading = true
-                val inputs = mapOf("Session Key" to sessionKey, "Terminal Data" to terminalData, "ICC Data" to iccData, "Padding" to paddingMethod.displayName)
+                val inputs = mapOf("Session Key" to sessionKey, "Terminal Data" to terminalData, "ICC Data" to iccData, "Padding" to paddingMethod.name)
                 GlobalScope.launch {
                     delay(500)
                     val result = "ARQC: FEDCBA9876543210"

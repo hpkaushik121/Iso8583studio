@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.hsmKeys
 
-import ai.cortex.core.crypto.data.FieldValidation
-import ai.cortex.core.crypto.data.ValidationState
+import `in`.aicortex.iso8583studio.data.model.FieldValidation
+import `in`.aicortex.iso8583studio.data.model.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -29,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
-import `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.EmvLogManager
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll

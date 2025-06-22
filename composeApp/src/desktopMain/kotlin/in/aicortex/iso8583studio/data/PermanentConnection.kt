@@ -5,7 +5,8 @@ import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
+import `in`.aicortex.iso8583studio.domain.utils.Utils
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.Dispatchers
@@ -123,15 +124,15 @@ class PermanentConnection(
                     }
 
                     if (len > 10) {
-                        val key = IsoUtil.messageLengthToInt(
-                            IsoUtil.getBytesFromBytes(buffer, 3, 2),
+                        val key = Utils.messageLengthToInt(
+                            Utils.getBytesFromBytes(buffer, 3, 2),
                             MessageLengthType.BCD
                         )
 
                         if (buffer[2] == 0x60.toByte() && listMessagesReceived.containsKey(key)) {
                             listMessagesReceived[key]?.let { messageForNii ->
                                 messageForNii.receiveTime = LocalDateTime.now()
-                                messageForNii.message = IsoUtil.getBytesFromBytes(buffer, 0, len)
+                                messageForNii.message = Utils.getBytesFromBytes(buffer, 0, len)
                             }
                         }
                     }
@@ -202,8 +203,8 @@ class PermanentConnection(
 
             if (messageForNii.receiveTime != null) {
                 messageForNii.receiveTime = null
-                IsoUtil.bytesCopy(messageForNii.message, messageForNii.originalTpdu, 3, 3, 2)
-                IsoUtil.bytesCopy(messageForNii.message, messageForNii.originalTpdu, 5, 1, 2)
+                Utils.bytesCopy(messageForNii.message, messageForNii.originalTpdu, 3, 3, 2)
+                Utils.bytesCopy(messageForNii.message, messageForNii.originalTpdu, 5, 1, 2)
                 return messageForNii.message
             }
 
@@ -232,10 +233,10 @@ class PermanentConnection(
                 VerificationError.INVALID_NII
             )
 
-            messageForNii.originalTpdu = IsoUtil.getBytesFromBytes(dataSent, 2, 5)
+            messageForNii.originalTpdu = Utils.getBytesFromBytes(dataSent, 2, 5)
 
             // Copy source NII to the appropriate position in the data
-            IsoUtil.intToMessageLength(sourceNii, MessageLengthType.BCD).copyInto(dataSent, 5)
+            Utils.intToMessageLength(sourceNii, MessageLengthType.BCD).copyInto(dataSent, 5)
 
             // Send the data
             withContext(Dispatchers.IO) {

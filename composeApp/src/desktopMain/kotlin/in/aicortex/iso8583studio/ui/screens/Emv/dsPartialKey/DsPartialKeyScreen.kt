@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.dsPartialKey
 
-import ai.cortex.core.crypto.data.FieldValidation
-import ai.cortex.core.crypto.data.ValidationState
+import `in`.aicortex.iso8583studio.data.model.FieldValidation
+import `in`.aicortex.iso8583studio.data.model.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform

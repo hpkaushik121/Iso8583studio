@@ -9,8 +9,9 @@ import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.model.HttpInfo
 import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.ParsingFeature
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.PlaceholderProcessor
+import `in`.aicortex.iso8583studio.domain.utils.Utils
 import `in`.aicortex.iso8583studio.domain.utils.packWithFormat
 import `in`.aicortex.iso8583studio.domain.utils.unpackFromFormat
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.BitmapField
@@ -399,7 +400,7 @@ data class Iso8583Data(
 
             else -> {
                 // Insert binary length
-                IsoUtil.intToMessageLength(m_PackageSize - 2, lengthType).copyInto(buffer, 0)
+                Utils.intToMessageLength(m_PackageSize - 2, lengthType).copyInto(buffer, 0)
                 buffer.copyOfRange(0, m_PackageSize)
             }
         }
@@ -716,7 +717,7 @@ data class Iso8583Data(
                 maxLength = 8
             )).maxLength
             // Binary bitmap format
-            bitmap = IsoUtil.getBytesFromBytes(input, position,  len)
+            bitmap = Utils.getBytesFromBytes(input, position,  len)
             analyzeBitmap(bitmap!!)
             position += len
 

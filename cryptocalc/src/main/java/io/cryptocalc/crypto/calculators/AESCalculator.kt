@@ -1,58 +1,74 @@
 package io.cryptocalc.crypto.calculators
 
+import ai.cortex.core.types.AesCryptoInput
+import ai.cortex.core.types.AesCryptoResult
+import ai.cortex.core.types.CalculatorCategory
+import ai.cortex.core.types.CipherMode
+import ai.cortex.core.types.CryptoAlgorithm
+import ai.cortex.core.types.KeySize
+import ai.cortex.core.types.OperationType
+import ai.cortex.core.types.PaddingMethods
 import io.cryptocalc.core.*
-import io.cryptocalc.core.types.*
 import io.cryptocalc.crypto.CryptoEngine
+import io.cryptocalc.crypto.SymmetricParameter
 import io.cryptocalc.crypto.engines.DefaultCryptoEngine
 
 class AESCalculator(
     private val cryptoEngine: CryptoEngine = DefaultCryptoEngine()
-) : BaseCalculator() {
+) : BaseCalculator<AesCryptoInput, AesCryptoResult>() {
 
     override val id = "aes-calculator"
     override val name = "AES Calculator"
     override val category = CalculatorCategory.CRYPTOGRAPHIC
     override val version = "1.0.0"
 
-    override suspend fun executeOperation(input: CalculatorInput): CalculatorResult {
-        val key = hexToBytes(input.parameters["key"]!!)
-        val data = hexToBytes(input.parameters["data"]!!)
-        val mode = input.options["mode"] ?: "CBC"
-        val padding = input.options["padding"] ?: "PKCS7"
+    override suspend fun executeOperation(input: AesCryptoInput): AesCryptoResult {
+        val key = hexToBytes(input.key)
+        val data = hexToBytes(input.data)
+        val mode = input.mode ?: "CBC"
+        val padding = input.padding ?: "PKCS7"
 
-        val algorithm = "AES"
+        val algorithm = CryptoAlgorithm.AES
         val options = mapOf(
             "mode" to mode,
             "padding" to padding,
-            "iv" to (input.options["iv"] ?: "")
+            "iv" to (input.iv ?: "")
         )
 
         return when (input.operation) {
             OperationType.ENCRYPT -> {
-                val encrypted = cryptoEngine.encrypt(algorithm, data, key, options)
-                val kcv = calculateKCV(key)
-                CalculatorResult(
+                val encrypted = cryptoEngine.encrypt(algorithm,
+                    parameter = SymmetricParameter(
+                        data = data,
+                        key = key,
+                        iv =  input.iv,
+                    ))
+                AesCryptoResult(
                     success = true,
-                    data = mapOf(
-                        "encrypted" to bytesToHex(encrypted),
-                        "kcv" to bytesToHex(kcv)
-                    ),
-                    metadata = ResultMetadata(algorithm = "AES-${key.size * 8}")
+                    encrypted = bytesToHex(encrypted),
                 )
             }
+
             OperationType.DECRYPT -> {
-                val decrypted = cryptoEngine.decrypt(algorithm, data, key, options)
-                CalculatorResult(
+                val decrypted = byteArrayOf()
+                AesCryptoResult(
                     success = true,
-                    data = mapOf("decrypted" to bytesToHex(decrypted)),
-                    metadata = ResultMetadata(algorithm = "AES-${key.size * 8}")
+                    decrypted = bytesToHex(decrypted),
                 )
             }
-            else -> CalculatorResult(
+
+            else -> AesCryptoResult(
                 success = false,
                 error = "Unsupported operation for AES: ${input.operation}"
             )
         }
+    }
+
+    override fun validate(input: AesCryptoInput): AesCryptoResult {
+        return AesCryptoResult(
+            success = true
+        )
+
     }
 
     override fun getSchema(): CalculatorSchema {
@@ -90,14 +106,9 @@ class AESCalculator(
         return CalculatorCapabilities(
             supportedAlgorithms = listOf("AES"),
             supportedModes = listOf(CipherMode.ECB, CipherMode.CBC, CipherMode.CFB, CipherMode.OFB),
-            supportedPadding = listOf(PaddingScheme.PKCS7, PaddingScheme.NONE),
+            supportedPadding = listOf(PaddingMethods.PKCS7, PaddingMethods.NONE),
             supportedKeySizes = listOf(KeySize.AES_128, KeySize.AES_192, KeySize.AES_256)
         )
     }
 
-    private suspend fun calculateKCV(key: ByteArray): ByteArray {
-        val zeroBlock = ByteArray(16) // 16 bytes of zeros
-        val encrypted = cryptoEngine.encrypt("AES", zeroBlock, key, mapOf("mode" to "ECB"))
-        return encrypted.sliceArray(0..2) // First 3 bytes
-    }
 }

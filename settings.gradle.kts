@@ -33,9 +33,9 @@ plugins {
 }
 
 include(":composeApp")
-include(":cryptocalc")
 //include(":kmp-payment-crypto")
 //include(":core-crypto")
 //include(":payment-crypto")
 include(":api")
 include(":cryptocalc")
+include(":iso-core-lib")

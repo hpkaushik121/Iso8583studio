@@ -1,7 +1,6 @@
-package `in`.aicortex.iso8583studio.ui.screens.apduquery
+package `in`.aicortex.iso8583studio.ui.screens.Emv
 
-import ai.cortex.core.crypto.data.FieldValidation
-import ai.cortex.core.crypto.data.ValidationState
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -19,18 +18,20 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.ComposeWindow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.data.model.FieldValidation
+import `in`.aicortex.iso8583studio.data.model.ValidationState
+
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -212,7 +213,7 @@ private fun ApduQueryCard() {
                 text = "Query Response",
                 onClick = {
                     isLoading = true
-                    kotlinx.coroutines.GlobalScope.launch {
+                    GlobalScope.launch {
                         delay(200) // Simulate a quick lookup
                         val description = ApduResponseService.getDescription(apduResponseCode)
                         ApduLogManager.logResponse(apduResponseCode, description)

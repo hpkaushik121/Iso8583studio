@@ -54,7 +54,8 @@ kotlin {
             implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
             implementation("cafe.adriel.voyager:voyager-navigator:1.1.0-beta02")
             implementation("cafe.adriel.voyager:voyager-screenmodel:1.1.0-beta02")
-
+            implementation(project(":cryptocalc"))
+            implementation(project(":iso-core-lib"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

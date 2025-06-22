@@ -1,21 +1,8 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram
 
-import ai.cortex.core.crypto.data.ArpcMethod
-import ai.cortex.core.crypto.hexToByteArray
-import ai.cortex.core.crypto.toHexString
-import ai.cortex.core.crypto.data.CryptogramType
-import ai.cortex.core.crypto.data.FieldValidation
-import ai.cortex.core.crypto.data.KeyParity
-import ai.cortex.core.crypto.data.PaddingMethod
-import ai.cortex.core.crypto.data.UdkDerivationOption
-import ai.cortex.core.crypto.data.ValidationState
-import ai.cortex.payment.crypto.EmvProcessor
-import ai.cortex.payment.crypto.api.PaymentCryptoApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,27 +15,31 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.data.model.FieldValidation
+import `in`.aicortex.iso8583studio.data.model.ValidationState
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
-import `in`.aicortex.iso8583studio.ui.screens.components.Panel
-import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
-import `in`.aicortex.iso8583studio.logging.LogEntry
-import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.components.CalculatorLogManager
+import `in`.aicortex.iso8583studio.ui.screens.components.CalculatorTab
+import `in`.aicortex.iso8583studio.ui.screens.components.CalculatorView
+import ai.cortex.core.types.CryptogramType
+import ai.cortex.core.types.KeyParity
+import ai.cortex.core.types.OperationType
+import ai.cortex.core.types.PaddingMethods
+import ai.cortex.core.types.UdkDerivationType
+import io.cryptocalc.emv.calculators.emv41.EMVCalculatorInput
+import io.cryptocalc.emv.calculators.emv41.Emv41CryptoCalculator
+import io.cryptocalc.emv.calculators.emv41.UdkDerivationInput
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import kotlin.collections.set
 
 
 // Enhanced EMV Tab enum
@@ -60,93 +51,7 @@ enum class EmvCryptoTabs(val title: String, val icon: ImageVector) {
     UTILITIES("Utilities", Icons.Default.Build)
 }
 
-// Simplified Log Manager to only show results and errors
-object EmvLogManager {
-    private val _logEntriesMap = mutableStateMapOf<EmvCryptoTabs, SnapshotStateList<LogEntry>>()
 
-    init {
-        EmvCryptoTabs.values().forEach { tab ->
-            _logEntriesMap[tab] = mutableStateListOf()
-        }
-    }
-
-    fun getLogEntries(tab: EmvCryptoTabs): SnapshotStateList<LogEntry> {
-        return _logEntriesMap[tab] ?: mutableStateListOf()
-    }
-
-    private fun addLog(tab: EmvCryptoTabs, entry: LogEntry) {
-        val logList = _logEntriesMap[tab] ?: return
-        logList.add(0, entry)
-        if (logList.size > 500) {
-            logList.removeRange(400, logList.size)
-        }
-    }
-
-    fun clearLogs(tab: EmvCryptoTabs) {
-        _logEntriesMap[tab]?.clear()
-        addLog(
-            tab,
-            LogEntry(
-                timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS")),
-                type = LogType.INFO,
-                message = "Log history for this tab cleared",
-                details = ""
-            )
-        )
-    }
-
-    // Simplified logger to only show final results or errors with inputs.
-    fun logOperation(
-        tab: EmvCryptoTabs,
-        operation: String,
-        inputs: Map<String, String>,
-        result: String? = null,
-        error: String? = null,
-        executionTime: Long = 0L
-    ) {
-        // Only log if there's a result or an error to show.
-        if (result == null && error == null) {
-            return
-        }
-
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-
-        val details = buildString {
-            append("Inputs:\n")
-            inputs.forEach { (key, value) ->
-                val displayValue = if (key.contains("key", ignoreCase = true) || key.contains("pan", ignoreCase = true)) {
-                    "${value.take(8)}..." // Mask sensitive data
-                } else {
-                    value
-                }
-                append("  $key: $displayValue\n")
-            }
-
-            result?.let {
-                append("\nResult:\n")
-                // Handle multi-line results gracefully
-                append("  ${it.replace("\n", "\n  ")}")
-            }
-
-            error?.let {
-                append("\nError:\n")
-                append("  Message: $it")
-            }
-
-            if (executionTime > 0) {
-                append("\n\nExecution time: ${executionTime}ms")
-            }
-        }
-
-        val (logType, message) = if (result != null) {
-            LogType.TRANSACTION to "$operation Result"
-        } else {
-            LogType.ERROR to "$operation Failed"
-        }
-
-        addLog(tab, LogEntry(timestamp = timestamp, type = logType, message = message, details = details))
-    }
-}
 
 
 // Validation utility functions (keeping the same as before)
@@ -414,113 +319,57 @@ fun EmvCrypto4_1(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Professional Tab Row with custom styling - Always visible
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                backgroundColor = MaterialTheme.colors.surface,
-                contentColor = MaterialTheme.colors.primary,
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        modifier = Modifier.customTabIndicatorOffset(tabPositions[selectedTabIndex]),
-                        height = 3.dp,
-                        color = MaterialTheme.colors.primary
-                    )
-                }
-            ) {
-                tabList.forEachIndexed { index, tab ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index }, // Simplified click handler
-                        text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = tab.icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    tab.title,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-                        },
-                        selectedContentColor = MaterialTheme.colors.primary,
-                        unselectedContentColor = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            // Main content area with a 50/50 split between operations and logs
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Left panel - Crypto operations
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Animated content switching between different tabs
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            if (targetState.ordinal > initialState.ordinal) {
-                                slideInHorizontally { width -> width } + fadeIn() with
-                                        slideOutHorizontally { width -> -width } + fadeOut()
-                            } else {
-                                slideInHorizontally { width -> -width } + fadeIn() with
-                                        slideOutHorizontally { width -> width } + fadeOut()
-                            }.using(
-                                SizeTransform(clip = false)
-                            )
-                        },
-                        label = "tab_content_transition"
-                    ) { tab ->
-                        when (tab) {
-                            EmvCryptoTabs.UDK_DERIVATION -> UdkDerivationTab()
-                            EmvCryptoTabs.SESSION_KEYS -> SessionKeysTab()
-                            EmvCryptoTabs.CRYPTOGRAM -> CryptogramTab()
-                            EmvCryptoTabs.ARPC -> ArpcTab()
-                            EmvCryptoTabs.UTILITIES -> UtilitiesTab()
+            CalculatorView(
+                tabList = listOf(
+                    CalculatorTab(
+                        title = "UDK Derviation",
+                        icon = Icons.Default.Key,
+                        content = { calculatorLogManager, tab ->
+                            UdkDerivationTab(calculatorLogManager,tab)
                         }
-                    }
-                }
-
-                // Right panel - Log panel for the selected tab
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                ) {
-                    Panel {
-                        LogPanelWithAutoScroll(
-                            onClearClick = {
-                                EmvLogManager.clearLogs(selectedTab)
-                            },
-                            logEntries = EmvLogManager.getLogEntries(selectedTab)
-                        )
-                    }
-                }
-            }
+                    ),
+                    CalculatorTab(
+                        title = "Session Keys",
+                        icon = Icons.Default.VpnKey,
+                        content = { calculatorLogManager, tab ->
+                            SessionKeysTab(calculatorLogManager,tab)
+                        }
+                    ),
+                    CalculatorTab(
+                        title = "Cryptogram",
+                        icon = Icons.Default.Security,
+                        content = { calculatorLogManager, tab ->
+                            CryptogramTab(calculatorLogManager,tab)
+                        }
+                    ),
+                    CalculatorTab(
+                        title = "ARPC",
+                        icon = Icons.Default.Reply,
+                        content = { calculatorLogManager, tab ->
+                            ArpcTab(calculatorLogManager,tab)
+                        }
+                    ),
+                    CalculatorTab(
+                        title = "Utilities",
+                        icon = Icons.Default.Build,
+                        content = { calculatorLogManager, tab ->
+                            UtilitiesTab(calculatorLogManager,tab)
+                        }
+                    )
+                ),
+                onTabSelected = { selectedTabIndex = it }
+            )
         }
     }
 }
 
 @Composable
-private fun UdkDerivationTab() {
+private fun UdkDerivationTab(calculatorLogManager: CalculatorLogManager,calculatorTab: CalculatorTab) {
     var mdk by remember { mutableStateOf("0123456789ABCDEF0123456789ABCDEF") }
     var pan by remember { mutableStateOf("43219876543210987") }
     var panSeq by remember { mutableStateOf("00") }
-    var derivationOption by remember { mutableStateOf(UdkDerivationOption.OPTION_A) }
-    var keyParity by remember { mutableStateOf(KeyParity.RIGHT_ODD) }
+    var derivationOption by remember { mutableStateOf(UdkDerivationType.OPTION_A) }
+    var keyParity by remember { mutableStateOf(KeyParity.ODD) }
     var isLoading by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
 
@@ -607,17 +456,17 @@ private fun UdkDerivationTab() {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ModernDropdownField(
                         label = "Derivation Option",
-                        value = derivationOption.displayName,
-                        options = UdkDerivationOption.values().map { it.displayName },
+                        value = derivationOption.name,
+                        options = UdkDerivationType.values().map { it.name },
                         onSelectionChanged = { index ->
-                            derivationOption = UdkDerivationOption.values()[index]
+                            derivationOption = UdkDerivationType.values()[index]
                         },
                         modifier = Modifier.weight(1f)
                     )
                     ModernDropdownField(
                         label = "Key Parity",
-                        value = keyParity.displayName,
-                        options = KeyParity.values().map { it.displayName },
+                        value = keyParity.name,
+                        options = KeyParity.values().map { it.name },
                         onSelectionChanged = { index ->
                             keyParity = KeyParity.values()[index]
                         },
@@ -639,43 +488,57 @@ private fun UdkDerivationTab() {
                     text = "Calculate UDK",
                     onClick = {
                         isLoading = true
-                        val startTime = System.currentTimeMillis()
                         val inputs = mapOf(
                             "MDK" to mdk,
                             "PAN" to pan,
                             "PAN Sequence" to panSeq,
-                            "Derivation Option" to derivationOption.displayName,
-                            "Key Parity" to keyParity.displayName
+                            "Derivation Option" to derivationOption.name,
+                            "Key Parity" to keyParity.name
                         )
 
                         GlobalScope.launch {
                             try {
-                                val udkResult = PaymentCryptoApi.deriveUdk(
-                                    mdkHex = mdk,
-                                    pan = pan,
-                                    panSequenceNumber = panSeq,
-                                    derivationOption = derivationOption,
-                                    keyParity = keyParity
+                                val udkResult = Emv41CryptoCalculator().execute(
+                                    EMVCalculatorInput(
+                                        operation = OperationType.DERIVE,
+                                        udkDerivationInput = UdkDerivationInput(
+                                            udkDerivationType = derivationOption,
+                                            keyParity = keyParity,
+                                            masterKey = mdk,
+                                            pan = pan,
+                                            panSequence = panSeq
+                                        )
+                                    )
                                 )
-                                val executionTime = System.currentTimeMillis() - startTime
-                                val resultString = "UDK: ${udkResult.udk}\nKCV: ${udkResult.kcv}"
+                                if(udkResult.success){
+                                    val resultString = "UDK: ${udkResult.udkDerivation?.udk}\nKCV: ${udkResult.udkDerivation?.kcv}"
 
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.UDK_DERIVATION,
-                                    operation = "UDK Derivation",
-                                    inputs = inputs,
-                                    result = resultString,
-                                    executionTime = executionTime
-                                )
+                                    calculatorLogManager.logOperation(
+                                        tab = calculatorTab,
+                                        operation = "UDK Derivation",
+                                        inputs = inputs,
+                                        result = resultString,
+                                        executionTime = udkResult.metadata.executionTimeMs
+                                    )
+                                }else{
+                                    calculatorLogManager.logOperation(
+                                        tab = calculatorTab,
+                                        operation = "UDK Derivation",
+                                        inputs = inputs,
+                                        error = udkResult.error,
+                                        executionTime = udkResult.metadata.executionTimeMs
+                                    )
+
+                                }
+
 
                             } catch (e: Exception) {
-                                val executionTime = System.currentTimeMillis() - startTime
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.UDK_DERIVATION,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "UDK Derivation",
                                     inputs = inputs,
                                     error = e.message ?: "Unknown error occurred",
-                                    executionTime = executionTime
+                                    executionTime = 0
                                 )
                             } finally {
                                 isLoading = false
@@ -693,7 +556,7 @@ private fun UdkDerivationTab() {
 }
 
 @Composable
-private fun SessionKeysTab() {
+private fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: CalculatorTab) {
     var masterKey by remember { mutableStateOf("C8B507136D921FD05864C81F79F2D30B") }
     var initialVector by remember { mutableStateOf("0000000000000000") }
     var atc by remember { mutableStateOf("0001") }
@@ -793,8 +656,8 @@ private fun SessionKeysTab() {
                     )
                     ModernDropdownField(
                         label = "Key Parity",
-                        value = keyParity.displayName,
-                        options = KeyParity.values().map { it.displayName },
+                        value = keyParity.name,
+                        options = KeyParity.values().map { it.name },
                         onSelectionChanged = { index -> keyParity = KeyParity.values()[index] },
                         modifier = Modifier.weight(1f)
                     )
@@ -811,7 +674,7 @@ private fun SessionKeysTab() {
                             "ATC" to atc,
                             "Branch Factor" to branchFactor,
                             "Height" to height,
-                            "Key Parity" to keyParity.displayName
+                            "Key Parity" to keyParity.name
                         )
 
                         GlobalScope.launch {
@@ -822,8 +685,8 @@ private fun SessionKeysTab() {
                                 val executionTime = System.currentTimeMillis() - startTime
                                 val resultString = "Session Key: $result\nKCV: $kcv"
 
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.SESSION_KEYS,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "Session Key Generation",
                                     inputs = inputs,
                                     result = resultString,
@@ -831,8 +694,8 @@ private fun SessionKeysTab() {
                                 )
                             } catch (e: Exception) {
                                 val executionTime = System.currentTimeMillis() - startTime
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.SESSION_KEYS,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "Session Key Generation",
                                     inputs = inputs,
                                     error = e.message ?: "Unknown error occurred",
@@ -854,12 +717,12 @@ private fun SessionKeysTab() {
 }
 
 @Composable
-private fun CryptogramTab() {
+private fun CryptogramTab(calculatorLogManager: CalculatorLogManager,calculatorTab: CalculatorTab) {
     var sessionKey by remember { mutableStateOf("022551C4FDF76E45988089BA31DC077C") }
     var terminalData by remember { mutableStateOf("0000000010000000000000000710000000000007101302050030901B6A") }
     var iccData by remember { mutableStateOf("3C00000103A4A082") }
     var cryptogramType by remember { mutableStateOf(CryptogramType.ARQC) }
-    var paddingMethod by remember { mutableStateOf(PaddingMethod.METHOD_1_ISO_9797) }
+    var paddingMethod by remember { mutableStateOf(PaddingMethods.METHOD_1_ISO_9797) }
     var isLoading by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
 
@@ -917,11 +780,11 @@ private fun CryptogramTab() {
                     validation = ValidationUtils.validateHexString(iccData, null)
                 )
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ModernDropdownField(label = "Cryptogram Type", value = cryptogramType.displayName, options = CryptogramType.values().map { it.displayName }, onSelectionChanged = { index -> cryptogramType = CryptogramType.values()[index] }, modifier = Modifier.weight(1f))
-                    ModernDropdownField(label = "Padding Method", value = paddingMethod.displayName, options = PaddingMethod.values().map { it.displayName }, onSelectionChanged = { index -> paddingMethod = PaddingMethod.values()[index] }, modifier = Modifier.weight(1f))
+                    ModernDropdownField(label = "Cryptogram Type", value = cryptogramType.name, options = CryptogramType.values().map { it.name }, onSelectionChanged = { index -> cryptogramType = CryptogramType.values()[index] }, modifier = Modifier.weight(1f))
+                    ModernDropdownField(label = "Padding Method", value = paddingMethod.name, options = PaddingMethods.values().map { it.name }, onSelectionChanged = { index -> paddingMethod = PaddingMethods.values()[index] }, modifier = Modifier.weight(1f))
                 }
                 ModernButton(
-                    text = "Generate ${cryptogramType.displayName}",
+                    text = "Generate ${cryptogramType.name}",
                     onClick = {
                         isLoading = true
                         val startTime = System.currentTimeMillis()
@@ -929,16 +792,16 @@ private fun CryptogramTab() {
                             "Session Key" to sessionKey,
                             "Terminal Data" to terminalData,
                             "ICC Data" to iccData,
-                            "Cryptogram Type" to cryptogramType.displayName,
-                            "Padding Method" to paddingMethod.displayName
+                            "Cryptogram Type" to cryptogramType.name,
+                            "Padding Method" to paddingMethod.name
                         )
 
                         GlobalScope.launch {
                             try {
                                 val result = "92791D36B5CC31B5"
                                 val executionTime = System.currentTimeMillis() - startTime
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.CRYPTOGRAM,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "Cryptogram Generation",
                                     inputs = inputs,
                                     result = result,
@@ -946,8 +809,8 @@ private fun CryptogramTab() {
                                 )
                             } catch (e: Exception) {
                                 val executionTime = System.currentTimeMillis() - startTime
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.CRYPTOGRAM,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "Cryptogram Generation",
                                     inputs = inputs,
                                     error = e.message ?: "Unknown error occurred",
@@ -969,11 +832,11 @@ private fun CryptogramTab() {
 }
 
 @Composable
-private fun ArpcTab() {
+private fun ArpcTab(calculatorLogManager: CalculatorLogManager,calculatorTab: CalculatorTab) {
     var sessionKey by remember { mutableStateOf("022551C4FDF76E45988089BA31DC077C") }
     var transactionCryptogram by remember { mutableStateOf("92791D36B5CC31B5") }
     var responseCode by remember { mutableStateOf("Y3") }
-    var arpcMethod by remember { mutableStateOf(ArpcMethod.METHOD_1) }
+    var arpcMethod by remember { mutableStateOf(CryptogramType.ARPC.methods[0]) }
     var isLoading by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
 
@@ -1034,7 +897,7 @@ private fun ArpcTab() {
                         modifier = Modifier.weight(1f),
                         validation = ValidationUtils.validateAlphanumeric(responseCode, 2)
                     )
-                    ModernDropdownField(label = "ARPC Method", value = arpcMethod.displayName, options = ArpcMethod.values().map { it.displayName }, onSelectionChanged = { index -> arpcMethod = ArpcMethod.values()[index] }, modifier = Modifier.weight(1f))
+                    ModernDropdownField(label = "ARPC Method", value = arpcMethod.name, options = CryptogramType.ARPC.methods.map { it.name }, onSelectionChanged = { index -> arpcMethod = CryptogramType.ARPC.methods[index] }, modifier = Modifier.weight(1f))
                 }
                 ModernButton(
                     text = "Generate ARPC",
@@ -1045,15 +908,15 @@ private fun ArpcTab() {
                             "Session Key" to sessionKey,
                             "Transaction Cryptogram" to transactionCryptogram,
                             "Response Code" to responseCode,
-                            "ARPC Method" to arpcMethod.displayName
+                            "ARPC Method" to arpcMethod.name
                         )
 
                         GlobalScope.launch {
                             try {
                                 val result = "1A2B3C4D5E6F7890"
                                 val executionTime = System.currentTimeMillis() - startTime
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.ARPC,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "ARPC Generation",
                                     inputs = inputs,
                                     result = result,
@@ -1061,8 +924,8 @@ private fun ArpcTab() {
                                 )
                             } catch (e: Exception) {
                                 val executionTime = System.currentTimeMillis() - startTime
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.ARPC,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "ARPC Generation",
                                     inputs = inputs,
                                     error = e.message ?: "Unknown error occurred",
@@ -1083,8 +946,9 @@ private fun ArpcTab() {
     }
 }
 
+@OptIn(ExperimentalStdlibApi::class)
 @Composable
-private fun UtilitiesTab() {
+private fun UtilitiesTab(calculatorLogManager: CalculatorLogManager,calculatorTab: CalculatorTab) {
     var inputKey by remember { mutableStateOf("0123456789ABCDEF0123456789ABCDEF") }
     var isLoading by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
@@ -1133,14 +997,13 @@ private fun UtilitiesTab() {
                         GlobalScope.launch {
                             try {
                                 val keyBytes = inputKey.hexToByteArray()
-                                val emvProcessor = EmvProcessor()
                                 val adjustedKey = if (keyBytes.size == 16) keyBytes + keyBytes.copyOfRange(0, 8) else keyBytes
-                                val kcvBytes = emvProcessor.calculateKcv(adjustedKey)
-                                val result = kcvBytes.toHexString().uppercase()
+                                val kcvBytes = ""
+                                val result = ""
                                 val executionTime = System.currentTimeMillis() - startTime
 
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.UTILITIES,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "KCV Calculation",
                                     inputs = inputs,
                                     result = result,
@@ -1148,8 +1011,8 @@ private fun UtilitiesTab() {
                                 )
                             } catch (e: Exception) {
                                 val executionTime = System.currentTimeMillis() - startTime
-                                EmvLogManager.logOperation(
-                                    tab = EmvCryptoTabs.UTILITIES,
+                                calculatorLogManager.logOperation(
+                                    tab = calculatorTab,
                                     operation = "KCV Calculation",
                                     inputs = inputs,
                                     error = e.message ?: "Unknown error occurred",

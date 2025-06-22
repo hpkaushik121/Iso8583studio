@@ -21,7 +21,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -76,6 +78,7 @@ import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.logging.formatLogDetails
 import `in`.aicortex.iso8583studio.logging.formatLogMessage
 import `in`.aicortex.iso8583studio.logging.formatPlainTextLogs
+import `in`.aicortex.iso8583studio.ui.screens.components.themedScrollbarStyle
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -474,27 +477,35 @@ internal fun LogPanelWithAutoScroll(
                 .weight(1f)
         ) {
             SelectionContainer {
-                if(filteredLogEntries.isEmpty()) {
-                    Text(
-                        text = "No logs yet. Start using the application to see logs here.",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .verticalScroll(scrollState),
-                        style = MaterialTheme.typography.body2,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                    )
-                } else {
-                    Text(
-                        text = buildStructuredLogText(filteredLogEntries),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .verticalScroll(scrollState),
-                        style = MaterialTheme.typography.body2,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = MaterialTheme.colors.onSurface
+                Box {
+                    if(filteredLogEntries.isEmpty()) {
+                        Text(
+                            text = "No logs yet. Start using the application to see logs here.",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .verticalScroll(scrollState),
+                            style = MaterialTheme.typography.body2,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                        )
+                    } else {
+                        Text(
+                            text = buildStructuredLogText(filteredLogEntries),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .verticalScroll(scrollState),
+                            style = MaterialTheme.typography.body2,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = MaterialTheme.colors.onSurface
+                        )
+                    }
+
+                    VerticalScrollbar(
+                        adapter = rememberScrollbarAdapter(scrollState),
+                        modifier = Modifier.align(Alignment.TopEnd),
+                        style = themedScrollbarStyle()
                     )
                 }
             }

@@ -1,7 +1,8 @@
 package `in`.aicortex.iso8583studio.data.model
 
 import `in`.aicortex.iso8583studio.data.EMVAnalyzer
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
+import `in`.aicortex.iso8583studio.domain.utils.Utils
 import java.nio.charset.Charset
 import java.util.*
 
@@ -17,14 +18,14 @@ class EMV_TAG(
     private var EMVRow: EMV_TAG? = null
     constructor(source: ByteArray, index: IntArray) : this() {
         try {
-            TAG = IsoUtil.bcdToString(IsoUtil.getBytesFromBytes(source, index[0], 2))
+            TAG = IsoUtil.bcdToString(Utils.getBytesFromBytes(source, index[0], 2))
             EMVRow = EMVAnalyzer.EMV_INFO.findByTag(TAG!!.substring(0, 2))
 
             if (EMVRow != null) {
                 TAG = TAG!!.substring(0, 2)
                 length = source[index[0] + 1].toInt()
                 value = ByteArray(length)
-                IsoUtil.bytesCopy(value!!, source, 0, index[0] + 2, length)
+                Utils.bytesCopy(value!!, source, 0, index[0] + 2, length)
                 index[0] += length + 2
             } else {
                 EMVRow = EMVAnalyzer.EMV_INFO.findByTag(TAG!!)
@@ -32,7 +33,7 @@ class EMV_TAG(
                     throw Exception("Invalid EMV tag $TAG")
                 length = source[index[0] + 2].toInt()
                 value = ByteArray(length)
-                IsoUtil.bytesCopy(value!!, source, 0, index[0] + 3, length)
+                Utils.bytesCopy(value!!, source, 0, index[0] + 3, length)
                 index[0] += length + 3
             }
         } catch (ex: Exception) {

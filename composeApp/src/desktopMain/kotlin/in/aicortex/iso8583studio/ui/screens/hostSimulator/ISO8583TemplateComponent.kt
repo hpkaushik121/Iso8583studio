@@ -22,7 +22,7 @@ import androidx.compose.ui.window.Dialog
 import `in`.aicortex.iso8583studio.data.BitSpecific
 import `in`.aicortex.iso8583studio.data.model.*
 import `in`.aicortex.iso8583studio.domain.utils.FormatMappingConfig
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
 import `in`.aicortex.iso8583studio.ui.screens.components.FileExportComponent
 import `in`.aicortex.iso8583studio.ui.screens.components.FileImportDialog
 import `in`.aicortex.iso8583studio.ui.screens.components.PreviewSection

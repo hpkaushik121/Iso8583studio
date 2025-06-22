@@ -5,9 +5,9 @@ import `in`.aicortex.iso8583studio.data.model.MessageLengthType
 import `in`.aicortex.iso8583studio.data.model.TagLengthValue
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.getBytesFromBytes
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.intToMessageLength
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.messageLengthToInt
+import `in`.aicortex.iso8583studio.domain.utils.Utils.getBytesFromBytes
+import `in`.aicortex.iso8583studio.domain.utils.Utils.intToMessageLength
+import `in`.aicortex.iso8583studio.domain.utils.Utils.messageLengthToInt
 import java.io.IOException
 import java.net.Socket
 import java.nio.ByteBuffer

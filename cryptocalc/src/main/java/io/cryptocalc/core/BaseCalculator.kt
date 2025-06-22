@@ -1,25 +1,21 @@
 package io.cryptocalc.core
 
-import io.cryptocalc.core.types.*
-import io.cryptocalc.validation.ValidationEngine
+import ai.cortex.core.types.CalculatorInput
+import ai.cortex.core.types.CalculatorResult
+import ai.cortex.core.types.ResultMetadata
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-abstract class BaseCalculator : Calculator {
-    protected val validationEngine = ValidationEngine()
-
+abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult> : Calculator<T, R> {
     @OptIn(ExperimentalTime::class)
-    override suspend fun execute(input: CalculatorInput): CalculatorResult {
+    override suspend fun execute(input: T): R {
         val startTime = Clock.System.now()
 
         try {
             // Validate input
             val validationResult = validate(input)
-            if (!validationResult.isValid) {
-                return CalculatorResult(
-                    success = false,
-                    error = "Validation failed: ${validationResult.errors.joinToString(", ")}"
-                )
+            if (!validationResult.success) {
+                return validationResult as R
             }
 
             // Execute operation
@@ -27,77 +23,31 @@ abstract class BaseCalculator : Calculator {
 
             val endTime = Clock.System.now()
             val executionTime = endTime.minus(startTime).inWholeMilliseconds
-
-            return result.copy(
-                metadata = result.metadata.copy(
-                    executionTimeMs = executionTime,
-                    version = version
-                )
+            result.metadata = ResultMetadata(
+                executionTimeMs = executionTime,
+                version = version
             )
+            return result as R
 
         } catch (e: Exception) {
-            return CalculatorResult(
-                success = false,
-                error = "Execution failed: ${e.message}"
-            )
+            val result = object : CalculatorResult {
+                override val success: Boolean
+                    get() = false
+                override val error: String
+                    get() = "Execution failed: ${e.message}"
+                override var metadata: ResultMetadata
+                    get() = ResultMetadata(
+                        executionTimeMs = Clock.System.now()
+                            .minus(startTime).inWholeMilliseconds,
+                        version = version
+                    )
+                    set(value) {}
+            }
+            return result as R
         }
     }
 
-    protected abstract suspend fun executeOperation(input: CalculatorInput): CalculatorResult
+    protected abstract suspend fun executeOperation(input: T): R
 
-    override fun validate(input: CalculatorInput): ValidationResult {
-        val errors = mutableListOf<String>()
-        val schema = getSchema()
-
-        // Check if operation is supported
-        if (input.operation !in schema.supportedOperations) {
-            errors.add("Unsupported operation: ${input.operation}")
-        }
-
-        // Check required parameters
-        schema.requiredParameters.forEach { param ->
-            if (param.name !in input.parameters) {
-                errors.add("Missing required parameter: ${param.name}")
-            } else {
-                validateParameter(param, input.parameters[param.name]!!, errors)
-            }
-        }
-
-        return ValidationResult(
-            isValid = errors.isEmpty(),
-            errors = errors
-        )
-    }
-
-    private fun validateParameter(
-        schema: ParameterSchema,
-        value: String,
-        errors: MutableList<String>
-    ) {
-        val validation = schema.validation ?: return
-
-        validation.minLength?.let { min ->
-            if (value.length < min) {
-                errors.add("Parameter ${schema.name} too short (min: $min)")
-            }
-        }
-
-        validation.maxLength?.let { max ->
-            if (value.length > max) {
-                errors.add("Parameter ${schema.name} too long (max: $max)")
-            }
-        }
-
-        validation.pattern?.let { pattern ->
-            if (!Regex(pattern).matches(value)) {
-                errors.add("Parameter ${schema.name} doesn't match pattern")
-            }
-        }
-
-        validation.allowedValues?.let { allowed ->
-            if (value !in allowed) {
-                errors.add("Parameter ${schema.name} not in allowed values")
-            }
-        }
-    }
+    abstract override fun validate(input: T): R
 }

@@ -27,7 +27,7 @@ import `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging.MastercardSecu
 import `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging.VisaSecureMessagingScreen
 import `in`.aicortex.iso8583studio.ui.screens.HomeScreenViewModel
 import `in`.aicortex.iso8583studio.ui.screens.apduSimulator.APDUSimulatorScreen
-import `in`.aicortex.iso8583studio.ui.screens.apduquery.ApduResponseQueryScreen
+import `in`.aicortex.iso8583studio.ui.screens.Emv.ApduResponseQueryScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.AesCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.DesCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.EcdsaCalculatorScreen

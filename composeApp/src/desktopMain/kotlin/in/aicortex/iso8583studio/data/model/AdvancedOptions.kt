@@ -1,10 +1,10 @@
 package `in`.aicortex.iso8583studio.data.model
 
 import `in`.aicortex.iso8583studio.data.NCCParameter
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.bcdToString
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.creatBytesFromArray
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.kvc
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil.stringToBCD
+import ai.cortex.core.IsoUtil.bcdToString
+import ai.cortex.core.IsoUtil.stringToBCD
+import `in`.aicortex.iso8583studio.domain.utils.Utils.creatBytesFromArray
+import `in`.aicortex.iso8583studio.domain.utils.Utils.kvc
 import kotlinx.serialization.Serializable
 
 /**

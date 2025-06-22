@@ -1,6 +1,7 @@
 package `in`.aicortex.iso8583studio.data
 
-import `in`.aicortex.iso8583studio.domain.utils.IsoUtil
+import ai.cortex.core.IsoUtil
+import `in`.aicortex.iso8583studio.domain.utils.Utils
 import kotlinx.serialization.Serializable
 
 /**
@@ -24,7 +25,7 @@ data class TPDU(
      * Destination Address getter/setter (bytes 1-2 of TPDU)
      */
     var destAddr: Int
-        get() = IsoUtil.bcdToBin(IsoUtil.creatBytesFromArray(rawTPDU, 1, 2))
+        get() = IsoUtil.bcdToBin(Utils.creatBytesFromArray(rawTPDU, 1, 2))
         set(value) {
             IsoUtil.binToBcd(value, 2).copyInto(rawTPDU, 1)
         }
@@ -33,7 +34,7 @@ data class TPDU(
      * Origin Address getter/setter (bytes 3-4 of TPDU)
      */
     var origAddr: Int
-        get() = IsoUtil.bcdToBin(IsoUtil.creatBytesFromArray(rawTPDU, 3, 2))
+        get() = IsoUtil.bcdToBin(Utils.creatBytesFromArray(rawTPDU, 3, 2))
         set(value) {
             IsoUtil.binToBcd(value, 2).copyInto(rawTPDU, 3)
         }
@@ -56,9 +57,9 @@ data class TPDU(
      */
     fun swapNII() {
         val temp = ByteArray(2)
-        IsoUtil.bytesCopy(temp, rawTPDU, 0, 1, 2)  // Copy 1-2 to temp
-        IsoUtil.bytesCopy(rawTPDU, rawTPDU, 1, 3, 2)  // Copy 3-4 to 1-2
-        IsoUtil.bytesCopy(rawTPDU, temp, 3, 0, 2)  // Copy temp to 3-4
+        Utils.bytesCopy(temp, rawTPDU, 0, 1, 2)  // Copy 1-2 to temp
+        Utils.bytesCopy(rawTPDU, rawTPDU, 1, 3, 2)  // Copy 3-4 to 1-2
+        Utils.bytesCopy(rawTPDU, temp, 3, 0, 2)  // Copy temp to 3-4
     }
 
     /**
