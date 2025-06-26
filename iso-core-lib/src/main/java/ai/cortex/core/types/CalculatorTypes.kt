@@ -47,12 +47,10 @@ interface CalculatorResult {
     val success: Boolean
     val error: String?
     var metadata: ResultMetadata
-        get() = ResultMetadata()
-        set(value) {}
 }
 
 @Serializable
 data class ResultMetadata(
-    val executionTimeMs: Long = 0,
+    var executionTimeMs: Long = 0,
     val version: String = "1.0.0"
 )

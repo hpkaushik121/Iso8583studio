@@ -15,6 +15,9 @@ import io.cryptocalc.crypto.engines.encryption.models.HashingEncryptionEnginePar
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 import io.cryptocalc.emv.calculators.emv41.SessionKeyInput
 import io.cryptocalc.emv.calculators.emv41.UdkDerivationInput
+import java.math.BigInteger
+import java.nio.ByteBuffer
+import kotlin.math.pow
 
 class KeysEngineImpl(override val emvEngines: EMVEngines) : KeysEngine {
     override suspend fun calculateKcv(
@@ -53,19 +56,13 @@ class KeysEngineImpl(override val emvEngines: EMVEngines) : KeysEngine {
         val panDigits = pan.filter { it.isDigit() }
         val panSeq = udkDerivationInput.panSequence.padStart(2, '0')
 
-        val desKey = if (mdk.size == 16) {
-            mdk + mdk.copyOfRange(0, 8)
-        } else {
-            mdk
-        }
-
         val result = when (udkDerivationInput.udkDerivationType) {
             UdkDerivationType.OPTION_A -> {
-                deriveUdkOptionA(algorithm, desKey, panDigits, panSeq)
+                deriveUdkOptionA(algorithm, mdk, panDigits, panSeq)
             }
 
             UdkDerivationType.OPTION_B -> {
-                deriveUdkOptionB(algorithm, desKey, panDigits, panSeq)
+                deriveUdkOptionB(algorithm, mdk, panDigits, panSeq)
             }
         }
 
@@ -78,37 +75,42 @@ class KeysEngineImpl(override val emvEngines: EMVEngines) : KeysEngine {
             algorithm
         )
     }
+    fun byteArrayToBigEndianLong(bytes: ByteArray): Long {
+        require(bytes.size <= 8) { "Byte array is too large for a Long." }
+        // Create a buffer of 8 bytes, right-align the input bytes
+        val buffer = ByteBuffer.allocate(Long.SIZE_BYTES)
+        buffer.position(Long.SIZE_BYTES - bytes.size)
+        buffer.put(bytes)
+        buffer.rewind() // Reset position to the beginning for reading
+        return buffer.long
+    }
 
     override suspend fun deriveSessionKey(
         algorithm: CryptoAlgorithm<AlgorithmType.SYMMETRIC_BLOCK>,
         sessionKeyInput: SessionKeyInput
     ): Key {
-        val desKey = if (sessionKeyInput.masterKey.size == 16) {
-            sessionKeyInput.masterKey + sessionKeyInput.masterKey.copyOfRange(0, 8)
-        } else {
-            sessionKeyInput.masterKey
-        }
-        // Create diversification data combining all parameters
-        val diversificationData = createEMVDiversificationValue(
-            atc = sessionKeyInput.atc.toByteArray(),
-            sessionKeyType = sessionKeyInput.sessionKeyType,
-            blockSize = algorithm.blockSize!!,
-            applicationCryptogram = null
-        )
-        val rawSessionKey = performSessionKeyDerivation(
-            masterKey = desKey,
-            diversificationValue = diversificationData,
-            algorithm = algorithm,
-            keyBits = desKey.size * 8,
-            blockSize = algorithm.blockSize!!,
-            iv = sessionKeyInput.iv
-        )
+
+        val atcBytes = IsoUtil.hexToBytes(sessionKeyInput.atc)
+        val atcNum = BigInteger(1, atcBytes).toInt()
+        print(atcNum)
+
+        // Derive intermediate keys from bottom of tree to second-to-last level
+        // because GP (grandparent) from that level is required for SK
+        val (p, gp) = walk(algorithm,
+            atcNum / (sessionKeyInput.branchFactor),
+            (sessionKeyInput.height) - 1, sessionKeyInput.masterKey, sessionKeyInput.iv, sessionKeyInput.branchFactor)
+        print(IsoUtil.bytesToHex(p))
+        print(IsoUtil.bytesToHex(gp))
+        // Derive SK from new IK at tree height XOR'd by GP
+        val derivedKey = derive(algorithm,p, gp, atcNum, sessionKeyInput.branchFactor)
+        val sessionKey = IsoUtil.xorByteArray(derivedKey, gp)
+        print(IsoUtil.bytesToHex(sessionKey))
 
         return Key(
             when (sessionKeyInput.keyParity) {
-                KeyParity.ODD -> CryptoUtils.applyParity(rawSessionKey, isOdd = true)
-                KeyParity.EVEN -> CryptoUtils.applyParity(rawSessionKey, isOdd = false)
-                else -> rawSessionKey
+                KeyParity.ODD -> CryptoUtils.applyParity(sessionKey, isOdd = true)
+                KeyParity.EVEN -> CryptoUtils.applyParity(sessionKey, isOdd = false)
+                else -> sessionKey
             },
             algorithm
         )

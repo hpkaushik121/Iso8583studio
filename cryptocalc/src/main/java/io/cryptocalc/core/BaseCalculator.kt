@@ -24,10 +24,7 @@ abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult>(protect
 
             val endTime = Clock.System.now()
             val executionTime = endTime.minus(startTime).inWholeMilliseconds
-            result.metadata = ResultMetadata(
-                executionTimeMs = executionTime,
-                version = version
-            )
+            (result as R).metadata.executionTimeMs = executionTime
             return result
 
         } catch (e: Exception) {

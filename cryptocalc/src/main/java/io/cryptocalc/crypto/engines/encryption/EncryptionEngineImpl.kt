@@ -25,7 +25,7 @@ internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : Encry
                 byteArrayOf()
             }
 
-            is CryptoAlgorithm.TDES -> {
+            is CryptoAlgorithm.TDES  -> {
                 val parameter = encryptionEngineParameters as SymmetricEncryptionEngineParameters
                 when (parameter.mode) {
                     CipherMode.ECB -> TdesCalculatorEngine.encryptECB(parameter.data, parameter.key)

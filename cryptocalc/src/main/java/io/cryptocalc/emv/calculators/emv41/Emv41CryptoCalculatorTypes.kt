@@ -4,6 +4,7 @@ import ai.cortex.core.types.CalculatorInput
 import ai.cortex.core.types.CalculatorResult
 import ai.cortex.core.types.KeyParity
 import ai.cortex.core.types.OperationType
+import ai.cortex.core.types.ResultMetadata
 import ai.cortex.core.types.UdkDerivationType
 import kotlinx.serialization.Serializable
 
@@ -90,4 +91,5 @@ data class EMVCalculatorResult(
     val key: String? = null,
     val udkDerivation: UdkDerivation? = null,
     val sessionDerivation: SessionDerivation? = null,
+    override var metadata: ResultMetadata = ResultMetadata(),
 ) : CalculatorResult

@@ -44,5 +44,6 @@ data class AesCryptoResult(
     override val error: String? = null,
     val encrypted: String? = null,
     val decrypted: String? = null,
-    val kcv: String? = null
+    val kcv: String? = null,
+    override var metadata: ResultMetadata = ResultMetadata()
 ) : CalculatorResult

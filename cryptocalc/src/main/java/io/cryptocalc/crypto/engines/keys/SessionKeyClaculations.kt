@@ -1,139 +1,130 @@
 package io.cryptocalc.crypto.engines.keys
 
+import ai.cortex.core.IsoUtil
 import ai.cortex.core.types.AlgorithmType
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.CryptoAlgorithm
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 import io.cryptocalc.emv.calculators.emv41.SessionKeyType
+import java.nio.ByteBuffer
 
-internal fun KeysEngineImpl.createEMVDiversificationValue(
-    atc: ByteArray?=null,
-    applicationCryptogram: ByteArray?=null,
-    sessionKeyType: SessionKeyType,
-    blockSize: Int
-): ByteArray {
-
-    return when (sessionKeyType) {
-        SessionKeyType.APPLICATION_CRYPTOGRAM -> {
-            // For AC/ARPC: R := ATC || '00' || '00' || … || '00' || '00' || '00'
-            // ATC followed by n-2 bytes of '00'
-            requireNotNull(atc) { "ATC is required for Application Cryptogram session key" }
-
-            val diversificationValue = ByteArray(blockSize)
-
-            // Copy ATC to first bytes (ATC is typically 2 bytes)
-            val atcSize = minOf(atc.size, blockSize)
-            atc.copyInto(diversificationValue, 0, 0, atcSize)
-
-            // Remaining bytes are already zero-filled (n-2 bytes of '00')
-            diversificationValue
-        }
-
-        SessionKeyType.SECURE_MESSAGING_MAC,
-        SessionKeyType.SECURE_MESSAGING_ENC -> {
-            // For SM: R := Application Cryptogram || '00' || '00' || '00'
-            // AC followed by n-8 bytes of '00'
-            requireNotNull(applicationCryptogram) { "Application Cryptogram is required for Secure Messaging session keys" }
-
-            val diversificationValue = ByteArray(blockSize)
-
-            // Copy Application Cryptogram to first bytes (AC is typically 8 bytes)
-            val acSize = minOf(applicationCryptogram.size, 8, blockSize)
-            applicationCryptogram.copyInto(diversificationValue, 0, 0, acSize)
-
-            // Remaining bytes are already zero-filled (n-8 bytes of '00')
-            diversificationValue
-        }
-    }
-}
 
 /**
- * Performs EMV session key derivation according to specification
+ * Convert integer to bytes in BIG ENDIAN format (critical for matching Python)
  */
-suspend fun KeysEngineImpl.performSessionKeyDerivation(
-    masterKey: ByteArray,
-    diversificationValue: ByteArray,
-    iv: ByteArray,
-    algorithm: CryptoAlgorithm<AlgorithmType.SYMMETRIC_BLOCK>,
-    keyBits: Int,
-    blockSize: Int
-): ByteArray {
+private fun intToByteBigEndian(value: Int, size: Int): ByteArray {
+    // Add a safety check. An Int cannot meaningfully fill more than 4 bytes.
 
-    val n = blockSize
-    val k = keyBits
+    val result = ByteArray(size)
+    // Iterate from left to right in the destination array
+    for (i in 0 until size) {
+        // Calculate how many bits to shift to get the correct byte
+        val shift = 8 * (size - 1 - i)
+        result[i] = (value shr shift).toByte()
+    }
+    return result
+}
 
+private fun longToBigEndianBytes(value: Long, size: Int): ByteArray {
+    // The buffer for the full 8-byte long. ByteBuffer is big-endian by default.
+    val longBuffer = ByteBuffer.allocate(Long.SIZE_BYTES).putLong(value)
+
+    // Handle different requested sizes
     return when {
-        // For k = 8n (AES with k=128): SK := ALG (MK) [ R ]
-        k == 8 * n -> {
-            emvEngines.encryptionEngine.encrypt(
-                algorithm = algorithm,
-                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
-                    data = diversificationValue,
-                    key = masterKey,
-                    mode = CipherMode.ECB,
-                    iv = iv
-                )
-            )
+        // If the same size, just return the array
+        size == Long.SIZE_BYTES -> longBuffer.array()
+
+        // If a larger size is requested, pad with leading zeros
+        size > Long.SIZE_BYTES -> {
+            val dest = ByteArray(size)
+            // Copy the 8 bytes of the long to the end of the destination array
+            System.arraycopy(longBuffer.array(), 0, dest, size - Long.SIZE_BYTES, Long.SIZE_BYTES)
+            dest
         }
 
-        // For 16n ≥ k > 8n (Triple DES with k=128 or AES with k=192 or 256)
-        k > 8 * n && k <= 16 * n -> {
-            // F1 = R0 || R1 || 'F0' || … || Rn-1
-            val f1 = createF1Block(diversificationValue, n)
-
-            // F2 = R0 || R1 || '0F' || … || Rn-1
-            val f2 = createF2Block(diversificationValue, n)
-
-            // SK := Leftmost k-bits of {ALG (MK) [F1] || ALG (MK) [F2] }
-            val result1 = emvEngines.encryptionEngine.encrypt(
-                    algorithm = algorithm,
-                    encryptionEngineParameters = SymmetricEncryptionEngineParameters(
-                        data = f1,
-                        key = masterKey,
-                        mode = CipherMode.ECB,
-                        iv = iv
-                    )
-                )
-
-            val result2 = emvEngines.encryptionEngine.encrypt(
-                algorithm = algorithm,
-                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
-                    data = f2,
-                    key = masterKey,
-                    mode = CipherMode.ECB,
-                    iv = iv
-                )
-            )
-
-            val combinedResult = result1 + result2
-            val keyBytes = k / 8
-
-            // Return leftmost k-bits (k/8 bytes)
-            combinedResult.sliceArray(0 until keyBytes)
+        // If a smaller size is requested, truncate to the most significant bytes
+        else -> {
+            // copyOfRange is simpler here for truncation
+            val start = Long.SIZE_BYTES - size
+            longBuffer.array().copyOfRange(start, Long.SIZE_BYTES)
         }
-
-        else -> throw IllegalArgumentException("Unsupported key configuration: k=$k, n=$n")
     }
 }
 
 /**
- * Creates F1 block: F1 = R0 || R1 || 'F0' || … || Rn-1
+ * CORRECTED: F(X,Y,j) function that matches Python exactly
  */
-private fun createF1Block(diversificationValue: ByteArray, blockSize: Int): ByteArray {
-    val f1 = diversificationValue.copyOf()
-    if (f1.size >= 3) {
-        f1[2] = 0xF0.toByte()
-    }
-    return f1
+internal suspend fun KeysEngineImpl.derive(
+    algorithm: CryptoAlgorithm<AlgorithmType.SYMMETRIC_BLOCK>,
+    x: ByteArray,
+    y: ByteArray,
+    j: Int,
+    branchFactor: Int
+): ByteArray {
+
+    // CRITICAL: Use BIG ENDIAN byte ordering like Python
+
+    val jModB = longToBigEndianBytes((j % branchFactor).toLong(), 8)
+    print(IsoUtil.bytesToHex(jModB))
+
+    // Left part: DES3(X)[YL XOR (j mod b)]
+    val yL = y.sliceArray(0..7)  // First 8 bytes
+    val lData = IsoUtil.xorByteArray(yL, jModB)
+
+    // CRITICAL: Pass key X directly without modification
+    val lResult = emvEngines.encryptionEngine.encrypt(
+        algorithm = algorithm,
+        encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+            data = lData,
+            key = x,  // Use X as-is, no padding/modification
+            mode = CipherMode.ECB
+        )
+    )
+    print(IsoUtil.bytesToHex(lResult))
+
+    // Right part: DES3(X)[YR XOR (j mod b) XOR 'F0']
+    val yR = y.sliceArray(8..15) // Last 8 bytes
+    val rData1 = IsoUtil.xorByteArray(yR, jModB)
+
+    // CRITICAL: XOR with exactly 7 zeros + F0 (not 00,00,00,00,00,00,00,F0)
+    val f0Mask = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0.toByte())
+    val rData2 = IsoUtil.xorByteArray(rData1, f0Mask)
+
+    val rResult = emvEngines.encryptionEngine.encrypt(
+        algorithm = algorithm,
+        encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+            data = rData2,
+            key = x,  // Use X as-is, no padding/modification
+            mode = CipherMode.ECB
+        )
+    )
+    print(IsoUtil.bytesToHex(rResult))
+
+
+    return lResult + rResult
 }
 
 /**
- * Creates F2 block: F2 = R0 || R1 || '0F' || … || Rn-1
+ * CORRECTED: Walk function
  */
-private fun createF2Block(diversificationValue: ByteArray, blockSize: Int): ByteArray {
-    val f2 = diversificationValue.copyOf()
-    if (f2.size >= 3) {
-        f2[2] = 0x0F.toByte()
+internal suspend fun KeysEngineImpl.walk(
+    algorithm: CryptoAlgorithm<AlgorithmType.SYMMETRIC_BLOCK>,
+    j: Int,
+    h: Int,
+    iccMK: ByteArray,
+    iv: ByteArray,
+    branchFactor: Int
+): Pair<ByteArray, ByteArray> {
+
+    // Base case: P = ICC MK, GP = IV
+    if (h == 0) {
+        return Pair(iccMK, iv)
     }
-    return f2
+
+    val (p, gp) = walk(algorithm, j / branchFactor, h - 1, iccMK, iv, branchFactor)
+    print(IsoUtil.bytesToHex(p))
+    print(IsoUtil.bytesToHex(gp))
+    // Derives an IK from P and GP
+    val newParent = derive(algorithm, p, gp, j, branchFactor)
+    return Pair(newParent, p)
 }

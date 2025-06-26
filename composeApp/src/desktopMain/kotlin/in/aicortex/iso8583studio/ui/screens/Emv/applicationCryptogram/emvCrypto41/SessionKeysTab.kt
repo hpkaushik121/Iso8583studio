@@ -45,12 +45,12 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: CalculatorTab) {
-    var masterKey by remember { mutableStateOf("C8B507136D921FD05864C81F79F2D30B") }
-    var initialVector by remember { mutableStateOf("0000000000000000") }
-    var atc by remember { mutableStateOf("0001") }
-    var branchFactor by remember { mutableStateOf("1") }
-    var height by remember { mutableStateOf("0") }
-    var keyParity by remember { mutableStateOf(KeyParity.NONE) }
+    var masterKey by remember { mutableStateOf("C9B406126D931ED05965C81E78F3D20B") }
+    var initialVector by remember { mutableStateOf("00000000000000000000000000000000") }
+    var atc by remember { mutableStateOf("0003") }
+    var branchFactor by remember { mutableStateOf("50") }
+    var height by remember { mutableStateOf("8") }
+    var keyParity by remember { mutableStateOf(KeyParity.ODD) }
     var isLoading by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
 
@@ -69,6 +69,19 @@ fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Cal
             Text("4. These two halves are concatenated to form the 16-byte session key.", style = MaterialTheme.typography.caption)
             Spacer(Modifier.height(8.dp))
             Text("Other fields like Initial Vector, Branch Factor, and Height are used in more complex, often proprietary, tree-based key derivation schemes like DUKPT.", style = MaterialTheme.typography.body2)
+            Text("For more information see:\n" +
+                    "        - EMV 4.1 Book 2 Annex A 1.3 Session Key Derivation\n" +
+                    "        - EMV 4.1 Book 2 Annex A 1.3.1 Description\n" +
+                    "        - EMV 4.1 Book 2 Annex A 1.3.2 Implementation\n" +
+                    "\n" +
+                    "    This method was replaced by common session key derivation in 2005\n" +
+                    "    and should not be used for new development.\n" +
+                    "    See EMVCo specification update bulletin 46 (SU-46).\n" +
+                    "\n" +
+                    "    Recommended branch factor and tree height combinations are as follow.\n" +
+                    "    Both combinations produce enough session keys for every possible ATC value.\n" +
+                    "        - Branch factor 2 and tree height 16\n" +
+                    "        - Branch factor 4 and tree height 8", style = MaterialTheme.typography.body2)
 
         }
     }
@@ -76,7 +89,7 @@ fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Cal
 
     val masterKeyValidation = ValidationUtils.validateHexString(masterKey, 32)
     val atcValidation = ValidationUtils.validateHexString(atc, 4)
-    val ivValidation = ValidationUtils.validateHexString(initialVector, 16)
+    val ivValidation = ValidationUtils.validateHexString(initialVector, 32)
     val branchFactorValidation = ValidationUtils.validateNumericString(branchFactor, null)
     val heightValidation = ValidationUtils.validateNumericString(height, null)
 
@@ -107,7 +120,7 @@ fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Cal
 
                 EnhancedTextField(
                     value = initialVector,
-                    onValueChange = { if (it.length <= 16 && it.all { c -> c.isDigit() || c.uppercaseChar() in 'A'..'F' }) initialVector = it.uppercase() },
+                    onValueChange = { if (it.length <= 32 && it.all { c -> c.isDigit() || c.uppercaseChar() in 'A'..'F' }) initialVector = it.uppercase() },
                     label = "Initial Vector (IV)",
                     placeholder = "16 hex characters",
                     validation = ivValidation
@@ -155,7 +168,6 @@ fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Cal
                     text = "Generate Session Key",
                     onClick = {
                         isLoading = true
-                        val startTime = System.currentTimeMillis()
                         val inputs = mapOf(
                             "Master Key" to masterKey,
                             "Initial Vector" to initialVector,
@@ -182,24 +194,22 @@ fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Cal
                                         )
                                     )
                                 )
-                                val executionTime = System.currentTimeMillis() - startTime
-                                val resultString = "Session Key: $result\nKCV: ${result.sessionDerivation?.kcv}"
+                                val resultString = "Session Key: ${result.sessionDerivation?.sessionKey}\nKCV: ${result.sessionDerivation?.kcv}"
 
                                 calculatorLogManager.logOperation(
                                     tab = calculatorTab,
                                     operation = "Session Key Generation",
                                     inputs = inputs,
                                     result = resultString,
-                                    executionTime = executionTime
+                                    executionTime = result.metadata.executionTimeMs
                                 )
                             } catch (e: Exception) {
-                                val executionTime = System.currentTimeMillis() - startTime
                                 calculatorLogManager.logOperation(
                                     tab = calculatorTab,
                                     operation = "Session Key Generation",
                                     inputs = inputs,
                                     error = e.message ?: "Unknown error occurred",
-                                    executionTime = executionTime
+                                    executionTime = 0
                                 )
                             } finally {
                                 isLoading = false
