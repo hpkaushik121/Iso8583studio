@@ -1,5 +1,6 @@
 package io.cryptocalc.emv.calculators.masterCard
 
+import ai.cortex.core.IsoUtil
 import ai.cortex.core.types.CalculatorCategory
 import ai.cortex.core.types.CryptoAlgorithm
 import ai.cortex.core.types.OperationType
@@ -9,18 +10,11 @@ import io.cryptocalc.core.CalculatorSchema
 import io.cryptocalc.core.ParameterSchema
 import io.cryptocalc.core.ParameterType
 import io.cryptocalc.core.ParameterValidation
-import io.cryptocalc.core.bytesToHex
-import io.cryptocalc.core.hexToBytes
-import io.cryptocalc.core.padEnd
-import io.cryptocalc.crypto.CryptoEngine
-import io.cryptocalc.crypto.SymmetricParameter
-import io.cryptocalc.crypto.engines.DefaultCryptoEngine
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 import io.cryptocalc.emv.calculators.emv41.SessionDerivation
 import io.cryptocalc.emv.calculators.emv41.UdkDerivation
 
-class MasterCardCalculator(
-    private val cryptoEngine: CryptoEngine = DefaultCryptoEngine()
-) : BaseCalculator<MasterCardCalculatorInput, MasterCardCalculatorCalculatorResult>() {
+class MasterCardCalculator() : BaseCalculator<MasterCardCalculatorInput, MasterCardCalculatorCalculatorResult>() {
 
     override val id = "mastercard-calculator"
     override val name = "MasterCard M/Chip Calculator"
@@ -69,18 +63,18 @@ class MasterCardCalculator(
     }
 
     private suspend fun deriveUDK(input: MasterCardCalculatorInput): MasterCardCalculatorCalculatorResult {
-        val masterKey = hexToBytes(input.udkDerivationInput!!.masterKey)
+        val masterKey = IsoUtil.hexToBytes(input.udkDerivationInput!!.masterKey)
         val pan = input.udkDerivationInput.pan
         val panSeq = input.udkDerivationInput.panSequence
 
         // MasterCard UDK derivation using rightmost 11 digits of PAN + PAN sequence
         val panData = (pan.takeLast(11) + panSeq).padEnd(16, 'F')
-        val derivationData = hexToBytes(panData)
+        val derivationData = IsoUtil.hexToBytes(panData)
 
         // Encrypt derivation data with master key
-        val udk = cryptoEngine.encrypt(
+        val udk = emvEngines.encryptionEngine.encrypt(
             CryptoAlgorithm.TDES,
-            parameter = SymmetricParameter(
+            encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                 data = derivationData,
                 key = masterKey,
             )
@@ -89,14 +83,14 @@ class MasterCardCalculator(
         return MasterCardCalculatorCalculatorResult(
             success = true,
             udkDerivation = UdkDerivation(
-                udk = bytesToHex(udk),
+                udk = IsoUtil.bytesToHex(udk),
                 kcv = panData
             )
         )
     }
 
     private suspend fun generateSessionKey(input: MasterCardCalculatorInput): MasterCardCalculatorCalculatorResult {
-        val udk = hexToBytes(input.sessionDerivation!!.udk)
+        val udk = IsoUtil.hexToBytes(input.sessionDerivation!!.udk)
         val atc = input.sessionDerivation.atc.toInt(16)
 
         // Session key derivation data: ATC || F0 padding
@@ -110,8 +104,8 @@ class MasterCardCalculator(
         return MasterCardCalculatorCalculatorResult(
             success = true,
             sessionDerivation = SessionDerivation(
-                sessionKey = bytesToHex(sessionKey),
-                derivationData = bytesToHex(sessionData)
+                sessionKey = IsoUtil.bytesToHex(sessionKey),
+                kcv = IsoUtil.bytesToHex(sessionData)
             )
         )
     }

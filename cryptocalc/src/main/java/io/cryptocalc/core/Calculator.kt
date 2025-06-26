@@ -8,7 +8,7 @@ import ai.cortex.core.types.KeySize
 import ai.cortex.core.types.OperationType
 import ai.cortex.core.types.PaddingMethods
 
-interface Calculator<T: CalculatorInput, R: CalculatorResult>  {
+internal interface Calculator<T: CalculatorInput, R: CalculatorResult>  {
     val id: String
     val name: String
     val category: CalculatorCategory

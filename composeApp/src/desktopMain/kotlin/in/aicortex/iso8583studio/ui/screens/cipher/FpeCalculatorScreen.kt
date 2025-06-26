@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.fpe
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -46,12 +46,12 @@ import java.time.format.DateTimeFormatter
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
 
 private object FpeValidationUtils {
-    fun validateHex(value: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY)
+    fun validateHex(value: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY)
         if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.")
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.")
         }
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
 }
 
@@ -228,7 +228,7 @@ private fun FpeTab(title: String, hasTweakRadix: Boolean = false) {
 // --- SHARED UI COMPONENTS (PRIVATE TO THIS FILE) ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation? = null) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult? = null) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

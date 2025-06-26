@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.dda
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -48,18 +48,18 @@ object DdaValidationUtils {
         value: String,
         allowEmpty: Boolean = false,
         friendlyName: String = "Field"
-    ): FieldValidation {
+    ): ValidationResult {
         if (value.isEmpty()) {
-            return if (allowEmpty) FieldValidation(ValidationState.EMPTY, "", "Enter hex characters")
-            else FieldValidation(ValidationState.ERROR, "$friendlyName is required", "Enter hex characters")
+            return if (allowEmpty) ValidationResult(ValidationState.EMPTY, "", "Enter hex characters")
+            else ValidationResult(ValidationState.ERROR, "$friendlyName is required", "Enter hex characters")
         }
         if (!value.all { it.isDigit() || it.uppercaseChar() in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed", "${value.length} chars")
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed", "${value.length} chars")
         }
         if (value.length % 2 != 0) {
-            return FieldValidation(ValidationState.ERROR, "Must have an even number of characters", "${value.length} chars")
+            return ValidationResult(ValidationState.ERROR, "Must have an even number of characters", "${value.length} chars")
         }
-        return FieldValidation(ValidationState.VALID, "", "${value.length} chars")
+        return ValidationResult(ValidationState.VALID, "", "${value.length} chars")
     }
 }
 
@@ -405,7 +405,7 @@ fun EnhancedTextField(
     label: String,
     modifier: Modifier = Modifier,
     maxLines: Int = 1,
-    validation: FieldValidation
+    validation: ValidationResult
 ) {
     Column(modifier = modifier) {
         OutlinedTextField(

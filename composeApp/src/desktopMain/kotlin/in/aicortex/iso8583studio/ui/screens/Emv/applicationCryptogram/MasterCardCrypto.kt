@@ -28,8 +28,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
@@ -45,21 +45,21 @@ import java.time.format.DateTimeFormatter
 
 
 object MastercardValidationUtils {
-    fun validateHexString(value: String, expectedLength: Int? = null, allowEmpty: Boolean = false, friendlyName: String = "Field"): FieldValidation {
+    fun validateHexString(value: String, expectedLength: Int? = null, allowEmpty: Boolean = false, friendlyName: String = "Field"): ValidationResult {
         if (value.isEmpty()) {
-            return if (allowEmpty) FieldValidation(ValidationState.EMPTY, "", "Enter hex characters")
-            else FieldValidation(ValidationState.ERROR, "$friendlyName is required", "Enter hex characters")
+            return if (allowEmpty) ValidationResult(ValidationState.EMPTY, "", "Enter hex characters")
+            else ValidationResult(ValidationState.ERROR, "$friendlyName is required", "Enter hex characters")
         }
         if (!value.all { it.isDigit() || it.uppercaseChar() in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed", "${value.length} chars")
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed", "${value.length} chars")
         }
         if (value.length % 2 != 0) {
-            return FieldValidation(ValidationState.ERROR, "Must have an even number of characters", "${value.length} chars")
+            return ValidationResult(ValidationState.ERROR, "Must have an even number of characters", "${value.length} chars")
         }
         expectedLength?.let {
-            if (value.length != it) return FieldValidation(ValidationState.ERROR, "Must be exactly $it characters", "${value.length}/$it chars")
+            if (value.length != it) return ValidationResult(ValidationState.ERROR, "Must be exactly $it characters", "${value.length}/$it chars")
         }
-        return FieldValidation(ValidationState.VALID, "", "${value.length} chars")
+        return ValidationResult(ValidationState.VALID, "", "${value.length} chars")
     }
 }
 
@@ -437,7 +437,7 @@ private fun ArpcTab() {
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

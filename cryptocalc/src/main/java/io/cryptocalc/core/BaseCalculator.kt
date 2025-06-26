@@ -3,10 +3,11 @@ package io.cryptocalc.core
 import ai.cortex.core.types.CalculatorInput
 import ai.cortex.core.types.CalculatorResult
 import ai.cortex.core.types.ResultMetadata
+import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult> : Calculator<T, R> {
+abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult>(protected val emvEngines: EMVEngines = EMVEngines()) : Calculator<T, R> {
     @OptIn(ExperimentalTime::class)
     override suspend fun execute(input: T): R {
         val startTime = Clock.System.now()
@@ -15,7 +16,7 @@ abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult> : Calcu
             // Validate input
             val validationResult = validate(input)
             if (!validationResult.success) {
-                return validationResult as R
+                return validationResult
             }
 
             // Execute operation
@@ -27,7 +28,7 @@ abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult> : Calcu
                 executionTimeMs = executionTime,
                 version = version
             )
-            return result as R
+            return result
 
         } catch (e: Exception) {
             val result = object : CalculatorResult {

@@ -1,5 +1,6 @@
 package io.cryptocalc.crypto.calculators
 
+import ai.cortex.core.IsoUtil
 import ai.cortex.core.types.AesCryptoInput
 import ai.cortex.core.types.AesCryptoResult
 import ai.cortex.core.types.CalculatorCategory
@@ -9,13 +10,9 @@ import ai.cortex.core.types.KeySize
 import ai.cortex.core.types.OperationType
 import ai.cortex.core.types.PaddingMethods
 import io.cryptocalc.core.*
-import io.cryptocalc.crypto.CryptoEngine
-import io.cryptocalc.crypto.SymmetricParameter
-import io.cryptocalc.crypto.engines.DefaultCryptoEngine
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 
-class AESCalculator(
-    private val cryptoEngine: CryptoEngine = DefaultCryptoEngine()
-) : BaseCalculator<AesCryptoInput, AesCryptoResult>() {
+class AESCalculator() : BaseCalculator<AesCryptoInput, AesCryptoResult>() {
 
     override val id = "aes-calculator"
     override val name = "AES Calculator"
@@ -23,8 +20,8 @@ class AESCalculator(
     override val version = "1.0.0"
 
     override suspend fun executeOperation(input: AesCryptoInput): AesCryptoResult {
-        val key = hexToBytes(input.key)
-        val data = hexToBytes(input.data)
+        val key = IsoUtil.hexToBytes(input.key)
+        val data = IsoUtil.hexToBytes(input.data)
         val mode = input.mode ?: "CBC"
         val padding = input.padding ?: "PKCS7"
 
@@ -37,15 +34,15 @@ class AESCalculator(
 
         return when (input.operation) {
             OperationType.ENCRYPT -> {
-                val encrypted = cryptoEngine.encrypt(algorithm,
-                    parameter = SymmetricParameter(
+                val encrypted = emvEngines.encryptionEngine.encrypt(algorithm,
+                    encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                         data = data,
                         key = key,
                         iv =  input.iv,
                     ))
                 AesCryptoResult(
                     success = true,
-                    encrypted = bytesToHex(encrypted),
+                    encrypted = IsoUtil.bytesToHex(encrypted),
                 )
             }
 
@@ -53,7 +50,7 @@ class AESCalculator(
                 val decrypted = byteArrayOf()
                 AesCryptoResult(
                     success = true,
-                    decrypted = bytesToHex(decrypted),
+                    decrypted = IsoUtil.bytesToHex(decrypted),
                 )
             }
 

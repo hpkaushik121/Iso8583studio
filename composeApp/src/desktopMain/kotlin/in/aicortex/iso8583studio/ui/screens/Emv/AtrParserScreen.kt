@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -125,7 +125,7 @@ private fun DataInputCard() {
                 value = data,
                 onValueChange = { data = it },
                 label = "Data",
-                validation = if (data.isBlank()) FieldValidation(ValidationState.EMPTY) else FieldValidation(ValidationState.VALID),
+                validation = if (data.isBlank()) ValidationResult(ValidationState.EMPTY) else ValidationResult(ValidationState.VALID),
                 maxLines = 10
             )
             Spacer(Modifier.height(8.dp))
@@ -153,7 +153,7 @@ private fun DataInputCard() {
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

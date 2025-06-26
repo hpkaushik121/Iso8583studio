@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.rsader
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -46,10 +46,10 @@ import java.time.format.DateTimeFormatter
 
 
 private object RsaDerValidationUtils {
-    fun validate(value: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY, "Input cannot be empty.")
+    fun validate(value: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "Input cannot be empty.")
         // More specific validation can be added based on encoding type if needed
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
 }
 
@@ -271,7 +271,7 @@ private fun DecoderCard() {
 // --- SHARED UI COMPONENTS (PRIVATE TO THIS FILE) ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

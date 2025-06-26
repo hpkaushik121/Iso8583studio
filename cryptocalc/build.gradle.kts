@@ -14,6 +14,7 @@ kotlin {
         implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
         implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+        testImplementation(kotlin("test"))
         implementation(project(":iso-core-lib"))
     }
 }

@@ -9,6 +9,19 @@ import java.nio.charset.Charset
  */
 object IsoUtil {
 
+    /**
+     * Performs a bitwise XOR operation on two byte arrays.
+     */
+    fun xorByteArray(a: ByteArray, b: ByteArray): ByteArray {
+        require(a.size == b.size) { "Arrays must be same size: ${a.size} vs ${b.size}" }
+
+        val result = ByteArray(a.size)
+        for (i in result.indices) {
+            result[i] = (a[i].toInt() xor b[i].toInt()).toByte()
+        }
+        return result
+    }
+
     fun hexStringToBytes(hex: String): ByteArray {
         val cleanHex = hex.replace("\\s".toRegex(), "").uppercase()
 
@@ -761,6 +774,60 @@ object IsoUtil {
         } catch (e: Exception) {
             throw IllegalArgumentException("Conversion failed: ${e.message}")
         }
+    }
+    fun hexToBytes(hex: String): ByteArray {
+        val cleanHex = hex.replace(" ", "").uppercase()
+        return cleanHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+    }
+
+    fun bytesToHex(bytes: ByteArray): String =
+        bytes.joinToString("") { "%02X".format(it) }
+
+    fun String.padEnd(length: Int, padChar: Char): String =
+        if (this.length >= length) this else this + padChar.toString().repeat(length - this.length)
+
+    /**
+     * Convert base64 string to byte array
+     */
+    fun base64ToBytes(base64: String): ByteArray {
+        return java.util.Base64.getDecoder().decode(base64)
+    }
+
+
+    /**
+     * Convert integer to bytes (big-endian)
+     */
+    fun intToBytes(value: Int, array: ByteArray, offset: Int) {
+        array[offset] = ((value shr 24) and 0xFF).toByte()
+        array[offset + 1] = ((value shr 16) and 0xFF).toByte()
+        array[offset + 2] = ((value shr 8) and 0xFF).toByte()
+        array[offset + 3] = (value and 0xFF).toByte()
+    }
+
+    /**
+     * Converts integer to byte array with specified length
+     */
+    fun intToBytes(value: Int, length: Int): ByteArray {
+        val bytes = ByteArray(length)
+        for (i in 0 until length) {
+            bytes[length - 1 - i] = ((value shr (i * 8)) and 0xFF).toByte()
+        }
+        return bytes
+    }
+
+
+    /**
+     * Left rotate for SHA1 implementation
+     */
+    fun leftRotate(value: Int, shift: Int): Int {
+        return (value shl shift) or (value ushr (32 - shift))
+    }
+
+    /**
+     * Convert byte array to base64 string
+     */
+    fun bytesToBase64(bytes: ByteArray): String {
+        return java.util.Base64.getEncoder().encodeToString(bytes)
     }
 }
 

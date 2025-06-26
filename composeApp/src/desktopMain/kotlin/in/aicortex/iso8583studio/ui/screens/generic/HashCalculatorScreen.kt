@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -40,15 +40,15 @@ import java.security.MessageDigest
 
 
 object HashValidationUtils {
-    fun validateHexInput(value: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY)
+    fun validateHexInput(value: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY)
         if (!value.all { it.isDigit() || it.uppercaseChar() in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Hexadecimal input must only contain characters 0-9 and A-F.")
+            return ValidationResult(ValidationState.ERROR, "Hexadecimal input must only contain characters 0-9 and A-F.")
         }
         if (value.length % 2 != 0) {
-            return FieldValidation(ValidationState.ERROR, "Hexadecimal input must have an even number of characters.")
+            return ValidationResult(ValidationState.ERROR, "Hexadecimal input must have an even number of characters.")
         }
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
 }
 
@@ -136,7 +136,7 @@ private fun HashCalculatorCard() {
         }
     }
 
-    val validation = if (selectedInputType == "Hexadecimal") HashValidationUtils.validateHexInput(inputData) else FieldValidation(ValidationState.VALID)
+    val validation = if (selectedInputType == "Hexadecimal") HashValidationUtils.validateHexInput(inputData) else ValidationResult(ValidationState.VALID)
     val isFormValid = inputData.isNotBlank() && validation.state == ValidationState.VALID
 
     ModernCryptoCard(
@@ -201,7 +201,7 @@ private fun HashCalculatorCard() {
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,28 +33,28 @@ import java.time.format.DateTimeFormatter
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
 
 object PinOffsetValidationUtils {
-    fun validateHex(value: String, fieldName: String, expectedLength: Int? = null): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY, "$fieldName cannot be empty.")
+    fun validateHex(value: String, fieldName: String, expectedLength: Int? = null): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$fieldName cannot be empty.")
         if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "$fieldName must be valid hexadecimal.")
+            return ValidationResult(ValidationState.ERROR, "$fieldName must be valid hexadecimal.")
         }
         if (value.length % 2 != 0 && fieldName != "DECTab") { // DECTab can be odd
-            return FieldValidation(ValidationState.ERROR, "$fieldName must have an even number of characters.")
+            return ValidationResult(ValidationState.ERROR, "$fieldName must have an even number of characters.")
         }
         expectedLength?.let {
-            if (value.length != it) return FieldValidation(ValidationState.ERROR, "$fieldName must be $it characters long.")
+            if (value.length != it) return ValidationResult(ValidationState.ERROR, "$fieldName must be $it characters long.")
         }
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
 
-    fun validateNumeric(value: String, fieldName: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY, "$fieldName cannot be empty.")
-        if (value.any { !it.isDigit() }) return FieldValidation(ValidationState.ERROR, "$fieldName must be numeric.")
-        return FieldValidation(ValidationState.VALID)
+    fun validateNumeric(value: String, fieldName: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$fieldName cannot be empty.")
+        if (value.any { !it.isDigit() }) return ValidationResult(ValidationState.ERROR, "$fieldName must be numeric.")
+        return ValidationResult(ValidationState.VALID)
     }
 
-    fun validatePan(pan: String): FieldValidation {
-        if (pan.length < 12) return FieldValidation(ValidationState.ERROR, "PAN must be at least 12 digits.")
+    fun validatePan(pan: String): ValidationResult {
+        if (pan.length < 12) return ValidationResult(ValidationState.ERROR, "PAN must be at least 12 digits.")
         return validateNumeric(pan, "PAN")
     }
 }
@@ -180,16 +180,16 @@ fun PinOffsetScreen(onBack: () -> Unit) {
 
 @Composable
 private fun SharedPinOffsetFields(
-    pdk: String, onPdkChange: (String) -> Unit, pdkValidation: FieldValidation,
-    pan: String, onPanChange: (String) -> Unit, panValidation: FieldValidation,
-    decTab: String, onDecTabChange: (String) -> Unit, decTabValidation: FieldValidation,
+    pdk: String, onPdkChange: (String) -> Unit, pdkValidation: ValidationResult,
+    pan: String, onPanChange: (String) -> Unit, panValidation: ValidationResult,
+    decTab: String, onDecTabChange: (String) -> Unit, decTabValidation: ValidationResult,
     useValidationParams: Boolean, onUseValidationParamsChange: (Boolean) -> Unit,
     useValidationMask: Boolean, onUseValidationMaskChange: (Boolean) -> Unit,
-    start: String, onStartChange: (String) -> Unit, startValidation: FieldValidation,
-    length: String, onLengthChange: (String) -> Unit, lengthValidation: FieldValidation,
-    pad: String, onPadChange: (String) -> Unit, padValidation: FieldValidation,
-    pinLength: String, onPinLengthChange: (String) -> Unit, pinLengthValidation: FieldValidation,
-    validationMask: String, onValidationMaskChange: (String) -> Unit, maskValidation: FieldValidation
+    start: String, onStartChange: (String) -> Unit, startValidation: ValidationResult,
+    length: String, onLengthChange: (String) -> Unit, lengthValidation: ValidationResult,
+    pad: String, onPadChange: (String) -> Unit, padValidation: ValidationResult,
+    pinLength: String, onPinLengthChange: (String) -> Unit, pinLengthValidation: ValidationResult,
+    validationMask: String, onValidationMaskChange: (String) -> Unit, maskValidation: ValidationResult
 ) {
     EnhancedTextField(pdk, onPdkChange, "PDK (32 Hex Chars)", validation = pdkValidation)
     Spacer(Modifier.height(12.dp))
@@ -337,18 +337,18 @@ data class PinOffsetState(
     }
 
     companion object {
-        fun getValidations(state: PinOffsetState, isForOffset: Boolean): Map<String, FieldValidation> {
+        fun getValidations(state: PinOffsetState, isForOffset: Boolean): Map<String, ValidationResult> {
             return mapOf(
                 "pdk" to PinOffsetValidationUtils.validateHex(state.pdk, "PDK", 32),
                 "pan" to PinOffsetValidationUtils.validatePan(state.pan),
-                "pin" to if (isForOffset) PinOffsetValidationUtils.validateNumeric(state.pin, "PIN") else FieldValidation(ValidationState.VALID),
-                "pinOffset" to if (!isForOffset) PinOffsetValidationUtils.validateNumeric(state.pinOffset, "PIN Offset") else FieldValidation(ValidationState.VALID),
+                "pin" to if (isForOffset) PinOffsetValidationUtils.validateNumeric(state.pin, "PIN") else ValidationResult(ValidationState.VALID),
+                "pinOffset" to if (!isForOffset) PinOffsetValidationUtils.validateNumeric(state.pinOffset, "PIN Offset") else ValidationResult(ValidationState.VALID),
                 "decTab" to PinOffsetValidationUtils.validateHex(state.decTab, "DECTab"),
                 "start" to PinOffsetValidationUtils.validateNumeric(state.start, "Start"),
                 "length" to PinOffsetValidationUtils.validateNumeric(state.length, "Length"),
                 "pad" to PinOffsetValidationUtils.validateHex(state.pad, "Pad", 1),
                 "pinLength" to PinOffsetValidationUtils.validateNumeric(state.pinLength, "PIN Length"),
-                "validationMask" to if (state.useValidationMask) PinOffsetValidationUtils.validateHex(state.validationMask, "Validation Mask") else FieldValidation(ValidationState.VALID)
+                "validationMask" to if (state.useValidationMask) PinOffsetValidationUtils.validateHex(state.validationMask, "Validation Mask") else ValidationResult(ValidationState.VALID)
             )
         }
     }
@@ -357,7 +357,7 @@ data class PinOffsetState(
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),

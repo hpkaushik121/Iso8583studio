@@ -54,8 +54,8 @@ sealed class CryptoAlgorithm<T : AlgorithmType>(
      *
      * @property detail Data Encryption Standard.
      * @property type [AlgorithmType.SYMMETRIC_BLOCK].
-     * @property keySizes 56.
-     * @property blockSize (64).
+     * @property keySizes 8, 16, 24.
+     * @property blockSize (16).
      * @property standards NIST FIPS 46-3, ISO/IEC 18033-3.
      * @property paymentIndustryUse true.
      * @property emvCompatible true.
@@ -64,8 +64,8 @@ sealed class CryptoAlgorithm<T : AlgorithmType>(
     object DES : CryptoAlgorithm<AlgorithmType.SYMMETRIC_BLOCK>(
         detail = "Data Encryption Standard",
         type = AlgorithmType.SYMMETRIC_BLOCK,
-        keySizes = listOf(56),
-        blockSize = 64,
+        keySizes = listOf(8, 16, 24),
+        blockSize = 16,
         standards = listOf("NIST FIPS 46-3", "ISO/IEC 18033-3"),
         paymentIndustryUse = true,
         emvCompatible = true,
@@ -79,8 +79,8 @@ sealed class CryptoAlgorithm<T : AlgorithmType>(
      *
      * @property detail Triple Data Encryption Standard.
      * @property type [AlgorithmType.SYMMETRIC_BLOCK].
-     * @property keySizes 112, 168.
-     * @property blockSize (64).
+     * @property keySizes 8, 16, 24.
+     * @property blockSize (16).
      * @property standards NIST SP 800-67, ISO/IEC 18033-3.
      * @property paymentIndustryUse true.
      * @property emvCompatible true.
@@ -88,8 +88,8 @@ sealed class CryptoAlgorithm<T : AlgorithmType>(
     object TDES : CryptoAlgorithm<AlgorithmType.SYMMETRIC_BLOCK>(
         detail = "Triple Data Encryption Standard",
         type = AlgorithmType.SYMMETRIC_BLOCK,
-        keySizes = listOf(112, 168),
-        blockSize = 64,
+        keySizes = listOf(8, 16, 24),
+        blockSize = 16,
         standards = listOf("NIST SP 800-67", "ISO/IEC 18033-3"),
         paymentIndustryUse = true,
         emvCompatible = true

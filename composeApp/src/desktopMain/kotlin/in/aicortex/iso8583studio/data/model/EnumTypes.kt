@@ -1032,18 +1032,3 @@ data class RestConfiguration(
 enum class CodeFormat(val displayName: String, val requiresYamlConfig: Boolean) {
     BYTE_ARRAY("Default", false), JSON("Json", true), XML("Xml", true), HEX("Hex", false), PLAIN_TEXT("Misc.", true)
 }
-
-
-enum class ValidationState {
-    VALID, WARNING, ERROR, EMPTY
-}
-
-data class FieldValidation(
-    val state: ValidationState,
-    val message: String = "",
-    val helperText: String = ""
-){
-    fun isValid(): Boolean{
-        return true
-    }
-}

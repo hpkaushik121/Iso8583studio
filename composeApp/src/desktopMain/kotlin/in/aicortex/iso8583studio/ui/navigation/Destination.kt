@@ -14,7 +14,7 @@ import `in`.aicortex.iso8583studio.ui.screens.Emv.AtrParserScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.CapTokenComputationScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.EmvDataParserScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.EmvTagDictionaryScreen
-import `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.EmvCrypto4_1
+import `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41.EmvCrypto4_1
 import `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.EmvCrypto4_2
 import `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.MastercardCryptoScreen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.VsdcCryptoScreen

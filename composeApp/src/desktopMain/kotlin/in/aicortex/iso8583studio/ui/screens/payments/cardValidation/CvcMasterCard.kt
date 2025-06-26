@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -41,23 +41,23 @@ import java.time.format.DateTimeFormatter
 
 
 object CVC3ValidationUtils {
-    fun validate(value: String, fieldName: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY, "$fieldName cannot be empty.")
+    fun validate(value: String, fieldName: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$fieldName cannot be empty.")
 
         // Basic hex validation for relevant fields
         if (fieldName in listOf("IMK", "Track 1/2 Data", "Unpredictable Num", "Dynamic CVC3")) {
             if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
-                return FieldValidation(ValidationState.ERROR, "$fieldName must be valid hexadecimal characters.")
+                return ValidationResult(ValidationState.ERROR, "$fieldName must be valid hexadecimal characters.")
             }
         }
 
         // Basic numeric validation for other fields
         if (fieldName in listOf("PAN", "PAN Seq No", "ATC")) {
             if (value.any { !it.isDigit() }) {
-                return FieldValidation(ValidationState.ERROR, "$fieldName must contain only digits.")
+                return ValidationResult(ValidationState.ERROR, "$fieldName must contain only digits.")
             }
         }
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
 }
 
@@ -345,7 +345,7 @@ private fun ValidateCard() {
 // --- SHARED UI COMPONENTS (from original file, no changes needed) ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, validation: ValidationResult) {
     Column{
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = {

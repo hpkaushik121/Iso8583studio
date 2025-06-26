@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -37,20 +37,20 @@ import java.time.format.DateTimeFormatter
 
 
 object EncodingValidationUtils {
-    fun validate(value: String, type: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY)
+    fun validate(value: String, type: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY)
 
         return when (type) {
             "Binary -> Hexadecimal" -> {
-                if (value.any { it != '0' && it != '1' }) FieldValidation(ValidationState.ERROR, "Binary input must only contain '0' or '1'.")
-                else FieldValidation(ValidationState.VALID)
+                if (value.any { it != '0' && it != '1' }) ValidationResult(ValidationState.ERROR, "Binary input must only contain '0' or '1'.")
+                else ValidationResult(ValidationState.VALID)
             }
             "Hexadecimal -> Binary", "Hexadecimal -> ATM ASCII Decimal" -> {
-                if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) FieldValidation(ValidationState.ERROR, "Hex input must be valid hexadecimal characters.")
-                else if (value.length % 2 != 0) FieldValidation(ValidationState.ERROR, "Hex input must have an even number of characters.")
-                else FieldValidation(ValidationState.VALID)
+                if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) ValidationResult(ValidationState.ERROR, "Hex input must be valid hexadecimal characters.")
+                else if (value.length % 2 != 0) ValidationResult(ValidationState.ERROR, "Hex input must have an even number of characters.")
+                else ValidationResult(ValidationState.VALID)
             }
-            else -> FieldValidation(ValidationState.VALID) // ASCII, EBCDIC have no strict validation here
+            else -> ValidationResult(ValidationState.VALID) // ASCII, EBCDIC have no strict validation here
         }
     }
 }
@@ -210,7 +210,7 @@ private fun EncodingCard() {
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

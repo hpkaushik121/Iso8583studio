@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -43,26 +43,26 @@ import java.time.format.DateTimeFormatter
 
 
 private object Base94ValidationUtils {
-    fun validate(value: String, inputType: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY, "Input cannot be empty.")
+    fun validate(value: String, inputType: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "Input cannot be empty.")
 
         return when (inputType) {
             "Hexadecimal" -> {
                 if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
-                    FieldValidation(ValidationState.ERROR, "Hex input must be valid hexadecimal characters.")
+                    ValidationResult(ValidationState.ERROR, "Hex input must be valid hexadecimal characters.")
                 } else if (value.length % 2 != 0) {
-                    FieldValidation(ValidationState.ERROR, "Hex input must have an even number of characters.")
-                } else FieldValidation(ValidationState.VALID)
+                    ValidationResult(ValidationState.ERROR, "Hex input must have an even number of characters.")
+                } else ValidationResult(ValidationState.VALID)
             }
             "Base94" -> {
                 // A simple check. A real implementation would be more robust.
                 if (value.any { it.code !in 33..126 }) {
-                    FieldValidation(ValidationState.ERROR, "Contains invalid Base94 characters.")
+                    ValidationResult(ValidationState.ERROR, "Contains invalid Base94 characters.")
                 } else {
-                    FieldValidation(ValidationState.VALID)
+                    ValidationResult(ValidationState.VALID)
                 }
             }
-            else -> FieldValidation(ValidationState.VALID) // ASCII has no strict validation here
+            else -> ValidationResult(ValidationState.VALID) // ASCII has no strict validation here
         }
     }
 }
@@ -280,7 +280,7 @@ private fun DecodeCard() {
 // --- SHARED UI COMPONENTS (PRIVATE TO THIS FILE) ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

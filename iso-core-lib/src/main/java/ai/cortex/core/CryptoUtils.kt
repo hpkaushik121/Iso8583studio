@@ -96,4 +96,18 @@ object CryptoUtils {
 
         return IsoUtil.hexStringToBytes(result.toString())
     }
+
+    /**
+     * Pads data to specified block size
+     */
+    fun padToBlockSize(data: ByteArray, blockSize: Int): ByteArray {
+        val remainder = data.size % blockSize
+        if (remainder == 0) return data
+
+        val paddingLength = blockSize - remainder
+        val paddedData = ByteArray(data.size + paddingLength)
+        data.copyInto(paddedData)
+
+        return paddedData
+    }
 }

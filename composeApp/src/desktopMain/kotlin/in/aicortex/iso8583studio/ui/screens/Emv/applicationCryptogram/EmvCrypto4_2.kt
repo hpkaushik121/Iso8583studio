@@ -28,8 +28,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
@@ -46,40 +46,40 @@ import java.time.format.DateTimeFormatter
 // --- COMMON UI & VALIDATION FOR EMV 4.2 SCREEN ---
 
 object Emv42ValidationUtils {
-    fun validateHexString(value: String, expectedLength: Int? = null, allowEmpty: Boolean = false): FieldValidation {
+    fun validateHexString(value: String, expectedLength: Int? = null, allowEmpty: Boolean = false): ValidationResult {
         if (value.isEmpty()) {
-            return if (allowEmpty) FieldValidation(ValidationState.EMPTY, "", "Enter hex characters")
-            else FieldValidation(ValidationState.ERROR, "Field is required", "Enter hex characters")
+            return if (allowEmpty) ValidationResult(ValidationState.EMPTY, "", "Enter hex characters")
+            else ValidationResult(ValidationState.ERROR, "Field is required", "Enter hex characters")
         }
         if (!value.all { it.isDigit() || it.uppercaseChar() in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed", "${value.length} chars")
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed", "${value.length} chars")
         }
         if (value.length % 2 != 0) {
-            return FieldValidation(ValidationState.ERROR, "Must have an even number of characters", "${value.length} chars")
+            return ValidationResult(ValidationState.ERROR, "Must have an even number of characters", "${value.length} chars")
         }
         expectedLength?.let {
-            if (value.length != it) return FieldValidation(ValidationState.ERROR, "Must be exactly $it characters", "${value.length}/$it chars")
+            if (value.length != it) return ValidationResult(ValidationState.ERROR, "Must be exactly $it characters", "${value.length}/$it chars")
         }
-        return FieldValidation(ValidationState.VALID, "", "${value.length} chars")
+        return ValidationResult(ValidationState.VALID, "", "${value.length} chars")
     }
 
-    fun validatePAN(pan: String): FieldValidation {
-        if (pan.isEmpty()) return FieldValidation(ValidationState.ERROR, "PAN is required", "Enter 13-19 digits")
-        if (!pan.all { it.isDigit() }) return FieldValidation(ValidationState.ERROR, "PAN must contain only digits", "${pan.length} chars")
-        if (pan.length !in 13..19) return FieldValidation(ValidationState.ERROR, "PAN must be 13-19 digits", "${pan.length}/19 digits")
-        return FieldValidation(ValidationState.VALID, "", "${pan.length} digits")
+    fun validatePAN(pan: String): ValidationResult {
+        if (pan.isEmpty()) return ValidationResult(ValidationState.ERROR, "PAN is required", "Enter 13-19 digits")
+        if (!pan.all { it.isDigit() }) return ValidationResult(ValidationState.ERROR, "PAN must contain only digits", "${pan.length} chars")
+        if (pan.length !in 13..19) return ValidationResult(ValidationState.ERROR, "PAN must be 13-19 digits", "${pan.length}/19 digits")
+        return ValidationResult(ValidationState.VALID, "", "${pan.length} digits")
     }
 
-    fun validateNumericString(value: String, expectedLength: Int? = null, allowEmpty: Boolean = false): FieldValidation {
+    fun validateNumericString(value: String, expectedLength: Int? = null, allowEmpty: Boolean = false): ValidationResult {
         if (value.isEmpty()) {
-            return if (allowEmpty) FieldValidation(ValidationState.EMPTY, "", "Enter digits")
-            else FieldValidation(ValidationState.ERROR, "Field is required", "Enter digits")
+            return if (allowEmpty) ValidationResult(ValidationState.EMPTY, "", "Enter digits")
+            else ValidationResult(ValidationState.ERROR, "Field is required", "Enter digits")
         }
-        if (!value.all { it.isDigit() }) return FieldValidation(ValidationState.ERROR, "Only digits allowed", "${value.length} chars")
+        if (!value.all { it.isDigit() }) return ValidationResult(ValidationState.ERROR, "Only digits allowed", "${value.length} chars")
         expectedLength?.let {
-            if (value.length != it) return FieldValidation(ValidationState.ERROR, "Must be exactly $it digits", "${value.length}/$it digits")
+            if (value.length != it) return ValidationResult(ValidationState.ERROR, "Must be exactly $it digits", "${value.length}/$it digits")
         }
-        return FieldValidation(ValidationState.VALID, "", "${value.length} digits")
+        return ValidationResult(ValidationState.VALID, "", "${value.length} digits")
     }
 }
 
@@ -399,7 +399,7 @@ private fun ArpcTab42() {
         Emv42ValidationUtils.validateHexString(sessionKey, 32),
         Emv42ValidationUtils.validateHexString(cryptogram, 16),
         Emv42ValidationUtils.validateHexString(csuData, allowEmpty = true),
-        if (selectedResponseCode.second == "CUSTOM") Emv42ValidationUtils.validateHexString(customResponseCode, 2) else FieldValidation(ValidationState.VALID)
+        if (selectedResponseCode.second == "CUSTOM") Emv42ValidationUtils.validateHexString(customResponseCode, 2) else ValidationResult(ValidationState.VALID)
     ).all { it.state != ValidationState.ERROR }
 
     ModernCryptoCard(title = "ARPC Generation", subtitle = "Generate Authorization Response Cryptogram", icon = Icons.Default.Reply) {
@@ -480,7 +480,7 @@ private fun UtilitiesTab42() { /* Re-using existing component logic, adapted for
 // --- SHARED UI COMPONENTS for EMV 4.2 ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

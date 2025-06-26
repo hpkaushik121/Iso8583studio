@@ -22,8 +22,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
@@ -41,17 +41,17 @@ import java.time.format.DateTimeFormatter
 
 
 object ApduValidationUtils {
-    fun validateHexString(value: String, expectedLength: Int): FieldValidation {
+    fun validateHexString(value: String, expectedLength: Int): ValidationResult {
         if (value.isEmpty()) {
-            return FieldValidation(ValidationState.EMPTY, "Field cannot be empty.", "Enter $expectedLength hex chars")
+            return ValidationResult(ValidationState.EMPTY, "Field cannot be empty.", "Enter $expectedLength hex chars")
         }
         if (!value.all { it.isDigit() || it.uppercaseChar() in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.", "${value.length}/$expectedLength")
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.", "${value.length}/$expectedLength")
         }
         if (value.length != expectedLength) {
-            return FieldValidation(ValidationState.ERROR, "Must be exactly $expectedLength characters.", "${value.length}/$expectedLength")
+            return ValidationResult(ValidationState.ERROR, "Must be exactly $expectedLength characters.", "${value.length}/$expectedLength")
         }
-        return FieldValidation(ValidationState.VALID, "", "${value.length}/$expectedLength")
+        return ValidationResult(ValidationState.VALID, "", "${value.length}/$expectedLength")
     }
 }
 
@@ -232,7 +232,7 @@ private fun ApduQueryCard() {
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

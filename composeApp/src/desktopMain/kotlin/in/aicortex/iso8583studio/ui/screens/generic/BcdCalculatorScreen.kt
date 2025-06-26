@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -42,27 +42,27 @@ import java.time.format.DateTimeFormatter
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
 
 object BcdValidationUtils {
-    fun validateEncodeInput(value: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY)
+    fun validateEncodeInput(value: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY)
         if (value.any { !it.isDigit() }) {
-            return FieldValidation(ValidationState.ERROR, "Input must only contain decimal digits (0-9).")
+            return ValidationResult(ValidationState.ERROR, "Input must only contain decimal digits (0-9).")
         }
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
 
-    fun validateDecodeInput(value: String, inputType: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY)
+    fun validateDecodeInput(value: String, inputType: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY)
         return when (inputType) {
             "Binary" -> {
-                if (value.any { it != '0' && it != '1' }) FieldValidation(ValidationState.ERROR, "Binary input must only contain '0' or '1'.")
-                else if (value.length % 4 != 0) FieldValidation(ValidationState.WARNING, "Binary input should ideally be in groups of 4 bits (nibbles).")
-                else FieldValidation(ValidationState.VALID)
+                if (value.any { it != '0' && it != '1' }) ValidationResult(ValidationState.ERROR, "Binary input must only contain '0' or '1'.")
+                else if (value.length % 4 != 0) ValidationResult(ValidationState.WARNING, "Binary input should ideally be in groups of 4 bits (nibbles).")
+                else ValidationResult(ValidationState.VALID)
             }
             "Hexadecimal" -> {
-                if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) FieldValidation(ValidationState.ERROR, "Hex input must be valid hexadecimal characters.")
-                else FieldValidation(ValidationState.VALID)
+                if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) ValidationResult(ValidationState.ERROR, "Hex input must be valid hexadecimal characters.")
+                else ValidationResult(ValidationState.VALID)
             }
-            else -> FieldValidation(ValidationState.VALID)
+            else -> ValidationResult(ValidationState.VALID)
         }
     }
 }
@@ -282,7 +282,7 @@ private fun DecodeBcdCard() {
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

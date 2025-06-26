@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,20 +40,20 @@ import javax.crypto.spec.SecretKeySpec
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
 
 private object AesValidationUtils {
-    fun validateHex(value: String, expectedBytes: Int? = null): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY)
+    fun validateHex(value: String, expectedBytes: Int? = null): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY)
         if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.")
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.")
         }
         if (value.length % 2 != 0) {
-            return FieldValidation(ValidationState.ERROR, "Hex string must have an even number of characters.")
+            return ValidationResult(ValidationState.ERROR, "Hex string must have an even number of characters.")
         }
         expectedBytes?.let {
             if (value.length != it * 2) {
-                return FieldValidation(ValidationState.ERROR, "Key must be exactly ${it * 2} hex characters ($it bytes).")
+                return ValidationResult(ValidationState.ERROR, "Key must be exactly ${it * 2} hex characters ($it bytes).")
             }
         }
-        return FieldValidation(ValidationState.VALID, helperText = "${value.length / 2} bytes")
+        return ValidationResult(ValidationState.VALID, helperText = "${value.length / 2} bytes")
     }
 }
 
@@ -168,9 +168,9 @@ private fun AesCalculatorCard() {
 
     val showIvField = selectedMode in listOf("CBC", "CFB", "OFB")
 
-    val dataValidation = if (selectedInputType == "Hexadecimal") AesValidationUtils.validateHex(inputData) else FieldValidation(ValidationState.VALID)
+    val dataValidation = if (selectedInputType == "Hexadecimal") AesValidationUtils.validateHex(inputData) else ValidationResult(ValidationState.VALID)
     val keyValidation = AesValidationUtils.validateHex(key, keyBytes)
-    val ivValidation = if (showIvField) AesValidationUtils.validateHex(iv, 16) else FieldValidation(ValidationState.VALID)
+    val ivValidation = if (showIvField) AesValidationUtils.validateHex(iv, 16) else ValidationResult(ValidationState.VALID)
 
     val isFormValid = inputData.isNotBlank() && key.isNotBlank() &&
             dataValidation.state == ValidationState.VALID &&
@@ -235,7 +235,7 @@ private fun AesCalculatorCard() {
 // --- SHARED UI COMPONENTS (PRIVATE TO THIS FILE) ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

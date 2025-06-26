@@ -253,7 +253,7 @@ object LogEntryFactory {
         .metadata("mti", mti)
         .build()
 
-    fun fieldValidationError(fieldNumber: Int, error: String) = LogEntryBuilder()
+    fun ValidationResultError(fieldNumber: Int, error: String) = LogEntryBuilder()
         .type(LogType.ERROR)
         .message("Field validation error")
         .details("Field $fieldNumber: $error")
@@ -410,7 +410,7 @@ object SampleLogEntries {
     fun getErrorScenarios(): List<LogEntry> = listOf(
         LogEntryFactory.clientConnected("192.168.1.100", "SESSION_002"),
         LogEntryFactory.messageReceived(128, "0200"),
-        LogEntryFactory.fieldValidationError(11, "Missing STAN field"),
+        LogEntryFactory.ValidationResultError(11, "Missing STAN field"),
         LogEntryFactory.parsingError("Invalid field length", "0200B220000100000000164111111111111111"),
         LogEntryFactory.authorizationDeclined("000002", "05", "Do not honor"),
         LogEntryFactory.networkError("Connection reset by peer", "192.168.1.100"),

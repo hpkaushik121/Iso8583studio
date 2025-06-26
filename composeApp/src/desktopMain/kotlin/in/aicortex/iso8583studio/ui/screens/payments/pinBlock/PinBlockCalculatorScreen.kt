@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -39,27 +39,27 @@ import java.time.format.DateTimeFormatter
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
 
 object PinBlockValidationUtils {
-    fun validatePan(pan: String): FieldValidation {
-        if (pan.isEmpty()) return FieldValidation(ValidationState.EMPTY, "PAN cannot be empty.")
-        if (pan.any { !it.isDigit() }) return FieldValidation(ValidationState.ERROR, "PAN must be numeric.")
-        if (pan.length < 12) return FieldValidation(ValidationState.ERROR, "PAN must be at least 12 digits.")
-        return FieldValidation(ValidationState.VALID)
+    fun validatePan(pan: String): ValidationResult {
+        if (pan.isEmpty()) return ValidationResult(ValidationState.EMPTY, "PAN cannot be empty.")
+        if (pan.any { !it.isDigit() }) return ValidationResult(ValidationState.ERROR, "PAN must be numeric.")
+        if (pan.length < 12) return ValidationResult(ValidationState.ERROR, "PAN must be at least 12 digits.")
+        return ValidationResult(ValidationState.VALID)
     }
 
-    fun validatePin(pin: String): FieldValidation {
-        if (pin.isEmpty()) return FieldValidation(ValidationState.EMPTY, "PIN cannot be empty.")
-        if (pin.any { !it.isDigit() }) return FieldValidation(ValidationState.ERROR, "PIN must be numeric.")
-        if (pin.length < 4 || pin.length > 12) return FieldValidation(ValidationState.ERROR, "PIN must be between 4 and 12 digits.")
-        return FieldValidation(ValidationState.VALID)
+    fun validatePin(pin: String): ValidationResult {
+        if (pin.isEmpty()) return ValidationResult(ValidationState.EMPTY, "PIN cannot be empty.")
+        if (pin.any { !it.isDigit() }) return ValidationResult(ValidationState.ERROR, "PIN must be numeric.")
+        if (pin.length < 4 || pin.length > 12) return ValidationResult(ValidationState.ERROR, "PIN must be between 4 and 12 digits.")
+        return ValidationResult(ValidationState.VALID)
     }
 
-    fun validatePinBlock(pinBlock: String): FieldValidation {
-        if (pinBlock.isEmpty()) return FieldValidation(ValidationState.EMPTY, "PIN Block cannot be empty.")
+    fun validatePinBlock(pinBlock: String): ValidationResult {
+        if (pinBlock.isEmpty()) return ValidationResult(ValidationState.EMPTY, "PIN Block cannot be empty.")
         if (pinBlock.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "PIN Block must be valid hexadecimal.")
+            return ValidationResult(ValidationState.ERROR, "PIN Block must be valid hexadecimal.")
         }
-        if (pinBlock.length != 16) return FieldValidation(ValidationState.ERROR, "PIN Block must be 16 hex characters.")
-        return FieldValidation(ValidationState.VALID)
+        if (pinBlock.length != 16) return ValidationResult(ValidationState.ERROR, "PIN Block must be 16 hex characters.")
+        return ValidationResult(ValidationState.VALID)
     }
 }
 
@@ -294,7 +294,7 @@ private fun DecodeCard(format: String) {
 // --- SHARED UI COMPONENTS ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,

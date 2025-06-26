@@ -1,26 +1,21 @@
 package io.cryptocalc.emv.calculators.emv41
 
+import ai.cortex.core.IsoUtil
 import io.cryptocalc.core.BaseCalculator
 import io.cryptocalc.core.CalculatorCapabilities
 import io.cryptocalc.core.CalculatorSchema
 import io.cryptocalc.core.ParameterSchema
 import io.cryptocalc.core.ParameterType
 import io.cryptocalc.core.ParameterValidation
-import io.cryptocalc.core.bytesToHex
-import io.cryptocalc.core.hexToBytes
 import ai.cortex.core.types.CalculatorCategory
 import ai.cortex.core.types.CryptoAlgorithm
 import ai.cortex.core.types.OperationType
-import io.cryptocalc.crypto.CryptoEngine
-import io.cryptocalc.crypto.engines.DefaultCryptoEngine
 
 
-class Emv41CryptoCalculator(
-    private val cryptoEngine: CryptoEngine = DefaultCryptoEngine()
-) : BaseCalculator<EMVCalculatorInput, EMVCalculatorResult>() {
+class Emv41CryptoCalculator() : BaseCalculator<EMVCalculatorInput, EMVCalculatorResult>() {
 
-    override val id = "mastercard-calculator"
-    override val name = "MasterCard M/Chip Calculator"
+    override val id = "emv-4.1-calculator"
+    override val name = "EMV 4.1 Calculator"
     override val category = CalculatorCategory.EMV_PAYMENT
     override val version = "1.0.0"
 
@@ -28,27 +23,42 @@ class Emv41CryptoCalculator(
         return try {
             when (input.operation) {
                 OperationType.DERIVE -> {
-                    val udkKey = cryptoEngine.deriveKey(
+                    val udkKey = emvEngines.keysEngine.deriveUdkKey(
                         algorithm = CryptoAlgorithm.TDES,
                         udkDerivationInput = input.udkDerivationInput!!
                     )
                     EMVCalculatorResult(
                         success = true,
+                        key = IsoUtil.bytesToHex(udkKey.value),
                         udkDerivation = UdkDerivation(
-                            udk = bytesToHex(udkKey.value),
-                            kcv = bytesToHex(cryptoEngine.calculateKcv(key = udkKey))
+                            udk = IsoUtil.bytesToHex(udkKey.value),
+                            kcv = IsoUtil.bytesToHex(emvEngines.keysEngine.calculateKcv(key = udkKey))
                         )
                     )
                 }
 
                 OperationType.GENERATE_KEY -> {
-                    val key = cryptoEngine.generateKey(
+                    val key = emvEngines.keysEngine.generateKey(
                         algorithm = CryptoAlgorithm.TDES,
                         keySize = 16
                     )
                     EMVCalculatorResult(
                         success = true,
-                        key = bytesToHex(key.value)
+                        key = IsoUtil.bytesToHex(key.value)
+                    )
+                }
+                OperationType.SESSION -> {
+                    val key = emvEngines.keysEngine.deriveSessionKey(
+                        algorithm = CryptoAlgorithm.TDES,
+                        sessionKeyInput = input.sessionKeyInput!!
+                    )
+                    EMVCalculatorResult(
+                        success = true,
+                        key = IsoUtil.bytesToHex(key.value),
+                        sessionDerivation = SessionDerivation(
+                            sessionKey = IsoUtil.bytesToHex(key.value),
+                            kcv = IsoUtil.bytesToHex(emvEngines.keysEngine.calculateKcv(key = key)),
+                        )
                     )
                 }
 
@@ -75,7 +85,7 @@ class Emv41CryptoCalculator(
 
                     )
                 }
-                val mdk = hexToBytes(input.udkDerivationInput.masterKey)
+                val mdk = IsoUtil.hexToBytes(input.udkDerivationInput.masterKey)
                 if (mdk.size != 16) {
                     return EMVCalculatorResult(
                         success = false,
@@ -88,7 +98,7 @@ class Emv41CryptoCalculator(
             }
 
             OperationType.SESSION -> {
-                if (input.sessionDerivation == null) {
+                if (input.sessionKeyInput == null) {
                     return EMVCalculatorResult(
                         success = false,
                         error = "Session Key Derivation Input is required"

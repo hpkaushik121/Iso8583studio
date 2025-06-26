@@ -174,12 +174,12 @@ class XmlContentFormatter {
     /**
      * Validate XML content
      */
-    fun validateXml(xmlContent: String): ValidationResult {
+    fun validateXml(xmlContent: String): XMLValidationResult {
         return try {
             parseXmlString(xmlContent)
-            ValidationResult(true, "XML is valid")
+            XMLValidationResult(true, "XML is valid")
         } catch (e: Exception) {
-            ValidationResult(false, "XML validation failed: ${e.message}")
+            XMLValidationResult(false, "XML validation failed: ${e.message}")
         }
     }
 
@@ -478,7 +478,7 @@ data class Iso8583Data(
 /**
  * XML validation result
  */
-data class ValidationResult(
+data class XMLValidationResult(
     val isValid: Boolean,
     val message: String,
     val errors: List<String> = emptyList()

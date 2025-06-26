@@ -1,7 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
-import `in`.aicortex.iso8583studio.data.model.FieldValidation
-import `in`.aicortex.iso8583studio.data.model.ValidationState
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -39,22 +39,22 @@ import kotlin.random.Random
 
 
 private object As2805ValidationUtils {
-    fun validateHex(value: String, friendlyName: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY, "$friendlyName cannot be empty.")
+    fun validateHex(value: String, friendlyName: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$friendlyName cannot be empty.")
         if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
-            return FieldValidation(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.")
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.")
         }
         if (value.length % 2 != 0) {
-            return FieldValidation(ValidationState.ERROR, "Hex string must have an even number of characters.")
+            return ValidationResult(ValidationState.ERROR, "Hex string must have an even number of characters.")
         }
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
-    fun validateNumeric(value: String, friendlyName: String): FieldValidation {
-        if (value.isEmpty()) return FieldValidation(ValidationState.EMPTY, "$friendlyName cannot be empty.")
+    fun validateNumeric(value: String, friendlyName: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$friendlyName cannot be empty.")
         if (value.any { !it.isDigit() }) {
-            return FieldValidation(ValidationState.ERROR, "Only digits (0-9) are allowed.")
+            return ValidationResult(ValidationState.ERROR, "Only digits (0-9) are allowed.")
         }
-        return FieldValidation(ValidationState.VALID)
+        return ValidationResult(ValidationState.VALID)
     }
 }
 
@@ -313,7 +313,7 @@ private fun OwfTab() {
 // --- SHARED UI COMPONENTS (PRIVATE TO THIS FILE) ---
 
 @Composable
-private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: FieldValidation? = null) {
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult? = null) {
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,
