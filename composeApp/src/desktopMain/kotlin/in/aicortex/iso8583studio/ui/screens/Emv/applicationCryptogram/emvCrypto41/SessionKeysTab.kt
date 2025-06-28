@@ -5,6 +5,7 @@ import ai.cortex.core.ValidationState
 import ai.cortex.core.ValidationUtils
 import ai.cortex.core.types.KeyParity
 import ai.cortex.core.types.OperationType
+import ai.cortex.core.types.SessionKeyType
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +39,6 @@ import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.emv.calculators.emv41.EMVCalculatorInput
 import io.cryptocalc.emv.calculators.emv41.Emv41CryptoCalculator
 import io.cryptocalc.emv.calculators.emv41.SessionKeyInput
-import io.cryptocalc.emv.calculators.emv41.SessionKeyType
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 

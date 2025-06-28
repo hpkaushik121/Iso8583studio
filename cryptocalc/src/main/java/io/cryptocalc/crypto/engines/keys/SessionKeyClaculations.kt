@@ -5,7 +5,6 @@ import ai.cortex.core.types.AlgorithmType
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.CryptoAlgorithm
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
-import io.cryptocalc.emv.calculators.emv41.SessionKeyType
 import java.nio.ByteBuffer
 
 

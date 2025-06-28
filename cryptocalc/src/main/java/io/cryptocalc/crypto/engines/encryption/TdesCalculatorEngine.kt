@@ -23,7 +23,7 @@ import javax.crypto.spec.SecretKeySpec
  * @author Crypto SDK Team
  * @version 2.0.0
  */
-object TdesCalculatorEngine {
+internal object TdesCalculatorEngine {
 
     init {
         // Ensure Bouncy Castle provider is registered.

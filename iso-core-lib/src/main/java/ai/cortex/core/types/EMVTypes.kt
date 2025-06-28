@@ -7,6 +7,16 @@ enum class CryptogramType(val methods: List<Methods>) {
     ARQC(emptyList()), TC(emptyList()), AAC(emptyList()), ARPC(listOf(Methods.METHODE_1, Methods.METHODE_2))
 }
 
+/**
+ * Session key types as per EMV specification
+ */
+@Serializable
+enum class SessionKeyType {
+    APPLICATION_CRYPTOGRAM,  // For AC and ARPC generation/verification
+    SECURE_MESSAGING_MAC,    // For secure messaging MAC
+    SECURE_MESSAGING_ENC     // For secure messaging encryption
+}
+
 @Serializable
 enum class KcvType{
     STANDARD,VISA

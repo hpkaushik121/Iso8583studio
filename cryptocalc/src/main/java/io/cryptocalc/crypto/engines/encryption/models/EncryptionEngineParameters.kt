@@ -1,4 +1,4 @@
-package io.cryptocalc.crypto.engines.encryption
+package io.cryptocalc.crypto.engines.encryption.models
 
 import ai.cortex.core.types.AlgorithmType
 

@@ -2,7 +2,7 @@ package io.cryptocalc.crypto.engines.encryption.models
 
 import ai.cortex.core.types.AlgorithmType
 import ai.cortex.core.types.CipherMode
-import io.cryptocalc.crypto.engines.encryption.EncryptionEngineParameters
+import io.cryptocalc.crypto.engines.encryption.models.EncryptionEngineParameters
 
 data class SymmetricEncryptionEngineParameters(
     val data: ByteArray,
