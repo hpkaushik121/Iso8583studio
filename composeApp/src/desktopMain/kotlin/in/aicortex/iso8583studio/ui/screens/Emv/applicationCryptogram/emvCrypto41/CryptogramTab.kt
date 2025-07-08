@@ -1,8 +1,10 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41
 
+import ai.cortex.core.IsoUtil
 import ai.cortex.core.ValidationState
 import ai.cortex.core.ValidationUtils
 import ai.cortex.core.types.CryptogramType
+import ai.cortex.core.types.OperationType
 import ai.cortex.core.types.PaddingMethods
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,6 +35,10 @@ import `in`.aicortex.iso8583studio.ui.screens.components.InfoDialog
 import `in`.aicortex.iso8583studio.ui.screens.components.ModernButton
 import `in`.aicortex.iso8583studio.ui.screens.components.ModernCryptoCard
 import `in`.aicortex.iso8583studio.ui.screens.components.ModernDropdownField
+import io.cryptocalc.emv.calculators.acCalculator.AcCalculator
+import io.cryptocalc.emv.calculators.acCalculator.AcCalculatorInput
+import io.cryptocalc.emv.calculators.emv41.EMVCalculatorInput
+import io.cryptocalc.emv.calculators.emv41.Emv41CryptoCalculator
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -118,13 +124,22 @@ fun CryptogramTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Calc
 
                         GlobalScope.launch {
                             try {
-                                val result = "92791D36B5CC31B5"
+                                val result = AcCalculator().execute(
+                                    input = AcCalculatorInput(
+                                        sessionKey = IsoUtil.hexStringToBytes(sessionKey),
+                                        terminalData = IsoUtil.hexStringToBytes(terminalData),
+                                        iccData = IsoUtil.hexStringToBytes(iccData),
+                                        cryptogramType = cryptogramType,
+                                        paddingMethods = paddingMethod,
+                                        operation = OperationType.GENERATE
+                                    )
+                                )
                                 val executionTime = System.currentTimeMillis() - startTime
                                 calculatorLogManager.logOperation(
                                     tab = calculatorTab,
                                     operation = "Cryptogram Generation",
                                     inputs = inputs,
-                                    result = result,
+                                    result = result.ac?.let { IsoUtil.bytesToHex(it) },
                                     executionTime = executionTime
                                 )
                             } catch (e: Exception) {

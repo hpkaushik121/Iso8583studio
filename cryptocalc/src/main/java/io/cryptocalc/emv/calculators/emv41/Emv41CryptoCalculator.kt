@@ -37,7 +37,7 @@ class Emv41CryptoCalculator() : BaseCalculator<EMVCalculatorInput, EMVCalculator
                     )
                 }
 
-                OperationType.GENERATE_KEY -> {
+                OperationType.GENERATE -> {
                     val key = emvEngines.keysEngine.generateKey(
                         algorithm = CryptoAlgorithm.TDES,
                         keySize = 16

@@ -3,14 +3,11 @@ package `in`.aicortex.iso8583studio.data
 import `in`.aicortex.iso8583studio.data.model.AddtionalOption
 import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
-import `in`.aicortex.iso8583studio.domain.utils.EMVTag
-import `in`.aicortex.iso8583studio.domain.utils.EMVTagParser
+import ai.cortex.core.EMVTagParser
 import ai.cortex.core.IsoUtil.ascToString
 import ai.cortex.core.IsoUtil.bcdToString
 import ai.cortex.core.IsoUtil.bytesToHexString
 import kotlinx.serialization.Serializable
-import org.springframework.context.annotation.Description
-import java.nio.charset.Charset
 
 @Serializable
 class BitAttribute {

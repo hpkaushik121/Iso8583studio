@@ -3,8 +3,10 @@ package io.cryptocalc.crypto.engines.encryption
 import ai.cortex.core.types.AlgorithmType
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.CryptoAlgorithm
+import io.cryptocalc.crypto.engines.encryption.models.DecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.EncryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.HashingEncryptionEngineParameters
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 
 internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : EncryptionEngine {
@@ -54,17 +56,29 @@ internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : Encry
 
             is CryptoAlgorithm.SHA1 -> SHA1CalculatorEngine.calculateSHA1(data = (encryptionEngineParameters as HashingEncryptionEngineParameters).data)
 
-            else -> TODO("Not Yet Implemented ${algorithm::class.java}")
+            else -> TODO("Not Yet Implemented for encryption ${algorithm::class.java}")
         }
     }
 
     override suspend fun <T : AlgorithmType> decrypt(
         algorithm: CryptoAlgorithm<T>,
-        data: ByteArray,
-        key: ByteArray,
-        mode: CipherMode
+        decryptionEngineParameters: DecryptionEngineParameters<T>
     ): ByteArray {
-        TODO("Not yet implemented")
+        return when(algorithm){
+            is CryptoAlgorithm.TDES ->{
+                val parameter = decryptionEngineParameters as SymmetricDecryptionEngineParameters
+                when (parameter.mode) {
+                    CipherMode.ECB -> TdesCalculatorEngine.decryptECB(parameter.data,parameter.key)
+                    CipherMode.CBC -> TdesCalculatorEngine.decryptCBC(parameter.data,parameter.key)
+                    CipherMode.CFB -> TODO()
+                    CipherMode.OFB -> TODO()
+                    CipherMode.GCM -> TODO()
+                    CipherMode.CTR -> TODO()
+                }
+
+            }
+            else -> TODO("Not Yet Implemented for decryption ${algorithm::class.java}")
+        }
     }
 
 

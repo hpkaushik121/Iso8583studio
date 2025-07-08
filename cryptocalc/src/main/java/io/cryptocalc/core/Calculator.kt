@@ -34,7 +34,7 @@ data class ParameterSchema(
 )
 
 enum class ParameterType {
-    STRING, HEX_STRING, BASE64_STRING, INTEGER, BOOLEAN
+    STRING, HEX_STRING, BASE64_STRING, INTEGER, BOOLEAN, BYTE_ARRAY
 }
 
 data class ParameterValidation(

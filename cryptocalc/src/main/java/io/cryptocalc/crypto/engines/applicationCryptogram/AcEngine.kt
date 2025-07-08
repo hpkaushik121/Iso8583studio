@@ -3,8 +3,7 @@ package io.cryptocalc.crypto.engines.applicationCryptogram
 import ai.cortex.core.types.AlgorithmType
 import ai.cortex.core.types.CryptoAlgorithm
 import io.cryptocalc.crypto.engines.Engine
-import io.cryptocalc.crypto.engines.encryption.EMVEngines
-import io.cryptocalc.emv.calculators.emv41.CryptogramInput
+import io.cryptocalc.emv.calculators.acCalculator.AcCalculatorInput
 
 interface AcEngine: Engine {
 
@@ -38,6 +37,6 @@ interface AcEngine: Engine {
      */
     suspend fun generateAC(
         algorithm: CryptoAlgorithm<AlgorithmType.SYMMETRIC_BLOCK>,
-        cryptogramInput: CryptogramInput
-    )
+        acCalculatorInput: AcCalculatorInput
+    ): ByteArray
 }

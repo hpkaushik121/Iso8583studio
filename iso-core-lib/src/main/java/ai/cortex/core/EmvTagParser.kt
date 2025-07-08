@@ -1,7 +1,5 @@
-package `in`.aicortex.iso8583studio.domain.utils
+package ai.cortex.core
 
-import ai.cortex.core.IsoUtil
-import `in`.aicortex.iso8583studio.data.model.EMVShowOption
 import kotlinx.serialization.Serializable
 import java.nio.charset.StandardCharsets
 
@@ -63,7 +61,7 @@ object EMVTagParser {
     fun parseEMVTags(
         data: ByteArray,
         offset: Int = 0,
-        showOption: EMVShowOption = EMVShowOption.NAME
+        showOption: Int = 4
     ): EMVParseResult {
         val tags = mutableListOf<EMVTag>()
         val errors = mutableListOf<String>()
@@ -240,12 +238,12 @@ object EMVTagParser {
     /**
      * Filter tags based on show option
      */
-    private fun filterTagsByShowOption(tags: List<EMVTag>, showOption: EMVShowOption): List<EMVTag> {
+    private fun filterTagsByShowOption(tags: List<EMVTag>, showOption: Int): List<EMVTag> {
         return when (showOption) {
-            EMVShowOption.None -> emptyList()
-            EMVShowOption.NAME -> tags
-            EMVShowOption.DESCRIPTION -> tags.filter { getTagDescription(it.tag).isNotEmpty() }
-            EMVShowOption.Len -> tags.filter { getTagDescription(it.tag).isEmpty() }
+            0 -> emptyList()
+            4 -> tags
+            8 -> tags.filter { getTagDescription(it.tag).isNotEmpty() }
+            1 -> tags.filter { getTagDescription(it.tag).isEmpty() }
             else -> { emptyList()}
         }
     }

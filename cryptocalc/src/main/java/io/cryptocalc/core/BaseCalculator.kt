@@ -7,7 +7,7 @@ import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult>(protected val emvEngines: EMVEngines = EMVEngines()) : Calculator<T, R> {
+abstract class BaseCalculator<T : CalculatorInput, R : CalculatorResult>(internal val emvEngines: EMVEngines = EMVEngines()) : Calculator<T, R> {
     @OptIn(ExperimentalTime::class)
     override suspend fun execute(input: T): R {
         val startTime = Clock.System.now()

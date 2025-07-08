@@ -13,7 +13,7 @@ enum class CalculatorCategory {
 
 @Serializable
 enum class OperationType {
-    ENCRYPT, DECRYPT, SIGN, VERIFY, HASH, DERIVE, ENCODE, DECODE, SESSION, GENERATE_KEY, VALIDATE
+    ENCRYPT, DECRYPT, SIGN, VERIFY, HASH, DERIVE, ENCODE, DECODE, SESSION, GENERATE, VALIDATE
 }
 
 data class Key(

@@ -32,7 +32,7 @@ import `in`.aicortex.iso8583studio.data.model.BitLength
 import `in`.aicortex.iso8583studio.data.model.BitType
 import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
-import `in`.aicortex.iso8583studio.domain.utils.EMVTag
+import ai.cortex.core.EMVTag
 import ai.cortex.core.IsoUtil
 import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.screens.components.StatusBadge

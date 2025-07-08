@@ -684,13 +684,13 @@ sealed interface AlgorithmType {
 @Serializable
 enum class PaddingMethods(
     val description: String,
-    val standard: String,
+    val standardName: String,
     val blockSizeRequired: Boolean = true,
     val applicableAlgorithms: List<CryptoAlgorithm<*>> = listOf()
 ) {
     NONE(
         description = "No padding applied",
-        standard = "None",
+        standardName = "None",
         blockSizeRequired = false,
         applicableAlgorithms = listOf()
     ),
@@ -700,7 +700,7 @@ enum class PaddingMethods(
     // ============================================================================
     METHOD_1_ISO_9797(
         description = "Padding with zeros to complete the block",
-        standard = "ISO/IEC 9797-1",
+        standardName = "ISO/IEC 9797-1",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES, CryptoAlgorithm.TDES, CryptoAlgorithm.AES
         )
@@ -708,7 +708,7 @@ enum class PaddingMethods(
 
     METHOD_2_ISO_9797(
         description = "Padding with a single '1' bit followed by zeros",
-        standard = "ISO/IEC 9797-1",
+        standardName = "ISO/IEC 9797-1",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES, CryptoAlgorithm.TDES, CryptoAlgorithm.AES
         )
@@ -716,7 +716,7 @@ enum class PaddingMethods(
 
     METHOD_3_ISO_9797(
         description = "Padding with length indicator followed by zeros",
-        standard = "ISO/IEC 9797-1",
+        standardName = "ISO/IEC 9797-1",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES, CryptoAlgorithm.TDES, CryptoAlgorithm.AES
         )
@@ -727,28 +727,28 @@ enum class PaddingMethods(
     // ============================================================================
     PKCS1_V15(
         description = "PKCS #1 v1.5 padding for RSA encryption",
-        standard = "RFC 3447",
+        standardName = "RFC 3447",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(CryptoAlgorithm.RSA)
     ),
 
     PKCS1_OAEP(
         description = "PKCS #1 OAEP (Optimal Asymmetric Encryption Padding)",
-        standard = "RFC 3447",
+        standardName = "RFC 3447",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(CryptoAlgorithm.RSA)
     ),
 
     PKCS1_PSS(
         description = "PKCS #1 PSS (Probabilistic Signature Scheme)",
-        standard = "RFC 3447",
+        standardName = "RFC 3447",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(CryptoAlgorithm.RSA)
     ),
 
     PKCS5(
         description = "PKCS #5 padding (same as PKCS #7 for 8-byte blocks)",
-        standard = "RFC 2898",
+        standardName = "PKCS5Padding",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES, CryptoAlgorithm.TDES
         )
@@ -756,7 +756,7 @@ enum class PaddingMethods(
 
     PKCS7(
         description = "PKCS #7 padding for any block size",
-        standard = "RFC 5652",
+        standardName = "RFC 5652",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -770,7 +770,7 @@ enum class PaddingMethods(
     // ============================================================================
     ANSI_X923(
         description = "ANSI X9.23 padding with zeros and length byte",
-        standard = "ANSI X9.23",
+        standardName = "ANSI X9.23",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -780,7 +780,7 @@ enum class PaddingMethods(
 
     ANSI_X931(
         description = "ANSI X9.31 padding for digital signatures",
-        standard = "ANSI X9.31",
+        standardName = "ANSI X9.31",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(
             CryptoAlgorithm.RSA
@@ -792,7 +792,7 @@ enum class PaddingMethods(
     // ============================================================================
     ZERO_PADDING(
         description = "Padding with zero bytes",
-        standard = "Common Practice",
+        standardName = "Common Practice",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -802,7 +802,7 @@ enum class PaddingMethods(
 
     NULL_PADDING(
         description = "No padding applied",
-        standard = "None",
+        standardName = "None",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
@@ -816,7 +816,7 @@ enum class PaddingMethods(
     // ============================================================================
     ISO_10126(
         description = "Random padding with length byte at the end",
-        standard = "ISO/IEC 10126",
+        standardName = "ISO/IEC 10126",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -829,7 +829,7 @@ enum class PaddingMethods(
     // ============================================================================
     EMV_PADDING_METHOD_1(
         description = "EMV padding method 1 (ISO 9797-1 Method 2)",
-        standard = "EMV 4.3",
+        standardName = "EMV 4.3",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -838,7 +838,7 @@ enum class PaddingMethods(
 
     EMV_PADDING_METHOD_2(
         description = "EMV padding method 2 for cryptograms",
-        standard = "EMV 4.3",
+        standardName = "EMV 4.3",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -851,7 +851,7 @@ enum class PaddingMethods(
     // ============================================================================
     TLS_PADDING(
         description = "TLS/SSL padding scheme",
-        standard = "RFC 5246",
+        standardName = "RFC 5246",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.TDES,
             CryptoAlgorithm.AES,
@@ -863,7 +863,7 @@ enum class PaddingMethods(
     // ============================================================================
     CMS_PADDING(
         description = "Cryptographic Message Syntax padding",
-        standard = "RFC 5652",
+        standardName = "RFC 5652",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -876,7 +876,7 @@ enum class PaddingMethods(
     // ============================================================================
     PCI_DSS_PADDING(
         description = "PCI DSS compliant padding method",
-        standard = "PCI DSS",
+        standardName = "PCI DSS",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.TDES,
             CryptoAlgorithm.AES,
@@ -888,7 +888,7 @@ enum class PaddingMethods(
     // ============================================================================
     MASTERCARD_M_CHIP_PADDING(
         description = "MasterCard M/Chip specific padding",
-        standard = "MasterCard M/Chip",
+        standardName = "MasterCard M/Chip",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -900,7 +900,7 @@ enum class PaddingMethods(
     // ============================================================================
     VISA_CVV_PADDING(
         description = "Visa CVV generation padding method",
-        standard = "Visa CVV",
+        standardName = "Visa CVV",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -909,7 +909,7 @@ enum class PaddingMethods(
 
     VISA_PIN_PADDING(
         description = "Visa PIN verification padding method",
-        standard = "Visa PIN",
+        standardName = "Visa PIN",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -921,7 +921,7 @@ enum class PaddingMethods(
     // ============================================================================
     DUKPT_PADDING(
         description = "Derived Unique Key Per Transaction padding",
-        standard = "ANSI X9.24",
+        standardName = "ANSI X9.24",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.TDES,
         )
@@ -929,7 +929,7 @@ enum class PaddingMethods(
 
     MAC_PADDING_ISO_9797_1(
         description = "MAC padding as per ISO 9797-1",
-        standard = "ISO/IEC 9797-1",
+        standardName = "ISO/IEC 9797-1",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -939,7 +939,7 @@ enum class PaddingMethods(
 
     MAC_PADDING_ISO_16609(
         description = "MAC padding as per ISO 16609",
-        standard = "ISO/IEC 16609",
+        standardName = "ISO/IEC 16609",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
         )
@@ -950,7 +950,7 @@ enum class PaddingMethods(
     // ============================================================================
     ISO_7816_PADDING(
         description = "ISO 7816-4 padding for smartcard operations",
-        standard = "ISO/IEC 7816-4",
+        standardName = "ISO/IEC 7816-4",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -960,7 +960,7 @@ enum class PaddingMethods(
 
     GLOBAL_PLATFORM_PADDING(
         description = "GlobalPlatform SCP padding methods",
-        standard = "GlobalPlatform",
+        standardName = "GlobalPlatform",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -973,7 +973,7 @@ enum class PaddingMethods(
     // ============================================================================
     ISO_14443_PADDING(
         description = "ISO 14443 contactless card padding",
-        standard = "ISO/IEC 14443",
+        standardName = "ISO/IEC 14443",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -983,7 +983,7 @@ enum class PaddingMethods(
 
     NFC_PADDING(
         description = "NFC payment padding method",
-        standard = "NFC Forum",
+        standardName = "NFC Forum",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
         )
@@ -994,7 +994,7 @@ enum class PaddingMethods(
     // ============================================================================
     AES_CBC_PADDING(
         description = "Standard AES CBC mode padding",
-        standard = "NIST SP 800-38A",
+        standardName = "NIST SP 800-38A",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
         )
@@ -1002,7 +1002,7 @@ enum class PaddingMethods(
 
     AES_CTR_NO_PADDING(
         description = "AES CTR mode (no padding required)",
-        standard = "NIST SP 800-38A",
+        standardName = "NIST SP 800-38A",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
@@ -1011,7 +1011,7 @@ enum class PaddingMethods(
 
     AES_GCM_NO_PADDING(
         description = "AES GCM mode (no padding required)",
-        standard = "NIST SP 800-38D",
+        standardName = "NIST SP 800-38D",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
@@ -1023,7 +1023,7 @@ enum class PaddingMethods(
     // ============================================================================
     DES_CBC_PADDING(
         description = "DES CBC mode standard padding",
-        standard = "NIST FIPS 46-3",
+        standardName = "NIST FIPS 46-3",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
         )
@@ -1031,7 +1031,7 @@ enum class PaddingMethods(
 
     TRIPLE_DES_PADDING(
         description = "Triple DES standard padding",
-        standard = "NIST SP 800-67",
+        standardName = "NIST SP 800-67",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.TDES,
         )
@@ -1042,7 +1042,7 @@ enum class PaddingMethods(
     // ============================================================================
     HMAC_PADDING(
         description = "HMAC padding method",
-        standard = "RFC 2104",
+        standardName = "RFC 2104",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(
             CryptoAlgorithm.SHA1,
@@ -1057,7 +1057,7 @@ enum class PaddingMethods(
     // ============================================================================
     SAFENET_PADDING(
         description = "SafeNet HSM specific padding",
-        standard = "SafeNet",
+        standardName = "SafeNet",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
             CryptoAlgorithm.DES,
@@ -1067,7 +1067,7 @@ enum class PaddingMethods(
 
     THALES_PADDING(
         description = "Thales HSM specific padding",
-        standard = "Thales",
+        standardName = "Thales",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
             CryptoAlgorithm.DES,
@@ -1077,7 +1077,7 @@ enum class PaddingMethods(
 
     UTIMACO_PADDING(
         description = "Utimaco HSM specific padding",
-        standard = "Utimaco",
+        standardName = "Utimaco",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.AES,
             CryptoAlgorithm.DES,
@@ -1090,7 +1090,7 @@ enum class PaddingMethods(
     // ============================================================================
     PROPRIETARY_PADDING_1(
         description = "Custom proprietary padding method 1",
-        standard = "Proprietary",
+        standardName = "Proprietary",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -1100,7 +1100,7 @@ enum class PaddingMethods(
 
     PROPRIETARY_PADDING_2(
         description = "Custom proprietary padding method 2",
-        standard = "Proprietary",
+        standardName = "Proprietary",
         applicableAlgorithms = listOf(
             CryptoAlgorithm.DES,
             CryptoAlgorithm.TDES,
@@ -1113,7 +1113,7 @@ enum class PaddingMethods(
     // ============================================================================
     POST_QUANTUM_PADDING(
         description = "Post-quantum cryptography padding",
-        standard = "NIST Post-Quantum",
+        standardName = "NIST Post-Quantum",
         blockSizeRequired = false,
         applicableAlgorithms = listOf(
             CryptoAlgorithm.CRYSTALS_KYBER,
@@ -1134,7 +1134,7 @@ enum class PaddingMethods(
         }
 
         fun getByStandard(standard: String): List<PaddingMethods> {
-            return values().filter { it.standard.contains(standard, ignoreCase = true) }
+            return values().filter { it.standardName.contains(standard, ignoreCase = true) }
         }
 
         fun getEMVCompatible(): List<PaddingMethods> {

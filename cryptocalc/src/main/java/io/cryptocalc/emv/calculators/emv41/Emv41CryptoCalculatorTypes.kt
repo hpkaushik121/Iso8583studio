@@ -2,23 +2,12 @@ package io.cryptocalc.emv.calculators.emv41
 
 import ai.cortex.core.types.CalculatorInput
 import ai.cortex.core.types.CalculatorResult
-import ai.cortex.core.types.CryptogramType
 import ai.cortex.core.types.KeyParity
 import ai.cortex.core.types.OperationType
-import ai.cortex.core.types.PaddingMethods
 import ai.cortex.core.types.ResultMetadata
 import ai.cortex.core.types.SessionKeyType
 import ai.cortex.core.types.UdkDerivationType
 import kotlinx.serialization.Serializable
-
-@Serializable
-data class CryptogramInput(
-    val sessionKey: ByteArray,
-    val terminalData: ByteArray,
-    val iccData: ByteArray,
-    val cryptogramType: CryptogramType,
-    val paddingMethods: PaddingMethods
-)
 
 @Serializable
 data class UdkDerivationInput(

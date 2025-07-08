@@ -19,7 +19,7 @@ import java.math.BigInteger
 import java.nio.ByteBuffer
 import kotlin.math.pow
 
-class KeysEngineImpl(override val emvEngines: EMVEngines) : KeysEngine {
+internal class KeysEngineImpl(override val emvEngines: EMVEngines) : KeysEngine {
     override suspend fun calculateKcv(
         key: Key,
         kcvType: KcvType
