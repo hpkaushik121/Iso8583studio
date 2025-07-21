@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Simulator Services - Complete Payment Ecosystem Testing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* ISO8583Studio Brand Colors - Dark Theme */
+            --primary-blue: #6ab7ff;
+            --primary-blue-light: #9fd3ff;
+            --primary-blue-dark: #1e88e5;
+            --accent-teal: #64d8cb;
+            --accent-teal-light: #a0f4ea;
+            --accent-teal-dark: #26a69a;
+            --background-light: #252836;
+            --background-dark: #1a1d2e;
+            --card-light: #2F3142;
+            --card-dark: #1e1f2e;
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+            --warning-yellow: #ffd43b;
+            --border-light: #3d3d3d;
+            --border-dark: #2a2a2a;
+            --text-primary-light: #eceff1;
+            --text-secondary-light: #b0bec5;
+        }
+
+        html {
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary-light);
+            background: var(--background-dark);
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: transparent;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            transition: background 0.3s ease;
+            will-change: background;
+        }
+
+        .header.scrolled {
+            background: rgba(26, 29, 46, 0.95);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .header-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary-light);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--background-dark);
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.3);
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--text-secondary-light);
+            font-size: 16px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            position: relative;
+        }
+
+        .nav a:hover {
+            color: var(--primary-blue);
+        }
+
+        .nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary-blue);
+            transition: width 0.3s ease;
+        }
+
+        .nav a:hover::after {
+            width: 100%;
+        }
+
+        .header-cta {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            color: var(--background-dark);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.4);
+            white-space: nowrap;
+            transform: translateZ(0);
+        }
+
+        .header-cta:hover {
+            background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue) 100%);
+            transform: translateY(-2px) translateZ(0);
+            box-shadow: 0 6px 20px rgba(106, 183, 255, 0.6);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 1001;
+        }
+
+        .mobile-menu-toggle span {
+            width: 25px;
+            height: 3px;
+            background: var(--text-primary-light);
+            margin: 3px 0;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .mobile-menu-toggle.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .mobile-menu-toggle.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-toggle.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 72px;
+            left: 0;
+            right: 0;
+            background: rgba(26, 29, 46, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-light);
+            padding: 24px;
+            z-index: 999;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .mobile-menu.active {
+            display: block;
+            transform: translateY(0);
+        }
+
+        .mobile-menu a {
+            display: block;
+            color: var(--text-secondary-light);
+            text-decoration: none;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu a:last-child {
+            border-bottom: none;
+        }
+
+        .mobile-menu a:hover {
+            color: var(--primary-blue);
+            transform: translateX(8px);
+        }
+
+        .mobile-menu .header-cta {
+            display: inline-block;
+            margin-top: 16px;
+            text-align: center;
+            width: 100%;
+            padding: 12px 20px;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 140px 24px 60px;
+            text-align: center;
+            background: var(--background-dark);
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: radial-gradient(circle at 30% 20%, rgba(106, 183, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(100, 216, 203, 0.1) 0%, transparent 50%),
+                        linear-gradient(135deg, var(--background-dark) 0%, var(--card-dark) 100%);
+            animation: hero-cloud-shift 20s ease-in-out infinite;
+        }
+
+        @keyframes hero-cloud-shift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.05) rotate(180deg); }
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+            width: 100%;
+        }
+
+        .hero-badge {
+            background: rgba(106, 183, 255, 0.15);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            display: inline-block;
+            margin-bottom: 24px;
+            animation: pulse-cloud-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-cloud-glow {
+            0%, 100% { box-shadow: 0 0 0 rgba(106, 183, 255, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(106, 183, 255, 0.6); }
+        }
+
+        .hero-title {
+            font-size: clamp(36px, 7vw, 68px);
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--text-primary-light);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-title .highlight {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(18px, 3.5vw, 24px);
+            font-weight: 400;
+            color: var(--text-secondary-light);
+            margin-bottom: 32px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+
+        .hero-features {
+            display: flex;
+            justify-content: center;
+            gap: clamp(12px, 3vw, 24px);
+            margin-bottom: 48px;
+            flex-wrap: wrap;
+        }
+
+        .feature-badge {
+            background: rgba(100, 216, 203, 0.1);
+            border: 2px solid rgba(100, 216, 203, 0.3);
+            border-radius: 20px;
+            padding: 12px 20px;
+            font-size: clamp(14px, 2.5vw, 16px);
+            font-weight: 700;
+            color: var(--accent-teal);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            animation: slideInUp 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+            box-shadow: 0 4px 15px rgba(100, 216, 203, 0.2);
+        }
+
+        .feature-badge:nth-child(1) {
+            animation-delay: 0.2s;
+            border-color: rgba(106, 183, 255, 0.3);
+            background: rgba(106, 183, 255, 0.1);
+            color: var(--primary-blue);
+            box-shadow: 0 4px 15px rgba(106, 183, 255, 0.2);
+        }
+        .feature-badge:nth-child(2) { animation-delay: 0.4s; }
+        .feature-badge:nth-child(3) {
+            animation-delay: 0.6s;
+            border-color: rgba(100, 216, 203, 0.3);
+            background: rgba(100, 216, 203, 0.1);
+            color: var(--accent-teal);
+            box-shadow: 0 4px 15px rgba(100, 216, 203, 0.2);
+        }
+
+        @keyframes slideInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-cta-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 60px;
+            flex-wrap: wrap;
+        }
+
+        .cta-primary {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            color: var(--background-dark);
+            padding: 16px 32px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(106, 183, 255, 0.4);
+            transform: translateZ(0);
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-3px) translateZ(0);
+            box-shadow: 0 10px 30px rgba(106, 183, 255, 0.6);
+        }
+
+        .cta-secondary {
+            background: transparent;
+            color: var(--primary-blue);
+            border: 2px solid var(--primary-blue);
+            padding: 14px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+
+        .cta-secondary:hover {
+            background: var(--primary-blue);
+            color: var(--background-dark);
+            transform: translateY(-3px) translateZ(0);
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: var(--card-light);
+            padding: clamp(40px, 8vw, 80px) clamp(16px, 4vw, 24px);
+            border-top: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: clamp(20px, 4vw, 40px);
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 20px;
+        }
+
+        .stat-number {
+            font-size: clamp(32px, 6vw, 48px);
+            font-weight: 700;
+            color: var(--primary-blue);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: clamp(14px, 2.5vw, 16px);
+            color: var(--text-secondary-light);
+            font-weight: 500;
+        }
+
+        /* Services Ticker */
+        .services-ticker {
+            background: var(--background-dark);
+            padding: clamp(20px, 4vw, 32px) 0;
+            overflow: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        .ticker-container {
+            display: flex;
+            align-items: center;
+            animation: scroll-left 100s linear infinite;
+            white-space: nowrap;
+            width: max-content;
+            will-change: transform;
+        }
+
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-right: clamp(50px, 8vw, 80px);
+            white-space: nowrap;
+            font-size: clamp(14px, 2.5vw, 16px);
+            font-weight: 600;
+            color: var(--text-primary-light);
+            flex-shrink: 0;
+        }
+
+        .ticker-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(106, 183, 255, 0.6);
+            flex-shrink: 0;
+            animation: icon-pulse 2s ease-in-out infinite;
+        }
+
+        .ticker-icon.blue { background: var(--primary-blue); }
+        .ticker-icon.teal { background: var(--accent-teal); }
+
+        @keyframes icon-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+
+        @keyframes scroll-left {
+            0% { transform: translateX(100%) translateZ(0); }
+            100% { transform: translateX(-100%) translateZ(0); }
+        }
+
+        /* Section Styles */
+        .section {
+            padding: clamp(80px, 15vw, 150px) clamp(16px, 4vw, 24px);
+            background: var(--background-dark);
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .section-alt {
+            background: var(--background-light);
+        }
+
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: clamp(32px, 7vw, 56px);
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-primary-light);
+            margin-bottom: 24px;
+            letter-spacing: -0.01em;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            font-size: clamp(16px, 3vw, 20px);
+            color: var(--text-secondary-light);
+            margin-bottom: clamp(40px, 8vw, 60px);
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+
+        /* Simulators Grid */
+        .simulators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: clamp(30px, 6vw, 40px);
+            margin-bottom: clamp(60px, 12vw, 100px);
+        }
+
+        .simulator-card {
+            background: linear-gradient(135deg, var(--card-dark) 0%, var(--card-light) 100%);
+            border-radius: 20px;
+            padding: clamp(30px, 6vw, 40px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            transform: translateZ(0);
+            border: 1px solid var(--border-light);
+        }
+
+        .simulator-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .simulator-card.host::before {
+            background: radial-gradient(circle at 30% 30%, rgba(106, 183, 255, 0.1) 0%, transparent 50%);
+        }
+
+        .simulator-card.hsm::before {
+            background: radial-gradient(circle at 30% 30%, rgba(100, 216, 203, 0.1) 0%, transparent 50%);
+        }
+
+        .simulator-card.pos::before {
+            background: radial-gradient(circle at 30% 30%, rgba(106, 183, 255, 0.15) 0%, transparent 50%);
+        }
+
+        .simulator-card.apdu::before {
+            background: radial-gradient(circle at 30% 30%, rgba(100, 216, 203, 0.15) 0%, transparent 50%);
+        }
+
+        .simulator-card.acquirer::before {
+            background: radial-gradient(circle at 30% 30%, rgba(81, 207, 102, 0.1) 0%, transparent 50%);
+        }
+
+        .simulator-card.issuer::before {
+            background: radial-gradient(circle at 30% 30%, rgba(255, 107, 107, 0.1) 0%, transparent 50%);
+        }
+
+        .simulator-card:hover::before {
+            opacity: 1;
+        }
+
+        .simulator-card:hover {
+            transform: translateY(-8px) translateZ(0);
+            border-color: var(--primary-blue);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .simulator-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .simulator-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--background-dark);
+            flex-shrink: 0;
+        }
+
+        .simulator-icon.host {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            box-shadow: 0 6px 20px rgba(106, 183, 255, 0.4);
+        }
+
+        .simulator-icon.hsm {
+            background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-teal-light) 100%);
+            box-shadow: 0 6px 20px rgba(100, 216, 203, 0.4);
+        }
+
+        .simulator-icon.pos {
+            background: linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--primary-blue) 100%);
+            box-shadow: 0 6px 20px rgba(30, 136, 229, 0.4);
+        }
+
+        .simulator-icon.apdu {
+            background: linear-gradient(135deg, var(--accent-teal-dark) 0%, var(--accent-teal) 100%);
+            box-shadow: 0 6px 20px rgba(38, 166, 154, 0.4);
+        }
+
+        .simulator-icon.acquirer {
+            background: linear-gradient(135deg, var(--success-green) 0%, #81e6a3 100%);
+            box-shadow: 0 6px 20px rgba(81, 207, 102, 0.4);
+        }
+
+        .simulator-icon.issuer {
+            background: linear-gradient(135deg, var(--error-red) 0%, #ff9999 100%);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .simulator-info h3 {
+            font-size: clamp(20px, 4vw, 24px);
+            font-weight: 700;
+            color: var(--text-primary-light);
+            margin-bottom: 4px;
+        }
+
+        .simulator-info p {
+            color: var(--text-secondary-light);
+            font-size: clamp(12px, 2.5vw, 14px);
+            font-weight: 500;
+        }
+
+        .simulator-features {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .simulator-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: clamp(14px, 2.5vw, 16px);
+            color: var(--text-secondary-light);
+            line-height: 1.5;
+        }
+
+        .simulator-features li::before {
+            content: '✓';
+            color: var(--success-green);
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .simulator-cta {
+            background: transparent;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+        }
+
+        .simulator-cta:hover {
+            background: var(--primary-blue);
+            color: var(--background-dark);
+        }
+
+        /* Architecture Section */
+        .architecture-section {
+            background: var(--background-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .architecture-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(106, 183, 255, 0.05) 0%, transparent 50%);
+        }
+
+        .architecture-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: clamp(30px, 6vw, 40px);
+            position: relative;
+            z-index: 2;
+        }
+
+        .architecture-feature {
+            text-align: center;
+            padding: clamp(20px, 4vw, 30px);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(106, 183, 255, 0.2);
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+
+        .architecture-feature:hover {
+            background: rgba(106, 183, 255, 0.1);
+            border-color: rgba(106, 183, 255, 0.4);
+            transform: translateY(-4px) translateZ(0);
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--background-dark);
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 15px rgba(106, 183, 255, 0.4);
+        }
+
+        .feature-title {
+            font-size: clamp(16px, 3vw, 20px);
+            font-weight: 600;
+            color: var(--text-primary-light);
+            margin-bottom: 12px;
+        }
+
+        .feature-description {
+            font-size: clamp(13px, 2.5vw, 15px);
+            color: var(--text-secondary-light);
+            line-height: 1.5;
+        }
+
+        /* Benefits Section */
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: clamp(25px, 5vw, 35px);
+        }
+
+        .benefit-card {
+            background: rgba(106, 183, 255, 0.05);
+            border: 1px solid rgba(106, 183, 255, 0.2);
+            border-radius: 16px;
+            padding: clamp(25px, 5vw, 35px);
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+
+        .benefit-card:hover {
+            background: rgba(106, 183, 255, 0.1);
+            border-color: rgba(106, 183, 255, 0.4);
+            transform: translateY(-6px) translateZ(0);
+        }
+
+        .benefit-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 20px rgba(106, 183, 255, 0.3);
+        }
+
+        .benefit-title {
+            font-size: clamp(16px, 3vw, 20px);
+            font-weight: 600;
+            color: var(--text-primary-light);
+            margin-bottom: 12px;
+        }
+
+        .benefit-description {
+            font-size: clamp(13px, 2.5vw, 15px);
+            color: var(--text-secondary-light);
+            line-height: 1.6;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--background-dark) 0%, var(--card-dark) 50%, var(--background-dark) 100%);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(106, 183, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 70%, rgba(100, 216, 203, 0.1) 0%, transparent 50%);
+            animation: cta-cloud-movement 25s ease-in-out infinite;
+        }
+
+        @keyframes cta-cloud-movement {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(180deg); }
+        }
+
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cta-title {
+            font-size: clamp(32px, 8vw, 64px);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .cta-subtitle {
+            font-size: clamp(16px, 3.5vw, 24px);
+            color: var(--text-secondary-light);
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+            color: var(--background-dark);
+            padding: 20px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(106, 183, 255, 0.4);
+            display: inline-block;
+            transform: translateZ(0);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-4px) translateZ(0);
+            box-shadow: 0 12px 35px rgba(106, 183, 255, 0.6);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--card-dark);
+            padding: clamp(40px, 8vw, 60px) clamp(16px, 4vw, 24px) clamp(20px, 4vw, 40px);
+            border-top: 1px solid var(--border-light);
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            width: 100%;
+        }
+
+        .footer-social {
+            display: flex;
+            justify-content: center;
+            gap: clamp(16px, 4vw, 32px);
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: clamp(40px, 8vw, 48px);
+            height: clamp(40px, 8vw, 48px);
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 12px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-size: clamp(16px, 3vw, 20px);
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+
+        .social-link:hover {
+            background: rgba(106, 183, 255, 0.2);
+            border-color: rgba(106, 183, 255, 0.5);
+            transform: translateY(-2px) translateZ(0);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: clamp(16px, 4vw, 32px);
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: var(--text-secondary-light);
+            text-decoration: none;
+            font-size: clamp(12px, 2.5vw, 14px);
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-blue);
+        }
+
+        .footer-copyright {
+            color: var(--text-secondary-light);
+            font-size: clamp(11px, 2vw, 14px);
+            border-top: 1px solid var(--border-light);
+            padding-top: 24px;
+            line-height: 1.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .nav {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+            }
+
+            .header-cta {
+                display: none;
+            }
+
+            .simulators-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-cta-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .cta-primary, .cta-secondary {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-container {
+                padding: 0 16px;
+            }
+
+            .hero-features {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+
+            .architecture-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ticker-container {
+                animation: scroll-left 120s linear infinite;
+            }
+
+            .ticker-item {
+                margin-right: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                height: 60px;
+            }
+
+            .mobile-menu {
+                top: 60px;
+                padding: 16px;
+            }
+
+            .hero {
+                padding: 100px 12px 40px;
+                min-height: 80vh;
+            }
+
+            .feature-badge {
+                padding: 8px 16px;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            .ticker-container {
+                animation: none;
+                overflow-x: auto;
+                justify-content: flex-start;
+                gap: 20px;
+                padding: 0 20px;
+                width: 100%;
+                flex-wrap: nowrap;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .ticker-container::-webkit-scrollbar {
+                display: none;
+            }
+
+            .ticker-item {
+                margin-right: 0;
+            }
+
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Focus styles for accessibility */
+        .header-cta:focus,
+        .social-link:focus,
+        .footer-link:focus,
+        .nav a:focus,
+        .mobile-menu a:focus {
+            outline: 2px solid var(--primary-blue);
+            outline-offset: 2px;
+        }
+
+        .mobile-menu-toggle:focus {
+            outline: 2px solid var(--primary-blue);
+            outline-offset: 4px;
+        }
+    </style>
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <div class="header-container">
+        <a href="/" class="logo">
+            ← Home
+        </a>
+        <nav class="nav">
+            <a href="#simulators">Simulators</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#benefits">Benefits</a>
+            <a href="#contact">Contact</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <a href="#contact" class="header-cta">Try Cloud Simulator</a>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#simulators">Simulators</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#benefits">Benefits</a>
+        <a href="#contact">Contact</a>
+        <a href="#contact" class="header-cta">Try Cloud Simulator</a>
+    </div>
+</header>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-background"></div>
+    <div class="hero-container">
+        <div class="hero-badge">☁️ Cloud-Based Testing Platform</div>
+        <h1 class="hero-title">
+            <span class="highlight">Cloud Simulator</span><br>
+            Payment Ecosystem Testing
+        </h1>
+        <p class="hero-subtitle">
+            Comprehensive cloud-based payment simulation platform providing realistic testing environments for Host, HSM, POS, Card, Acquirer, and Issuer systems. Accelerate development with production-like scenarios.
+        </p>
+
+        <div class="hero-features">
+            <div class="feature-badge">
+                <span>🖥️</span> Multi-System Support
+            </div>
+            <div class="feature-badge">
+                <span>🔒</span> Secure Environments
+            </div>
+            <div class="feature-badge">
+                <span>⚡</span> Real-time Processing
+            </div>
+        </div>
+
+        <div class="hero-cta-group">
+            <a href="#contact" class="cta-primary">Start Free Trial</a>
+            <a href="#simulators" class="cta-secondary">Explore Simulators</a>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="stats-container">
+        <div class="stat-item">
+            <span class="stat-number">100+</span>
+            <span class="stat-label">Test Scenarios</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">10K+</span>
+            <span class="stat-label">Tests/Hour</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">6</span>
+            <span class="stat-label">Simulator Types</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">24/7</span>
+            <span class="stat-label">Test Environment</span>
+        </div>
+    </div>
+</section>
+
+<!-- Services Ticker -->
+<section class="services-ticker">
+    <div class="ticker-container">
+        <div class="ticker-item">
+            <div class="ticker-icon blue"></div>
+            Host Simulator - ISO8583 Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon teal"></div>
+            HSM Simulator - Crypto Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon blue"></div>
+            POS Simulator - Terminal Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon teal"></div>
+            APDU/Card Simulator - EMV Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon blue"></div>
+            Acquirer Simulator - Bank Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon teal"></div>
+            Issuer Simulator - Authorization Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon blue"></div>
+            CLI Scripting - Automated Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon teal"></div>
+            Load Testing - Performance Validation
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon blue"></div>
+            Debug Tools - Real-time Monitoring
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon teal"></div>
+            Mock Data - Test Scenario Generation
+        </div>
+        <!-- Duplicates for seamless loop -->
+        <div class="ticker-item">
+            <div class="ticker-icon blue"></div>
+            Host Simulator - ISO8583 Testing
+        </div>
+        <div class="ticker-item">
+            <div class="ticker-icon teal"></div>
+            HSM Simulator - Crypto Testing
+        </div>
+    </div>
+</section>
+
+<!-- Simulators Section -->
+<section class="section" id="simulators">
+    <div class="section-container">
+        <h2 class="section-title">Complete Simulator Suite</h2>
+        <p class="section-subtitle">
+            End-to-end payment ecosystem simulation covering every component from terminal interactions to card authorization. Each simulator replicates real-world behavior for comprehensive testing.
+        </p>
+
+        <div class="simulators-grid">
+            <div class="simulator-card host">
+                <div class="simulator-header">
+                    <div class="simulator-icon host">🖥️</div>
+                    <div class="simulator-info">
+                        <h3>Host Simulator</h3>
+                        <p>Payment Processing Gateway</p>
+                    </div>
+                </div>
+                <ul class="simulator-features">
+                    <li>ISO8583 message processing and routing</li>
+                    <li>Transaction authorization and settlement testing</li>
+                    <li>Multi-acquirer and multi-issuer simulation</li>
+                    <li>Real-time transaction monitoring and debugging</li>
+                    <li>Custom business rule and scenario testing</li>
+                    <li>Error injection and failure simulation</li>
+                    <li>CLI scripting for automated test execution</li>
+                    <li>Performance metrics and load testing</li>
+                </ul>
+                <a href="#contact" class="simulator-cta">Deploy Host Simulator</a>
+            </div>
+
+            <div class="simulator-card hsm">
+                <div class="simulator-header">
+                    <div class="simulator-icon hsm">🔐</div>
+                    <div class="simulator-info">
+                        <h3>HSM Simulator</h3>
+                        <p>Hardware Security Module</p>
+                    </div>
+                </div>
+                <ul class="simulator-features">
+                    <li>Cryptographic key management and generation</li>
+                    <li>PIN verification and encryption services</li>
+                    <li>Digital signature and MAC validation</li>
+                    <li>EMV transaction data authentication</li>
+                    <li>TDES, AES, and RSA algorithm support</li>
+                    <li>Key injection and secure key storage</li>
+                    <li>FIPS 140-2 Level 3 compliance simulation</li>
+                    <li>API-based cryptographic operations</li>
+                </ul>
+                <a href="#contact" class="simulator-cta">Deploy HSM Simulator</a>
+            </div>
+
+            <div class="simulator-card pos">
+                <div class="simulator-header">
+                    <div class="simulator-icon pos">💳</div>
+                    <div class="simulator-info">
+                        <h3>POS Simulator</h3>
+                        <p>Point of Sale Terminal</p>
+                    </div>
+                </div>
+                <ul class="simulator-features">
+                    <li>EMV chip and PIN transaction testing</li>
+                    <li>Contactless payment flow validation (NFC)</li>
+                    <li>Magnetic stripe fallback scenario testing</li>
+                    <li>Multi-application testing (Credit/Debit)</li>
+                    <li>Terminal behavior simulation and debugging</li>
+                    <li>Offline transaction testing capabilities</li>
+                    <li>Error condition and timeout simulation</li>
+                    <li>API integration testing for peripherals</li>
+                </ul>
+                <a href="#contact" class="simulator-cta">Deploy POS Simulator</a>
+            </div>
+
+            <div class="simulator-card apdu">
+                <div class="simulator-header">
+                    <div class="simulator-icon apdu">🎫</div>
+                    <div class="simulator-info">
+                        <h3>APDU/Card Simulator</h3>
+                        <p>Smart Card Emulation</p>
+                    </div>
+                </div>
+                <ul class="simulator-features">
+                    <li>EMV application testing and validation</li>
+                    <li>APDU command/response flow testing</li>
+                    <li>Multiple payment application scenarios</li>
+                    <li>Cardholder verification method testing</li>
+                    <li>Risk management parameter validation</li>
+                    <li>Authentication method testing (DDA/SDA)</li>
+                    <li>Cryptogram generation and verification</li>
+                    <li>Custom card behavior scripting</li>
+                </ul>
+                <a href="#contact" class="simulator-cta">Deploy Card Simulator</a>
+            </div>
+
+            <div class="simulator-card acquirer">
+                <div class="simulator-header">
+                    <div class="simulator-icon acquirer">🏦</div>
+                    <div class="simulator-info">
+                        <h3>Acquirer Simulator</h3>
+                        <p>Merchant Bank Processing</p>
+                    </div>
+                </div>
+                <ul class="simulator-features">
+                    <li>Merchant transaction acquisition</li>
+                    <li>Authorization request processing</li>
+                    <li>Settlement and reconciliation services</li>
+                    <li>Chargeback and dispute management</li>
+                    <li>Risk scoring and fraud detection</li>
+                    <li>Multi-currency transaction support</li>
+                    <li>Batch processing and file handling</li>
+                    <li>Merchant portal and reporting</li>
+                </ul>
+                <a href="#contact" class="simulator-cta">Deploy Acquirer Simulator</a>
+            </div>
+
+            <div class="simulator-card issuer">
+                <div class="simulator-header">
+                    <div class="simulator-icon issuer">💎</div>
+                    <div class="simulator-info">
+                        <h3>Issuer Simulator</h3>
+                        <p>Card Issuing Bank</p>
+                    </div>
+                </div>
+                <ul class="simulator-features">
+                    <li>Card authorization and decline decisions</li>
+                    <li>Account balance and limit management</li>
+                    <li>Fraud monitoring and prevention</li>
+                    <li>PIN change and verification services</li>
+                    <li>Statement generation and delivery</li>
+                    <li>Loyalty program integration</li>
+                    <li>Real-time notification services</li>
+                    <li>Customer service portal simulation</li>
+                </ul>
+                <a href="#contact" class="simulator-cta">Deploy Issuer Simulator</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Architecture Section -->
+<section class="section architecture-section" id="architecture">
+    <div class="section-container">
+        <h2 class="section-title">Testing-First Architecture</h2>
+        <p class="section-subtitle">
+            Purpose-built testing platform with developer-friendly tools, automated scripting capabilities, and comprehensive debugging features for efficient payment system validation.
+        </p>
+
+        <div class="architecture-grid">
+            <div class="architecture-feature">
+                <div class="feature-icon">💻</div>
+                <h3 class="feature-title">CLI & Scripting Support</h3>
+                <p class="feature-description">Command-line interface and scripting capabilities for automated testing, batch operations, and integration with CI/CD pipelines.</p>
+            </div>
+
+            <div class="architecture-feature">
+                <div class="feature-icon">🔧</div>
+                <h3 class="feature-title">Test Scenario Engine</h3>
+                <p class="feature-description">Create, manage, and execute complex test scenarios with customizable transaction flows and edge case simulation.</p>
+            </div>
+
+            <div class="architecture-feature">
+                <div class="feature-icon">📊</div>
+                <h3 class="feature-title">Real-time Debugging</h3>
+                <p class="feature-description">Live transaction monitoring, message inspection, field-level debugging, and comprehensive logging for troubleshooting.</p>
+            </div>
+
+            <div class="architecture-feature">
+                <div class="feature-icon">🎯</div>
+                <h3 class="feature-title">Mock Data Generation</h3>
+                <p class="feature-description">Intelligent test data generation with realistic card numbers, transaction patterns, and edge case data sets.</p>
+            </div>
+
+            <div class="architecture-feature">
+                <div class="feature-icon">⚡</div>
+                <h3 class="feature-title">Load Testing Tools</h3>
+                <p class="feature-description">Built-in performance testing with configurable transaction volumes, concurrent connections, and stress testing scenarios.</p>
+            </div>
+
+            <div class="architecture-feature">
+                <div class="feature-icon">🔄</div>
+                <h3 class="feature-title">API Testing Suite</h3>
+                <p class="feature-description">RESTful APIs, webhooks, and SDK integration for seamless testing workflow automation and third-party integrations.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Benefits Section -->
+<section class="section" id="benefits">
+    <div class="section-container">
+        <h2 class="section-title">Why Choose Cloud Simulator?</h2>
+        <p class="section-subtitle">
+            Accelerate development cycles, reduce infrastructure costs, and improve testing coverage with our comprehensive payment simulation platform.
+        </p>
+
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <div class="benefit-icon">🚀</div>
+                <h3 class="benefit-title">Rapid Test Setup</h3>
+                <p class="benefit-description">Launch complete payment environments in minutes with pre-configured scenarios, test data, and realistic transaction flows.</p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">⚡</div>
+                <h3 class="benefit-title">Automated Testing</h3>
+                <p class="benefit-description">CLI tools and scripting support for automated test execution, regression testing, and continuous integration workflows.</p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">🔧</div>
+                <h3 class="benefit-title">Developer-Friendly APIs</h3>
+                <p class="benefit-description">Simple REST APIs, SDKs, and comprehensive documentation for quick integration with your existing testing frameworks.</p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">📈</div>
+                <h3 class="benefit-title">Performance Testing</h3>
+                <p class="benefit-description">Built-in load testing tools to simulate high transaction volumes and concurrent connections for performance validation.</p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">🛡️</div>
+                <h3 class="benefit-title">Safe Testing Environment</h3>
+                <p class="benefit-description">Isolated testing environments that simulate production scenarios without risk to real systems or sensitive data.</p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">🎯</div>
+                <h3 class="benefit-title">Edge Case Simulation</h3>
+                <p class="benefit-description">Test error conditions, network failures, timeout scenarios, and edge cases that are difficult to reproduce in real environments.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="section cta-section" id="contact">
+    <div class="cta-container">
+        <h2 class="cta-title">Ready to Simulate?</h2>
+        <p class="cta-subtitle">
+            Start testing your payment solutions today with our comprehensive cloud simulator platform. Get instant access to all simulators with a free trial.
+        </p>
+        <a href="mailto:simulator@iso8583.studio" class="cta-button">Start Free Trial</a>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-social">
+            <a href="https://github.com/users/hpkaushik121/projects/1" class="social-link" title="Roadmap">
+                <span>🐦</span>
+            </a>
+            <a href="https://www.linkedin.com/in/sourabh-kaushik/" class="social-link" title="LinkedIn">
+                <span>💼</span>
+            </a>
+            <a href="https://github.com/hpkaushik121" class="social-link" title="GitHub">
+                <span>🐙</span>
+            </a>
+            <a href="https://sourabhkaushik.dev" class="social-link" title="Portfolio">
+                <span>📺</span>
+            </a>
+            <a href="https://hpkaushik121.medium.com/" class="social-link" title="Medium">
+                <span>💬</span>
+            </a>
+        </div>
+
+        <div class="footer-links">
+            <a href="./privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="./terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/README.md" class="footer-link">Documentation</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+
+        <div class="footer-copyright">
+            © 2024 AiCortex. All rights reserved. Built with ❤️ for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+        const mobileMenu = document.getElementById('mobileMenu');
+        const toggle = document.querySelector('.mobile-menu-toggle');
+
+        mobileMenu.classList.toggle('active');
+        toggle.classList.toggle('active');
+    }
+
+    // Enhanced performance-optimized animations
+    document.addEventListener('DOMContentLoaded', () => {
+        // Header scroll effect
+        const header = document.querySelector('.header');
+        let ticking = false;
+
+        function updateHeader() {
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateHeader);
+                ticking = true;
+            }
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe sections
+        document.querySelectorAll('.section, .simulator-card, .architecture-feature, .benefit-card').forEach(element => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(30px)';
+            element.style.transition = 'all 0.8s ease-out';
+            observer.observe(element);
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+                    // Close mobile menu if open
+                    const mobileMenu = document.getElementById('mobileMenu');
+                    const toggle = document.querySelector('.mobile-menu-toggle');
+                    if (mobileMenu.classList.contains('active')) {
+                        mobileMenu.classList.remove('active');
+                        toggle.classList.remove('active');
+                    }
+                }
+            });
+        });
+
+        // Enhanced hover effects for cards
+        document.querySelectorAll('.simulator-card, .benefit-card, .architecture-feature').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-8px) translateZ(0)';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0) translateZ(0)';
+            });
+        });
+
+        // Stagger animation for feature badges
+        document.querySelectorAll('.feature-badge').forEach((badge, index) => {
+            badge.style.animationDelay = `${(index + 1) * 0.2}s`;
+        });
+
+        // Performance optimization for ticker
+        const ticker = document.querySelector('.ticker-container');
+        if (ticker) {
+            // Pause animation when not visible
+            const tickerObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        ticker.style.animationPlayState = 'running';
+                    } else {
+                        ticker.style.animationPlayState = 'paused';
+                    }
+                });
+            });
+            tickerObserver.observe(ticker);
+        }
+
+        // Add loading states for better UX
+        window.addEventListener('load', () => {
+            document.body.classList.add('loaded');
+        });
+
+        // Keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const mobileMenu = document.getElementById('mobileMenu');
+                const toggle = document.querySelector('.mobile-menu-toggle');
+                if (mobileMenu.classList.contains('active')) {
+                    mobileMenu.classList.remove('active');
+                    toggle.classList.remove('active');
+                }
+            }
+        });
+
+        // Enhanced simulator card interactions
+        document.querySelectorAll('.simulator-card').forEach(card => {
+            const icon = card.querySelector('.simulator-icon');
+
+            card.addEventListener('mouseenter', () => {
+                icon.style.transform = 'scale(1.1) rotateY(180deg)';
+            });
+
+            card.addEventListener('mouseleave', () => {
+                icon.style.transform = 'scale(1) rotateY(0deg)';
+            });
+        });
+    });
+</script>
+</body>
+</html>
