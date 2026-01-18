@@ -19,36 +19,11 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorCo
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.SimulatorHandlerTab
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
-
-object HsmLogManager {
-    private val _logEntries = mutableStateListOf<LogEntry>()
-    val logEntries: SnapshotStateList<LogEntry> get() = _logEntries
-
-    fun clearLogs() {
-        _logEntries.clear()
-    }
-
-    fun addLog(entry: LogEntry) {
-        _logEntries.add(0, entry)
-        if (_logEntries.size > 500) _logEntries.removeRange(400, _logEntries.size)
-    }
-
-    fun logInfo(message: String) {
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-        addLog(LogEntry(timestamp, LogType.INFO, message, message))
-    }
-
-    fun logCommand(command: String, request: String, response: String, isError: Boolean = false) {
-        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-        val details = "Request:\n$request\n\nResponse:\n$response"
-        val logType = if (isError) LogType.ERROR else LogType.TRANSACTION
-        val message = if (isError) "$command Failed" else "$command Executed"
-        addLog(LogEntry(timestamp, logType, message, details))
-    }
-}
 
 
 enum class HsmSimulatorTabs(val title: String, val icon: ImageVector) {
@@ -65,8 +40,8 @@ fun HsmSimulatorScreen(
     config: HSMSimulatorConfig,
     onBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     val hsmService = remember { HsmServiceImpl(config) }
-
 
 
     Scaffold(
@@ -80,10 +55,23 @@ fun HsmSimulatorScreen(
     }
 }
 
+@OptIn(ExperimentalAtomicApi::class)
 @Composable
 fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = HsmSimulatorTabs.values().toList()
+    val hsmState = hsm.hsmState.collectAsState()
+    var rawRequest by remember { mutableStateOf("") }
+    var rawResponse by remember { mutableStateOf("") }
+
+    hsm.receivedFromSource =  {
+        rawRequest  = it + "\n"
+    }
+
+    hsm.sentToSource =  {
+        rawResponse  = it + "\n"
+    }
+
 
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(
@@ -118,16 +106,27 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                 )
             }
         }
-
+        val scope = rememberCoroutineScope();
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             when (tabList[selectedTabIndex]) {
                 HsmSimulatorTabs.HANDLER -> SimulatorHandlerTab(
                     simulator = hsm,
-                    isStarted = hsm.isStarted(),
+                    isStarted = hsmState.value.started,
                     onStartStopClick = {
-
+                        if(hsmState.value.started){
+                            scope.launch {
+                                hsm.stop()
+                            }
+                        }else{
+                           scope.launch {
+                               hsm.start()
+                           }
+                        }
                     },
-                    onClearClick = {},
+                    onClearClick = {
+                        rawRequest = ""
+                        rawResponse = ""
+                    },
                     transactionCount = "0",
                     isHoldMessage = false,
                     onHoldMessageChange = { },
@@ -138,16 +137,16 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
 
                     },
                     request = "",
-                    rawRequest = "",
+                    rawRequest = rawRequest,
                     response = "",
-                    rawResponse = "",
-
+                    rawResponse = rawResponse,
+                    connectedClients = hsmState.value.activeClients.size
                     )
 
                 HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsmConfig = hsm.configuration)
                 HsmSimulatorTabs.LOGS -> LogTab(
-                    logEntries = HsmLogManager.logEntries,
-                    onClearClick = { HsmLogManager.clearLogs() },
+                    logEntries = hsmState.value.rawRequest,
+                    onClearClick = { hsm.clearLogs() },
                     connectionCount = 0,
                     bytesIncoming = 0L,
                     bytesOutgoing = 0L,

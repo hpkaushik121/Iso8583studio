@@ -21,9 +21,11 @@ import androidx.compose.material.icons.filled.Webhook
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
+import `in`.aicortex.iso8583studio.hsm.HsmConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import java.util.UUID
 import kotlin.time.Clock
 
 
@@ -40,12 +42,16 @@ data class HSMSimulatorConfig(
     override val createdDate: Long = System.currentTimeMillis(),
     override val modifiedDate: Long = System.currentTimeMillis(),
     override val version: String = "1.0",
+    var waitToRestart: Int = 300,
+    var maxConcurrentConnection: Int = 100,
 
+    var maxLogSizeInMB: Int = 10,
     // HSM-specific properties
     val maxSessions: Int = 8,
     val authenticationPolicy: AuthenticationPolicy = AuthenticationPolicy.PASSWORD,
 
     val deviceInfo: HSMDeviceInfo = HSMDeviceInfo(),
+    val hsmConfig: HsmConfig = HsmConfig(),
     val slotConfiguration: SlotConfiguration = SlotConfiguration(),
     val securitySettings: SecuritySettings = SecuritySettings(),
 
@@ -57,7 +63,7 @@ data class HSMSimulatorConfig(
     val keyManagement: KeyManagementConfiguration = KeyManagementConfiguration(),
     val advanced: AdvancedOptionsConfiguration = AdvancedOptionsConfiguration(),
     val operatingMode: OperatingMode = OperatingMode.MAINTENANCE,
-
+    val logFileName: String = "logs.txt",
 ) : SimulatorConfig{
     override val serverAddress: String
         get() { return network.ipAddress }
@@ -144,29 +150,6 @@ data class HsmStatistics(
     val signatureOperations: Long = 0,
     val uptime: Long = 0
 )
-
-@Serializable
-data class HsmKey(
-    val keyId: String,
-    val keyType: String,
-    val algorithm: CryptographicAlgorithm,
-    val creationTime: Instant,
-    val expirationTime: Instant?,
-    val usageCount: Long = 0,
-    val maxUsage: Long? = null,
-    val keyData: ByteArray,
-    val isActive: Boolean = true
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as HsmKey
-        return keyId == other.keyId
-    }
-
-    override fun hashCode(): Int = keyId.hashCode()
-}
-
 
 @Serializable
 data class HsmParameter(

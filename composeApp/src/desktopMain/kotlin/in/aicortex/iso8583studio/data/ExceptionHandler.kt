@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.CardServiceImpl
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
+import `in`.aicortex.iso8583studio.hsm.HsmSimulator
 import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
 

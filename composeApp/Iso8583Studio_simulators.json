@@ -1,0 +1,1284 @@
+{
+    "hostConfigs": [
+        {
+            "id": "446d41ce-e854-43eb-b76e-b94b565ea7ac",
+            "name": "Hitachi - 1",
+            "serverPort": 8000,
+            "serverAddress": "127.0.0.1",
+            "privateKey": [],
+            "iv": [],
+            "createDate": 1753190511029,
+            "password": [],
+            "advancedOptions": {},
+            "gwBitTemplateSource": [
+                {
+                    "bitNumber": 1,
+                    "bitType": "BINARY",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 2,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 20
+                },
+                {
+                    "bitNumber": 3,
+                    "bitType": "BCD",
+                    "maxLength": 6
+                },
+                {
+                    "bitNumber": 4,
+                    "bitType": "BCD",
+                    "maxLength": 12
+                },
+                {
+                    "bitNumber": 5,
+                    "bitType": "BCD",
+                    "maxLength": 13
+                },
+                {
+                    "bitNumber": 6,
+                    "bitType": "BCD",
+                    "maxLength": 12
+                },
+                {
+                    "bitNumber": 7,
+                    "bitType": "BCD",
+                    "maxLength": 10
+                },
+                {
+                    "bitNumber": 8,
+                    "bitType": "BCD",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 9,
+                    "bitType": "BCD",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 10,
+                    "bitType": "BCD",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 11,
+                    "bitType": "BCD",
+                    "maxLength": 6
+                },
+                {
+                    "bitNumber": 12,
+                    "bitType": "BCD",
+                    "maxLength": 12
+                },
+                {
+                    "bitNumber": 13,
+                    "bitType": "BCD",
+                    "maxLength": 4
+                },
+                {
+                    "bitNumber": 14,
+                    "bitType": "BCD",
+                    "maxLength": 4
+                },
+                {
+                    "bitNumber": 15,
+                    "bitType": "BCD",
+                    "maxLength": 6
+                },
+                {
+                    "bitNumber": 16,
+                    "bitType": "BCD",
+                    "maxLength": 4
+                },
+                {
+                    "bitNumber": 17,
+                    "bitType": "BCD",
+                    "maxLength": 4
+                },
+                {
+                    "bitNumber": 18,
+                    "bitType": "BCD",
+                    "maxLength": 4
+                },
+                {
+                    "bitNumber": 19,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 20,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 21,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 22,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 23,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 24,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 25,
+                    "bitType": "BCD",
+                    "maxLength": 2
+                },
+                {
+                    "bitNumber": 26,
+                    "bitType": "BCD",
+                    "maxLength": 2
+                },
+                {
+                    "bitNumber": 27,
+                    "bitType": "BCD",
+                    "maxLength": 1
+                },
+                {
+                    "bitNumber": 28,
+                    "bitType": "BCD",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 29,
+                    "bitType": "BCD",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 30,
+                    "bitType": "BCD",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 31,
+                    "bitType": "BINARY",
+                    "maxLength": 13
+                },
+                {
+                    "bitNumber": 32,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 11
+                },
+                {
+                    "bitNumber": 33,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 11
+                },
+                {
+                    "bitNumber": 34,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 28
+                },
+                {
+                    "bitNumber": 35,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 37
+                },
+                {
+                    "bitNumber": 36,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 104
+                },
+                {
+                    "bitNumber": 37,
+                    "bitType": "BCD",
+                    "maxLength": 12
+                },
+                {
+                    "bitNumber": 38,
+                    "bitType": "AN",
+                    "maxLength": 6
+                },
+                {
+                    "bitNumber": 39,
+                    "bitType": "AN",
+                    "maxLength": 2
+                },
+                {
+                    "bitNumber": 40,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BINARY"
+                },
+                {
+                    "bitNumber": 41,
+                    "bitType": "AN",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 42,
+                    "bitType": "AN",
+                    "maxLength": 15
+                },
+                {
+                    "bitNumber": 43,
+                    "bitType": "AN",
+                    "maxLength": 40
+                },
+                {
+                    "bitNumber": 44,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 99
+                },
+                {
+                    "bitNumber": 45,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 99
+                },
+                {
+                    "bitNumber": 46,
+                    "bitLength": "LLLVAR",
+                    "bitType": "AN",
+                    "maxLength": 255
+                },
+                {
+                    "bitNumber": 47,
+                    "bitLength": "LLLVAR",
+                    "bitType": "AN"
+                },
+                {
+                    "bitNumber": 48,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BINARY",
+                    "maxLength": 999
+                },
+                {
+                    "bitNumber": 49,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 52,
+                    "bitType": "BINARY",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 53,
+                    "bitLength": "LLVAR",
+                    "bitType": "BINARY",
+                    "maxLength": 16
+                },
+                {
+                    "bitNumber": 54,
+                    "bitLength": "LLLVAR",
+                    "bitType": "AN"
+                },
+                {
+                    "bitNumber": 55,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BINARY",
+                    "maxLength": 999
+                },
+                {
+                    "bitNumber": 56,
+                    "bitLength": "LLLVAR",
+                    "bitType": "AN",
+                    "maxLength": 255
+                },
+                {
+                    "bitNumber": 57,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD"
+                },
+                {
+                    "bitNumber": 60,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD"
+                },
+                {
+                    "bitNumber": 61,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD"
+                },
+                {
+                    "bitNumber": 62,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD"
+                },
+                {
+                    "bitNumber": 63,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD"
+                },
+                {
+                    "bitNumber": 64,
+                    "bitType": "BINARY",
+                    "maxLength": 8
+                },
+                {
+                    "bitNumber": 70,
+                    "bitType": "BCD",
+                    "maxLength": 3
+                },
+                {
+                    "bitNumber": 90,
+                    "bitType": "BCD",
+                    "maxLength": 42
+                },
+                {
+                    "bitNumber": 102,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 28
+                },
+                {
+                    "bitNumber": 103,
+                    "bitLength": "LLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 28
+                },
+                {
+                    "bitNumber": 105,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 999
+                },
+                {
+                    "bitNumber": 120,
+                    "bitLength": "LLLVAR",
+                    "bitType": "BCD",
+                    "maxLength": 999
+                },
+                {
+                    "bitNumber": -128,
+                    "bitType": "BINARY",
+                    "maxLength": 8
+                }
+            ],
+            "createdDate": 1753190511031,
+            "modifiedDate": 1753190547652
+        }
+    ],
+    "hsmConfigs": [
+        {
+            "id": "cb49039a-1842-4b88-97e9-505479907396",
+            "name": "HSM-1",
+            "createdDate": 1768383552215,
+            "hsmConfig": {
+                "lmkStorage": {
+                    "liveLmks": {
+                        "00": {
+                            "identifier": "00",
+                            "pairs": {
+                                "0": {
+                                    "leftKey": [
+                                        64,
+                                        -100,
+                                        55,
+                                        18,
+                                        -7,
+                                        -29,
+                                        -103,
+                                        -79
+                                    ],
+                                    "rightKey": [
+                                        22,
+                                        102,
+                                        -50,
+                                        76,
+                                        -120,
+                                        -75,
+                                        58,
+                                        88
+                                    ]
+                                },
+                                "1": {
+                                    "leftKey": [
+                                        -110,
+                                        59,
+                                        -75,
+                                        -59,
+                                        64,
+                                        55,
+                                        14,
+                                        -15
+                                    ],
+                                    "rightKey": [
+                                        83,
+                                        94,
+                                        -85,
+                                        57,
+                                        71,
+                                        -70,
+                                        117,
+                                        -51
+                                    ]
+                                },
+                                "2": {
+                                    "leftKey": [
+                                        79,
+                                        119,
+                                        123,
+                                        -41,
+                                        -19,
+                                        33,
+                                        113,
+                                        61
+                                    ],
+                                    "rightKey": [
+                                        87,
+                                        -63,
+                                        -33,
+                                        26,
+                                        -30,
+                                        -59,
+                                        -33,
+                                        -113
+                                    ]
+                                },
+                                "3": {
+                                    "leftKey": [
+                                        84,
+                                        55,
+                                        106,
+                                        73,
+                                        -77,
+                                        41,
+                                        -39,
+                                        -106
+                                    ],
+                                    "rightKey": [
+                                        11,
+                                        94,
+                                        -7,
+                                        47,
+                                        2,
+                                        29,
+                                        -49,
+                                        -20
+                                    ]
+                                },
+                                "4": {
+                                    "leftKey": [
+                                        -74,
+                                        17,
+                                        -62,
+                                        104,
+                                        89,
+                                        -34,
+                                        113,
+                                        105
+                                    ],
+                                    "rightKey": [
+                                        -30,
+                                        46,
+                                        25,
+                                        48,
+                                        -98,
+                                        -32,
+                                        -37,
+                                        27
+                                    ]
+                                },
+                                "5": {
+                                    "leftKey": [
+                                        25,
+                                        107,
+                                        -107,
+                                        -79,
+                                        15,
+                                        -98,
+                                        80,
+                                        -58
+                                    ],
+                                    "rightKey": [
+                                        74,
+                                        46,
+                                        -1,
+                                        51,
+                                        116,
+                                        -102,
+                                        8,
+                                        -73
+                                    ]
+                                },
+                                "6": {
+                                    "leftKey": [
+                                        12,
+                                        -17,
+                                        37,
+                                        89,
+                                        17,
+                                        -9,
+                                        -74,
+                                        112
+                                    ],
+                                    "rightKey": [
+                                        34,
+                                        -16,
+                                        127,
+                                        39,
+                                        -60,
+                                        91,
+                                        124,
+                                        -98
+                                    ]
+                                },
+                                "7": {
+                                    "leftKey": [
+                                        88,
+                                        -10,
+                                        -118,
+                                        61,
+                                        56,
+                                        94,
+                                        -86,
+                                        59
+                                    ],
+                                    "rightKey": [
+                                        18,
+                                        -29,
+                                        -86,
+                                        105,
+                                        -57,
+                                        -27,
+                                        13,
+                                        39
+                                    ]
+                                },
+                                "8": {
+                                    "leftKey": [
+                                        119,
+                                        -28,
+                                        -41,
+                                        -128,
+                                        -36,
+                                        127,
+                                        116,
+                                        39
+                                    ],
+                                    "rightKey": [
+                                        113,
+                                        -30,
+                                        16,
+                                        55,
+                                        -107,
+                                        39,
+                                        -25,
+                                        -26
+                                    ]
+                                },
+                                "9": {
+                                    "leftKey": [
+                                        -4,
+                                        -25,
+                                        -45,
+                                        -50,
+                                        126,
+                                        92,
+                                        66,
+                                        -1
+                                    ],
+                                    "rightKey": [
+                                        -46,
+                                        5,
+                                        76,
+                                        -91,
+                                        44,
+                                        -31,
+                                        67,
+                                        -81
+                                    ]
+                                },
+                                "10": {
+                                    "leftKey": [
+                                        86,
+                                        97,
+                                        -43,
+                                        119,
+                                        -80,
+                                        107,
+                                        39,
+                                        91
+                                    ],
+                                    "rightKey": [
+                                        -112,
+                                        -41,
+                                        -28,
+                                        -47,
+                                        34,
+                                        -105,
+                                        73,
+                                        -73
+                                    ]
+                                },
+                                "11": {
+                                    "leftKey": [
+                                        74,
+                                        -94,
+                                        -112,
+                                        27,
+                                        123,
+                                        -13,
+                                        -37,
+                                        -7
+                                    ],
+                                    "rightKey": [
+                                        -38,
+                                        -95,
+                                        23,
+                                        36,
+                                        93,
+                                        -61,
+                                        8,
+                                        -6
+                                    ]
+                                },
+                                "12": {
+                                    "leftKey": [
+                                        -11,
+                                        62,
+                                        -1,
+                                        -82,
+                                        102,
+                                        -75,
+                                        -38,
+                                        -55
+                                    ],
+                                    "rightKey": [
+                                        84,
+                                        -80,
+                                        44,
+                                        -29,
+                                        -104,
+                                        -71,
+                                        84,
+                                        -46
+                                    ]
+                                },
+                                "13": {
+                                    "leftKey": [
+                                        -115,
+                                        -22,
+                                        -66,
+                                        -39,
+                                        -78,
+                                        -45,
+                                        -27,
+                                        -107
+                                    ],
+                                    "rightKey": [
+                                        -123,
+                                        -128,
+                                        -45,
+                                        -87,
+                                        -49,
+                                        42,
+                                        -4,
+                                        53
+                                    ]
+                                },
+                                "14": {
+                                    "leftKey": [
+                                        32,
+                                        -113,
+                                        51,
+                                        28,
+                                        -3,
+                                        92,
+                                        -80,
+                                        -17
+                                    ],
+                                    "rightKey": [
+                                        -118,
+                                        -90,
+                                        -14,
+                                        60,
+                                        65,
+                                        81,
+                                        124,
+                                        -63
+                                    ]
+                                },
+                                "15": {
+                                    "leftKey": [
+                                        -1,
+                                        -46,
+                                        80,
+                                        -37,
+                                        20,
+                                        -73,
+                                        -19,
+                                        -102
+                                    ],
+                                    "rightKey": [
+                                        104,
+                                        20,
+                                        53,
+                                        -64,
+                                        -99,
+                                        -84,
+                                        29,
+                                        52
+                                    ]
+                                },
+                                "16": {
+                                    "leftKey": [
+                                        76,
+                                        77,
+                                        31,
+                                        -81,
+                                        13,
+                                        -32,
+                                        55,
+                                        -118
+                                    ],
+                                    "rightKey": [
+                                        84,
+                                        120,
+                                        90,
+                                        -3,
+                                        -5,
+                                        -74,
+                                        -84,
+                                        -90
+                                    ]
+                                },
+                                "17": {
+                                    "leftKey": [
+                                        -118,
+                                        -123,
+                                        -51,
+                                        33,
+                                        64,
+                                        -19,
+                                        -21,
+                                        -64
+                                    ],
+                                    "rightKey": [
+                                        -98,
+                                        -82,
+                                        -8,
+                                        49,
+                                        -68,
+                                        71,
+                                        118,
+                                        -90
+                                    ]
+                                },
+                                "18": {
+                                    "leftKey": [
+                                        -48,
+                                        -108,
+                                        -97,
+                                        -96,
+                                        48,
+                                        -29,
+                                        55,
+                                        -9
+                                    ],
+                                    "rightKey": [
+                                        -69,
+                                        -79,
+                                        -123,
+                                        39,
+                                        -113,
+                                        -64,
+                                        81,
+                                        -74
+                                    ]
+                                },
+                                "19": {
+                                    "leftKey": [
+                                        11,
+                                        -7,
+                                        97,
+                                        -110,
+                                        41,
+                                        -37,
+                                        24,
+                                        34
+                                    ],
+                                    "rightKey": [
+                                        106,
+                                        -87,
+                                        22,
+                                        56,
+                                        113,
+                                        75,
+                                        57,
+                                        -91
+                                    ]
+                                },
+                                "20": {
+                                    "leftKey": [
+                                        -83,
+                                        32,
+                                        -78,
+                                        -57,
+                                        38,
+                                        -85,
+                                        26,
+                                        -41
+                                    ],
+                                    "rightKey": [
+                                        -128,
+                                        82,
+                                        103,
+                                        127,
+                                        37,
+                                        54,
+                                        -79,
+                                        122
+                                    ]
+                                },
+                                "21": {
+                                    "leftKey": [
+                                        -62,
+                                        27,
+                                        43,
+                                        40,
+                                        99,
+                                        95,
+                                        8,
+                                        -98
+                                    ],
+                                    "rightKey": [
+                                        -88,
+                                        110,
+                                        -23,
+                                        -4,
+                                        80,
+                                        -79,
+                                        108,
+                                        -5
+                                    ]
+                                },
+                                "22": {
+                                    "leftKey": [
+                                        -74,
+                                        -55,
+                                        23,
+                                        72,
+                                        97,
+                                        -120,
+                                        -7,
+                                        58
+                                    ],
+                                    "rightKey": [
+                                        63,
+                                        36,
+                                        -118,
+                                        -91,
+                                        -120,
+                                        -8,
+                                        -31,
+                                        55
+                                    ]
+                                },
+                                "23": {
+                                    "leftKey": [
+                                        26,
+                                        33,
+                                        -85,
+                                        -65,
+                                        -72,
+                                        10,
+                                        69,
+                                        -109
+                                    ],
+                                    "rightKey": [
+                                        -101,
+                                        58,
+                                        -83,
+                                        -4,
+                                        -1,
+                                        -25,
+                                        16,
+                                        7
+                                    ]
+                                },
+                                "24": {
+                                    "leftKey": [
+                                        74,
+                                        41,
+                                        -54,
+                                        -113,
+                                        -113,
+                                        -75,
+                                        -29,
+                                        56
+                                    ],
+                                    "rightKey": [
+                                        0,
+                                        101,
+                                        -126,
+                                        57,
+                                        27,
+                                        52,
+                                        -53,
+                                        62
+                                    ]
+                                },
+                                "25": {
+                                    "leftKey": [
+                                        23,
+                                        36,
+                                        70,
+                                        -45,
+                                        20,
+                                        -6,
+                                        -1,
+                                        -84
+                                    ],
+                                    "rightKey": [
+                                        -74,
+                                        104,
+                                        -30,
+                                        -30,
+                                        -95,
+                                        109,
+                                        -100,
+                                        -51
+                                    ]
+                                },
+                                "26": {
+                                    "leftKey": [
+                                        -102,
+                                        85,
+                                        -113,
+                                        67,
+                                        -61,
+                                        19,
+                                        -67,
+                                        122
+                                    ],
+                                    "rightKey": [
+                                        101,
+                                        -12,
+                                        -54,
+                                        24,
+                                        -41,
+                                        102,
+                                        -41,
+                                        -128
+                                    ]
+                                },
+                                "27": {
+                                    "leftKey": [
+                                        -103,
+                                        -85,
+                                        62,
+                                        114,
+                                        105,
+                                        -38,
+                                        45,
+                                        65
+                                    ],
+                                    "rightKey": [
+                                        78,
+                                        -50,
+                                        71,
+                                        -105,
+                                        -88,
+                                        123,
+                                        -126,
+                                        -105
+                                    ]
+                                },
+                                "28": {
+                                    "leftKey": [
+                                        18,
+                                        35,
+                                        49,
+                                        -104,
+                                        -126,
+                                        -17,
+                                        -77,
+                                        -99
+                                    ],
+                                    "rightKey": [
+                                        -68,
+                                        -122,
+                                        -44,
+                                        26,
+                                        -93,
+                                        110,
+                                        84,
+                                        -97
+                                    ]
+                                },
+                                "29": {
+                                    "leftKey": [
+                                        -12,
+                                        -75,
+                                        127,
+                                        91,
+                                        -108,
+                                        85,
+                                        20,
+                                        -76
+                                    ],
+                                    "rightKey": [
+                                        48,
+                                        74,
+                                        33,
+                                        -57,
+                                        -40,
+                                        -115,
+                                        34,
+                                        92
+                                    ]
+                                },
+                                "30": {
+                                    "leftKey": [
+                                        91,
+                                        -92,
+                                        31,
+                                        -50,
+                                        2,
+                                        -82,
+                                        -84,
+                                        -49
+                                    ],
+                                    "rightKey": [
+                                        3,
+                                        72,
+                                        -50,
+                                        -73,
+                                        -124,
+                                        -17,
+                                        19,
+                                        -83
+                                    ]
+                                },
+                                "31": {
+                                    "leftKey": [
+                                        -8,
+                                        96,
+                                        124,
+                                        112,
+                                        -98,
+                                        0,
+                                        115,
+                                        -69
+                                    ],
+                                    "rightKey": [
+                                        82,
+                                        115,
+                                        40,
+                                        -47,
+                                        -52,
+                                        -120,
+                                        -118,
+                                        94
+                                    ]
+                                },
+                                "32": {
+                                    "leftKey": [
+                                        108,
+                                        12,
+                                        -46,
+                                        16,
+                                        -107,
+                                        8,
+                                        -62,
+                                        -37
+                                    ],
+                                    "rightKey": [
+                                        -84,
+                                        -113,
+                                        -40,
+                                        -37,
+                                        41,
+                                        -84,
+                                        82,
+                                        -82
+                                    ]
+                                },
+                                "33": {
+                                    "leftKey": [
+                                        -56,
+                                        17,
+                                        -65,
+                                        -82,
+                                        16,
+                                        116,
+                                        16,
+                                        118
+                                    ],
+                                    "rightKey": [
+                                        -59,
+                                        102,
+                                        81,
+                                        -57,
+                                        -89,
+                                        -59,
+                                        73,
+                                        -76
+                                    ]
+                                },
+                                "34": {
+                                    "leftKey": [
+                                        -85,
+                                        -21,
+                                        -118,
+                                        -88,
+                                        -37,
+                                        -103,
+                                        44,
+                                        -96
+                                    ],
+                                    "rightKey": [
+                                        -67,
+                                        -58,
+                                        77,
+                                        82,
+                                        63,
+                                        -87,
+                                        -52,
+                                        57
+                                    ]
+                                },
+                                "35": {
+                                    "leftKey": [
+                                        99,
+                                        -111,
+                                        -36,
+                                        -123,
+                                        -109,
+                                        -107,
+                                        56,
+                                        71
+                                    ],
+                                    "rightKey": [
+                                        -94,
+                                        91,
+                                        29,
+                                        117,
+                                        49,
+                                        125,
+                                        -112,
+                                        71
+                                    ]
+                                },
+                                "36": {
+                                    "leftKey": [
+                                        -62,
+                                        -81,
+                                        54,
+                                        120,
+                                        -103,
+                                        105,
+                                        -35,
+                                        -25
+                                    ],
+                                    "rightKey": [
+                                        -91,
+                                        119,
+                                        -74,
+                                        -19,
+                                        25,
+                                        -2,
+                                        32,
+                                        84
+                                    ]
+                                },
+                                "37": {
+                                    "leftKey": [
+                                        28,
+                                        -109,
+                                        -84,
+                                        59,
+                                        26,
+                                        -11,
+                                        -5,
+                                        34
+                                    ],
+                                    "rightKey": [
+                                        -28,
+                                        63,
+                                        -108,
+                                        43,
+                                        79,
+                                        -73,
+                                        62,
+                                        6
+                                    ]
+                                },
+                                "38": {
+                                    "leftKey": [
+                                        -68,
+                                        56,
+                                        -38,
+                                        -29,
+                                        -56,
+                                        61,
+                                        86,
+                                        29
+                                    ],
+                                    "rightKey": [
+                                        -53,
+                                        -38,
+                                        -79,
+                                        73,
+                                        4,
+                                        -115,
+                                        -10,
+                                        82
+                                    ]
+                                },
+                                "39": {
+                                    "leftKey": [
+                                        -45,
+                                        -95,
+                                        39,
+                                        -84,
+                                        -100,
+                                        -12,
+                                        94,
+                                        -80
+                                    ],
+                                    "rightKey": [
+                                        5,
+                                        116,
+                                        -40,
+                                        78,
+                                        40,
+                                        23,
+                                        70,
+                                        84
+                                    ]
+                                }
+                            },
+                            "createdAt": 1768564144196
+                        }
+                    }
+                }
+            },
+            "model": "payShield 9000",
+            "network": {
+                "port": 9090
+            }
+        }
+    ],
+    "apduConfigs": [],
+    "posConfigs": [],
+    "ecrConfigs": [],
+    "atmConfigs": [],
+    "cardConfigs": [],
+    "switchConfigs": [],
+    "acquirerConfigs": [],
+    "issuerConfigs": [],
+    "exportedAt": 1768732120320,
+    "version": "1.0"
+}

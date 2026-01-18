@@ -473,7 +473,7 @@ class GatewayClient {
                                 type = LogType.CONNECTION,
                                 message = "ESTABLISHING CONNECTION TO ${nccParam?.hostAddress} ON PORT ${nccParam?.port}"
                             ))
-                            nccParam?.connection = Socket(nccParam.hostAddress, nccParam.port)
+                            nccParam?.connection = Socket(nccParam?.hostAddress, nccParam!!.port)
                         }
 
                         nccParam.connection?.isConnected == false -> {
@@ -1413,7 +1413,7 @@ class GatewayClient {
                     val xmlMapper = XmlMapper()
                     val xmlNode = xmlMapper.readTree(String(input))
                     iso8583Data?.httpInfo = Json.decodeFromString(xmlNode.get("HTTP_INFO_STUDIO").asText())
-                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "", method = null)
+                    iso8583Data?.httpInfo = iso8583Data?.httpInfo?.copy(body = "", method = null)
                 }else if (gatewayHandler?.configuration?.getFormatMappingConfig(isFirst)?.formatType == CodeFormat.JSON){
                     val objectMapper = ObjectMapper().apply {
                         configure(JsonParser.Feature.ALLOW_COMMENTS, true)
@@ -1423,7 +1423,7 @@ class GatewayClient {
                     }
                     val jsonNode = objectMapper.readTree(String(input))
                     iso8583Data?.httpInfo = Json.decodeFromString(jsonNode.get("HTTP_INFO_STUDIO").asText())
-                    iso8583Data?.httpInfo = iso8583Data.httpInfo?.copy(body = "", method = null)
+                    iso8583Data?.httpInfo = iso8583Data?.httpInfo?.copy(body = "", method = null)
                 }
 
             }catch (e: Exception){
@@ -2113,6 +2113,8 @@ class GatewayClient {
                                 bytesCopy(written, header, 1, 3, 2)
                                 bytesCopy(written, header, 3, 1, 2)
                             }
+                        } else {
+                            dataToSend.messageType == GatewayMessageType.NORMAL_RESPONSE
                         }
                     }
 

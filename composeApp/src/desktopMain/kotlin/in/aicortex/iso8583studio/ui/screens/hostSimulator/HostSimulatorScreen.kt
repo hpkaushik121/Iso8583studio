@@ -110,12 +110,12 @@ fun HostSimulatorScreen(
     ) { paddingValues ->
         if (config != null) {
             gw = HostSimulator(config)
-            gw.composeWindow = window
+            gw!!.composeWindow = window
             if (onError != null) {
-                gw.setShowErrorListener(onError)
+                gw!!.setShowErrorListener(onError)
             }
             HostSimulator(
-                gw = gw,
+                gw = gw!!,
                 onSaveClick = onSaveClick,
                 modifier = Modifier.padding(paddingValues)
             )

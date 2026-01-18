@@ -74,27 +74,27 @@ interface Simulator {
     /**
      * Add callback for data sent event
      */
-    fun onSentToDest(callback: (SimulatorData?) -> Unit)
+    fun onSentToDest(callback: (SimulatorData?) -> Unit) {}
 
     /**
      * Add callback for data received event
      */
-    fun onSentToSource(callback: (SimulatorData?) -> Unit)
+    fun onSentToSource(callback: (SimulatorData?) -> Unit) {}
 
 
     /**
      * Add callback for before write log event
      */
-    fun beforeWriteLog(callback: (LogEntry) -> Unit)
+    fun beforeWriteLog(callback: (LogEntry) -> Unit) {}
 
 
     /**
      * Add callback for data received from source
      */
-    fun onReceiveFromSource(callback:  (SimulatorData?) -> Unit)
+    fun onReceiveFromSource(callback:  (SimulatorData?) -> Unit) {}
 
     /**
      * Add callback for data received from destination
      */
-    fun onReceiveFromDest(callback:  (SimulatorData?) -> Unit)
+    fun onReceiveFromDest(callback:  (SimulatorData?) -> Unit) {}
 }

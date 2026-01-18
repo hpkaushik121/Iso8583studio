@@ -40,7 +40,8 @@ fun SimulatorHandlerTab(
     rawRequest: String,
     response: String,
     rawResponse: String,
-    isServer: Boolean = true
+    isServer: Boolean = true,
+    connectedClients: Int = 0
 ) {
     // Minimize states for each quadrant (both vertical and horizontal)
     var isFormattedRequestMinimized by remember { mutableStateOf(false) }
@@ -75,7 +76,8 @@ fun SimulatorHandlerTab(
             onHoldMessageTimeChange = onHoldMessageTimeChange,
             waitingRemain = waitingRemain,
             onSendClick = onSendClick,
-            gatewayStarted = simulator.isStarted()
+            gatewayStarted = simulator.isStarted(),
+            connectedClients = connectedClients
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -348,7 +350,8 @@ private fun CompactControlPanel(
     onHoldMessageTimeChange: (String) -> Unit,
     waitingRemain: String,
     onSendClick: () -> Unit,
-    gatewayStarted: Boolean
+    gatewayStarted: Boolean,
+    connectedClients: Int = 0
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -424,6 +427,23 @@ private fun CompactControlPanel(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (connectedClients > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "Connection Count",
+                            style = MaterialTheme.typography.caption
+                        )
+                        Text(
+                            "${connectedClients}",
+                            style = MaterialTheme.typography.caption
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
