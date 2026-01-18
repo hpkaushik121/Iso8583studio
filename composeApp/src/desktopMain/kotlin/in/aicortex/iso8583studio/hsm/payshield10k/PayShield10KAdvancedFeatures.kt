@@ -296,7 +296,7 @@ class PayShield10KAdvancedFeatures(
     /**
      * Process incoming transaction with terminal-specific decryption
      */
-    fun processIncomingTransaction(
+    suspend fun processIncomingTransaction(
         terminalId: String,
         encryptedPinBlock: ByteArray,
         accountNumber: String,
@@ -378,7 +378,7 @@ class PayShield10KAdvancedFeatures(
     /**
      * Translate encryption from one acquirer to another
      */
-    fun translateToAcquirer(
+    suspend fun translateToAcquirer(
         lmkId: String,
         sourceTerminalId: String,
         destinationAcquirerId: String,

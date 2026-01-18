@@ -27,8 +27,14 @@
 
 package `in`.aicortex.iso8583studio.hsm.payshield10k
 
+import ai.cortex.core.IsoUtil
+import ai.cortex.core.types.CryptoAlgorithm
 import `in`.aicortex.iso8583studio.hsm.payshield10k.*
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
+import io.cryptocalc.crypto.engines.encryption.EMVEngines
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
+import org.jetbrains.exposed.v1.datetime.dateParam
 import java.nio.ByteBuffer
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
@@ -37,7 +43,10 @@ import javax.crypto.spec.SecretKeySpec
 //  METHOD SIGNATURES
 // ====================================================================================================
 
-class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) {
+class PayShield10KCommandProcessor(
+    private val simulator: PayShield10KFeatures,
+    private val hsmLongListener: HsmLogsListener
+) {
 
     // ====================================================================================================
     // KEY MANAGEMENT COMMANDS (CONSOLE)
@@ -47,7 +56,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * GC - Generate Key Component
      * Generates a clear key component for manual key entry
      */
-    fun executeGenerateKeyComponent(
+    suspend fun executeGenerateKeyComponent(
         lmkId: String = "00",
         keyLength: KeyLength = KeyLength.DOUBLE,
         keyType: KeyType = KeyType.TYPE_000
@@ -80,13 +89,15 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
 
         val kcv = simulator.calculateKeyCheckValue(parityKey)
 
-        simulator.auditLog.addEntry(AuditEntry(
-            entryType = AuditType.KEY_OPERATION,
-            command = "GC",
-            lmkId = lmkId,
-            result = "SUCCESS",
-            details = "Key component generated for ${keyType.description}"
-        ))
+        simulator.auditLog.addEntry(
+            AuditEntry(
+                entryType = AuditType.KEY_OPERATION,
+                command = "GC",
+                lmkId = lmkId,
+                result = "SUCCESS",
+                details = "Key component generated for ${keyType.description}"
+            )
+        )
 
         return HsmCommandResult.Success(
             response = """
@@ -106,7 +117,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * FK - Form Key from Components
      * Forms a complete key by XORing 2-9 components
      */
-    fun executeFormKeyFromComponents(
+    suspend fun executeFormKeyFromComponents(
         lmkId: String,
         keyType: KeyType,
         components: List<ByteArray>
@@ -135,13 +146,15 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
 
         val kcv = simulator.calculateKeyCheckValue(parityKey)
 
-        simulator.auditLog.addEntry(AuditEntry(
-            entryType = AuditType.KEY_OPERATION,
-            command = "FK",
-            lmkId = lmkId,
-            result = "SUCCESS",
-            details = "Key formed from ${components.size} components"
-        ))
+        simulator.auditLog.addEntry(
+            AuditEntry(
+                entryType = AuditType.KEY_OPERATION,
+                command = "FK",
+                lmkId = lmkId,
+                result = "SUCCESS",
+                details = "Key formed from ${components.size} components"
+            )
+        )
 
         return HsmCommandResult.Success(
             response = "Key formed successfully\nKCV: $kcv",
@@ -156,7 +169,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * KG - Generate Key
      * Generates a random working key under LMK
      */
-    fun executeGenerateKey(
+    suspend fun executeGenerateKey(
         lmkId: String,
         keyType: KeyType,
         keyLength: KeyLength = KeyLength.DOUBLE,
@@ -169,6 +182,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
                 KeyLength.DOUBLE -> 16
                 KeyLength.TRIPLE -> 24
             }
+
             CipherAlgorithm.AES_128 -> 16
             CipherAlgorithm.AES_192 -> 24
             CipherAlgorithm.AES_256 -> 32
@@ -179,11 +193,12 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
         val clearKey = ByteArray(keySize)
         simulator.secureRandom.nextBytes(clearKey)
 
-        val processedKey = if (algorithm in listOf(CipherAlgorithm.DES, CipherAlgorithm.TRIPLE_DES)) {
-            simulator.applyOddParity(clearKey)
-        } else {
-            clearKey
-        }
+        val processedKey =
+            if (algorithm in listOf(CipherAlgorithm.DES, CipherAlgorithm.TRIPLE_DES)) {
+                simulator.applyOddParity(clearKey)
+            } else {
+                clearKey
+            }
 
         // Encrypt under LMK
         val encryptedKey = simulator.encryptUnderLmk(
@@ -209,7 +224,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * IK - Import Key
      * Imports a key encrypted under ZMK
      */
-    fun executeImportKey(
+    suspend fun executeImportKey(
         lmkId: String,
         zmkEncryptedKey: ByteArray,
         zmk: ByteArray,
@@ -255,6 +270,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
             )
         }
     }
+
     /**
      * Extension function to get LMK pair number from key type
      */
@@ -273,7 +289,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * KE - Export Key
      * Exports a key encrypted under ZMK
      */
-    fun executeExportKey(
+    suspend fun executeExportKey(
         lmkId: String,
         lmkEncryptedKey: ByteArray,
         sourceKeyType: KeyType,
@@ -327,7 +343,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
     /**
      * BC - Verify Terminal PIN (Comparison Method)
      */
-    fun executeVerifyTerminalPin(
+    suspend fun executeVerifyTerminalPin(
         encryptedPinBlock: ByteArray,
         accountNumber: String,
         tpk: ByteArray,
@@ -364,7 +380,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
     /**
      * DE - Generate IBM PIN Offset
      */
-    fun executeGenerateIbmPinOffset(
+    suspend fun executeGenerateIbmPinOffset(
         encryptedPin: ByteArray,
         pvk: ByteArray,
         accountNumber: String,
@@ -399,7 +415,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
     /**
      * DG - Generate VISA PVV
      */
-    fun executeGenerateVisaPvv(
+    suspend fun executeGenerateVisaPvv(
         encryptedPin: ByteArray,
         pvk: ByteArray,
         accountNumber: String
@@ -527,6 +543,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
 
         return bdkId + deviceId + counter + "00000"
     }
+
     /**
      * Derive IKSN key from BDK
      */
@@ -552,7 +569,10 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
     /**
      * Derive DUKPT session key for current transaction
      */
-    fun deriveDukptSessionKey(profile: DukptProfile, usageType: DukptKeyUsage = DukptKeyUsage.PIN_ENCRYPTION): ByteArray {
+    fun deriveDukptSessionKey(
+        profile: DukptProfile,
+        usageType: DukptKeyUsage = DukptKeyUsage.PIN_ENCRYPTION
+    ): ByteArray {
         val counter = profile.currentCounter
 
         // Update KSN with current counter
@@ -637,7 +657,8 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
         val ksnBytes = simulator.hexToBytes(baseKsn).toMutableList()
 
         // Update counter bytes (last 21 bits)
-        ksnBytes[7] = ((ksnBytes[7].toInt() and 0xE0) or (((counter shr 16) and 0x1F).toInt())).toByte()
+        ksnBytes[7] =
+            ((ksnBytes[7].toInt() and 0xE0) or (((counter shr 16) and 0x1F).toInt())).toByte()
         ksnBytes[8] = ((counter shr 8) and 0xFF).toByte()
         ksnBytes[9] = (counter and 0xFF).toByte()
 
@@ -648,7 +669,11 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
     /**
      * Generate natural PIN using IBM algorithm
      */
-    private fun generateNaturalPin(accountNumber: String, pvk: ByteArray, decTable: String): String {
+    private fun generateNaturalPin(
+        accountNumber: String,
+        pvk: ByteArray,
+        decTable: String
+    ): String {
         // Take 12 rightmost digits of account (excluding check digit)
         val pan = accountNumber.takeLast(13).dropLast(1)
         val panBytes = simulator.hexToBytes(pan.padStart(16, '0'))
@@ -717,7 +742,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * @param encryptedTpk TPK encrypted under LMK (16 bytes) ← CORRECTED
      * @param pinBlockFormat PIN block format
      */
-    fun executeEncryptClearPin(
+    suspend fun executeEncryptClearPin(
         lmkId: String,
         clearPin: String,
         accountNumber: String,
@@ -776,7 +801,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * @param sourcePinBlockFormat Source format
      * @param destPinBlockFormat Destination format
      */
-    fun executeTranslatePinTpkToZpk(
+    suspend fun executeTranslatePinTpkToZpk(
         lmkId: String,
         encryptedPinBlock: ByteArray,
         encryptedSourceTpk: ByteArray,  // ← ENCRYPTED under LMK
@@ -786,32 +811,59 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
         destPinBlockFormat: PinBlockFormat
     ): HsmCommandResult {
         try {
+
+            hsmLongListener.log("encryptedSourceTpk: ${IsoUtil.bytesToHex(encryptedSourceTpk)}")
+            hsmLongListener.log("lmkId: $lmkId")
             // STEP 1: Decrypt BOTH keys from LMK encryption
             val clearTpk = simulator.decryptUnderLmk(
                 data = encryptedSourceTpk,
                 lmkId = lmkId,
                 pairNumber = 14  // TPK uses pair 14-15
             )
-
+            hsmLongListener.log("clearTPK: ${IsoUtil.bytesToHex(clearTpk)}")
+            hsmLongListener.log("encryptedDestZpk: ${IsoUtil.bytesToHex(encryptedDestZpk)}")
             val clearZpk = simulator.decryptUnderLmk(
                 data = encryptedDestZpk,
                 lmkId = lmkId,
                 pairNumber = 6   // ZPK uses pair 06-07 (key type 001)
             )
+            hsmLongListener.log("clearZpk: ${IsoUtil.bytesToHex(clearZpk)}")
+            hsmLongListener.log("encryptedPinBlock: ${IsoUtil.bytesToHex(encryptedPinBlock)}")
+
 
             // STEP 2: Decrypt PIN block with clear TPK
             val pinBlock = decryptPinBlock(encryptedPinBlock, clearTpk)
 
+            hsmLongListener.log("pinBlock: ${IsoUtil.bytesToHex(pinBlock)}")
+            hsmLongListener.log("accountNumber: $accountNumber")
+            hsmLongListener.log("sourcePinBlockFormat: $sourcePinBlockFormat")
+
+
             // STEP 3: Extract PIN
             val pin = extractPinFromBlock(pinBlock, accountNumber, sourcePinBlockFormat)
+
+            hsmLongListener.log("pin: $pin")
+            hsmLongListener.log("destPinBlockFormat: $destPinBlockFormat")
 
             // STEP 4: Re-format if necessary
             val newPinBlock = formatPinBlock(pin, accountNumber, destPinBlockFormat)
 
+            hsmLongListener.log("newPinBlock: ${IsoUtil.bytesToHex(newPinBlock)}")
+            hsmLongListener.log("clearZpk: ${IsoUtil.bytesToHex(clearZpk)}")
+
             // STEP 5: Encrypt with clear ZPK
             val encryptedNewPinBlock = encryptPinBlock(newPinBlock, clearZpk)
+            hsmLongListener.log("encryptedNewPinBlock: ${IsoUtil.bytesToHex(encryptedNewPinBlock)}")
+
 
             // STEP 6: Clear keys are discarded
+            hsmLongListener.onFormattedResponse(
+                """
+                    encryptedPinBlock: ${IsoUtil.bytesToHex(encryptedNewPinBlock)}
+                    pinLength: ${pin.length}
+                
+            """.trimIndent()
+            )
 
             return HsmCommandResult.Success(
                 response = "PIN translated",
@@ -840,7 +892,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * @param encryptedDestZpk Destination ZPK encrypted under LMK ← CORRECTED
      * @param accountNumber Account number
      */
-    fun executeTranslatePinDukptToZpk(
+    suspend fun executeTranslatePinDukptToZpk(
         lmkId: String,
         encryptedPinBlock: ByteArray,
         encryptedBdk: ByteArray,        // ← ENCRYPTED under LMK
@@ -912,7 +964,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * @param encryptedTak TAK encrypted under LMK ← CORRECTED
      * @param algorithm MAC algorithm
      */
-    fun executeGenerateMac(
+    suspend fun executeGenerateMac(
         lmkId: String,
         data: ByteArray,
         encryptedTak: ByteArray,  // ← ENCRYPTED under LMK
@@ -958,7 +1010,7 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
      * BC - Verify Terminal PIN (CORRECTED)
      * ================================================================================================
      */
-    fun executeVerifyTerminalPin(
+    suspend fun executeVerifyTerminalPin(
         lmkId: String,
         encryptedPinBlock: ByteArray,
         accountNumber: String,
@@ -1003,7 +1055,11 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
     // HELPER METHODS (Unchanged from original)
     // ====================================================================================================
 
-    private fun formatPinBlock(pin: String, accountNumber: String, format: PinBlockFormat): ByteArray {
+    private fun formatPinBlock(
+        pin: String,
+        accountNumber: String,
+        format: PinBlockFormat
+    ): ByteArray {
         return when (format) {
             PinBlockFormat.ISO_FORMAT_0 -> formatIsoFormat0(pin, accountNumber)
             PinBlockFormat.ISO_FORMAT_1 -> formatIsoFormat1(pin)
@@ -1041,16 +1097,22 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
         return pinBytes.zip(panBytes) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
     }
 
-    private fun extractPinFromBlock(pinBlock: ByteArray, accountNumber: String, format: PinBlockFormat): String {
+    private fun extractPinFromBlock(
+        pinBlock: ByteArray,
+        accountNumber: String,
+        format: PinBlockFormat
+    ): String {
         return when (format) {
             PinBlockFormat.ISO_FORMAT_0, PinBlockFormat.ISO_FORMAT_3 -> {
                 val panPart = "0000" + accountNumber.takeLast(13).dropLast(1)
                 val panBytes = hexToBytes(panPart)
-                val xored = pinBlock.zip(panBytes) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
+                val xored = pinBlock.zip(panBytes) { a, b -> (a.toInt() xor b.toInt()).toByte() }
+                    .toByteArray()
                 val hex = bytesToHex(xored)
                 val pinLength = hex[1].toString().toInt()
                 hex.substring(2, 2 + pinLength)
             }
+
             else -> {
                 val hex = bytesToHex(pinBlock)
                 val pinLength = hex[1].toString().toInt()
@@ -1059,18 +1121,25 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
         }
     }
 
-    private fun encryptPinBlock(pinBlock: ByteArray, key: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        val keySpec = SecretKeySpec(key.copyOf(16), "DESede")
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec)
-        return cipher.doFinal(pinBlock)
+    private suspend fun encryptPinBlock(pinBlock: ByteArray, key: ByteArray): ByteArray {
+        val engine = EMVEngines()
+        return engine.encryptionEngine.encrypt(
+            algorithm = CryptoAlgorithm.TDES,
+            encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+                key = key,
+                data = pinBlock
+            )
+        )
     }
 
-    private fun decryptPinBlock(encryptedPinBlock: ByteArray, key: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        val keySpec = SecretKeySpec(key.copyOf(16), "DESede")
-        cipher.init(Cipher.DECRYPT_MODE, keySpec)
-        return cipher.doFinal(encryptedPinBlock)
+    private suspend fun decryptPinBlock(encryptedPinBlock: ByteArray, key: ByteArray): ByteArray {
+        val  engine = EMVEngines()
+        return engine.encryptionEngine.decrypt(
+            algorithm = CryptoAlgorithm.TDES,
+            decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                key = key,
+                data = encryptedPinBlock
+        ))
     }
 
     fun deriveInitialKey(bdk: ByteArray, ksn: String): ByteArray {
@@ -1106,7 +1175,8 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
 
         for (i in paddedData.indices step 8) {
             val chunk = paddedData.copyOfRange(i, i + 8)
-            val xored = block.zip(chunk) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
+            val xored =
+                block.zip(chunk) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
             block = cipher.doFinal(xored)
         }
 
@@ -1126,7 +1196,8 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
 
         for (i in paddedData.indices step 8) {
             val chunk = paddedData.copyOfRange(i, i + 8)
-            val xored = block.zip(chunk) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
+            val xored =
+                block.zip(chunk) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
             block = cipher.doFinal(xored)
         }
 
@@ -1142,7 +1213,8 @@ class PayShield10KCommandProcessor(private val simulator: PayShield10KFeatures) 
         val len = hex.length
         val data = ByteArray(len / 2)
         for (i in 0 until len step 2) {
-            data[i / 2] = ((Character.digit(hex[i], 16) shl 4) + Character.digit(hex[i + 1], 16)).toByte()
+            data[i / 2] =
+                ((Character.digit(hex[i], 16) shl 4) + Character.digit(hex[i + 1], 16)).toByte()
         }
         return data
     }

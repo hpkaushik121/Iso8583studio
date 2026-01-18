@@ -62,14 +62,23 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
     val tabList = HsmSimulatorTabs.values().toList()
     val hsmState = hsm.hsmState.collectAsState()
     var rawRequest by remember { mutableStateOf("") }
+    var formattedRequest by remember { mutableStateOf("") }
     var rawResponse by remember { mutableStateOf("") }
+    var formattedResponse by remember { mutableStateOf("") }
 
     hsm.receivedFromSource =  {
         rawRequest  = it + "\n"
     }
 
+    hsm.receivedFromSourceFormatted =  {
+        formattedRequest  = it + "\n"
+    }
+
     hsm.sentToSource =  {
         rawResponse  = it + "\n"
+    }
+    hsm.sentToSourceFormatted =  {
+        formattedResponse  = it + "\n"
     }
 
 
@@ -125,7 +134,9 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                     },
                     onClearClick = {
                         rawRequest = ""
+                        formattedRequest = ""
                         rawResponse = ""
+                        formattedResponse = ""
                     },
                     transactionCount = "0",
                     isHoldMessage = false,
@@ -136,14 +147,14 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                     onSendClick = {
 
                     },
-                    request = "",
+                    request = formattedRequest,
                     rawRequest = rawRequest,
-                    response = "",
+                    response = formattedResponse,
                     rawResponse = rawResponse,
                     connectedClients = hsmState.value.activeClients.size
                     )
 
-                HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsmConfig = hsm.configuration)
+                HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsm = hsm)
                 HsmSimulatorTabs.LOGS -> LogTab(
                     logEntries = hsmState.value.rawRequest,
                     onClearClick = { hsm.clearLogs() },

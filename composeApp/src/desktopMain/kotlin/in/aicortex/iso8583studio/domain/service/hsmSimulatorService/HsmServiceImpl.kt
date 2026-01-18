@@ -46,19 +46,23 @@ class HsmServiceImpl(
 
     private var errorCallbacks: (() -> @Composable () -> Unit)? = null
     var receivedFromSource: (String?) -> Unit = {}
+    var receivedFromSourceFormatted: (String?) -> Unit = {}
     var sentToSource: (String?) -> Unit = {}
+    var sentToSourceFormatted: (String?) -> Unit = {}
 
     private var startTime: LocalDateTime? = null
     private var stopTime: LocalDateTime? = null
     private var serverJob: Job? = null
     init {
-        initialize(configuration.vendor,configuration.hsmConfig)
+        CoroutineScope(Dispatchers.IO).launch {
+            initialize(configuration.vendor,configuration.hsmConfig)
+        }
     }
 
     /**
      * Initialize HSM based on selected type
      */
-    fun initialize(hsmType: HSMVendor, config: HsmConfig = HsmConfig()) {
+    suspend fun initialize(hsmType: HSMVendor, config: HsmConfig = HsmConfig()) {
         selectedHsmType = hsmType
 
         activeHsm = when (hsmType) {
@@ -427,4 +431,22 @@ class HsmServiceImpl(
             )
         )
     }
+
+    override fun log(auditLog: String) {
+        writeLog(
+            createLogEntry(
+                type = LogType.INFO,
+                message = auditLog.toString()
+            )
+        )
+    }
+
+    override fun onFormattedRequest(log: String) {
+        receivedFromSourceFormatted.invoke(log)
+    }
+
+    override fun onFormattedResponse(log: String) {
+        sentToSourceFormatted.invoke(log)
+    }
+
 }

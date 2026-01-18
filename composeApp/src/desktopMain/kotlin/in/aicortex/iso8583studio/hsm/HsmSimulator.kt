@@ -9,9 +9,14 @@ interface HsmSimulator {
     fun getProcessor(): PayShieldStringCommandProcessor
 
     /**
+     * Get HSM features
+     */
+    fun getFeatures(): HsmFeatures
+
+    /**
      * Initialize HSM with configuration
      */
-    fun initialize()
+    suspend fun initialize()
 
     /**
      * Get HSM status

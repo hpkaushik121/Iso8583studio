@@ -141,14 +141,19 @@ enum class UserDataType {
 class HsmSlotManager {
 
     // LMK Slots (00-99 based on license)
-    private val lmkLiveSlots = ConcurrentHashMap<String, LmkSlot>()
-    private val lmkKeyChangeSlots = ConcurrentHashMap<String, LmkSlot>()
+    val lmkLiveSlots = ConcurrentHashMap<String, LmkSlot>()
+
+    val lmkKeyChangeSlots = ConcurrentHashMap<String, LmkSlot>()
 
     // User Storage Slots (000-FFF)
     private val userStorageSlots = ConcurrentHashMap<String, UserStorageSlot>()
 
     // Configuration
-    private var maxLmkSlots = 100           // Based on license
+    var maxLmkSlots = 100           // Based on license
+        get() = field
+        private set(value) {
+            field = value
+        }
     private var maxUserStorageSlots = 4096  // 000-FFF in hex
     private var storageMode = StorageMode.VARIABLE
 

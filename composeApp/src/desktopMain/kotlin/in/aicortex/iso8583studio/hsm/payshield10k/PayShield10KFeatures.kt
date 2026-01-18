@@ -1,6 +1,8 @@
 package `in`.aicortex.iso8583studio.hsm.payshield10k
 
+import ai.cortex.core.types.CryptoAlgorithm
 import `in`.aicortex.iso8583studio.hsm.HsmConfig
+import `in`.aicortex.iso8583studio.hsm.HsmFeatures
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AcquirerProfile
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuditEntry
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuditLog
@@ -14,6 +16,9 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkPair
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkSet
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkStorage
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.TerminalKeyProfile
+import io.cryptocalc.crypto.engines.encryption.EMVEngines
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 import java.security.SecureRandom
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -24,14 +29,14 @@ import javax.crypto.spec.SecretKeySpec
  * Main HSM Simulator class
  * Implements PayShield 10K command set
  */
-class PayShield10KFeatures(val hsmConfig: HsmConfig,hsmLogsListener: HsmLogsListener) {
+class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogsListener): HsmFeatures {
 
     // State Management
     var currentState: HsmState = HsmState.OFFLINE
     val lmkStorage = hsmConfig.lmkStorage
     private val authorizations = mutableMapOf<String, MutableList<AuthorizationRecord>>()
     val auditLog = AuditLog(hsmLogsListener)
-    val slotManager = HsmSlotManager()
+    private val slotManager = HsmSlotManager()
 
     // Security Configuration
     private var enabledCommands = mutableSetOf<String>()
@@ -189,7 +194,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,hsmLogsListener: HsmLogsList
      * GK - Generate LMK Component
      * Generates a random key component for LMK creation
      */
-    fun executeGenerateLmkComponent(
+    suspend fun executeGenerateLmkComponent(
         lmkId: String = "00",
         componentNumber: Int = 1
     ): HsmCommandResult {
@@ -430,23 +435,19 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,hsmLogsListener: HsmLogsList
     /**
      * Encrypt data under LMK
      */
-    fun encryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
+    suspend fun encryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
         val lmk = lmkStorage.getLmk(lmkId) ?: return data
         val pair = lmk.getPair(pairNumber) ?: return data
 
         return try {
-            val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-            val keySpec = SecretKeySpec(pair.getCombinedKey(), "DESede")
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec)
-
-            // Pad data if necessary
-            val paddedData = if (data.size % 8 != 0) {
-                data + ByteArray(8 - (data.size % 8))
-            } else {
-                data
-            }
-
-            cipher.doFinal(paddedData)
+            val engine = EMVEngines()
+            engine.encryptionEngine.encrypt(
+                algorithm = CryptoAlgorithm.TDES,
+                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+                    key = pair.getCombinedKey(),
+                    data = data
+                )
+            )
         } catch (e: Exception) {
             data
         }
@@ -455,15 +456,19 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,hsmLogsListener: HsmLogsList
     /**
      * Decrypt data under LMK
      */
-    fun decryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
+    suspend fun decryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
         val lmk = lmkStorage.getLmk(lmkId) ?: return data
         val pair = lmk.getPair(pairNumber) ?: return data
 
         return try {
-            val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-            val keySpec = SecretKeySpec(pair.getCombinedKey(), "DESede")
-            cipher.init(Cipher.DECRYPT_MODE, keySpec)
-            cipher.doFinal(data)
+            val engine = EMVEngines()
+            engine.encryptionEngine.decrypt(
+                algorithm = CryptoAlgorithm.TDES,
+                decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                    key = pair.getCombinedKey(),
+                    data = data
+                )
+            )
         } catch (e: Exception) {
             data
         }
@@ -493,5 +498,9 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,hsmLogsListener: HsmLogsList
         return authList.any {
             it.activity == activity && it.expiresAt > now
         }
+    }
+
+    override fun getSlotManager(): HsmSlotManager {
+        return slotManager
     }
 }

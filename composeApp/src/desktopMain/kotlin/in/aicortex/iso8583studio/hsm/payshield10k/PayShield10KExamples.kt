@@ -8,6 +8,7 @@ package `in`.aicortex.iso8583studio.hsm.payshield10k
 
 import `in`.aicortex.iso8583studio.hsm.HsmConfig
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
+import kotlinx.coroutines.runBlocking
 
 /**
  * Comprehensive examples demonstrating all major features of the PayShield 10K HSM Simulator
@@ -15,13 +16,13 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
 class PayShield10KExamples : HsmLogsListener {
 
     private val hsm = PayShield10KFeatures(HsmConfig(),this)
-    private val commands = PayShield10KCommandProcessor(hsm)
+    private val commands = PayShield10KCommandProcessor(hsm,this)
     private val advanced = PayShield10KAdvancedFeatures(hsm, commands)
 
     /**
      * EXAMPLE 1: Basic HSM Setup - Generate and Load LMK
      */
-    fun example1_BasicHsmSetup() {
+    suspend fun example1_BasicHsmSetup() {
         println("=" * 80)
         println("EXAMPLE 1: Basic HSM Setup")
         println("=" * 80)
@@ -63,7 +64,7 @@ class PayShield10KExamples : HsmLogsListener {
     /**
      * EXAMPLE 2: Key Management - Generate, Import, Export Keys
      */
-    fun example2_KeyManagement() {
+    suspend fun example2_KeyManagement() {
         println("\n" + "=" * 80)
         println("EXAMPLE 2: Key Management")
         println("=" * 80)
@@ -108,7 +109,7 @@ class PayShield10KExamples : HsmLogsListener {
     /**
      * EXAMPLE 3: PIN Processing - Encrypt, Verify, Translate
      */
-    fun example3_PinProcessing() {
+    suspend fun example3_PinProcessing() {
         println("\n" + "=" * 80)
         println("EXAMPLE 3: PIN Processing")
         println("=" * 80)
@@ -165,7 +166,7 @@ class PayShield10KExamples : HsmLogsListener {
     /**
      * EXAMPLE 4: DUKPT Implementation
      */
-    fun example4_DukptOperations() {
+    suspend fun example4_DukptOperations() {
         println("\n" + "=" * 80)
         println("EXAMPLE 4: DUKPT Operations")
         println("=" * 80)
@@ -329,7 +330,7 @@ class PayShield10KExamples : HsmLogsListener {
     /**
      * EXAMPLE 6: Transaction Processing
      */
-    fun example6_TransactionProcessing() {
+    suspend fun example6_TransactionProcessing() {
         println("\n" + "=" * 80)
         println("EXAMPLE 6: Transaction Processing")
         println("=" * 80)
@@ -501,7 +502,7 @@ class PayShield10KExamples : HsmLogsListener {
     /**
      * EXAMPLE 10: Complete End-to-End Workflow
      */
-    fun example10_CompleteWorkflow() {
+    suspend fun example10_CompleteWorkflow() {
         println("\n" + "=" * 80)
         println("EXAMPLE 10: Complete End-to-End Workflow")
         println("=" * 80)
@@ -590,21 +591,35 @@ class PayShield10KExamples : HsmLogsListener {
      * Run all examples
      */
     fun runAllExamples() {
-        example1_BasicHsmSetup()
-        example2_KeyManagement()
-        example3_PinProcessing()
-        example4_DukptOperations()
-        example5_TerminalOnboarding()
-        example6_TransactionProcessing()
-        example7_KeyRotation()
-        example8_HealthMonitoring()
-        example9_MacOperations()
-        example10_CompleteWorkflow()
+        runBlocking {
+            example1_BasicHsmSetup()
+            example2_KeyManagement()
+            example3_PinProcessing()
+            example4_DukptOperations()
+            example5_TerminalOnboarding()
+            example6_TransactionProcessing()
+            example7_KeyRotation()
+            example8_HealthMonitoring()
+            example9_MacOperations()
+            example10_CompleteWorkflow()
+        }
     }
 
     override fun onAuditLog(auditLog: AuditEntry) {
-        
+
     }
+
+    override fun log(auditLog: String) {
+    }
+
+    override fun onFormattedRequest(log: String) {
+
+    }
+
+    override fun onFormattedResponse(log: String) {
+
+    }
+
 }
 
 /**

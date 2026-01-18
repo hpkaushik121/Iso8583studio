@@ -32,6 +32,7 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyType
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkPair
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkSet
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.PinBlockFormat
+import kotlinx.coroutines.runBlocking
 import java.security.SecureRandom
 
 // ====================================================================================================
@@ -42,9 +43,10 @@ import java.security.SecureRandom
  * Main interface for processing raw string commands
  */
 class PayShieldStringCommandProcessor(
-    private val simulator: PayShield10KFeatures
+    private val simulator: PayShield10KFeatures,
+    private val hsmLogsListener: HsmLogsListener
 ) {
-    private val commandProcessor = PayShield10KCommandProcessor(simulator)
+    private val commandProcessor = PayShield10KCommandProcessor(simulator,hsmLogsListener)
     private val advancedFeatures = PayShield10KAdvancedFeatures(simulator, commandProcessor)
 
     // Configuration
@@ -59,7 +61,7 @@ class PayShieldStringCommandProcessor(
      * @param sourcePort Optional TCP port for port-based LMK routing
      * @return Response string
      */
-    fun processCommand(command: String, sourcePort: Int? = null): String {
+    suspend fun processCommand(command: String, sourcePort: Int? = null): String {
         return try {
             val parsed = parseCommand(command, sourcePort)
             val result = executeCommand(parsed)
@@ -121,9 +123,9 @@ class PayShieldStringCommandProcessor(
     /**
      * Execute parsed command
      */
-    private fun executeCommand(cmd: ParsedCommand): HsmCommandResult {
+    private suspend fun executeCommand(cmd: ParsedCommand): HsmCommandResult {
         // Get LMK from slot
-        val lmk = simulator.slotManager.getLmkFromSlot(cmd.lmkId)
+        val lmk = simulator.getSlotManager().getLmkFromSlot(cmd.lmkId)
         if (lmk == null && cmd.code.uppercase() !in listOf("NC", "VR", "GK", "VT")) {
             return HsmCommandResult.Error("15", "LMK not loaded in slot ${cmd.lmkId}")
         }
@@ -258,7 +260,7 @@ class PayShieldStringCommandProcessor(
      * Response: 0000VU00[LMK Table]
      */
     private fun executeVT(cmd: ParsedCommand): HsmCommandResult {
-        val table = simulator.slotManager.viewLmkTable()
+        val table = simulator.getSlotManager().viewLmkTable()
         return HsmCommandResult.Success(
             response = table,
             data = mapOf("table" to table)
@@ -271,7 +273,7 @@ class PayShieldStringCommandProcessor(
      * Example: 0000GK001
      * Response: 0000GL00[Component]
      */
-    private fun executeGK(cmd: ParsedCommand): HsmCommandResult {
+    private suspend fun executeGK(cmd: ParsedCommand): HsmCommandResult {
         val lmkId = if (cmd.data.length >= 2) cmd.data.substring(0, 2) else cmd.lmkId
         val compNum = if (cmd.data.length >= 3) cmd.data.substring(2, 3).toIntOrNull() ?: 1 else 1
 
@@ -283,7 +285,7 @@ class PayShieldStringCommandProcessor(
      * Command: 0000GC%[LMK_ID]
      * Response: 0000GD00[Clear Component][Encrypted Component][KCV]
      */
-    private fun executeGC(cmd: ParsedCommand): HsmCommandResult {
+    private suspend fun executeGC(cmd: ParsedCommand): HsmCommandResult {
         return commandProcessor.executeGenerateKeyComponent(
             lmkId = cmd.lmkId,
             keyLength = KeyLength.DOUBLE,
@@ -296,7 +298,7 @@ class PayShieldStringCommandProcessor(
      * Command: 0000FK[KeyType][NumComps][Comp1][Comp2]...%[LMK_ID]
      * Response: 0000FL00[Encrypted Key][KCV]
      */
-    private fun executeFK(cmd: ParsedCommand): HsmCommandResult {
+    private suspend fun executeFK(cmd: ParsedCommand): HsmCommandResult {
         // Parse key type and components from data
         val keyType = KeyType.TYPE_000
         val components = listOf(
@@ -316,7 +318,7 @@ class PayShieldStringCommandProcessor(
      * Example: 0000BAU1234567890ABCDEF1234567890ABCDEF012345411111111111%00
      * Response: 0000BB00[Encrypted PIN Block]
      */
-    private fun executeBA(cmd: ParsedCommand): HsmCommandResult {
+    private suspend fun executeBA(cmd: ParsedCommand): HsmCommandResult {
         var pos = 0
         val data = cmd.data
 
@@ -384,7 +386,7 @@ class PayShieldStringCommandProcessor(
      * Command: 0000CA[ZPK][TPK][MaxPIN][PIN Block][SrcFmt][DstFmt][Account]%[LMK_ID]
      * Response: 0000CB00[Translated PIN Block]
      */
-    private fun executeCA(cmd: ParsedCommand): HsmCommandResult {
+    private suspend fun executeCA(cmd: ParsedCommand): HsmCommandResult {
         var pos = 0
         val data = cmd.data
 
@@ -407,8 +409,8 @@ class PayShieldStringCommandProcessor(
         pos += 2
 
         // PIN block (16 hex chars = 8 bytes)
-        val pinBlockHex = data.substring(pos, pos + 16)
-        pos += 16
+        val pinBlockHex = data.substring(pos, pos + 32)
+        pos += 32
         val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
 
         // Source format (2 chars)
@@ -420,8 +422,20 @@ class PayShieldStringCommandProcessor(
         pos += 2
 
         // Account number (12 chars)
-        val account = data.substring(pos, minOf(pos + 12, data.length))
-
+        val account = data.substring(pos, minOf(pos + 16, data.length))
+        hsmLogsListener.onFormattedRequest(
+            """
+                zpkScheme: ${zpkScheme}
+                zpkHex: ${zpkHex}
+                tpkScheme: ${tpkScheme}
+                tpkHex: ${tpkHex}
+                maxPinLen: ${maxPinLen}
+                pinBlockHex: ${pinBlockHex}
+                srcFormat: ${srcFormat}
+                dstFormat: ${dstFormat}
+                
+            """.trimIndent()
+        )
         val result = commandProcessor.executeTranslatePinTpkToZpk(
             lmkId = cmd.lmkId,
             encryptedPinBlock = pinBlock,
@@ -434,7 +448,7 @@ class PayShieldStringCommandProcessor(
 
         return if (result is HsmCommandResult.Success) {
             HsmCommandResult.Success(
-                response = result.data["translatedPinBlock"] as String,
+                response = result.data["encryptedPinBlock"] as String,
                 data = result.data
             )
         } else {
@@ -447,7 +461,7 @@ class PayShieldStringCommandProcessor(
      * Command: 0000CI[ZPK][KSN][PIN Block][SrcFmt][DstFmt][Account]%[LMK_ID]
      * Response: 0000CJ00[Translated PIN Block]
      */
-    private fun executeCI(cmd: ParsedCommand): HsmCommandResult {
+    private suspend fun executeCI(cmd: ParsedCommand): HsmCommandResult {
         var pos = 0
         val data = cmd.data
 
@@ -587,7 +601,7 @@ class PayShieldStringCommandProcessor(
         val index = cmd.data.substring(0, 3)
         val dataHex = cmd.data.substring(3)
 
-        return simulator.slotManager.loadDataToUserStorage(
+        return simulator.getSlotManager().loadDataToUserStorage(
             index = index,
             data = IsoUtil.hexToBytes(dataHex),
             dataType = UserDataType.GENERIC,
@@ -604,7 +618,7 @@ class PayShieldStringCommandProcessor(
      */
     private fun executeLE(cmd: ParsedCommand): HsmCommandResult {
         val index = cmd.data.substring(0, 3)
-        val result = simulator.slotManager.readDataFromUserStorage(index)
+        val result = simulator.getSlotManager().readDataFromUserStorage(index)
 
         return if (result is HsmCommandResult.Success) {
             val data = result.data["data"] as ByteArray
@@ -624,7 +638,7 @@ class PayShieldStringCommandProcessor(
      */
     private fun executeLD(cmd: ParsedCommand): HsmCommandResult {
         val index = cmd.data.substring(0, 3)
-        return simulator.slotManager.deleteDataFromUserStorage(index)
+        return simulator.getSlotManager().deleteDataFromUserStorage(index)
     }
 
     /**
@@ -675,15 +689,46 @@ data class ParsedCommand(
  */
 class StringCommandExamples {
 
-    fun runAllExamples() {
+    suspend fun runAllExamples() {
         val simulator = PayShield10KFeatures(HsmConfig(),object :HsmLogsListener{
             override fun onAuditLog(auditLog: AuditEntry) {
                 TODO("Not yet implemented")
             }
 
+            override fun log(auditLog: String) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onFormattedRequest(log: String) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onFormattedResponse(log: String) {
+                TODO("Not yet implemented")
+            }
+
+
         })
         val slotManager = HsmSlotManager()
-        val processor = PayShieldStringCommandProcessor(simulator)
+        val processor = PayShieldStringCommandProcessor(simulator,object :HsmLogsListener{
+            override fun onAuditLog(auditLog: AuditEntry) {
+                TODO("Not yet implemented")
+            }
+
+            override fun log(auditLog: String) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onFormattedRequest(log: String) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onFormattedResponse(log: String) {
+                TODO("Not yet implemented")
+            }
+
+
+        })
 
         // Setup LMK
         val lmk = createTestLmk("00")
@@ -781,5 +826,5 @@ class StringCommandExamples {
  */
 fun main() {
     val examples = StringCommandExamples()
-    examples.runAllExamples()
+    runBlocking { examples.runAllExamples() }
 }

@@ -3,6 +3,7 @@ package `in`.aicortex.iso8583studio.hsm.payshield10k
 import ai.cortex.core.IsoUtil
 import `in`.aicortex.iso8583studio.hsm.EncryptionKeyType
 import `in`.aicortex.iso8583studio.hsm.HsmConfig
+import `in`.aicortex.iso8583studio.hsm.HsmFeatures
 import `in`.aicortex.iso8583studio.hsm.HsmResponse
 import `in`.aicortex.iso8583studio.hsm.HsmSimulator
 import `in`.aicortex.iso8583studio.hsm.HsmStatus
@@ -30,8 +31,8 @@ class PayShield10K(val config: HsmConfig,val hsmLogsListener: HsmLogsListener) :
 
     // PayShield 10K components
     private val payShield = PayShield10KFeatures(config,hsmLogsListener)
-    private val commands = PayShield10KCommandProcessor(payShield)
-    private val stringCommands = PayShieldStringCommandProcessor(payShield)
+    private val commands = PayShield10KCommandProcessor(payShield,hsmLogsListener)
+    private val stringCommands = PayShieldStringCommandProcessor(payShield,hsmLogsListener)
     private val advanced = PayShield10KAdvancedFeatures(payShield, commands)
 
     // State management
@@ -46,17 +47,21 @@ class PayShield10K(val config: HsmConfig,val hsmLogsListener: HsmLogsListener) :
         return stringCommands
     }
 
+    override fun getFeatures(): HsmFeatures {
+        return payShield
+    }
+
 
     /**
      * Initialize the HSM
      */
-    override fun initialize() {
+    override suspend fun initialize() {
         // Auto-load LMK if not loaded
         if (config.lmkStorage.getLmk(config.lmkId) == null) {
             autoLoadLmk(config.lmkId)
         }else{
             config.lmkStorage.liveLmks.forEach {
-                payShield.slotManager.allocateLmkSlot(it.key,it.value,isDefault = true)
+                payShield.getSlotManager().allocateLmkSlot(it.key,it.value,isDefault = true)
             }
         }
 
@@ -66,7 +71,7 @@ class PayShield10K(val config: HsmConfig,val hsmLogsListener: HsmLogsListener) :
     /**
      * Auto-load LMK with default components (for simulation)
      */
-    private fun autoLoadLmk(lmkId: String) {
+    private suspend fun autoLoadLmk(lmkId: String) {
         try {
             // Generate 3 components
             val comp1 = payShield.executeGenerateLmkComponent(lmkId, 1)
