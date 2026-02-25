@@ -14,6 +14,7 @@ import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.config.ConfigTab
 import `in`.aicortex.iso8583studio.ui.screens.config.ContainerConfig
 import `in`.aicortex.iso8583studio.ui.screens.config.SimulatorConfigLayout
+import `in`.aicortex.iso8583studio.ui.session.SimulatorSessionManager
 
 @Composable
 fun PosTerminalConfigScreen(
@@ -132,7 +133,8 @@ fun PosTerminalConfigScreen(
                 appState.save()
             },
             onLaunchSimulator = {
-                navigationController.navigateTo(Destination.POSTerminal)
+                SimulatorSessionManager.launchSimulator(it)
+                navigationController.navigateTo(Destination.Home)
             }
 
         )

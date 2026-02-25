@@ -900,6 +900,11 @@ private fun LmkPairsCard(
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════
+// FIXED: LmkPairItem - Only header is clickable, expanded content is independent
+// Replace the existing LmkPairItem and KeyValueDisplay composables with these
+// ═══════════════════════════════════════════════════════════════════════════════════
+
 @Composable
 private fun LmkPairItem(
     pairNumber: String,
@@ -908,11 +913,19 @@ private fun LmkPairItem(
     rightKey: String
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var copiedField by remember { mutableStateOf<String?>(null) }
+
+    // Auto-clear "Copied!" feedback after 2 seconds
+    LaunchedEffect(copiedField) {
+        if (copiedField != null) {
+            kotlinx.coroutines.delay(2000)
+            copiedField = null
+        }
+    }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth(),
+        // ✅ FIX: Removed .clickable from Card — no more accidental collapse
         elevation = 1.dp,
         backgroundColor = MaterialTheme.colors.surface.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp)
@@ -921,8 +934,11 @@ private fun LmkPairItem(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // ✅ FIX: Only the header row is clickable for expand/collapse
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },  // ← Toggle moved here
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -954,7 +970,7 @@ private fun LmkPairItem(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            "128-bit DES Keys",
+                            getLmkPairUsage(pairNumber),
                             style = MaterialTheme.typography.caption,
                             color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
                             fontSize = 10.sp
@@ -962,15 +978,20 @@ private fun LmkPairItem(
                     }
                 }
 
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "Collapse" else "Expand"
-                    )
-                }
+                // Expand/collapse icon (clickable via parent Row)
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                )
             }
 
-            AnimatedVisibility(visible = expanded) {
+            // ✅ FIX: Expanded content is independent — clicks here won't collapse
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(200)) + fadeIn(animationSpec = tween(200)),
+                exit = shrinkVertically(animationSpec = tween(150)) + fadeOut(animationSpec = tween(150))
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -981,26 +1002,178 @@ private fun LmkPairItem(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    KeyValueDisplay(
+                    CopyableKeyValueDisplay(
                         label = "Left Key",
                         value = leftKey,
-                        color = HsmKeyTheme.InfoCyan
+                        color = HsmKeyTheme.InfoCyan,
+                        isCopied = copiedField == "left",
+                        onCopy = {
+                            copyToClipboard(leftKey)
+                            copiedField = "left"
+                        }
                     )
 
-                    KeyValueDisplay(
+                    CopyableKeyValueDisplay(
                         label = "Right Key",
                         value = rightKey,
-                        color = HsmKeyTheme.WarningOrange
+                        color = HsmKeyTheme.WarningOrange,
+                        isCopied = copiedField == "right",
+                        onCopy = {
+                            copyToClipboard(rightKey)
+                            copiedField = "right"
+                        }
                     )
 
-                    KeyValueDisplay(
+                    CopyableKeyValueDisplay(
                         label = "Combined",
                         value = combinedKey,
-                        color = HsmKeyTheme.SecurityPurple
+                        color = HsmKeyTheme.SecurityPurple,
+                        isCopied = copiedField == "combined",
+                        onCopy = {
+                            copyToClipboard(combinedKey)
+                            copiedField = "combined"
+                        }
                     )
+
+                    // Copy All button for this pair
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = {
+                                val allText = buildString {
+                                    appendLine("LMK Pair #$pairNumber")
+                                    appendLine("Left Key:  $leftKey")
+                                    appendLine("Right Key: $rightKey")
+                                    appendLine("Combined:  $combinedKey")
+                                }
+                                copyToClipboard(allText)
+                                copiedField = "all"
+                            },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = HsmKeyTheme.SecurityPurple
+                            )
+                        ) {
+                            Icon(
+                                imageVector = if (copiedField == "all") Icons.Default.Check else Icons.Default.CopyAll,
+                                contentDescription = "Copy All",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                if (copiedField == "all") "Copied All!" else "Copy All",
+                                style = MaterialTheme.typography.caption,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// FIXED: CopyableKeyValueDisplay - Replaces old KeyValueDisplay
+// Now has explicit copy button + SelectionContainer that doesn't interfere
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun CopyableKeyValueDisplay(
+    label: String,
+    value: String,
+    color: Color,
+    isCopied: Boolean = false,
+    onCopy: () -> Unit = {}
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.caption,
+                color = color,
+                fontWeight = FontWeight.Medium,
+                fontSize = 10.sp
+            )
+
+            // Explicit copy button — no ambiguity
+            IconButton(
+                onClick = onCopy,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                    contentDescription = "Copy $label",
+                    tint = if (isCopied) HsmKeyTheme.SuccessGreen else color.copy(alpha = 0.7f),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+
+        // ✅ SelectionContainer allows text selection WITHOUT triggering collapse
+        SelectionContainer {
+            Text(
+                value,
+                style = MaterialTheme.typography.body2,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colors.onSurface,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color.copy(alpha = 0.1f),
+                        RoundedCornerShape(4.dp)
+                    )
+                    .padding(8.dp)
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// HELPER: LMK Pair Usage Labels (PayShield 10K)
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+private fun getLmkPairUsage(pairNumber: String): String {
+    val num = pairNumber.toIntOrNull() ?: return "128-bit DES Keys"
+    return when (num) {
+        0 -> "PIN encryption keys (ZPK, TPK)"
+        1 -> "Card Verification Keys (CVK)"
+        2 -> "PIN Verification Keys (PVK)"
+        3 -> "Terminal Auth Keys (TAK)"
+        4 -> "Terminal Master Keys (TMK)"
+        5 -> "Key Encryption Keys (KEK, ZMK)"
+        6 -> "PIN Block encryption"
+        7 -> "Zone PIN Keys"
+        8 -> "RSA Key encryption"
+        9 -> "Data Encryption Keys (DEK/TEK)"
+        10 -> "MAC Verification Keys"
+        11 -> "Key Derivation / DUKPT"
+        12 -> "Dynamic Key Exchange"
+        14 -> "EMV/ICC key storage"
+        15 -> "Key Block Protection (KBPK)"
+        else -> "128-bit DES Keys"
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// HELPER: Clipboard utility (platform-agnostic approach)
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+private fun copyToClipboard(text: String) {
+    try {
+        val clipboard = java.awt.Toolkit.getDefaultToolkit().systemClipboard
+        val selection = java.awt.datatransfer.StringSelection(text)
+        clipboard.setContents(selection, selection)
+    } catch (e: Exception) {
+        // Fallback for environments where AWT isn't available
+        e.printStackTrace()
     }
 }
 

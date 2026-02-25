@@ -14,17 +14,19 @@ import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.config.ConfigTab
 import `in`.aicortex.iso8583studio.ui.screens.config.ContainerConfig
 import `in`.aicortex.iso8583studio.ui.screens.config.SimulatorConfigLayout
+import `in`.aicortex.iso8583studio.ui.session.SimulatorSessionManager
 
 @Composable
 fun HsmSimulatorConfigScreen(
-    navigationController: NavigationController, appState: UnifiedSimulatorState,
+    navigationController: NavigationController,
+    appState: UnifiedSimulatorState,
 ) {
     val tabsList = listOf(
         ConfigTab(
             label = "Profile",
             content = {
                 HSMProfileTab(config = appState.currentConfig(SimulatorType.HSM) as HSMSimulatorConfig) {
-                   appState.updateConfig(it)
+                    appState.updateConfig(it)
                 }
             }
         ),
@@ -74,11 +76,13 @@ fun HsmSimulatorConfigScreen(
             }
         ),
     )
+
     Scaffold(
         topBar = {
             AppBarWithBack(
                 title = "HSM Simulator Configuration",
-                onBackClick = { navigationController.goBack() })
+                onBackClick = { navigationController.goBack() }
+            )
         },
         backgroundColor = MaterialTheme.colors.background
     ) {
@@ -98,7 +102,8 @@ fun HsmSimulatorConfigScreen(
                     HSMSimulatorConfig(
                         id = appState.generateConfigId(),
                         name = "HSM-${appState.hsmConfigs.value.size + 1}"
-                    ))
+                    )
+                )
             },
             onDeleteConfig = {
                 appState.currentConfig(SimulatorType.HSM)?.id?.let { appState.deleteConfig(it) }
@@ -111,10 +116,16 @@ fun HsmSimulatorConfigScreen(
                 )
                 appState.save()
             },
-            onLaunchSimulator = {
-                navigationController.navigateTo(Destination.HSMSimulator)
+            onLaunchSimulator = { config ->
+                // ══════════════════════════════════════════════════════
+                // KEY CHANGE: Launch via SimulatorSessionManager
+                // instead of navigating to Destination.HSMSimulator
+                // This registers a persistent session that appears
+                // in the global tab bar and runs in parallel.
+                // ══════════════════════════════════════════════════════
+                SimulatorSessionManager.launchSimulator(config)
+                navigationController.navigateTo(Destination.Home)
             }
-
         )
     }
 }
