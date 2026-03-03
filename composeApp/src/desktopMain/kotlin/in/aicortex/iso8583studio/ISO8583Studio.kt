@@ -283,13 +283,18 @@ class ISO8583Studio {
                                 // We keep it composed so navigation state is preserved
                                 CurrentScreen()
 
-                                // Layer 2: Active simulator session content
+                                // Layer 2: Simulator/tool session content
+                                // Sessions are ALWAYS composed (never conditional) so that:
+                                //   a) TCP servers/state survive tab switches
+                                //   b) DisposableEffect cleanup fires when a session is closed
+                                // Visibility is controlled purely via Modifier size (0dp when hidden).
                                 SimulatorSessionManager.sessions.forEach { session ->
                                     key(session.id) {
                                         val isVisible = session.id == activeSessionId
-                                        // Use Box with visibility rather than conditional composition
-                                        // This keeps the simulator alive (TCP connections, state, etc.)
-                                        if (isVisible) {
+                                        Box(
+                                            modifier = if (isVisible) Modifier.fillMaxSize()
+                                                       else Modifier.requiredSize(0.dp)
+                                        ) {
                                             SessionContent(
                                                 session = session,
                                                 window = window,
@@ -325,7 +330,8 @@ private fun SessionContent(
             val config = session.config as HSMSimulatorConfig
             HsmSimulatorScreen(
                 config = config,
-                onBack = onBack
+                onBack = onBack,
+                service = session.hsmService  // reuse session-owned service; closeSession() stops it
             )
         }
 
@@ -352,6 +358,22 @@ private fun SessionContent(
                 onBack = onBack,
                 onSaveClick = { appState.value.save() }
             )
+        }
+
+        SimulatorType.TOOL -> {
+            // Render the tool's Voyager Screen in an isolated local navigator.
+            // The X button on the tab closes this session; back navigation within the tool
+            // uses the local navigator stack.
+            val screen = session.toolScreen
+            if (screen != null) {
+                Navigator(screen = screen) { localNavigator ->
+                    CurrentScreen()
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Tool unavailable")
+                }
+            }
         }
 
         else -> {

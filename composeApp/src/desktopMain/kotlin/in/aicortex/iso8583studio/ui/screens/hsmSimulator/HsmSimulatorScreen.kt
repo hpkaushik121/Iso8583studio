@@ -29,23 +29,51 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 enum class HsmSimulatorTabs(val title: String, val icon: ImageVector) {
     HANDLER("HSM Handler", Icons.Default.CompareArrows),
     KEY_MANAGEMENT("Key Management", Icons.Default.VpnKey),
+    SECURE_COMMANDS("Secure Commands", Icons.Default.Lock),
     LOGS("Logs", Icons.Default.Article),
     HSM_RESPONSE_CONFIG("Hsm Response Config", Icons.Default.Settings),
 }
 
 // --- MAIN HSM SIMULATOR SCREEN ---
 
+/**
+ * @param service  Optional pre-created service from the session manager.
+ *                 When provided, this screen does NOT own the service lifecycle —
+ *                 [SimulatorSessionManager.closeSession] is responsible for stopping it.
+ *                 When null (standalone use), the screen creates and owns the service.
+ */
 @Composable
 fun HsmSimulatorScreen(
     config: HSMSimulatorConfig,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    service: HsmServiceImpl? = null,
 ) {
     val scope = rememberCoroutineScope()
-    val hsmService = remember { HsmServiceImpl(config) }
+    // Use the injected service when available (session tab), otherwise own it locally.
+    val ownsService = service == null
+    val hsmService = remember(config) { service ?: HsmServiceImpl(config) }
 
+    // Only stop on disposal when this screen owns the service (not managed by session manager).
+    if (ownsService) {
+        DisposableEffect(hsmService) {
+            onDispose {
+                scope.launch { hsmService.stop() }
+            }
+        }
+    }
 
     Scaffold(
-        topBar = { AppBarWithBack(title = "HSM Simulator - ${config.name}", onBackClick = onBack) },
+        topBar = {
+            AppBarWithBack(
+                title = "HSM Simulator - ${config.name}",
+                onBackClick = {
+                    scope.launch {
+                        hsmService.stop()
+                        onBack()
+                    }
+                }
+            )
+        },
         backgroundColor = MaterialTheme.colors.background
     ) { paddingValues ->
         HsmSimulator(
@@ -155,6 +183,7 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                     )
 
                 HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsm = hsm)
+                HsmSimulatorTabs.SECURE_COMMANDS -> HsmSecureCommandsTab(hsm = hsm)
                 HsmSimulatorTabs.LOGS -> LogTab(
                     logEntries = hsmState.value.rawRequest,
                     onClearClick = { hsm.clearLogs() },

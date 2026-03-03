@@ -2,16 +2,38 @@ package `in`.aicortex.iso8583studio.ui.session
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import cafe.adriel.voyager.core.screen.Screen
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.data.model.StudioTool
 import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.HsmServiceImpl
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorConfig
 import java.time.LocalDateTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
- * Represents a single running simulator session.
+ * Minimal SimulatorConfig implementation for non-simulator tool tabs.
+ * Tool tabs don't have real server configurations; this stub satisfies the interface.
+ */
+data class ToolTabConfig(val tool: StudioTool) : SimulatorConfig {
+    override val id: String = "tool-${tool.name}"
+    override val name: String = tool.label
+    override val description: String = tool.description
+    override val serverAddress: String = ""
+    override val serverPort: Int = 0
+    override val simulatorType: SimulatorType = SimulatorType.TOOL
+    override val enabled: Boolean = true
+    override val createdDate: Long = System.currentTimeMillis()
+    override val modifiedDate: Long = System.currentTimeMillis()
+    override val version: String = "1.0"
+}
+
+/**
+ * Represents a single running simulator session or an open tool tab.
  * Each session holds its own service instance and lifecycle state,
  * enabling true parallel execution of multiple simulators.
  */
@@ -21,8 +43,11 @@ data class SimulatorSession(
     val simulatorType: SimulatorType,
     val displayName: String,
     val launchedAt: LocalDateTime = LocalDateTime.now(),
-    val hsmService: HsmServiceImpl? = null, // Only for HSM sessions
-    // Future: hostService, posService, etc.
+    val hsmService: HsmServiceImpl? = null,
+    /** Non-null for TOOL-type sessions — the Voyager Screen to render inside this tab. */
+    val toolScreen: Screen? = null,
+    /** The StudioTool this tab represents (for TOOL sessions). */
+    val studioTool: StudioTool? = null,
 ) {
     val shortName: String
         get() = when (simulatorType) {
@@ -30,6 +55,7 @@ data class SimulatorSession(
             SimulatorType.HSM -> "HSM"
             SimulatorType.POS -> "POS"
             SimulatorType.APDU -> "APDU"
+            SimulatorType.TOOL -> studioTool?.label?.take(6) ?: "TOOL"
             else -> simulatorType.name.take(4)
         }
 }
@@ -115,17 +141,28 @@ object SimulatorSessionManager {
     }
 
     /**
-     * Close a simulator session and clean up resources.
-     * If this was the active session, switches back to main content.
+     * Close a simulator session and stop its server.
+     *
+     * Stopping is done in two complementary ways:
+     *  1. The session's stored service reference is stopped immediately here (covers
+     *     cases where the composable DisposableEffect scope may already be cancelled).
+     *  2. Removing the session from [sessions] disposes its composable key, so the
+     *     screen's own DisposableEffect also fires — catching any service instance
+     *     created locally via `remember` inside the screen.
      */
     fun closeSession(sessionId: String) {
         val session = sessions.find { it.id == sessionId } ?: return
 
-        // Cleanup service resources
-        // Note: The actual stop() call should be handled by the UI before closing
+        // Stop the stored service reference on an IO coroutine
+        session.hsmService?.let { svc ->
+            CoroutineScope(Dispatchers.IO).launch { svc.stop() }
+        }
+
+        // Removing the session causes the key() block in ISO8583Studio.kt to dispose,
+        // which triggers DisposableEffect inside HsmSimulatorScreen / HostSimulatorScreen.
         sessions.removeAll { it.id == sessionId }
 
-        // If we closed the active session, go back to main content
+        // If we closed the active session, switch back to main content or most recent session
         if (activeSessionId.value == sessionId) {
             activeSessionId.value = sessions.lastOrNull()?.id
         }
@@ -168,6 +205,40 @@ object SimulatorSessionManager {
      */
     fun getSessionsByType(type: SimulatorType): List<SimulatorSession> {
         return sessions.filter { it.simulatorType == type }
+    }
+
+    /**
+     * Open a StudioTool in a new global tab.
+     *
+     * If the tool is already open in a tab, switches to the existing tab instead.
+     * Records the usage for dynamic Quick Access ordering.
+     *
+     * @return The session ID of the created (or existing) tool tab
+     */
+    fun openTool(tool: StudioTool): String {
+        ToolUsageTracker.recordUsage(tool.label)
+
+        // Reuse existing tab for the same tool
+        val existing = sessions.find {
+            it.simulatorType == SimulatorType.TOOL && it.studioTool == tool
+        }
+        if (existing != null) {
+            activeSessionId.value = existing.id
+            return existing.id
+        }
+
+        val sessionId = "TOOL-${tool.name}-${System.currentTimeMillis()}"
+        val session = SimulatorSession(
+            id = sessionId,
+            config = ToolTabConfig(tool),
+            simulatorType = SimulatorType.TOOL,
+            displayName = tool.label,
+            toolScreen = tool.screen,
+            studioTool = tool,
+        )
+        sessions.add(session)
+        activeSessionId.value = sessionId
+        return sessionId
     }
 
     /**

@@ -1209,6 +1209,194 @@ class PayShield10KCommandProcessor(
         return if (padding == blockSize) data else data + ByteArray(padding)
     }
 
+    // ====================================================================================================
+    // JC — Translate PIN from TPK to LMK encryption
+    // TPK is single-length (16H) in classic form
+    // ====================================================================================================
+    suspend fun executeTranslatePinToLmk(
+        lmkId: String,
+        encryptedTpk: ByteArray,
+        encryptedPinBlock: ByteArray,
+        accountNumber: String,
+        pinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0
+    ): HsmCommandResult {
+        return try {
+            val clearTpk = simulator.decryptUnderLmk(encryptedTpk, lmkId, 14)
+            val pinBlock = decryptPinBlock(encryptedPinBlock, clearTpk)
+            val pin = extractPinFromBlock(pinBlock, accountNumber, pinBlockFormat)
+            // Encrypt PIN under LMK pair 02-03 (LMK-encrypted PIN format)
+            val lmkPin = encryptPinUnderLmk(pin, accountNumber, lmkId)
+            HsmCommandResult.Success(
+                response = lmkPin,
+                data = mapOf("lmkPin" to lmkPin, "pinLength" to pin.length.toString())
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error(HsmErrorCodes.INVALID_INPUT_DATA, "JC failed: ${e.message}")
+        }
+    }
+
+    // ====================================================================================================
+    // JE — Translate PIN from ZPK to LMK encryption
+    // ====================================================================================================
+    suspend fun executeTranslatePinZpkToLmk(
+        lmkId: String,
+        encryptedZpk: ByteArray,
+        encryptedPinBlock: ByteArray,
+        accountNumber: String,
+        pinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0
+    ): HsmCommandResult {
+        return try {
+            val clearZpk = simulator.decryptUnderLmk(encryptedZpk, lmkId, 6)
+            val pinBlock = decryptPinBlock(encryptedPinBlock, clearZpk)
+            val pin = extractPinFromBlock(pinBlock, accountNumber, pinBlockFormat)
+            val lmkPin = encryptPinUnderLmk(pin, accountNumber, lmkId)
+            HsmCommandResult.Success(
+                response = lmkPin,
+                data = mapOf("lmkPin" to lmkPin, "pinLength" to pin.length.toString())
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error(HsmErrorCodes.INVALID_INPUT_DATA, "JE failed: ${e.message}")
+        }
+    }
+
+    // ====================================================================================================
+    // JG — Translate PIN from LMK to ZPK encryption
+    // ====================================================================================================
+    suspend fun executeTranslatePinLmkToZpk(
+        lmkId: String,
+        encryptedZpk: ByteArray,
+        lmkEncryptedPin: String,
+        accountNumber: String,
+        pinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0
+    ): HsmCommandResult {
+        return try {
+            val clearZpk = simulator.decryptUnderLmk(encryptedZpk, lmkId, 6)
+            val pin = decryptLmkPin(lmkEncryptedPin, accountNumber, lmkId)
+            val pinBlock = formatPinBlock(pin, accountNumber, pinBlockFormat)
+            val zpkPinBlock = encryptPinBlock(pinBlock, clearZpk)
+            val zpkPinBlockHex = bytesToHex(zpkPinBlock)
+            HsmCommandResult.Success(
+                response = zpkPinBlockHex,
+                data = mapOf("zpkPinBlock" to zpkPinBlockHex)
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error(HsmErrorCodes.INVALID_INPUT_DATA, "JG failed: ${e.message}")
+        }
+    }
+
+    // ====================================================================================================
+    // M4 — Translate Data Block (DUKPT DATA BDK decrypt + re-encrypt under destination key)
+    // ====================================================================================================
+    suspend fun executeTranslateData(
+        lmkId: String,
+        sourceKey: ByteArray,
+        destKey: ByteArray,
+        ksn: String,
+        encryptedData: ByteArray,
+        mode: String = "02"
+    ): HsmCommandResult {
+        return try {
+            // Derive DUKPT session key from source BDK
+            val clearBdk = simulator.decryptUnderLmk(sourceKey, lmkId, 28)
+            val initialKey = deriveInitialKey(clearBdk, ksn)
+            val ksnBytes = hexToBytes(ksn)
+            val counter = ((ksnBytes[7].toInt() and 0x1F) shl 16) or
+                    ((ksnBytes[8].toInt() and 0xFF) shl 8) or
+                    (ksnBytes[9].toInt() and 0xFF)
+            val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter)
+
+            // Decrypt data under DUKPT session key
+            val clearData = decryptPinBlock(encryptedData, sessionKey)
+
+            // Re-encrypt under destination key (ZPK)
+            val clearDestKey = simulator.decryptUnderLmk(destKey, lmkId, 6)
+            val translatedData = encryptPinBlock(clearData, clearDestKey)
+            val translatedHex = bytesToHex(translatedData)
+
+            HsmCommandResult.Success(
+                response = translatedHex,
+                data = mapOf("translatedData" to translatedHex)
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error(HsmErrorCodes.INVALID_INPUT_DATA, "M4 failed: ${e.message}")
+        }
+    }
+
+    // ====================================================================================================
+    // EE — Derive PIN using IBM 3624 offset method
+    // ====================================================================================================
+    suspend fun executeDerivePinIbm(
+        lmkId: String,
+        pvk: ByteArray,
+        offset: String,
+        accountNumber: String,
+        decimalizationTable: String = "0123456789012345",
+        minPinLength: Int = 4
+    ): HsmCommandResult {
+        return try {
+            val clearPvk = simulator.decryptUnderLmk(pvk, lmkId, 14)
+            val naturalPin = generateNaturalPin(accountNumber, clearPvk, decimalizationTable)
+
+            // Apply offset to get customer PIN
+            val customerPin = StringBuilder()
+            for (i in naturalPin.indices) {
+                val naturalDigit = naturalPin[i].digitToInt()
+                val offsetDigit = if (i < offset.length && offset[i] != 'F') offset[i].digitToInt() else 0
+                customerPin.append((naturalDigit + offsetDigit) % 10)
+            }
+
+            val pin = customerPin.toString().take(minPinLength.coerceAtLeast(4))
+            val lmkPin = encryptPinUnderLmk(pin, accountNumber, lmkId)
+
+            HsmCommandResult.Success(
+                response = lmkPin,
+                data = mapOf("lmkPin" to lmkPin, "pinLength" to pin.length.toString())
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error(HsmErrorCodes.INVALID_INPUT_DATA, "EE failed: ${e.message}")
+        }
+    }
+
+    // ====================================================================================================
+    // NG — Decrypt PIN from LMK to clear
+    // ====================================================================================================
+    suspend fun executeDecryptLmkPin(
+        lmkId: String,
+        accountNumber: String,
+        lmkEncryptedPin: String
+    ): HsmCommandResult {
+        return try {
+            val clearPin = decryptLmkPin(lmkEncryptedPin, accountNumber, lmkId)
+            HsmCommandResult.Success(
+                response = clearPin,
+                data = mapOf("clearPin" to clearPin)
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error(HsmErrorCodes.INVALID_INPUT_DATA, "NG failed: ${e.message}")
+        }
+    }
+
+    // ====================================================================================================
+    // LMK PIN encryption/decryption helpers (IBM 3624 LMK PIN format)
+    // ====================================================================================================
+    private fun encryptPinUnderLmk(pin: String, accountNumber: String, lmkId: String): String {
+        // LMK-encrypted PIN: decimal digits, length = PIN length + 1 (length indicator digit)
+        // Using simplified format: length_indicator + pin_digits
+        val lengthIndicator = pin.length.toString()
+        return lengthIndicator + pin
+    }
+
+    private fun decryptLmkPin(lmkEncryptedPin: String, accountNumber: String, lmkId: String): String {
+        // Extract PIN from LMK-encrypted format
+        if (lmkEncryptedPin.isEmpty()) return ""
+        val pinLength = lmkEncryptedPin[0].digitToIntOrNull() ?: return lmkEncryptedPin
+        return if (lmkEncryptedPin.length > pinLength) {
+            lmkEncryptedPin.substring(1, 1 + pinLength)
+        } else {
+            lmkEncryptedPin.drop(1)
+        }
+    }
+
     private fun hexToBytes(hex: String): ByteArray {
         val len = hex.length
         val data = ByteArray(len / 2)

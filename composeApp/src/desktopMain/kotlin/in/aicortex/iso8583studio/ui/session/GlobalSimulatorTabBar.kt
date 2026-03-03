@@ -4,7 +4,10 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -14,13 +17,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.PopupProperties
+import `in`.aicortex.iso8583studio.data.model.StudioTool
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 
 // ─── Simulator Type Visual Config ────────────────────────────────────────
@@ -35,19 +44,19 @@ private fun getSimulatorVisual(type: SimulatorType): SimulatorVisualConfig {
     return when (type) {
         SimulatorType.HOST -> SimulatorVisualConfig(
             icon = Icons.Default.Dns,
-            activeColor = Color(0xFF42A5F5),  // PrimaryBlue
+            activeColor = Color(0xFF42A5F5),
             pulseColor = Color(0xFF90CAF9),
             shortLabel = "HOST"
         )
         SimulatorType.HSM -> SimulatorVisualConfig(
             icon = Icons.Default.Security,
-            activeColor = Color(0xFF8E24AA),  // SecurityPurple
+            activeColor = Color(0xFF8E24AA),
             pulseColor = Color(0xFFCE93D8),
             shortLabel = "HSM"
         )
         SimulatorType.POS -> SimulatorVisualConfig(
             icon = Icons.Default.PointOfSale,
-            activeColor = Color(0xFF43A047),  // SuccessGreen
+            activeColor = Color(0xFF43A047),
             pulseColor = Color(0xFFA5D6A7),
             shortLabel = "POS"
         )
@@ -56,6 +65,12 @@ private fun getSimulatorVisual(type: SimulatorType): SimulatorVisualConfig {
             activeColor = Color(0xFFFF7043),
             pulseColor = Color(0xFFFFAB91),
             shortLabel = "APDU"
+        )
+        SimulatorType.TOOL -> SimulatorVisualConfig(
+            icon = Icons.Default.Build,
+            activeColor = Color(0xFF00ACC1),
+            pulseColor = Color(0xFF80DEEA),
+            shortLabel = "TOOL"
         )
         else -> SimulatorVisualConfig(
             icon = Icons.Default.Computer,
@@ -152,6 +167,14 @@ fun GlobalSimulatorTabBar() {
                     if (sessions.size > 1) {
                         SessionCountBadge(count = sessions.size)
                     }
+
+                    // ── Global Tool Search ──
+                    Spacer(Modifier.width(8.dp))
+                    TabBarSearch(
+                        onToolSelected = { tool ->
+                            SimulatorSessionManager.openTool(tool)
+                        }
+                    )
                 }
 
                 // Subtle bottom accent line
@@ -339,6 +362,143 @@ private fun RunningIndicatorDot(color: Color, isActive: Boolean) {
             .clip(CircleShape)
             .background(color.copy(alpha = if (isActive) alpha else 0.35f))
     )
+}
+
+// ─── Tab Bar Search ─────────────────────────────────────────────────────
+
+/**
+ * Compact inline search field that sits at the right end of the tab bar.
+ * Typing opens a dropdown of matching StudioTools; clicking one opens it in a new tab.
+ */
+@Composable
+private fun TabBarSearch(onToolSelected: (StudioTool) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+
+    val allTools = remember { StudioTool.values().toList() }
+    val results = remember(query) {
+        if (query.isBlank()) emptyList()
+        else allTools.filter {
+            it.label.contains(query, ignoreCase = true) ||
+                it.description.contains(query, ignoreCase = true)
+        }.take(8)
+    }
+
+    // Keep dropdown in sync with results
+    LaunchedEffect(results) {
+        expanded = results.isNotEmpty()
+    }
+
+    Box {
+        Surface(
+            modifier = Modifier
+                .width(200.dp)
+                .height(28.dp),
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colors.onSurface.copy(alpha = 0.06f),
+            elevation = 0.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp),
+                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+                )
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester)
+                        .onKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                                query = ""
+                                expanded = false
+                                true
+                            } else false
+                        },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.caption.copy(
+                        color = MaterialTheme.colors.onSurface,
+                        fontSize = 11.sp
+                    ),
+                    decorationBox = { inner ->
+                        if (query.isEmpty()) {
+                            Text(
+                                "Search tools…",
+                                style = MaterialTheme.typography.caption.copy(
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.35f),
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+                        inner()
+                    }
+                )
+                if (query.isNotEmpty()) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear",
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clickable { query = ""; expanded = false },
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        }
+
+        // Results dropdown
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false; query = "" },
+            offset = DpOffset(0.dp, 4.dp),
+            properties = PopupProperties(focusable = false)
+        ) {
+            results.forEach { tool ->
+                DropdownMenuItem(
+                    onClick = {
+                        onToolSelected(tool)
+                        query = ""
+                        expanded = false
+                    },
+                    modifier = Modifier.height(40.dp)
+                ) {
+                    Icon(
+                        imageVector = tool.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colors.primary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = tool.label,
+                            style = MaterialTheme.typography.caption.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = tool.description,
+                            style = MaterialTheme.typography.overline.copy(fontSize = 9.sp),
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ─── Session Count Badge ────────────────────────────────────────────────

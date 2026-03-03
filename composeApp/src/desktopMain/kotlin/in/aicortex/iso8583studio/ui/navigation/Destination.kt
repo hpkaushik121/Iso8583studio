@@ -98,7 +98,10 @@ sealed class Destination : Screen {
             val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
             HomeScreen(
                 viewModel = rememberScreenModel { HomeScreenViewModel() },
-                onToolSelected = { navigationController.navigateTo(it.screen) },
+                onToolSelected = { tool ->
+                    `in`.aicortex.iso8583studio.ui.session.ToolUsageTracker.recordUsage(tool.label)
+                    navigationController.navigateTo(tool.screen)
+                },
                 onGetStarted = { navigationController.navigateTo(HostSimulatorConfig) }
             )
         }

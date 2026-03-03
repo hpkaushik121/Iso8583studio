@@ -40,7 +40,9 @@ enum class SimulatorType(val displayName: String, val description: String) {
     CARD("Card Simulator", "Payment Card Simulator"),
     SWITCH("Switch Simulator", "Payment Network Switch Simulator"),
     ACQUIRER("Acquirer Simulator", "Acquiring Bank Simulator"),
-    ISSUER("Issuer Simulator", "Card Issuing Bank Simulator")
+    ISSUER("Issuer Simulator", "Card Issuing Bank Simulator"),
+    /** Lightweight tab for any non-simulator studio tool (converters, parsers, etc.) */
+    TOOL("Tool", "Studio Tool")
 }
 
 
@@ -261,6 +263,7 @@ data class UnifiedSimulatorState(
             SimulatorType.SWITCH -> TODO()
             SimulatorType.ACQUIRER -> TODO()
             SimulatorType.ISSUER -> TODO()
+            SimulatorType.TOOL -> { /* Tool tabs have no persisted config */ }
             null -> TODO()
         }
 
@@ -600,6 +603,7 @@ data class UnifiedSimulatorState(
                     SimulatorType.ISSUER -> {
                         issuerConfigs.value = configCollection.issuerConfigs
                     }
+                    SimulatorType.TOOL -> { /* Tool tabs have no persisted config */ }
                 }
             }
             save()

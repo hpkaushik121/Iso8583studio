@@ -377,6 +377,16 @@ class HsmServiceImpl(
         return _hsmState.value.started
     }
 
+    /**
+     * Execute a secure/offline HSM command directly (from the GUI console).
+     * This bypasses the TCP listener and executes the command against the active HSM directly.
+     * Intended for administrator commands (LMK management, key formation, etc.)
+     */
+    suspend fun executeSecureCommand(rawCommand: String): String {
+        return activeHsm?.getProcessor()?.processCommand(rawCommand)
+            ?: "ERROR: No active HSM"
+    }
+
     fun clearLogs() {
         _hsmState.value = _hsmState.value.copy(rawRequest = mutableStateListOf(),
             formattedRequest = mutableStateListOf(),

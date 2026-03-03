@@ -20,6 +20,7 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import `in`.aicortex.iso8583studio.data.model.StudioTool
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.landing.ToolSuite
+import `in`.aicortex.iso8583studio.ui.session.ToolUsageTracker
 
 class HomeScreenViewModel : ScreenModel {
     var searchQuery = mutableStateOf("")
@@ -28,7 +29,31 @@ class HomeScreenViewModel : ScreenModel {
     val tools = StudioTool.values()
     var overviewVisibility = mutableStateOf(false)
     var displayQuoteText =  mutableStateOf("")
-    val popularTools = tools.filter { it.isPopular }
+
+    /**
+     * Quick Access tools — sorted dynamically by usage count.
+     * Falls back to the hardcoded `isPopular` flag for tools that have never been opened,
+     * ensuring the section is never empty on first launch.
+     *
+     * Cap at 8 tools so the grid stays compact.
+     */
+    val popularTools: List<StudioTool>
+        get() {
+            val topLabels = ToolUsageTracker.topLabels(8)
+            return if (topLabels.isNotEmpty()) {
+                // Used tools sorted by frequency
+                val usedTools = topLabels.mapNotNull { label ->
+                    tools.firstOrNull { it.label == label }
+                }
+                // Fill remaining slots with static popular tools not already present
+                val backfill = tools.filter { it.isPopular && it !in usedTools }
+                (usedTools + backfill).take(8)
+            } else {
+                // First launch — fall back to static popular flag
+                tools.filter { it.isPopular }
+            }
+        }
+
     val newTools =
         tools.filter { it.status == DevelopmentStatus.COMING_SOON || it.status == DevelopmentStatus.UNDER_DEVELOPMENT || it.status == DevelopmentStatus.BETA || it.status == DevelopmentStatus.EXPERIMENTAL }
 
