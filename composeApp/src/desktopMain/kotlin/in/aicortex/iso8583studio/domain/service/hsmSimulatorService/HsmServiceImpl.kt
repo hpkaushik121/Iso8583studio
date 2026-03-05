@@ -13,7 +13,10 @@ import `in`.aicortex.iso8583studio.hsm.HsmConfig
 import `in`.aicortex.iso8583studio.hsm.HsmSimulator
 import `in`.aicortex.iso8583studio.hsm.payshield10k.HsmLogsListener
 import `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10K
+import `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuditEntry
+import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuthActivity
+import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmCommandResult
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
@@ -378,14 +381,174 @@ class HsmServiceImpl(
     }
 
     /**
-     * Execute a secure/offline HSM command directly (from the GUI console).
-     * This bypasses the TCP listener and executes the command against the active HSM directly.
-     * Intended for administrator commands (LMK management, key formation, etc.)
+     * Execute an HSM command directly from the GUI (Host Commands tab or Secure Commands tab).
+     * Logs both the outbound command and the inbound response to the Logs panel and log file,
+     * and fires the handler-tab callbacks so the live request/response view also updates.
+     *
+     * @param rawCommand  Full wire-format command string (e.g. "0000CA…")
+     * @param source      Label shown in the log (e.g. "HOST-CMD" or "SECURE-CMD")
      */
-    suspend fun executeSecureCommand(rawCommand: String): String {
-        return activeHsm?.getProcessor()?.processCommand(rawCommand)
+    suspend fun executeSecureCommand(
+        rawCommand: String,
+        source: String = "GUI-CONSOLE"
+    ): String {
+        val cmdCode = rawCommand.drop(4).take(2).ifBlank { "??" }
+
+        // Log the outbound command (request)
+        writeLog(
+            createLogEntry(
+                type    = LogType.HSM,
+                message = "► [$source] CMD $cmdCode  →  ${rawCommand}"
+            ).also { it.source = source }
+        )
+        receivedFromSource(rawCommand)
+
+        val response = activeHsm?.getProcessor()?.processCommand(rawCommand)
             ?: "ERROR: No active HSM"
+
+        // Derive error-code from wire response (bytes 7-8 after the 4-char header + 2-char resp-code)
+        val errCode  = response.drop(6).take(2)
+        val logType  = if (errCode == "00") LogType.HSM else LogType.ERROR
+
+        // Log the inbound response
+        writeLog(
+            createLogEntry(
+                type    = logType,
+                message = "◄ [$source] RSP $cmdCode  ←  $response"
+            ).also { it.source = source }
+        )
+        sentToSource(response)
+
+        return response
     }
+
+    // ── Key Component Generation (direct — bypasses wire protocol) ───────────
+
+    /**
+     * Generates one key component directly, returning structured data.
+     * Returns a map with: clearKey, encryptedKey, kcv — or null on failure.
+     */
+    suspend fun generateKeyComponent(
+        keyTypeCode: String = "001",
+        scheme: String = "U"
+    ): Map<String, String>? {
+        writeLog(
+            createLogEntry(
+                type    = LogType.HSM,
+                message = "► [SECURE-CMD] GC  KeyType=$keyTypeCode  Scheme=$scheme"
+            ).also { it.source = "SECURE-CMD" }
+        )
+        val ps = getPayShield10K() ?: return null
+        val result = when (val r = ps.generateKeyComponentDirect(keyTypeCode, scheme)) {
+            is HsmCommandResult.Success -> r.data.mapValues { it.value.toString() }
+            else -> null
+        }
+        writeLog(
+            createLogEntry(
+                type    = if (result != null) LogType.HSM else LogType.ERROR,
+                message = if (result != null)
+                    "◄ [SECURE-CMD] GC  KCV=${result["kcv"]}  EncKey=${result["encryptedKey"]?.take(16)}…"
+                else
+                    "◄ [SECURE-CMD] GC  FAILED"
+            ).also { it.source = "SECURE-CMD" }
+        )
+        return result
+    }
+
+    /**
+     * XORs a list of hex-encoded keys of identical length and returns the result as uppercase hex.
+     */
+    fun xorHexKeys(keys: List<String>): String {
+        if (keys.isEmpty()) return ""
+        val byteArrays = keys.map { hex ->
+            hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        }
+        val result = byteArrays[0].copyOf()
+        for (i in 1 until byteArrays.size) {
+            val b = byteArrays[i]
+            for (j in result.indices) {
+                result[j] = (result[j].toInt() xor b[j].toInt()).toByte()
+            }
+        }
+        return result.joinToString("") { "%02X".format(it) }
+    }
+
+    /** Calculates the KCV (3-byte encrypt-8-zeros) for a clear key supplied as hex. */
+    fun computeKeyKcv(keyHex: String): String =
+        getPayShield10K()?.calculateKcv(keyHex) ?: "??????"
+
+    /**
+     * Forms a working key by XORing [componentHexList] directly via the command processor.
+     * Returns a map with clearKey, encryptedKey, kcv — or null on failure.
+     * Used by the Secure Command GUI (plain key is visible here).
+     */
+    suspend fun formKeyFromComponents(
+        keyTypeCode: String = "001",
+        scheme: String = "U",
+        componentHexList: List<String>
+    ): Map<String, String>? {
+        writeLog(
+            createLogEntry(
+                type    = LogType.HSM,
+                message = "► [SECURE-CMD] FK  KeyType=$keyTypeCode  Scheme=$scheme  Components=${componentHexList.size}"
+            ).also { it.source = "SECURE-CMD" }
+        )
+        val ps = getPayShield10K() ?: return null
+        val result = when (val r = ps.formKeyFromComponentsDirect(keyTypeCode, scheme, componentHexList)) {
+            is HsmCommandResult.Success -> r.data.mapValues { it.value.toString() }
+            is HsmCommandResult.Error   -> mapOf("error" to "${r.errorCode}: ${r.message}")
+        }
+        val isError = result.containsKey("error")
+        writeLog(
+            createLogEntry(
+                type    = if (isError) LogType.ERROR else LogType.HSM,
+                message = if (isError)
+                    "◄ [SECURE-CMD] FK  FAILED: ${result["error"]}"
+                else
+                    "◄ [SECURE-CMD] FK  KCV=${result["kcv"]}  EncKey=${result["encryptedKey"]?.take(16)}…"
+            ).also { it.source = "SECURE-CMD" }
+        )
+        return result
+    }
+
+    // ── Console Authorization ────────────────────────────────────────────────
+
+    private fun payShieldFeatures(): PayShield10KFeatures? =
+        (getPayShield10K()?.getFeatures()) as? PayShield10KFeatures
+
+    private fun lmkId(): String =
+        getPayShield10K()?.config?.lmkId ?: "00"
+
+    /**
+     * Simulates custodian card insertion — grants all console authorizations.
+     *
+     * @param durationMs   How long the authorization lasts (default 8 hours)
+     * @param officerNames Simulated officer identifiers recorded in the audit log
+     */
+    fun authorizeConsole(
+        activities: List<AuthActivity> = AuthActivity.values().toList(),
+        durationMs: Long = 8L * 60 * 60 * 1000,
+        officerNames: List<String> = listOf("SIM-OFFICER-1")
+    ) {
+        payShieldFeatures()?.authorizeActivities(lmkId(), activities, durationMs, officerNames)
+    }
+
+    /** Revoke all or specific console authorizations immediately. */
+    fun revokeConsole(activities: List<AuthActivity> = AuthActivity.values().toList()) {
+        payShieldFeatures()?.revokeAuthorizations(lmkId(), activities)
+    }
+
+    /** Returns true if the given activity is currently authorized. */
+    fun isConsoleAuthorized(activity: AuthActivity): Boolean =
+        payShieldFeatures()?.isAuthorized(lmkId(), activity) ?: false
+
+    /**
+     * Returns the expiry epoch-ms for the earliest-expiring authorization among [activities],
+     * or null if none are active.
+     */
+    fun consoleAuthExpiry(
+        activities: List<AuthActivity> = AuthActivity.values().toList()
+    ): Long? = payShieldFeatures()?.getAuthorizationExpiry(lmkId(), activities)
 
     fun clearLogs() {
         _hsmState.value = _hsmState.value.copy(rawRequest = mutableStateListOf(),

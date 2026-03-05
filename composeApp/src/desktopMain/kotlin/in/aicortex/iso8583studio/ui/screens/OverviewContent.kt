@@ -37,7 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.StudioVersion
 import `in`.aicortex.iso8583studio.data.model.StudioTool
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
+import `in`.aicortex.iso8583studio.ui.screens.landing.OpenInGlobalTabButton
 import `in`.aicortex.iso8583studio.ui.screens.landing.ToolSuite
+import `in`.aicortex.iso8583studio.ui.session.SimulatorSessionManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -240,6 +243,13 @@ private fun StudioToolCard(tool: StudioTool,
         label = "toolCardScale"
     ).value
     val coroutineScope = rememberCoroutineScope()
+
+    // Observe global sessions reactively so the button state updates live
+    val sessions = SimulatorSessionManager.sessions
+    val isInGlobalTab = sessions.any {
+        it.simulatorType == SimulatorType.TOOL && it.studioTool == tool
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -273,7 +283,6 @@ private fun StudioToolCard(tool: StudioTool,
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // MODIFICATION: Removed the star icon from this Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -282,7 +291,8 @@ private fun StudioToolCard(tool: StudioTool,
                     // Tool Icon and Name
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Icon(
                             imageVector = tool.icon,
@@ -293,9 +303,17 @@ private fun StudioToolCard(tool: StudioTool,
                         Text(
                             text = tool.name,
                             style = MaterialTheme.typography.body1,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+
+                    // Open-in-global-tab button
+                    OpenInGlobalTabButton(
+                        isInGlobalTab = isInGlobalTab,
+                        onOpen = { SimulatorSessionManager.openTool(tool) }
+                    )
                 }
 
                 Text(
@@ -304,14 +322,14 @@ private fun StudioToolCard(tool: StudioTool,
                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    // Add a minimum height to ensure consistent card size even if description is short
                     modifier = Modifier.heightIn(min = 36.dp)
                 )
 
-                // MODIFICATION: Footer with only the Action Arrow. Usage count is removed.
+                // Footer: arrow (navigates in main content) on the left,
+                // status hint on the right when already in a global tab
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End, // Aligns the arrow to the right
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -320,6 +338,13 @@ private fun StudioToolCard(tool: StudioTool,
                         tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),
                         modifier = Modifier.size(18.dp)
                     )
+                    if (isInGlobalTab) {
+                        Text(
+                            "Open in tab",
+                            style = MaterialTheme.typography.overline,
+                            color = MaterialTheme.colors.primary.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }

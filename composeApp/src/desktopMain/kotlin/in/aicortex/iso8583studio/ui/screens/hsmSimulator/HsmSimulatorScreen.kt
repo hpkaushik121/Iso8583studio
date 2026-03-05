@@ -29,9 +29,9 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 enum class HsmSimulatorTabs(val title: String, val icon: ImageVector) {
     HANDLER("HSM Handler", Icons.Default.CompareArrows),
     KEY_MANAGEMENT("Key Management", Icons.Default.VpnKey),
+    HOST_COMMANDS("Host Commands", Icons.Default.Terminal),
     SECURE_COMMANDS("Secure Commands", Icons.Default.Lock),
     LOGS("Logs", Icons.Default.Article),
-    HSM_RESPONSE_CONFIG("Hsm Response Config", Icons.Default.Settings),
 }
 
 // --- MAIN HSM SIMULATOR SCREEN ---
@@ -183,6 +183,7 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                     )
 
                 HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsm = hsm)
+                HsmSimulatorTabs.HOST_COMMANDS -> HsmHostCommandsTab(hsm = hsm)
                 HsmSimulatorTabs.SECURE_COMMANDS -> HsmSecureCommandsTab(hsm = hsm)
                 HsmSimulatorTabs.LOGS -> LogTab(
                     logEntries = hsmState.value.rawRequest,
@@ -193,9 +194,7 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                     concurrentConnections = 0
                 )
 
-                HsmSimulatorTabs.HSM_RESPONSE_CONFIG -> HsmResponseConfigScreen(hsm = hsm) {
 
-                }
             }
         }
     }

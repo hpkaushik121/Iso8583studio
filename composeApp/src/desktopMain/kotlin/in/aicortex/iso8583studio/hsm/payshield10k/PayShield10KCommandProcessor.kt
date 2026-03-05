@@ -156,11 +156,16 @@ class PayShield10KCommandProcessor(
             )
         )
 
+        val clearKeyHex     = simulator.bytesToHex(parityKey)
+        val encryptedKeyHex = simulator.bytesToHex(encryptedKey)
+
         return HsmCommandResult.Success(
-            response = "Key formed successfully\nKCV: $kcv",
+            // Wire response for HOST command: encryptedKey || KCV  (no plain key on the wire)
+            response = "$encryptedKeyHex$kcv",
             data = mapOf(
-                "encryptedKey" to simulator.bytesToHex(encryptedKey),
-                "kcv" to kcv
+                "clearKey"     to clearKeyHex,      // available to secure-command direct calls
+                "encryptedKey" to encryptedKeyHex,
+                "kcv"          to kcv
             )
         )
     }

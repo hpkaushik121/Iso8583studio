@@ -495,9 +495,59 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     fun isAuthorized(lmkId: String, activity: AuthActivity): Boolean {
         val authList = authorizations[lmkId] ?: return false
         val now = System.currentTimeMillis()
-        return authList.any {
-            it.activity == activity && it.expiresAt > now
+        return authList.any { it.activity == activity && it.expiresAt > now }
+    }
+
+    /**
+     * Grant authorization for one or more activities.
+     * In a real PayShield this requires custodian smart cards physically inserted.
+     * The simulator grants it programmatically from the Secure Commands GUI.
+     *
+     * @param lmkId      Target LMK slot
+     * @param activities Activities to authorize (defaults to all console activities)
+     * @param durationMs How long the authorization lasts (default 12 hours)
+     * @param officers   Simulated officer identifiers (for audit purposes)
+     */
+    fun authorizeActivities(
+        lmkId: String,
+        activities: List<AuthActivity> = AuthActivity.values().toList(),
+        durationMs: Long = 12L * 60 * 60 * 1000,
+        officers: List<String> = listOf("SIM-OFFICER-1")
+    ) {
+        val list = authorizations.getOrPut(lmkId) { mutableListOf() }
+        val expiresAt = System.currentTimeMillis() + durationMs
+        activities.forEach { activity ->
+            list.removeAll { it.activity == activity }
+            list.add(
+                AuthorizationRecord(
+                    lmkId = lmkId,
+                    activity = activity,
+                    expiresAt = expiresAt,
+                    authorizedBy = officers
+                )
+            )
         }
+    }
+
+    /**
+     * Revoke authorization for one or more activities immediately.
+     */
+    fun revokeAuthorizations(
+        lmkId: String,
+        activities: List<AuthActivity> = AuthActivity.values().toList()
+    ) {
+        val list = authorizations[lmkId] ?: return
+        activities.forEach { activity -> list.removeAll { it.activity == activity } }
+    }
+
+    /**
+     * Returns the earliest expiry epoch-ms across all [activities], or null if none are active.
+     */
+    fun getAuthorizationExpiry(lmkId: String, activities: List<AuthActivity>): Long? {
+        val now = System.currentTimeMillis()
+        return authorizations[lmkId]
+            ?.filter { it.activity in activities && it.expiresAt > now }
+            ?.minOfOrNull { it.expiresAt }
     }
 
     override fun getSlotManager(): HsmSlotManager {

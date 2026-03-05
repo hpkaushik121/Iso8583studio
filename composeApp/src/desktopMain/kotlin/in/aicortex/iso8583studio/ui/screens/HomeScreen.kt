@@ -26,6 +26,8 @@ import `in`.aicortex.iso8583studio.ui.screens.HomeScreenViewModel
 import `in`.aicortex.iso8583studio.ui.screens.OverviewContent
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
+import `in`.aicortex.iso8583studio.ui.session.SimulatorSessionManager
 import kotlinx.coroutines.delay
 
 /**
@@ -530,6 +532,12 @@ private fun ToolCard(
 ) {
     var isHovered by remember { mutableStateOf(false) }
 
+    // Observe global sessions reactively so the button state updates live
+    val sessions = SimulatorSessionManager.sessions
+    val isInGlobalTab = sessions.any {
+        it.simulatorType == SimulatorType.TOOL && it.studioTool == tool
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -566,16 +574,20 @@ private fun ToolCard(
                     tint = MaterialTheme.colors.primary
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (tool.isPopular) {
-                        StatusBadge("POPULAR", MaterialTheme.colors.secondary)
-                    }
-                    if (tool.isNew) {
-                        StatusBadge("NEW", MaterialTheme.colors.primary)
-                    }
-                    if (tool.status != DevelopmentStatus.STABLE) {
-                        UnderDevelopmentChip(status = tool.status)
-                    }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (tool.isPopular) StatusBadge("POPULAR", MaterialTheme.colors.secondary)
+                    if (tool.isNew)     StatusBadge("NEW",     MaterialTheme.colors.primary)
+                    if (tool.status != DevelopmentStatus.STABLE) UnderDevelopmentChip(status = tool.status)
+
+                    // ── Open-in-global-tab button ──
+                    OpenInGlobalTabButton(
+                        isInGlobalTab = isInGlobalTab,
+                        onOpen = { SimulatorSessionManager.openTool(tool) },
+                        onSwitch = { SimulatorSessionManager.openTool(tool) }
+                    )
                 }
             }
 
@@ -598,6 +610,39 @@ private fun ToolCard(
                 )
             }
         }
+    }
+}
+
+/**
+ * Small icon button shown on every tool card.
+ * - When the tool is NOT in a global tab: shows an "open in new tab" icon.
+ * - When the tool IS already open: shows a highlighted "layers" icon as a "switch to tab" affordance.
+ * Clicking either state calls the appropriate lambda.
+ */
+@Composable
+internal fun OpenInGlobalTabButton(
+    isInGlobalTab: Boolean,
+    onOpen: () -> Unit,
+    onSwitch: () -> Unit = onOpen,
+) {
+    val tint   = if (isInGlobalTab) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface.copy(alpha = 0.35f)
+    val bgColor = if (isInGlobalTab) MaterialTheme.colors.primary.copy(alpha = 0.12f) else Color.Transparent
+    val tip    = if (isInGlobalTab) "Already open — switch to tab" else "Open in global tab"
+    val icon   = if (isInGlobalTab) Icons.Default.Layers else Icons.Default.OpenInNew
+
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .background(bgColor, RoundedCornerShape(4.dp))
+            .clickable(onClick = if (isInGlobalTab) onSwitch else onOpen),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = tip,
+            tint = tint,
+            modifier = Modifier.size(14.dp)
+        )
     }
 }
 

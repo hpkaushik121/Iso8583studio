@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.hsmSimulator
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.HsmServiceImpl
+import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuthActivity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -54,7 +58,12 @@ fun HsmSecureCommandsTab(hsm: HsmServiceImpl) {
     var isExecuting by remember { mutableStateOf(false) }
     val commandLog = remember { mutableStateListOf<String>() }
 
-    Row(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Authorization status banner — always shown at the top
+        ConsoleAuthorizationBanner(hsm = hsm, scope = scope)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(modifier = Modifier.weight(1f)) {
         // Left panel — command list
         Card(
             modifier = Modifier.width(260.dp).fillMaxHeight(),
@@ -127,8 +136,14 @@ fun HsmSecureCommandsTab(hsm: HsmServiceImpl) {
                         isExecuting = true
                         scope.launch {
                             try {
-                                val rawCmd = buildHsmCommand(cmd, params, hsm)
-                                val result = hsm.executeSecureCommand(rawCmd)
+                                val result = when (cmd.code) {
+                                    "GC" -> executeGcMultiple(cmd, params, hsm)
+                                    "FK" -> executeFkDirect(params, hsm)
+                                    else -> {
+                                        val rawCmd = buildHsmCommand(cmd, params, hsm)
+                                        hsm.executeSecureCommand(rawCmd, source = "SECURE-CMD")
+                                    }
+                                }
                                 resultText = result
                                 commandLog.add("[${cmd.code}] OK: ${result.take(200)}")
                             } catch (e: Exception) {
@@ -142,6 +157,203 @@ fun HsmSecureCommandsTab(hsm: HsmServiceImpl) {
                 )
             }
         }
+        } // end Row
+    } // end Column
+}
+
+// ====================================================================================================
+// Console Authorization Banner
+// ====================================================================================================
+
+private val CONSOLE_ACTIVITIES = listOf(
+    AuthActivity.COMPONENT_KEY_CONSOLE,
+    AuthActivity.ADMIN_CONSOLE,
+    AuthActivity.AUDIT_CONSOLE,
+    AuthActivity.MISC_CONSOLE,
+    AuthActivity.CLEAR_PIN_CONSOLE,
+)
+
+@Composable
+private fun ConsoleAuthorizationBanner(
+    hsm: HsmServiceImpl,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    // Tick every second to update the countdown
+    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000L)
+            nowMs = System.currentTimeMillis()
+        }
+    }
+
+    val expiryMs = remember(nowMs) { hsm.consoleAuthExpiry(CONSOLE_ACTIVITIES) }
+    val isAuthorized = expiryMs != null && expiryMs > nowMs
+
+    // Authorize dialog state
+    var showAuthorizeDialog by remember { mutableStateOf(false) }
+    var officerCount by remember { mutableStateOf(1) }
+    var durationHours by remember { mutableStateOf(8) }
+
+    val bannerColor by animateColorAsState(
+        targetValue = if (isAuthorized) Color(0xFF1B5E20) else Color(0xFF4E342E),
+        animationSpec = tween(400)
+    )
+    val accentColor = if (isAuthorized) Color(0xFF4CAF50) else Color(0xFFFF7043)
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = bannerColor,
+        shape = RoundedCornerShape(8.dp),
+        elevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = if (isAuthorized) Icons.Default.LockOpen else Icons.Default.Lock,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(22.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (isAuthorized) "Console Authorized" else "Console Not Authorized",
+                    style = MaterialTheme.typography.subtitle2,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = if (isAuthorized) {
+                        val remaining = (expiryMs!! - nowMs) / 1000L
+                        val h = remaining / 3600; val m = (remaining % 3600) / 60; val s = remaining % 60
+                        "Valid for %02d:%02d:%02d  ·  Granted to all console activities".format(h, m, s)
+                    } else {
+                        "Secure commands require console authorization. In a real HSM, custodian cards must be inserted."
+                    },
+                    style = MaterialTheme.typography.caption,
+                    color = Color.White.copy(alpha = 0.75f)
+                )
+            }
+
+            if (isAuthorized) {
+                OutlinedButton(
+                    onClick = { hsm.revokeConsole(CONSOLE_ACTIVITIES) },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF7043)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF7043))
+                ) {
+                    Text("Revoke", style = MaterialTheme.typography.caption)
+                }
+            } else {
+                Button(
+                    onClick = { showAuthorizeDialog = true },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = accentColor)
+                ) {
+                    Icon(Icons.Default.VpnKey, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Authorize Console", style = MaterialTheme.typography.caption)
+                }
+            }
+        }
+    }
+
+    // ── Authorize Dialog ──────────────────────────────────────────────────────
+    if (showAuthorizeDialog) {
+        AlertDialog(
+            onDismissRequest = { showAuthorizeDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = MaterialTheme.colors.primary)
+                    Text("Authorize HSM Console")
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        "Simulates custodian smart card insertion. In a real PayShield 10K, " +
+                        "this requires physical presence of authorized officers with their cards.",
+                        style = MaterialTheme.typography.body2,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                    )
+
+                    // Officer count
+                    Column {
+                        Text(
+                            "Number of Officers: $officerCount",
+                            style = MaterialTheme.typography.caption,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Slider(
+                            value = officerCount.toFloat(),
+                            onValueChange = { officerCount = it.toInt() },
+                            valueRange = 1f..3f,
+                            steps = 1
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            listOf("1 Officer", "2 Officers", "3 Officers").forEach {
+                                Text(it, style = MaterialTheme.typography.overline)
+                            }
+                        }
+                    }
+
+                    // Duration
+                    Column {
+                        Text(
+                            "Authorization Duration: $durationHours hours",
+                            style = MaterialTheme.typography.caption,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Slider(
+                            value = durationHours.toFloat(),
+                            onValueChange = { durationHours = it.toInt().coerceAtLeast(1) },
+                            valueRange = 1f..24f,
+                            steps = 22
+                        )
+                    }
+
+                    // Activities to authorize
+                    Surface(color = MaterialTheme.colors.primary.copy(alpha = 0.08f), shape = RoundedCornerShape(6.dp)) {
+                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Authorizing:", style = MaterialTheme.typography.caption, fontWeight = FontWeight.Bold)
+                            CONSOLE_ACTIVITIES.forEach { act ->
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null,
+                                        tint = MaterialTheme.colors.primary, modifier = Modifier.size(12.dp))
+                                    Text(act.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
+                                        style = MaterialTheme.typography.overline)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val officers = (1..officerCount).map { "SIM-OFFICER-$it" }
+                        hsm.authorizeConsole(
+                            activities = CONSOLE_ACTIVITIES,
+                            durationMs = durationHours * 60L * 60 * 1000,
+                            officerNames = officers
+                        )
+                        showAuthorizeDialog = false
+                    }
+                ) {
+                    Icon(Icons.Default.VpnKey, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Authorize")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAuthorizeDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -441,7 +653,7 @@ private suspend fun buildHsmCommand(
         "VR" -> "${header}VR"
         "VT" -> "${header}VT"
         "GK" -> "${header}GK"
-        "GC" -> "${header}GC"
+        "GC" -> buildGCCommand(header, params)
         "A0" -> buildA0Command(header, params)
         "FK" -> buildFKCommand(header, params)
         "LA" -> buildLACommand(header, params)
@@ -454,6 +666,223 @@ private suspend fun buildHsmCommand(
         "DG" -> buildDGCommand(header, params)
         else -> "${header}NC"
     }
+}
+
+/**
+ * Secure-command FK execution (direct, bypasses wire format).
+ * Shows: plain working key  +  key under LMK  +  KCV.
+ * The plain key is intentionally visible here because this is the HSM console
+ * (secure room, physical access required). On the host-command wire it is never exposed.
+ */
+private suspend fun executeFkDirect(
+    params: Map<String, String>,
+    hsm: HsmServiceImpl
+): String {
+    val numComponents = (params["numComponents"] ?: "2").toIntOrNull()?.coerceIn(2, 3) ?: 2
+    val keyType       = params["keyType"]  ?: "001"
+    val scheme        = params["scheme"]   ?: "U"
+
+    // Collect whichever component fields are filled in
+    val componentList = (1..numComponents).mapNotNull { i ->
+        params["component$i"]?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+    }
+
+    if (componentList.size < 2) {
+        return buildString {
+            appendLine("✗  Form Key failed")
+            appendLine()
+            appendLine("  Need at least 2 component values.")
+            appendLine("  Fill in component1, component2 (and optionally component3).")
+            appendLine("  Each component is a hex string — e.g. use the GC command output.")
+        }
+    }
+
+    val keyLabel = when (keyType) {
+        "000" -> "ZMK  (Zone Master Key)"
+        "001" -> "ZPK  (Zone PIN Key)"
+        "002" -> "TPK / PVK  (Terminal PIN / Verification Key)"
+        "003" -> "CVK  (Card Verification Key)"
+        "008" -> "TAK  (Terminal Authentication Key)"
+        "009" -> "ZAK / BDK  (Zone Auth / Base Derivation Key)"
+        "109" -> "ZEK  (Zone Encryption Key)"
+        "209" -> "BDK – DUKPT  (Base Derivation Key)"
+        else  -> "Key type $keyType"
+    }
+    val schemeLabel = when (scheme.uppercase()) {
+        "U" -> "Double-length 3DES  (16 bytes / 32 hex)"
+        "X" -> "Triple-length 3DES  (24 bytes / 48 hex)"
+        "T" -> "Single-length DES   (8 bytes  / 16 hex)"
+        else -> scheme
+    }
+
+    val data = hsm.formKeyFromComponents(keyType, scheme, componentList)
+
+    return buildString {
+        appendLine("╔════════════════════════════════════════════════════╗")
+        appendLine("║              FORM KEY FROM COMPONENTS              ║")
+        appendLine("╚════════════════════════════════════════════════════╝")
+        appendLine()
+        appendLine("  Key Type : $keyLabel")
+        appendLine("  Scheme   : $schemeLabel")
+        appendLine("  Input    : ${componentList.size} components XOR'd together")
+        appendLine()
+
+        if (data == null) {
+            appendLine("  ✗ HSM not started or not available.")
+        } else if (data.containsKey("error")) {
+            appendLine("  ✗ Error: ${data["error"]}")
+        } else {
+            val clearKey = data["clearKey"]     ?: "?"
+            val encKey   = data["encryptedKey"] ?: "?"
+            val kcv      = data["kcv"]          ?: "?"
+
+            appendLine("  ┌─── Components Used ────────────────────────────────┐")
+            componentList.forEachIndexed { i, comp ->
+                appendLine("  │  Component ${i + 1} : ${comp.chunked(8).joinToString(" ")}")
+            }
+            appendLine("  └──────────────────────────────────────────────────┘")
+            appendLine()
+            appendLine("  ════════════════════════════════════════════════════")
+            appendLine("   RESULT")
+            appendLine("  ════════════════════════════════════════════════════")
+            appendLine()
+            appendLine("  Plain Working Key (XOR result — console only):")
+            appendLine("    ${clearKey.chunked(8).joinToString(" ")}")
+            appendLine()
+            appendLine("  Key Under LMK (use this in transactions):")
+            appendLine("    ${encKey.chunked(8).joinToString(" ")}")
+            appendLine()
+            appendLine("  Key Check Value (KCV) : $kcv")
+            appendLine()
+            appendLine("  ✓ Key formed successfully.")
+            appendLine()
+            appendLine("  ─── IMPORTANT ───────────────────────────────────────")
+            appendLine("  • Distribute 'Key Under LMK' to terminals/hosts.")
+            appendLine("  • Verify KCV with each custodian before distributing.")
+            appendLine("  • The plain key above must NEVER leave the secure room.")
+        }
+    }
+}
+
+private fun buildGCCommand(header: String, params: Map<String, String>): String {
+    val keyType = params["keyType"] ?: "001"
+    val scheme   = params["scheme"]  ?: "U"
+    return "${header}GC$keyType$scheme"
+}
+
+/**
+ * Generates [numComponents] independent key components by calling the HSM directly
+ * (bypassing the wire protocol), then:
+ *  - Shows each component's clear value and its individual KCV
+ *  - XORs all clear components to derive the final working key
+ *  - Computes and shows the final key's KCV
+ */
+private suspend fun executeGcMultiple(
+    cmd: SecureCommand,
+    params: Map<String, String>,
+    hsm: HsmServiceImpl
+): String {
+    val n        = (params["numComponents"] ?: "2").toIntOrNull()?.coerceIn(2, 3) ?: 2
+    val keyType  = params["keyType"] ?: "001"
+    val scheme   = params["scheme"]  ?: "U"
+
+    val keyLabel = when (keyType) {
+        "000" -> "ZMK (Zone Master Key)"
+        "001" -> "ZPK (Zone PIN Key)"
+        "002" -> "TPK / PVK (Terminal PIN / Verification Key)"
+        "003" -> "CVK (Card Verification Key)"
+        "008" -> "TAK (Terminal Authentication Key)"
+        "009" -> "ZAK / BDK (Zone Auth / Base Derivation Key)"
+        "109" -> "ZEK (Zone Encryption Key)"
+        "209" -> "BDK – DUKPT (Base Derivation Key)"
+        else  -> "Key type $keyType"
+    }
+    val schemeLabel = when (scheme.uppercase()) {
+        "U" -> "Double-length 3DES  (16 bytes / 32 hex)"
+        "X" -> "Triple-length 3DES  (24 bytes / 48 hex)"
+        "T" -> "Single-length DES   (8 bytes  / 16 hex)"
+        else -> scheme
+    }
+
+    val sb = StringBuilder()
+    sb.appendLine("╔════════════════════════════════════════════════════╗")
+    sb.appendLine("║         KEY COMPONENT GENERATION REPORT            ║")
+    sb.appendLine("╚════════════════════════════════════════════════════╝")
+    sb.appendLine()
+    sb.appendLine("  Key Type  : $keyLabel")
+    sb.appendLine("  Scheme    : $schemeLabel")
+    sb.appendLine("  Components: $n")
+    sb.appendLine()
+
+    val clearComponents = mutableListOf<String>()
+    val encComponents   = mutableListOf<String>()
+    val kcvs            = mutableListOf<String>()
+    var allOk = true
+
+    for (i in 1..n) {
+        val data = hsm.generateKeyComponent(keyType, scheme)
+
+        sb.appendLine("  ┌─── Component $i of $n ─────────────────────────────────┐")
+        if (data == null) {
+            sb.appendLine("  │  ✗ HSM not started or authorization missing")
+            allOk = false
+        } else {
+            val clear = data["clearKey"] ?: ""
+            val enc   = data["encryptedKey"] ?: ""
+            val kcv   = data["kcv"] ?: "??????"
+            clearComponents += clear
+            encComponents   += enc
+            kcvs            += kcv
+            sb.appendLine("  │  Clear Component (share with custodian):")
+            sb.appendLine("  │    ${clear.chunked(8).joinToString(" ")}")
+            sb.appendLine("  │")
+            sb.appendLine("  │  Encrypted Component (under LMK):")
+            sb.appendLine("  │    ${enc.chunked(8).joinToString(" ")}")
+            sb.appendLine("  │")
+            sb.appendLine("  │  Component KCV : $kcv")
+        }
+        sb.appendLine("  └──────────────────────────────────────────────────┘")
+        sb.appendLine()
+    }
+
+    // ── Final Key (XOR of all clear components) ──────────────────────────────
+    if (allOk && clearComponents.size == n) {
+        sb.appendLine("  ════════════════════════════════════════════════════")
+        sb.appendLine("   FINAL KEY  (XOR of all $n components)")
+        sb.appendLine("  ════════════════════════════════════════════════════")
+
+        val finalKey = try { hsm.xorHexKeys(clearComponents) } catch (_: Exception) { "" }
+        val finalKcv = if (finalKey.isNotEmpty()) hsm.computeKeyKcv(finalKey) else "??????"
+
+        sb.appendLine()
+        sb.appendLine("  Final Working Key (clear):")
+        sb.appendLine("    ${finalKey.chunked(8).joinToString(" ")}")
+        sb.appendLine()
+        sb.appendLine("  Final Key KCV  : $finalKcv")
+        sb.appendLine()
+        sb.appendLine("  ─── Component KCV Summary ────────────────────────")
+        for ((idx, kcv) in kcvs.withIndex()) {
+            sb.appendLine("  Component ${idx + 1} KCV : $kcv  →  ${clearComponents[idx].take(8)}…")
+        }
+        sb.appendLine()
+        sb.appendLine("  ✓ All $n components generated successfully.")
+        sb.appendLine()
+        sb.appendLine("  ─── NEXT STEPS ───────────────────────────────────")
+        sb.appendLine("  • Each custodian receives their printed component.")
+        sb.appendLine("  • Verify each component KCV independently.")
+        sb.appendLine("  • Use command FK (Form Key) to load the working key.")
+        sb.appendLine()
+        sb.appendLine("  FK inputs:")
+        sb.appendLine("    numComponents = $n    keyType = $keyType    scheme = $scheme")
+        for ((idx, comp) in clearComponents.withIndex()) {
+            sb.appendLine("    component${idx + 1}   = $comp")
+            sb.appendLine("                (KCV: ${kcvs[idx]})")
+        }
+    } else if (!allOk) {
+        sb.appendLine("  ✗ One or more components failed — review errors above.")
+    }
+
+    return sb.toString()
 }
 
 private fun buildA0Command(header: String, params: Map<String, String>): String {
@@ -609,8 +1038,31 @@ val SECURE_COMMANDS = listOf(
     ),
     SecureCommand(
         code = "GC", name = "Generate Key Component", category = CommandCategory.KEY_GEN,
-        description = "Generates a random key component for the key ceremony",
-        wireFormat = "HEADGC [KEY_TYPE] [SCHEME] → HEADGD 00 [COMPONENT] [KCV]"
+        description = "Generates N random key components for the key ceremony. Each component is independent — XOR all with FK to form the working key.",
+        wireFormat = "HEAD GC [KEY_TYPE_3H] [SCHEME_1A] → HEAD GD 00 [COMPONENT_32H] [KCV_6H]  (executed N times)",
+        parameters = listOf(
+            CommandParam(
+                name = "numComponents",
+                description = "How many components to generate (2 or 3 custodians)",
+                placeholder = "2 or 3",
+                default = "2",
+                required = true
+            ),
+            CommandParam(
+                name = "keyType",
+                description = "Key type code (3 hex digits)",
+                placeholder = "001=ZPK  002=TPK  008=ZMK  009=BDK",
+                default = "001",
+                required = true
+            ),
+            CommandParam(
+                name = "scheme",
+                description = "Key scheme / length",
+                placeholder = "U=double-length TDES  X=triple-length  T=single",
+                default = "U",
+                required = true
+            )
+        )
     ),
     // Key Generation
     SecureCommand(

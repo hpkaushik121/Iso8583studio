@@ -14,6 +14,8 @@ import `in`.aicortex.iso8583studio.hsm.PinTranslationResponse
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.DukptKeyUsage
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.DukptProfile
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmCommandResult
+import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyLength
+import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyType
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.PinBlockFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -91,6 +93,55 @@ class PayShield10K(val config: HsmConfig,val hsmLogsListener: HsmLogsListener) :
         } catch (e: Exception) {
             println("Auto-load LMK failed: ${e.message}")
         }
+    }
+
+    /**
+     * Directly generate a single key component, bypassing wire format encoding.
+     * Returns the raw HsmCommandResult so the caller can access clearKey, encryptedKey and kcv.
+     */
+    suspend fun generateKeyComponentDirect(
+        keyTypeCode: String = "001",
+        scheme: String = "U"
+    ): HsmCommandResult {
+        val keyLength = when (scheme.uppercase()) {
+            "T" -> KeyLength.SINGLE
+            "X" -> KeyLength.TRIPLE
+            else -> KeyLength.DOUBLE
+        }
+        val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
+        return commands.executeGenerateKeyComponent(
+            lmkId = config.lmkId,
+            keyLength = keyLength,
+            keyType = keyType
+        )
+    }
+
+    /**
+     * Form a working key from N clear hex components, bypassing wire format.
+     * Returns the raw HsmCommandResult whose data map contains clearKey, encryptedKey and kcv.
+     */
+    suspend fun formKeyFromComponentsDirect(
+        keyTypeCode: String = "001",
+        scheme: String = "U",
+        componentHexList: List<String>
+    ): HsmCommandResult {
+        val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
+        val components = componentHexList.map { hex ->
+            hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        }
+        return commands.executeFormKeyFromComponents(
+            lmkId = config.lmkId,
+            keyType = keyType,
+            components = components
+        )
+    }
+
+    /** Calculate the KCV for an arbitrary clear key supplied as hex. */
+    fun calculateKcv(keyHex: String): String {
+        return try {
+            val bytes = payShield.hexToBytes(keyHex)
+            payShield.calculateKeyCheckValue(bytes)
+        } catch (_: Exception) { "??????" }
     }
 
     /**

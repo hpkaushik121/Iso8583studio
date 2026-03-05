@@ -308,28 +308,79 @@ class PayShieldStringCommandProcessor(
 
     /**
      * GC - Generate Key Component
-     * Command: 0000GC%[LMK_ID]
+     * Command: 0000GC[KEY_TYPE_3H][SCHEME_1A]%[LMK_ID]
      * Response: 0000GD00[Clear Component][Encrypted Component][KCV]
      */
     private suspend fun executeGC(cmd: ParsedCommand): HsmCommandResult {
+        val data = cmd.data
+        val keyTypeCode = if (data.length >= 3) data.substring(0, 3) else "001"
+        val scheme      = if (data.length >= 4) data[3].toString() else "U"
+        val keyLength   = when (scheme.uppercase()) {
+            "T" -> KeyLength.SINGLE
+            "X" -> KeyLength.TRIPLE
+            else -> KeyLength.DOUBLE
+        }
+        val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
         return commandProcessor.executeGenerateKeyComponent(
             lmkId = cmd.lmkId,
-            keyLength = KeyLength.DOUBLE,
-            keyType = KeyType.TYPE_000
+            keyLength = keyLength,
+            keyType = keyType
         )
     }
 
     /**
      * FK - Form Key from Components
-     * Command: 0000FK[KeyType][NumComps][Comp1][Comp2]...%[LMK_ID]
-     * Response: 0000FL00[Encrypted Key][KCV]
+     * Command: 0000FK[NUM_COMP_1N][KEY_TYPE_3H][SCHEME_1A][LMK_SCHEME_1A][COMP1][COMP2][COMP3?]
+     * Response: 0000FL 00 [Encrypted Key][KCV_6H]
+     *
+     * SCHEME governs component length:
+     *   T → 16 hex (single-length DES)
+     *   U → 32 hex (double-length 3DES)  ← default
+     *   X → 48 hex (triple-length 3DES)
      */
     private suspend fun executeFK(cmd: ParsedCommand): HsmCommandResult {
-        // Parse key type and components from data
-        val keyType = KeyType.TYPE_000
-        val components = listOf(
-            ByteArray(16).also { SecureRandom().nextBytes(it) }
-        )
+        val data = cmd.data
+        var pos = 0
+
+        // Number of components (1 digit)
+        val numComponents = data.getOrNull(pos)?.digitToIntOrNull() ?: 2
+        pos++
+
+        // Key type code (3 hex chars, e.g. "001")
+        val keyTypeCode = if (data.length >= pos + 3) data.substring(pos, pos + 3) else "001"
+        pos += 3
+
+        // Scheme (1 char)
+        val scheme = if (data.length > pos) data[pos].toString().uppercase() else "U"
+        pos++
+
+        // LMK scheme flag (1 char, skip – variant LMK assumed)
+        if (data.length > pos) pos++
+
+        // Component hex length depends on scheme
+        val compHexLen = when (scheme) {
+            "T" -> 16
+            "X" -> 48
+            else -> 32   // "U" and everything else → double-length
+        }
+
+        val components = mutableListOf<ByteArray>()
+        repeat(numComponents) {
+            if (pos + compHexLen <= data.length) {
+                val hex = data.substring(pos, pos + compHexLen)
+                pos += compHexLen
+                components.add(hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
+            }
+        }
+
+        if (components.size < 2) {
+            return HsmCommandResult.Error(
+                "15",
+                "FK needs at least 2 components; only ${components.size} found in command data"
+            )
+        }
+
+        val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
 
         return commandProcessor.executeFormKeyFromComponents(
             lmkId = cmd.lmkId,
