@@ -28,15 +28,23 @@ class NavigationController(private val navigator: Navigator) {
     }
 
     /**
-     * Navigates to a new screen by pushing it onto the Voyager stack.
+     * Navigates to a screen safely:
+     *   1. Already at top   → no-op (avoids redundant recomposition)
+     *   2. Exists in stack  → pop back to it  (prevents duplicate-key crash when the same
+     *                         singleton Screen object, e.g. Destination.Home, appears twice)
+     *   3. Not in stack     → push normally
      *
-     * @param screen The AppScreen object representing the destination.
+     * Voyager's SaveableStateHolder keys screens by their [Screen.key], which is the
+     * fully-qualified class name for `object` screens.  Pushing the same object twice
+     * creates two SaveableStateProviders with identical keys, causing:
+     *   "IllegalArgumentException: Key … was used multiple times"
      */
     fun navigateTo(screen: Screen) {
-        if(currentScreen.value == screen){
-            return
+        when {
+            navigator.lastItem == screen        -> return
+            navigator.items.contains(screen)    -> navigator.popUntil { it == screen }
+            else                                -> navigator.push(screen)
         }
-        navigator.push(screen)
     }
 
     /**

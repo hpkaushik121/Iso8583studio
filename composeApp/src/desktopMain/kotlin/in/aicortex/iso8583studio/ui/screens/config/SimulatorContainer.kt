@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Terminal
@@ -59,6 +60,7 @@ import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.UnderDevelopmentChip
+import `in`.aicortex.iso8583studio.ui.session.SimulatorSessionManager
 import java.awt.Cursor
 
 data class ConfigTab(
@@ -291,11 +293,22 @@ fun SimulatorConfigLayout(
                         }
 
                         // Launch Simulator section
-                        if (config.currentConfig() != null) {
+                        val currentCfg = config.currentConfig()
+                        if (currentCfg != null) {
+                            // Check live whether this config already has a running session
+                            val sessions = SimulatorSessionManager.sessions
+                            val existingSession = sessions.find { it.config.id == currentCfg.id }
+                            val isAlreadyRunning = existingSession != null
+
+                            val cardBg = if (isAlreadyRunning)
+                                Color(0xFF388E3C)   // green — already running
+                            else
+                                MaterialTheme.colors.secondary
+
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 elevation = 2.dp,
-                                backgroundColor = MaterialTheme.colors.secondary,
+                                backgroundColor = cardBg,
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Column(
@@ -307,13 +320,13 @@ fun SimulatorConfigLayout(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Launch",
+                                            imageVector = if (isAlreadyRunning) Icons.Default.CheckCircle else Icons.Default.PlayArrow,
+                                            contentDescription = null,
                                             modifier = Modifier.size(20.dp),
                                             tint = Color.White
                                         )
                                         Text(
-                                            "Ready to Launch",
+                                            if (isAlreadyRunning) "Already Running" else "Ready to Launch",
                                             style = MaterialTheme.typography.subtitle2,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White
@@ -321,29 +334,57 @@ fun SimulatorConfigLayout(
                                     }
 
                                     Text(
-                                        "Configuration: ${config.currentConfig()?.name}",
+                                        "Configuration: ${currentCfg.name}",
                                         style = MaterialTheme.typography.caption,
                                         color = Color.White.copy(alpha = 0.9f)
                                     )
 
-                                    Button(
-                                        onClick = { config.currentConfig()?.let { onLaunchSimulator(it) } },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.buttonColors(
-                                            backgroundColor = Color.White,
-                                            contentColor = MaterialTheme.colors.secondary
-                                        )
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Terminal,
-                                            contentDescription = "Launch Simulator",
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            "Launch ${config.label}",
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                    if (isAlreadyRunning) {
+                                        // Switch to the existing tab without launching again
+                                        Button(
+                                            onClick = {
+                                                existingSession?.let {
+                                                    SimulatorSessionManager.activateSession(it.id)
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                backgroundColor = Color.White,
+                                                contentColor = Color(0xFF388E3C)
+                                            )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Layers,
+                                                contentDescription = "Switch to Tab",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                "Switch to Running Tab",
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    } else {
+                                        // Launch fresh session
+                                        Button(
+                                            onClick = { onLaunchSimulator(currentCfg) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                backgroundColor = Color.White,
+                                                contentColor = MaterialTheme.colors.secondary
+                                            )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Terminal,
+                                                contentDescription = "Launch Simulator",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                "Launch ${config.label}",
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
                                 }
                             }

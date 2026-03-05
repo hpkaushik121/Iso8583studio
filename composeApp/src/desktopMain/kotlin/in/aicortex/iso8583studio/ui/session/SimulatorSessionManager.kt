@@ -94,8 +94,16 @@ object SimulatorSessionManager {
      * @return The session ID of the launched (or existing) session
      */
     fun launchSimulator(config: SimulatorConfig): String {
-        // Check for existing session with same config
-        val existing = sessions.find { it.config.id == config.id }
+        // Guard: never create a duplicate session for the same config.
+        // Match by config ID (exact) OR by simulatorType + config name as a fallback,
+        // so even if the config object was re-created with the same logical identity
+        // we reuse the existing tab instead of crashing.
+        val existing = sessions.find { session ->
+            session.config.id == config.id ||
+            (session.simulatorType == config.simulatorType &&
+             session.config.name == config.name &&
+             session.simulatorType != SimulatorType.TOOL)
+        }
         if (existing != null) {
             activeSessionId.value = existing.id
             return existing.id

@@ -13,6 +13,7 @@ import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -361,13 +362,30 @@ private fun SessionContent(
         }
 
         SimulatorType.TOOL -> {
-            // Render the tool's Voyager Screen in an isolated local navigator.
-            // The X button on the tab closes this session; back navigation within the tool
-            // uses the local navigator stack.
+            // IMPORTANT: Wrap the nested Navigator in an isolated SaveableStateHolder scope.
+            //
+            // Problem: Voyager's CurrentScreen() calls navigator.saveableState("currentScreen", screen)
+            // which calls SaveableStateHolder.SaveableStateProvider("${screen.key}:currentScreen").
+            // Both the root Navigator and this nested Navigator share the SAME outer
+            // LocalSaveableStateRegistry (they're in the same Compose tree). If both navigators
+            // show the same Destination.* screen simultaneously (e.g. Destination.Home — which
+            // happens when the user clicks "Launch Simulator" from a config-screen tool tab,
+            // pushing Home onto the local navigator while the root also shows Home), BOTH try
+            // to register "Destination.Home:currentScreen" in the SAME parent registry → crash:
+            //   "Key …Destination.Home:currentScreen was used multiple times"
+            //
+            // Fix: wrap the nested Navigator in SaveableStateHolder.SaveableStateProvider(session.id).
+            // Inside this scope, LocalSaveableStateRegistry.current is an INNER registry managed
+            // by the holder, completely separate from the outer one. The nested Navigator's own
+            // SaveableStateHolderImpl is created with this inner registry as parent, so all its
+            // SaveableStateProvider keys live in a completely isolated namespace.
             val screen = session.toolScreen
             if (screen != null) {
-                Navigator(screen = screen) { localNavigator ->
-                    CurrentScreen()
+                val toolStateHolder = rememberSaveableStateHolder()
+                toolStateHolder.SaveableStateProvider(key = session.id) {
+                    Navigator(screen = screen) {
+                        CurrentScreen()
+                    }
                 }
             } else {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
