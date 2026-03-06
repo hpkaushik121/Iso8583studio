@@ -9,6 +9,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -144,57 +145,62 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
             }
         }
         val scope = rememberCoroutineScope();
+
+        // All tabs are kept alive in the composition tree to preserve their state on switch.
+        // Only the selected tab is visible; others are collapsed to 0dp and clipped.
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            when (tabList[selectedTabIndex]) {
-                HsmSimulatorTabs.HANDLER -> SimulatorHandlerTab(
-                    simulator = hsm,
-                    isStarted = hsmState.value.started,
-                    onStartStopClick = {
-                        if(hsmState.value.started){
-                            scope.launch {
-                                hsm.stop()
-                            }
-                        }else{
-                           scope.launch {
-                               hsm.start()
-                           }
-                        }
-                    },
-                    onClearClick = {
-                        rawRequest = ""
-                        formattedRequest = ""
-                        rawResponse = ""
-                        formattedResponse = ""
-                    },
-                    transactionCount = "0",
-                    isHoldMessage = false,
-                    onHoldMessageChange = { },
-                    holdMessageTime = "0",
-                    onHoldMessageTimeChange = {},
-                    waitingRemain = "0",
-                    onSendClick = {
+            tabList.forEachIndexed { index, tab ->
+                val isVisible = selectedTabIndex == index
+                val tabModifier = if (isVisible)
+                    Modifier.fillMaxSize()
+                else
+                    Modifier.requiredSize(0.dp).clipToBounds()
 
-                    },
-                    request = formattedRequest,
-                    rawRequest = rawRequest,
-                    response = formattedResponse,
-                    rawResponse = rawResponse,
-                    connectedClients = hsmState.value.activeClients.size
-                    )
+                Box(modifier = tabModifier) {
+                    when (tab) {
+                        HsmSimulatorTabs.HANDLER -> SimulatorHandlerTab(
+                            simulator = hsm,
+                            isStarted = hsmState.value.started,
+                            onStartStopClick = {
+                                if (hsmState.value.started) {
+                                    scope.launch { hsm.stop() }
+                                } else {
+                                    scope.launch { hsm.start() }
+                                }
+                            },
+                            onClearClick = {
+                                rawRequest = ""
+                                formattedRequest = ""
+                                rawResponse = ""
+                                formattedResponse = ""
+                            },
+                            transactionCount = "0",
+                            isHoldMessage = false,
+                            onHoldMessageChange = {},
+                            holdMessageTime = "0",
+                            onHoldMessageTimeChange = {},
+                            waitingRemain = "0",
+                            onSendClick = {},
+                            request = formattedRequest,
+                            rawRequest = rawRequest,
+                            response = formattedResponse,
+                            rawResponse = rawResponse,
+                            connectedClients = hsmState.value.activeClients.size
+                        )
 
-                HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsm = hsm)
-                HsmSimulatorTabs.HOST_COMMANDS -> HsmHostCommandsTab(hsm = hsm)
-                HsmSimulatorTabs.SECURE_COMMANDS -> HsmSecureCommandsTab(hsm = hsm)
-                HsmSimulatorTabs.LOGS -> LogTab(
-                    logEntries = hsmState.value.rawRequest,
-                    onClearClick = { hsm.clearLogs() },
-                    connectionCount = 0,
-                    bytesIncoming = 0L,
-                    bytesOutgoing = 0L,
-                    concurrentConnections = 0
-                )
-
-
+                        HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsm = hsm)
+                        HsmSimulatorTabs.HOST_COMMANDS  -> HsmHostCommandsTab(hsm = hsm)
+                        HsmSimulatorTabs.SECURE_COMMANDS -> HsmSecureCommandsTab(hsm = hsm)
+                        HsmSimulatorTabs.LOGS -> LogTab(
+                            logEntries = hsmState.value.rawRequest,
+                            onClearClick = { hsm.clearLogs() },
+                            connectionCount = 0,
+                            bytesIncoming = 0L,
+                            bytesOutgoing = 0L,
+                            concurrentConnections = 0
+                        )
+                    }
+                }
             }
         }
     }

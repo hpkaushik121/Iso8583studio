@@ -572,28 +572,35 @@ class HsmServiceImpl(
     }
 
     override fun onSentToSource(data: String?) {
+        val raw = data ?: "NULL"
+        // Derive the response command code (bytes 7-8: header=4 + resp-cmd=2)
+        val cmdCode = if (raw.length >= 8) raw.substring(6, 8) else "??"
+        val errCode = if (raw.length >= 10) raw.substring(8, 10) else "??"
+        val logType = if (errCode == "00") LogType.HSM else LogType.ERROR
         writeLog(
             createLogEntry(
-                type = LogType.HSM,
-                message = data ?: "NULL"
+                type = logType,
+                message = "◄ [TCP] RSP $cmdCode  rc=$errCode  ←  $raw"
             )
         )
         sentToSource(data)
     }
 
-    override fun onReceivedFormSource(data: String?,hsmClient : HsmClient?) {
+    override fun onReceivedFormSource(data: String?, hsmClient: HsmClient?) {
+        val raw = data ?: "NULL"
+        // Command code starts at position 4 (after 4-char header)
+        val cmdCode = if (raw.length >= 6) raw.substring(4, 6) else "??"
         writeLog(
             createLogEntry(
                 type = LogType.INFO,
-                message = data ?: "NULL"
+                message = "► [TCP] CMD $cmdCode  →  $raw"
             )
         )
         CoroutineScope(Dispatchers.IO).launch {
             receivedFromSource(data)
-            val response = activeHsm?.getProcessor()?.processCommand(data!!)
+            val response = activeHsm?.getProcessor()?.processCommand(raw)
             hsmClient?.send(response)
         }
-
     }
 
     override fun onAuditLog(auditLog: AuditEntry) {
