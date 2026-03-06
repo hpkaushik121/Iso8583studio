@@ -180,6 +180,7 @@ fun ISO8583SettingsScreen(
             onExportClick = { showExportDialog = true },
             onImportClick = { showImportDialog = true },
             onSaveClick = {
+                stageTransactions()
                 onSaveClick()
             },
             onToggle = {
@@ -239,6 +240,7 @@ fun ISO8583SettingsScreen(
                     }
                     stageTransactions()
                 },
+                onFieldValueChanged = { stageTransactions() },
                 fieldChangeCounter = fieldChangeCounter // FIX 4: Pass counter to force recomposition
             )
         }
@@ -793,6 +795,7 @@ private fun EnhancedFieldPanel(
     onTabChange: (Int) -> Unit,
     gw: GatewayConfig,
     onTransactionUpdated: (Transaction, Boolean) -> Unit,
+    onFieldValueChanged: () -> Unit = {},
     fieldChangeCounter: Int = 0 // FIX 6: Add field change counter parameter
 ) {
     Card(
@@ -835,6 +838,7 @@ private fun EnhancedFieldPanel(
                             transaction = selectedTransaction,
                             gw = gw,
                             onTransactionUpdated = { onTransactionUpdated(it,true)},
+                            onFieldValueChanged = onFieldValueChanged,
                             fieldChangeCounter = fieldChangeCounter // FIX 8: Pass counter down
                         )
 
@@ -858,6 +862,7 @@ private fun FieldsTab(
     transaction: Transaction,
     gw: GatewayConfig,
     onTransactionUpdated: (Transaction) -> Unit,
+    onFieldValueChanged: () -> Unit = {},
     fieldChangeCounter: Int = 0 // FIX 10: Add field change counter
 ) {
     // FIX 11: Create computed properties that depend on field change counter
@@ -938,7 +943,7 @@ private fun FieldsTab(
                                 val updatedFields =
                                     transaction.fields?.toMutableList() ?: mutableListOf()
                                 updatedFields[index].updateBit(newValue)
-//                                onTransactionUpdated(transaction.copy(fields = updatedFields))
+                                onFieldValueChanged()
                             },
                             onRemove = {
                                 val updatedFields =
