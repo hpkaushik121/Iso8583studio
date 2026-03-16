@@ -298,17 +298,20 @@ private fun OverviewSection(
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Statistics Cards
-        StatisticsRow(slotManager = hsm!!.getFeatures().getSlotManager())
+        hsm?.let {
+            // Statistics Cards
+            StatisticsRow(slotManager = hsm!!.getFeatures().getSlotManager())
 
-        // LMK Slots Grid
-        LmkSlotsGrid(
-            slotManager = hsm!!.getFeatures().getSlotManager(),
-            onSlotClick = onSlotClick
-        )
+            // LMK Slots Grid
+            LmkSlotsGrid(
+                slotManager = hsm!!.getFeatures().getSlotManager(),
+                onSlotClick = onSlotClick
+            )
 
-        // Quick Actions
-        QuickActionsCard()
+        }
+//
+//        // Quick Actions
+//        QuickActionsCard()
     }
 }
 

@@ -34,9 +34,12 @@ fun HsmSimulatorConfigScreen(
             label = "Network",
             content = {
                 val config = appState.currentConfig(SimulatorType.HSM) as HSMSimulatorConfig
-                NetworkConfigTab(networkConfig = config.network) {
-                    appState.updateConfig(config.copy(network = it))
-                }
+                NetworkConfigTab(
+                    networkConfig = config.network,
+                    hsmConfig = config.hsmConfig,
+                    onConfigUpdated = { appState.updateConfig(config.copy(network = it)) },
+                    onHsmConfigUpdated = { appState.updateConfig(config.copy(hsmConfig = it)) }
+                )
             }
         ),
         ConfigTab(

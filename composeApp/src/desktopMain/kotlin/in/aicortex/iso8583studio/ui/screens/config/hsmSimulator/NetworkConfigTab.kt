@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.hsm.HsmConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.CertificateType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.CompressionType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ConnectionType
@@ -37,13 +38,20 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.WebSocketConfi
 @Composable
 fun NetworkConfigTab(
     networkConfig: NetworkConfig,
-    onConfigUpdated: (NetworkConfig) -> Unit
+    hsmConfig: HsmConfig = HsmConfig(),
+    onConfigUpdated: (NetworkConfig) -> Unit,
+    onHsmConfigUpdated: (HsmConfig) -> Unit = {}
 ) {
     var currentConfig by remember { mutableStateOf(networkConfig) }
+    var currentHsmConfig by remember { mutableStateOf(hsmConfig) }
     val scrollState = rememberScrollState()
 
     LaunchedEffect(currentConfig) {
         onConfigUpdated(currentConfig)
+    }
+
+    LaunchedEffect(currentHsmConfig) {
+        onHsmConfigUpdated(currentHsmConfig)
     }
 
     Column(
@@ -70,7 +78,9 @@ fun NetworkConfigTab(
                     ConnectionType.TCP_IP -> {
                         TCPIPConfiguration(
                             config = currentConfig,
-                            onConfigChanged = { currentConfig = it }
+                            hsmConfig = currentHsmConfig,
+                            onConfigChanged = { currentConfig = it },
+                            onHsmConfigChanged = { currentHsmConfig = it }
                         )
                     }
                     ConnectionType.SERIAL -> {
@@ -256,7 +266,9 @@ private fun ConnectionTypeCard(
 @Composable
 private fun TCPIPConfiguration(
     config: NetworkConfig,
-    onConfigChanged: (NetworkConfig) -> Unit
+    hsmConfig: HsmConfig,
+    onConfigChanged: (NetworkConfig) -> Unit,
+    onHsmConfigChanged: (HsmConfig) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
@@ -301,6 +313,72 @@ private fun TCPIPConfiguration(
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
                 Icon(Icons.Default.NetworkWifi, null, modifier = Modifier.size(20.dp))
+            }
+        )
+
+        Divider(modifier = Modifier.padding(vertical = 4.dp))
+
+        Text(
+            "PayShield Protocol Settings",
+            style = MaterialTheme.typography.subtitle2,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Straighten,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colors.primary
+                )
+                Column {
+                    Text(
+                        "TCP/IP Length Header",
+                        style = MaterialTheme.typography.body2,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "2-byte big-endian message length prefix",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+            Switch(
+                checked = hsmConfig.tcpLengthHeaderEnabled,
+                onCheckedChange = {
+                    onHsmConfigChanged(hsmConfig.copy(tcpLengthHeaderEnabled = it))
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colors.primary
+                )
+            )
+        }
+
+        OutlinedTextField(
+            value = hsmConfig.messageHeaderLength.toString(),
+            onValueChange = {
+                it.toIntOrNull()?.let { len ->
+                    if (len in 0..12) {
+                        onHsmConfigChanged(hsmConfig.copy(messageHeaderLength = len))
+                    }
+                }
+            },
+            label = { Text("Message Header Length") },
+            placeholder = { Text("4") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            leadingIcon = {
+                Icon(Icons.Default.TextFields, null, modifier = Modifier.size(20.dp))
             }
         )
     }

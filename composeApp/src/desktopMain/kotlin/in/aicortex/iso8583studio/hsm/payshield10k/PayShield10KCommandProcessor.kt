@@ -34,8 +34,6 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
-import org.jetbrains.exposed.v1.datetime.dateParam
-import java.nio.ByteBuffer
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
@@ -511,6 +509,128 @@ class PayShield10KCommandProcessor(
     }
 
     // ====================================================================================================
+    // KSN DESCRIPTOR PARSING & COUNTER EXTRACTION
+    // ====================================================================================================
+
+    companion object {
+        /**
+         * Parse a 3-char KSN Descriptor (Thales format "XYZ") and return the counter
+         * bit-width for the given KSN length.
+         *
+         * X  = BDK/Key Set Identifier length (hex chars)
+         * YZ = Device Identifier length (hex chars, two-digit decimal)
+         * Counter hex chars = totalKsnHexChars − X − YZ
+         * Counter bits      = counterHexChars × 4
+         *
+         * @param descriptor  3-character KSN descriptor, e.g. "609", "605", "A05".
+         *                    Each character is a single hex digit:
+         *                    [0] = BDK identifier length (hex chars)
+         *                    [1] = Sub-key identifier length (hex chars)
+         *                    [2] = Device identifier length (hex chars)
+         * @param ksnHexLen   total KSN length in hex characters (default 20 for 10-byte KSN)
+         * @return number of counter bits
+         */
+        fun parseKsnDescriptorCounterBits(descriptor: String, ksnHexLen: Int = 20): Int {
+            if (descriptor.length != 3) return 21
+            val bdkIdLen = descriptor[0].digitToIntOrNull(16) ?: return 21
+            val subKeyIdLen = descriptor[1].digitToIntOrNull(16) ?: return 21
+            val deviceIdLen = descriptor[2].digitToIntOrNull(16) ?: return 21
+            val counterHexChars = ksnHexLen - bdkIdLen - subKeyIdLen - deviceIdLen
+            return if (counterHexChars in 1..20) counterHexChars * 4 else 21
+        }
+
+        /**
+         * Extract the DUKPT transaction counter from the KSN byte array using
+         * the specified counter bit-width.
+         *
+         * The counter occupies the rightmost [counterBits] bits of the KSN.
+         */
+        fun extractDukptCounter(ksnBytes: ByteArray, counterBits: Int = 21): Int {
+            var counter = 0
+            for (bit in 0 until counterBits) {
+                val byteIdx = ksnBytes.size - 1 - bit / 8
+                val bitInByte = bit % 8
+                if (byteIdx in ksnBytes.indices &&
+                    (ksnBytes[byteIdx].toInt() and (1 shl bitInByte)) != 0
+                ) {
+                    counter = counter or (1 shl bit)
+                }
+            }
+            return counter
+        }
+
+        /**
+         * Zero the counter bits (rightmost [counterBits]) of the 8-byte IKSN
+         * used for IPEK derivation.
+         */
+        fun zeroIksnCounterBits(iksn: ByteArray, counterBits: Int = 21) {
+            for (bit in 0 until counterBits) {
+                val byteIdx = iksn.size - 1 - bit / 8
+                val bitInByte = bit % 8
+                if (byteIdx in iksn.indices) {
+                    iksn[byteIdx] = (iksn[byteIdx].toInt() and (1 shl bitInByte).inv()).toByte()
+                }
+            }
+        }
+
+        /**
+         * Derive DUKPT Initial Key (IPEK) from BDK and KSN using ANSI X9.24 algorithm.
+         *
+         * 1. Extract IKSN = KSN with counter bits zeroed (on full KSN), then take first 8 bytes
+         * 2. Left half  = TDES_ECB_encrypt(IKSN, BDK)
+         * 3. Right half = TDES_ECB_encrypt(IKSN, BDK XOR C0C0C0C000000000C0C0C0C000000000)
+         */
+        fun deriveInitialKey(bdk: ByteArray, ksn: String, counterBits: Int = 21): ByteArray {
+            val ksnBytes = IsoUtil.hexToBytes(ksn)
+            val fullKsn = ksnBytes.copyOf()
+            zeroIksnCounterBits(fullKsn, counterBits)
+            val iksn = ByteArray(8)
+            fullKsn.copyInto(iksn, 0, 0, minOf(fullKsn.size, 8))
+
+            val bdkKey = if (bdk.size == 16) {
+                val expanded = ByteArray(24)
+                bdk.copyInto(expanded, 0, 0, 16)
+                bdk.copyInto(expanded, 16, 0, 8)
+                expanded
+            } else {
+                bdk.copyOf(24)
+            }
+
+            val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+
+            val keySpec = SecretKeySpec(bdkKey, "DESede")
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec)
+            val leftHalf = cipher.doFinal(iksn)
+
+            val bdkXor = bdk.copyOf()
+            val mask = byteArrayOf(
+                0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
+                0x00, 0x00, 0x00, 0x00,
+                0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
+                0x00, 0x00, 0x00, 0x00
+            )
+            for (i in bdkXor.indices) {
+                if (i < mask.size) {
+                    bdkXor[i] = (bdkXor[i].toInt() xor mask[i].toInt()).toByte()
+                }
+            }
+            val bdkXorKey = if (bdkXor.size == 16) {
+                val expanded = ByteArray(24)
+                bdkXor.copyInto(expanded, 0, 0, 16)
+                bdkXor.copyInto(expanded, 16, 0, 8)
+                expanded
+            } else {
+                bdkXor.copyOf(24)
+            }
+            val keySpecXor = SecretKeySpec(bdkXorKey, "DESede")
+            cipher.init(Cipher.ENCRYPT_MODE, keySpecXor)
+            val rightHalf = cipher.doFinal(iksn)
+
+            return leftHalf.copyOf(8) + rightHalf.copyOf(8)
+        }
+    }
+
+    // ====================================================================================================
     // DUKPT IMPLEMENTATION
     // ====================================================================================================
 
@@ -549,64 +669,53 @@ class PayShield10KCommandProcessor(
         return bdkId + deviceId + counter + "00000"
     }
 
-    /**
-     * Derive IKSN key from BDK
-     */
-    private fun deriveIksnKey(bdk: ByteArray, iksn: ByteArray): ByteArray {
-        // ANSI X9.24 key derivation
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-
-        // Derive left half
-        val ksnLeft = iksn.copyOf(8)
-        ksnLeft[7] = (ksnLeft[7].toInt() xor 0xC0).toByte()
-        val keySpec = SecretKeySpec(bdk.copyOf(16), "DESede")
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec)
-        val leftHalf = cipher.doFinal(ksnLeft)
-
-        // Derive right half
-        val ksnRight = iksn.copyOf(8)
-        ksnRight[7] = (ksnRight[7].toInt() xor 0xFF).toByte()
-        val rightHalf = cipher.doFinal(ksnRight)
-
-        return leftHalf + rightHalf.copyOf(8)
-    }
+    // ====================================================================================================
+    // ANSI X9.24 DUKPT Key Derivation
+    // ====================================================================================================
 
     /**
-     * Derive DUKPT session key for current transaction
+     * Derive DUKPT session key for current transaction from a DukptProfile.
      */
     fun deriveDukptSessionKey(
         profile: DukptProfile,
         usageType: DukptKeyUsage = DukptKeyUsage.PIN_ENCRYPTION
     ): ByteArray {
         val counter = profile.currentCounter
-
-        // Update KSN with current counter
         val ksn = updateKsnWithCounter(profile.keySerialNumber, counter)
-
-        // Perform DUKPT derivation
-        val futureKey = performDukptDerivation(profile.initialKey, ksn)
-
-        // Derive specific key variant for usage
+        val ksnBytes = hexToBytes(ksn)
+        val counterBits = profile.counterBits
+        val counterInt = extractDukptCounter(ksnBytes, counterBits)
+        val futureKey = deriveDukptSessionKey(profile.initialKey, ksn, counterInt, counterBits)
         return deriveVariantKey(futureKey, usageType)
     }
 
     /**
-     * Full DUKPT key derivation (ANSI X9.24)
+     * ANSI X9.24 DUKPT session key derivation from IPEK, KSN, and counter.
+     *
+     * Performs bit-by-bit derivation: for each set bit in the counter
+     * (from MSB to LSB), applies one Non-Reversible Key Generation step.
+     * The "crypto register" input to each step is the right 8 bytes of
+     * a running KSN whose counter bits are progressively set.
+     *
+     * @param counterBits width of the counter field as determined by the KSN descriptor
      */
-    private fun performDukptDerivation(initialKey: ByteArray, ksn: String): ByteArray {
-        val ksnBytes = simulator.hexToBytes(ksn)
+    fun deriveDukptSessionKey(initialKey: ByteArray, ksn: String, counter: Int, counterBits: Int = 21): ByteArray {
+        val ksnBytes = hexToBytes(ksn)
         var currentKey = initialKey.copyOf()
 
-        // Extract transaction counter (21 bits)
-        val counterBytes = ksnBytes.copyOfRange(7, 10)
-        val counter = ((counterBytes[0].toInt() and 0x1F) shl 16) or
-                ((counterBytes[1].toInt() and 0xFF) shl 8) or
-                (counterBytes[2].toInt() and 0xFF)
+        val runningKsn = ksnBytes.copyOf()
+        zeroIksnCounterBits(runningKsn, counterBits)
 
-        // Derive key based on counter (bit-by-bit derivation)
-        for (shiftReg in 20 downTo 0) {
+        for (shiftReg in (counterBits - 1) downTo 0) {
             if ((counter shr shiftReg) and 1 == 1) {
-                currentKey = deriveKeyStep(currentKey, ksnBytes, shiftReg)
+                val byteIdx = runningKsn.size - 1 - shiftReg / 8
+                val bitInByte = shiftReg % 8
+                if (byteIdx in runningKsn.indices) {
+                    runningKsn[byteIdx] = (runningKsn[byteIdx].toInt() or (1 shl bitInByte)).toByte()
+                }
+
+                val cryptoReg = runningKsn.copyOfRange(2, 10)
+                currentKey = nonReversibleKeyGen(currentKey, cryptoReg)
             }
         }
 
@@ -614,59 +723,81 @@ class PayShield10KCommandProcessor(
     }
 
     /**
-     * Single DUKPT derivation step
+     * ANSI X9.24 Non-Reversible Key Generation Process (NRKGP).
+     *
+     * Produces a new 16-byte key from a 16-byte current key and 8-byte data.
+     * Uses single DES (not 3DES) internally.
+     *
+     * Right half of new key:
+     *   r1 = data XOR key_right
+     *   r2 = DES_encrypt(r1, key_left)
+     *   new_right = r2 XOR key_right
+     *
+     * Left half of new key:
+     *   masked_key = key XOR C0C0C0C000000000_C0C0C0C000000000
+     *   l1 = data XOR masked_key_right
+     *   l2 = DES_encrypt(l1, masked_key_left)
+     *   new_left = l2 XOR masked_key_right
      */
-    private fun deriveKeyStep(key: ByteArray, ksn: ByteArray, shiftRegister: Int): ByteArray {
-        // Create crypto register from KSN
-        val cryptoReg = ksn.copyOf(8)
-        cryptoReg[7] = (cryptoReg[7].toInt() and 0xE0).toByte()
-        cryptoReg[7] = (cryptoReg[7].toInt() or (shiftRegister and 0x1F)).toByte()
+    private fun nonReversibleKeyGen(key: ByteArray, data: ByteArray): ByteArray {
+        val keyLeft = key.copyOfRange(0, 8)
+        val keyRight = key.copyOfRange(8, 16)
 
-        // XOR with mask
-        val mask = createDerivationMask(shiftRegister)
-        val xored = key.zip(mask) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
+        val desCipher = Cipher.getInstance("DES/ECB/NoPadding")
 
-        // Encrypt
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        val keySpec = SecretKeySpec(key.copyOf(16), "DESede")
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec)
-        return cipher.doFinal(xored.copyOf(16))
+        // ── Right half ──
+        val r1 = ByteArray(8) { i -> (data[i].toInt() xor keyRight[i].toInt()).toByte() }
+        desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyLeft, "DES"))
+        val r2 = desCipher.doFinal(r1)
+        val newRight = ByteArray(8) { i -> (r2[i].toInt() xor keyRight[i].toInt()).toByte() }
+
+        // ── Left half (key XORed with C0C0C0C0_00000000 mask) ──
+        val c0mask = byteArrayOf(
+            0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
+            0x00, 0x00, 0x00, 0x00
+        )
+        val maskedLeft = ByteArray(8) { i -> (keyLeft[i].toInt() xor c0mask[i].toInt()).toByte() }
+        val maskedRight = ByteArray(8) { i -> (keyRight[i].toInt() xor c0mask[i].toInt()).toByte() }
+
+        val l1 = ByteArray(8) { i -> (data[i].toInt() xor maskedRight[i].toInt()).toByte() }
+        desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(maskedLeft, "DES"))
+        val l2 = desCipher.doFinal(l1)
+        val newLeft = ByteArray(8) { i -> (l2[i].toInt() xor maskedRight[i].toInt()).toByte() }
+
+        return newLeft + newRight
     }
 
     /**
-     * Create derivation mask for DUKPT
-     */
-    private fun createDerivationMask(shiftRegister: Int): ByteArray {
-        val maskValue = (1L shl (shiftRegister + 21)).toLong()
-        return ByteBuffer.allocate(16).putLong(0).putLong(maskValue).array()
-    }
-
-    /**
-     * Derive variant key for specific usage
+     * Derive variant key for a specific DUKPT usage type.
+     * XORs the future key with the ANSI X9.24 variant constant.
      */
     private fun deriveVariantKey(futureKey: ByteArray, usage: DukptKeyUsage): ByteArray {
-        val variant = when (usage) {
-            DukptKeyUsage.PIN_ENCRYPTION -> ByteArray(8) { 0x00.toByte() } + ByteArray(8) { 0x00.toByte() }
-            DukptKeyUsage.MAC_REQUEST -> ByteArray(8) { 0x00.toByte() } + ByteArray(8) { 0x01.toByte() }
-            DukptKeyUsage.MAC_RESPONSE -> ByteArray(8) { 0x00.toByte() } + ByteArray(8) { 0x02.toByte() }
-            DukptKeyUsage.DATA_ENCRYPTION -> ByteArray(8) { 0x00.toByte() } + ByteArray(8) { 0x03.toByte() }
+        val variant: ByteArray = when (usage) {
+            DukptKeyUsage.PIN_ENCRYPTION -> ByteArray(16)
+            DukptKeyUsage.MAC_REQUEST -> byteArrayOf(
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(),
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte()
+            )
+            DukptKeyUsage.MAC_RESPONSE -> byteArrayOf(
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00
+            )
+            DukptKeyUsage.DATA_ENCRYPTION -> byteArrayOf(
+                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00
+            )
         }
-
-        return futureKey.zip(variant) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
+        return ByteArray(futureKey.size) { i ->
+            (futureKey[i].toInt() xor variant[i].toInt()).toByte()
+        }
     }
 
-    /**
-     * Update KSN with current counter
-     */
     private fun updateKsnWithCounter(baseKsn: String, counter: Long): String {
         val ksnBytes = simulator.hexToBytes(baseKsn).toMutableList()
-
-        // Update counter bytes (last 21 bits)
         ksnBytes[7] =
             ((ksnBytes[7].toInt() and 0xE0) or (((counter shr 16) and 0x1F).toInt())).toByte()
         ksnBytes[8] = ((counter shr 8) and 0xFF).toByte()
         ksnBytes[9] = (counter and 0xFF).toByte()
-
         return simulator.bytesToHex(ksnBytes.toByteArray())
     }
 
@@ -900,39 +1031,38 @@ class PayShield10KCommandProcessor(
     suspend fun executeTranslatePinDukptToZpk(
         lmkId: String,
         encryptedPinBlock: ByteArray,
-        encryptedBdk: ByteArray,        // ← ENCRYPTED under LMK
+        encryptedBdk: ByteArray,
         ksn: String,
-        encryptedDestZpk: ByteArray,    // ← ENCRYPTED under LMK
+        encryptedDestZpk: ByteArray,
         accountNumber: String,
         sourcePinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0,
-        destPinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0
+        destPinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0,
+        counterBits: Int = 21
     ): HsmCommandResult {
         try {
             // STEP 1: Decrypt BDK from LMK encryption
             val clearBdk = simulator.decryptUnderLmk(
                 data = encryptedBdk,
                 lmkId = lmkId,
-                pairNumber = 28  // BDK uses pair 28-29 (key type 209)
+                pairNumber = 28
             )
 
             // STEP 2: Decrypt destination ZPK from LMK encryption
             val clearZpk = simulator.decryptUnderLmk(
                 data = encryptedDestZpk,
                 lmkId = lmkId,
-                pairNumber = 6   // ZPK uses pair 06-07
+                pairNumber = 6
             )
 
             // STEP 3: Derive Initial Key from BDK
-            val initialKey = deriveInitialKey(clearBdk, ksn)
+            val initialKey = deriveInitialKey(clearBdk, ksn, counterBits)
 
             // STEP 4: Extract counter from KSN
             val ksnBytes = hexToBytes(ksn)
-            val counter = ((ksnBytes[7].toInt() and 0x1F) shl 16) or
-                    ((ksnBytes[8].toInt() and 0xFF) shl 8) or
-                    (ksnBytes[9].toInt() and 0xFF)
+            val counter = extractDukptCounter(ksnBytes, counterBits)
 
             // STEP 5: Derive DUKPT session key
-            val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter)
+            val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter, counterBits)
 
             // STEP 6: Decrypt PIN block with DUKPT session key
             val pinBlock = decryptPinBlock(encryptedPinBlock, sessionKey)
@@ -1132,43 +1262,35 @@ class PayShield10KCommandProcessor(
             algorithm = CryptoAlgorithm.TDES,
             encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                 key = key,
-                data = pinBlock
+                data = pinBlock,
+                mode = ai.cortex.core.types.CipherMode.ECB
             )
         )
     }
 
     private suspend fun decryptPinBlock(encryptedPinBlock: ByteArray, key: ByteArray): ByteArray {
-        val  engine = EMVEngines()
+        val engine = EMVEngines()
         return engine.encryptionEngine.decrypt(
             algorithm = CryptoAlgorithm.TDES,
             decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                 key = key,
-                data = encryptedPinBlock
-        ))
+                data = encryptedPinBlock,
+                mode = ai.cortex.core.types.CipherMode.ECB
+            )
+        )
     }
 
-    fun deriveInitialKey(bdk: ByteArray, ksn: String): ByteArray {
-        val ksnBytes = hexToBytes(ksn)
-        val iksn = ksnBytes.copyOf(8)
-        iksn[7] = (iksn[7].toInt() and 0xE0).toByte()
+    /** Delegates to the companion object's [deriveInitialKey]. */
+    fun deriveInitialKey(bdk: ByteArray, ksn: String, counterBits: Int = 21): ByteArray =
+        Companion.deriveInitialKey(bdk, ksn, counterBits)
 
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        val ksnLeft = iksn.copyOf(8)
-        ksnLeft[7] = (ksnLeft[7].toInt() xor 0xC0).toByte()
-        val keySpec = SecretKeySpec(bdk.copyOf(16), "DESede")
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec)
-        val leftHalf = cipher.doFinal(ksnLeft)
-
-        val ksnRight = iksn.copyOf(8)
-        ksnRight[7] = (ksnRight[7].toInt() xor 0xFF).toByte()
-        val rightHalf = cipher.doFinal(ksnRight)
-
-        return leftHalf + rightHalf.copyOf(8)
-    }
-
-    private fun deriveDukptSessionKey(initialKey: ByteArray, ksn: String, counter: Int): ByteArray {
-        // Simplified DUKPT derivation
-        return initialKey  // Full implementation would do bit-by-bit derivation
+    /** Expand a 16-byte double-length key to 24 bytes (K1|K2|K1) for DESede. */
+    private fun expandKeyTo24(key: ByteArray): ByteArray {
+        if (key.size >= 24) return key.copyOf(24)
+        val expanded = ByteArray(24)
+        key.copyInto(expanded, 0, 0, minOf(key.size, 16))
+        key.copyInto(expanded, 16, 0, 8)
+        return expanded
     }
 
     private fun generateMacIso9797Alg3(data: ByteArray, key: ByteArray): ByteArray {
@@ -1298,17 +1420,15 @@ class PayShield10KCommandProcessor(
         destKey: ByteArray,
         ksn: String,
         encryptedData: ByteArray,
-        mode: String = "02"
+        mode: String = "02",
+        counterBits: Int = 21
     ): HsmCommandResult {
         return try {
-            // Derive DUKPT session key from source BDK
             val clearBdk = simulator.decryptUnderLmk(sourceKey, lmkId, 28)
-            val initialKey = deriveInitialKey(clearBdk, ksn)
+            val initialKey = deriveInitialKey(clearBdk, ksn, counterBits)
             val ksnBytes = hexToBytes(ksn)
-            val counter = ((ksnBytes[7].toInt() and 0x1F) shl 16) or
-                    ((ksnBytes[8].toInt() and 0xFF) shl 8) or
-                    (ksnBytes[9].toInt() and 0xFF)
-            val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter)
+            val counter = extractDukptCounter(ksnBytes, counterBits)
+            val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter, counterBits)
 
             // Decrypt data under DUKPT session key
             val clearData = decryptPinBlock(encryptedData, sessionKey)

@@ -11,12 +11,16 @@ import `in`.aicortex.iso8583studio.hsm.MacTranslationRequest
 import `in`.aicortex.iso8583studio.hsm.MacTranslationResponse
 import `in`.aicortex.iso8583studio.hsm.PinTranslationRequest
 import `in`.aicortex.iso8583studio.hsm.PinTranslationResponse
+import `in`.aicortex.iso8583studio.hsm.payshield10k.commands.A0GenerateKeyCommand
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.DukptKeyUsage
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.DukptProfile
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmCommandResult
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyLength
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyType
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.PinBlockFormat
+import ai.cortex.core.types.CryptoAlgorithm
+import io.cryptocalc.crypto.engines.encryption.EMVEngines
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -133,6 +137,68 @@ class PayShield10K(val config: HsmConfig,val hsmLogsListener: HsmLogsListener) :
             lmkId = config.lmkId,
             keyType = keyType,
             components = components
+        )
+    }
+
+    /**
+     * Decrypt a key encrypted under the LMK to obtain the clear (plain) key.
+     *
+     * Strips any scheme prefix (U/X/T/Y/S/R), looks up the LMK pair and variant
+     * for the given [keyTypeCode], decrypts using TDES ECB, and returns a map
+     * with: clearKey, encryptedKey, kcv, keyType, lmkPair, variant.
+     */
+    suspend fun decryptKeyUnderLmkDirect(
+        encryptedKeyHex: String,
+        keyTypeCode: String
+    ): HsmCommandResult {
+        val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
+            ?: return HsmCommandResult.Error("68", "Invalid key type code: $keyTypeCode")
+
+        val lmk = payShield.lmkStorage.getLmk(config.lmkId)
+            ?: return HsmCommandResult.Error("13", "LMK not loaded")
+
+        val lmkPair = lmk.getPair(keyTypeInfo.lmkPairNumber)
+            ?: return HsmCommandResult.Error("13", "LMK pair ${keyTypeInfo.lmkPairNumber} not available")
+
+        val stripped = if (encryptedKeyHex.isNotEmpty() &&
+            encryptedKeyHex[0].uppercaseChar() in "UXTYSR"
+        ) encryptedKeyHex.substring(1) else encryptedKeyHex
+
+        val encBytes = payShield.hexToBytes(stripped)
+
+        val variantMask = A0GenerateKeyCommand.LMK_VARIANTS[keyTypeInfo.variant] ?: 0
+        val lmkKey = lmkPair.getCombinedKey().copyOf()
+        if (variantMask != 0) {
+            lmkKey[0] = (lmkKey[0].toInt() xor variantMask).toByte()
+        }
+
+        val clearBytes = try {
+            val engine = EMVEngines()
+            engine.encryptionEngine.decrypt(
+                algorithm = CryptoAlgorithm.TDES,
+                decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                    key = lmkKey,
+                    data = encBytes,
+                    mode = ai.cortex.core.types.CipherMode.ECB
+                )
+            )
+        } catch (e: Exception) {
+            return HsmCommandResult.Error("20", "Decryption failed: ${e.message}")
+        }
+        val clearHex = payShield.bytesToHex(clearBytes)
+        val kcv = payShield.calculateKeyCheckValue(clearBytes)
+
+        return HsmCommandResult.Success(
+            response = clearHex,
+            data = mapOf(
+                "clearKey" to clearHex,
+                "encryptedKey" to encryptedKeyHex,
+                "kcv" to kcv,
+                "keyType" to keyTypeCode,
+                "keyTypeDescription" to keyTypeInfo.description,
+                "lmkPair" to "${keyTypeInfo.lmkPairNumber}-${keyTypeInfo.lmkPairNumber + 1}",
+                "variant" to keyTypeInfo.variant.toString()
+            )
         )
     }
 

@@ -152,11 +152,15 @@ fun GlobalSimulatorTabBar() {
                     // ── Running Session Tabs ──
                     sessions.forEach { session ->
                         key(session.id) {
+                            val isPoppedOut = SimulatorSessionManager.isPoppedOut(session.id)
                             SimulatorSessionTab(
                                 session = session,
                                 isActive = session.id == activeSessionId,
+                                isPoppedOut = isPoppedOut,
                                 onClick = { SimulatorSessionManager.activateSession(session.id) },
-                                onClose = { SimulatorSessionManager.closeSession(session.id) }
+                                onClose = { SimulatorSessionManager.closeSession(session.id) },
+                                onPopOut = { SimulatorSessionManager.popOutSession(session.id) },
+                                onDock = { SimulatorSessionManager.dockSession(session.id) }
                             )
                         }
                     }
@@ -261,22 +265,29 @@ private fun StudioHomeTab(
 private fun SimulatorSessionTab(
     session: SimulatorSession,
     isActive: Boolean,
+    isPoppedOut: Boolean,
     onClick: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onPopOut: () -> Unit,
+    onDock: () -> Unit
 ) {
     val visual = getSimulatorVisual(session.simulatorType)
 
     val bgColor by animateColorAsState(
-        targetValue = if (isActive)
-            visual.activeColor.copy(alpha = 0.12f)
-        else
-            Color.Transparent,
+        targetValue = when {
+            isPoppedOut -> visual.activeColor.copy(alpha = 0.06f)
+            isActive -> visual.activeColor.copy(alpha = 0.12f)
+            else -> Color.Transparent
+        },
         animationSpec = tween(200)
     )
 
     val borderColor by animateColorAsState(
-        targetValue = if (isActive) visual.activeColor.copy(alpha = 0.3f)
-        else Color.Transparent,
+        targetValue = when {
+            isPoppedOut -> visual.activeColor.copy(alpha = 0.15f)
+            isActive -> visual.activeColor.copy(alpha = 0.3f)
+            else -> Color.Transparent
+        },
         animationSpec = tween(200)
     )
 
@@ -285,13 +296,13 @@ private fun SimulatorSessionTab(
             .height(34.dp)
             .clip(RoundedCornerShape(6.dp))
             .then(
-                if (isActive) Modifier.border(
+                if (isActive || isPoppedOut) Modifier.border(
                     width = 1.dp,
                     color = borderColor,
                     shape = RoundedCornerShape(6.dp)
                 ) else Modifier
             )
-            .clickable(onClick = onClick),
+            .clickable(onClick = if (isPoppedOut) onDock else onClick),
         color = bgColor,
         shape = RoundedCornerShape(6.dp)
     ) {
@@ -300,43 +311,70 @@ private fun SimulatorSessionTab(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Running indicator dot
-            RunningIndicatorDot(color = visual.activeColor, isActive = isActive)
+            RunningIndicatorDot(color = visual.activeColor, isActive = isActive && !isPoppedOut)
 
-            // Simulator type icon
             Icon(
-                imageVector = visual.icon,
+                imageVector = if (isPoppedOut) Icons.Default.OpenInNew else visual.icon,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = if (isActive) visual.activeColor
+                tint = if (isPoppedOut) visual.activeColor.copy(alpha = 0.5f)
+                else if (isActive) visual.activeColor
                 else MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
             )
 
-            // Session name
             Text(
                 text = session.config.name,
                 style = MaterialTheme.typography.caption.copy(
-                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (isActive && !isPoppedOut) FontWeight.SemiBold else FontWeight.Normal,
                     fontSize = 11.sp
                 ),
-                color = if (isActive) visual.activeColor
+                color = if (isPoppedOut) visual.activeColor.copy(alpha = 0.5f)
+                else if (isActive) visual.activeColor
                 else MaterialTheme.colors.onSurface.copy(alpha = 0.65f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.widthIn(max = 140.dp)
             )
 
-            // Close button
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier.size(20.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close ${session.displayName}",
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
-                )
+            if (isPoppedOut) {
+                // Show a "dock back" button for popped-out tabs
+                IconButton(
+                    onClick = onDock,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PictureInPicture,
+                        contentDescription = "Dock ${session.displayName} back",
+                        modifier = Modifier.size(12.dp),
+                        tint = visual.activeColor.copy(alpha = 0.5f)
+                    )
+                }
+            } else {
+                // Pop-out button
+                IconButton(
+                    onClick = onPopOut,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInNew,
+                        contentDescription = "Pop out ${session.displayName}",
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                    )
+                }
+
+                // Close button
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close ${session.displayName}",
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+                    )
+                }
             }
         }
     }

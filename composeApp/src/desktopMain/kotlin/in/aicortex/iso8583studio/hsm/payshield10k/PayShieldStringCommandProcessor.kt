@@ -22,8 +22,12 @@ package `in`.aicortex.iso8583studio.hsm.payshield10k
 
 import `in`.aicortex.iso8583studio.hsm.payshield10k.*
 import ai.cortex.core.IsoUtil
+import ai.cortex.core.types.CipherMode
+import ai.cortex.core.types.CryptoAlgorithm
+import `in`.aicortex.iso8583studio.domain.utils.DesCryptoService.applyPadding
 import `in`.aicortex.iso8583studio.hsm.HsmConfig
 import `in`.aicortex.iso8583studio.hsm.payshield10k.commands.A0GenerateKeyCommand
+import `in`.aicortex.iso8583studio.hsm.payshield10k.commands.KeyTypeLmkInfo
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuditEntry
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuditType
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmCommandResult
@@ -32,6 +36,9 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyType
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkPair
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkSet
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.PinBlockFormat
+import io.cryptocalc.crypto.engines.encryption.EMVEngines
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
+import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 import kotlinx.coroutines.runBlocking
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
@@ -56,6 +63,10 @@ class PayShieldStringCommandProcessor(
 ) {
     private val commandProcessor = PayShield10KCommandProcessor(simulator,hsmLogsListener)
     private val advancedFeatures = PayShield10KAdvancedFeatures(simulator, commandProcessor)
+
+    companion object {
+        val BDK_KEY_TYPES = setOf("009", "609", "809", "909")
+    }
 
     // Configuration
     private var messageHeaderLength = 4
@@ -764,49 +775,194 @@ class PayShieldStringCommandProcessor(
     }
 
     /**
-     * M0 - Generate MAC (ISO 9797-1 Algorithm 3)
-     * Command: 0000M0[TAK][Message Length][Message]%[LMK_ID]
-     * Response: 0000M100[MAC]
+     * M0 - Encrypt Data Block
+     * For ZEK/DEK keys:
+     *   Command: 0000M0[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key_1A+32H][IV_16H?][MsgLen_4H][Data_nH]
+     * For BDK (DUKPT) keys:
+     *   Command: 0000M0[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key_1A+32H][KSNDesc_3H][KSN_20H][IV_16H?][MsgLen_4H][Data_nH]
+     * Response: 0000M100[IV_16H][DataLen_4H][Encrypted_nH]
+     * Mode 00 = ECB, 01 = CBC.  InFmt/OutFmt 1 = hex-encoded.
      */
-    private fun executeM0(cmd: ParsedCommand): HsmCommandResult {
-        var pos = 0
-        val data = cmd.data
+    private suspend fun executeM0(cmd: ParsedCommand): HsmCommandResult {
+        return try {
+            var pos = 0
+            val data = cmd.data
 
-        // TAK
-        val takScheme = data[pos]
-        pos++
-        val takHex = data.substring(pos, pos + 32)
-        pos += 32
-        val tak = IsoUtil.hexToBytes(takHex)
+            val mode    = data.substring(pos, pos + 2); pos += 2
+            val inFmt   = data[pos].toString(); pos++
+            val outFmt  = data[pos].toString(); pos++
 
-        // Message length (4 hex chars)
-        val msgLenHex = data.substring(pos, pos + 4)
-        pos += 4
-        val msgLen = msgLenHex.toInt(16)
+            val keyTypeCode = data.substring(pos, pos + 3); pos += 3
+            val keyScheme = data[pos]; pos++
+            val keyHex = data.substring(pos, pos + 32); pos += 32
+            val encKey = IsoUtil.hexToBytes(keyHex)
 
-        // Message
-        val messageHex = data.substring(pos, pos + msgLen * 2)
-        val message = IsoUtil.hexToBytes(messageHex)
+            val isBdkType = keyTypeCode in BDK_KEY_TYPES
 
-        val result = commandProcessor.executeGenerateMac(
-            data = message,
-            tak = tak,
-            algorithm = "ISO9797_ALG3"
-        )
+            var ksnDescriptor = ""
+            var ksnHex = ""
+            if (isBdkType) {
+                ksnDescriptor = data.substring(pos, pos + 3); pos += 3
+                ksnHex = data.substring(pos, pos + 20); pos += 20
+            }
 
-        return if (result is HsmCommandResult.Success) {
-            HsmCommandResult.Success(
-                response = result.data["mac"] as String,
-                data = result.data
+            val ivHex = if (mode == "01" && pos + 16 <= data.length) {
+                data.substring(pos, pos + 16).also { pos += 16 }
+            } else "0000000000000000"
+
+            val dataLenHex = data.substring(pos, pos + 4); pos += 4
+            val dataLen = dataLenHex.toInt(16)
+            val plainDataHex = data.substring(pos, minOf(pos + dataLen, data.length))
+            val plainData = IsoUtil.hexToBytes(plainDataHex)
+
+            hsmLogsListener.log(buildString {
+                appendLine("M0 - Encrypt Data Block Request")
+                appendLine("Mode Flag................ = [$mode] ${if (mode == "00") "ECB" else "CBC"}")
+                appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Key Type................. = [$keyTypeCode]")
+                appendLine("Key...................... = [$keyScheme$keyHex]")
+                if (isBdkType) {
+                    appendLine("KSN Descriptor........... = [$ksnDescriptor]")
+                    appendLine("Key serial number........ = [$ksnHex]")
+                }
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$dataLenHex]")
+                appendLine("Message Block............ = [$plainDataHex]")
+            })
+            hsmLogsListener.onFormattedRequest(buildString {
+                appendLine("M0 - Encrypt Data Block Request")
+                appendLine("Mode Flag................ = [$mode] ${if (mode == "00") "ECB" else "CBC"}")
+                appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Key Type................. = [$keyTypeCode]")
+                appendLine("Key...................... = [$keyScheme$keyHex]")
+                if (isBdkType) {
+                    appendLine("KSN Descriptor........... = [$ksnDescriptor]")
+                    appendLine("Key serial number........ = [$ksnHex]")
+                }
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$dataLenHex]")
+                appendLine("Message Block............ = [$plainDataHex]")
+            })
+
+            hsmLogsListener.log("[M0] Step 1: Key derivation - keyType=$keyTypeCode, isBdk=$isBdkType, lmkSlot=${cmd.lmkId}")
+
+            val clearKey: ByteArray
+            if (isBdkType) {
+                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
+                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: 14
+                val variant = keyTypeInfo?.variant ?: 0
+                hsmLogsListener.log("[M0] Step 2: BDK path - lmkPair=$lmkPairNumber, variant=$variant")
+
+                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
+                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
+                val lmkPair = lmk.getPair(lmkPairNumber)
+                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
+
+                val combinedLmk = lmkPair.getCombinedKey()
+                hsmLogsListener.log("[M0] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
+
+                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
+                hsmLogsListener.log("[M0] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
+
+                val clearBdk = performTdesDecryptForM2(encKey, variantLmk)
+                hsmLogsListener.log("[M0] Step 5: Decrypted clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
+
+                val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
+                hsmLogsListener.log("[M0] Step 6: KSN descriptor=$ksnDescriptor, counterBits=$counterBits")
+
+                val initialKey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnHex, counterBits)
+                hsmLogsListener.log("[M0] Step 7: IPEK (Initial Key) = ${IsoUtil.bytesToHexString(initialKey)}")
+
+                val ksnBytes = IsoUtil.hexToBytes(ksnHex)
+                val counter = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
+                hsmLogsListener.log("[M0] Step 8: DUKPT counter = $counter")
+
+                val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
+                hsmLogsListener.log("[M0] Step 9: DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
+
+                val dataVariant = byteArrayOf(
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00
+                )
+                clearKey = ByteArray(sessionKey.size) { i ->
+                    (sessionKey[i].toInt() xor dataVariant[i].toInt()).toByte()
+                }
+                hsmLogsListener.log("[M0] Step 10: Data encryption key (session XOR variant) = ${IsoUtil.bytesToHexString(clearKey)}")
+            } else {
+                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
+                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: 14
+                val variant = keyTypeInfo?.variant ?: 0
+                hsmLogsListener.log("[M0] Step 2: Non-BDK path - lmkPair=$lmkPairNumber, variant=$variant")
+
+                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
+                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
+                val lmkPair = lmk.getPair(lmkPairNumber)
+                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
+
+                val combinedLmk = lmkPair.getCombinedKey()
+                hsmLogsListener.log("[M0] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
+
+                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
+                hsmLogsListener.log("[M0] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
+
+                clearKey = performTdesDecryptForM2(encKey, variantLmk)
+                hsmLogsListener.log("[M0] Step 5: Decrypted clear key = ${IsoUtil.bytesToHexString(clearKey)}")
+            }
+
+            hsmLogsListener.log("[M0] Step 11: Encrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${plainData.size} bytes")
+            hsmLogsListener.log("[M0] Step 11: Plain data = $plainDataHex")
+
+            val engine = EMVEngines()
+            val cipherMode = if (mode == "01") CipherMode.CBC else CipherMode.ECB
+            val paddedData = applyPadding(plainData,"PKCS#5")
+            val encData = engine.encryptionEngine.encrypt(
+                algorithm = CryptoAlgorithm.TDES,
+                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+                    data = paddedData,
+                    key = clearKey,
+                    iv = if (mode == "01") IsoUtil.hexToBytes(ivHex) else null,
+                    mode = cipherMode
+                )
             )
-        } else {
-            result
+            val encHex  = IsoUtil.bytesToHexString(encData)
+            val outLen  = (encData.size*2).toString(16).padStart(4, '0').uppercase()
+            val responseBody = if (mode == "01") "$ivHex$outLen$encHex" else "$outLen$encHex"
+
+            hsmLogsListener.log("[M0] Step 12: Encryption result = $encHex")
+            hsmLogsListener.log("[M0] Step 12: Response body = $responseBody")
+
+            hsmLogsListener.log(buildString {
+                appendLine("M1 - Encrypt Data Block Response")
+                appendLine("Error Code............... = [00]")
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$outLen]")
+                appendLine("Message Block............ = [$encHex]")
+            })
+            hsmLogsListener.onFormattedResponse(buildString {
+                appendLine("M1 - Encrypt Data Block Response")
+                appendLine("Error Code............... = [00]")
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$outLen]")
+                appendLine("Message Block............ = [$encHex]")
+            })
+
+            HsmCommandResult.Success(
+                response = responseBody,
+                data = mapOf("encryptedData" to encHex, "iv" to ivHex)
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error("15", "M0 failed: ${e.message}")
         }
     }
 
     /**
      * M2 - Decrypt Data Block
-     * Command: 0000M2[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key_1A+32H][IV_16H?][DataLen_4H][Data_nH]
+     * For ZEK/DEK keys:
+     *   Command: 0000M2[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key_1A+32H][IV_16H?][MsgLen_4H][Data_nH]
+     * For BDK (DUKPT) keys:
+     *   Command: 0000M2[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key_1A+32H][KSNDesc_3H][KSN_20H][IV_16H?][MsgLen_4H][Data_nH]
      * Response: 0000M300[IV_16H][DataLen_4H][Decrypted_nH]
      * Mode 00 = ECB, 01 = CBC.  InFmt/OutFmt 1 = hex-encoded.
      */
@@ -819,49 +975,190 @@ class PayShieldStringCommandProcessor(
             val inFmt   = data[pos].toString(); pos++
             val outFmt  = data[pos].toString(); pos++
 
-            // Key type (3H) then key (scheme + 32H)
-            pos += 3  // skip key type
-            pos++     // skip scheme char
+            val keyTypeCode = data.substring(pos, pos + 3); pos += 3
+            val keyScheme = data[pos]; pos++
             val keyHex = data.substring(pos, pos + 32); pos += 32
             val encKey = IsoUtil.hexToBytes(keyHex)
 
-            // IV only present for CBC (mode "01")
+            val isBdkType = keyTypeCode in BDK_KEY_TYPES
+
+            var ksnDescriptor = ""
+            var ksnHex = ""
+            if (isBdkType) {
+                ksnDescriptor = data.substring(pos, pos + 3); pos += 3
+                ksnHex = data.substring(pos, pos + 20); pos += 20
+            }
+
             val ivHex = if (mode == "01" && pos + 16 <= data.length) {
                 data.substring(pos, pos + 16).also { pos += 16 }
             } else "0000000000000000"
 
-            // Data length (4H = bytes in decimal, not hex) then data
             val dataLenHex = data.substring(pos, pos + 4); pos += 4
             val dataLen = dataLenHex.toInt(16)
-            val encDataHex = data.substring(pos, pos + dataLen * 2)
-            val encData = IsoUtil.hexToBytes(encDataHex)
-
-            // Decrypt key under LMK (ZEK/DEK use pair 26-27)
-            val clearKey = simulator.decryptUnderLmk(encKey, cmd.lmkId, 26)
-
-            // Decrypt data
-            val cipherInst = if (mode == "01") {
-                Cipher.getInstance("DESede/CBC/NoPadding").also {
-                    it.init(Cipher.DECRYPT_MODE,
-                        SecretKeySpec(clearKey.copyOf(16), "DESede"),
-                        IvParameterSpec(IsoUtil.hexToBytes(ivHex)))
+            val encDataHex = data.substring(pos, minOf(pos + dataLen, data.length))
+            var encData = IsoUtil.hexToBytes(encDataHex)
+            hsmLogsListener.log(buildString {
+                appendLine("M2 - Decrypt Data Block Request")
+                appendLine("Mode Flag................ = [$mode] ${if (mode == "00") "ECB" else "CBC"}")
+                appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Key Type................. = [$keyTypeCode]")
+                appendLine("Key...................... = [$keyScheme$keyHex]")
+                if (isBdkType) {
+                    appendLine("KSN Descriptor........... = [$ksnDescriptor]")
+                    appendLine("Key serial number........ = [$ksnHex]")
                 }
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$dataLenHex]")
+                appendLine("Message Block............ = [$encDataHex]")
+            })
+            hsmLogsListener.onFormattedRequest(buildString {
+                appendLine("M2 - Decrypt Data Block Request")
+                appendLine("Mode Flag................ = [$mode] ${if (mode == "00") "ECB" else "CBC"}")
+                appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
+                appendLine("Key Type................. = [$keyTypeCode]")
+                appendLine("Key...................... = [$keyScheme$keyHex]")
+                if (isBdkType) {
+                    appendLine("KSN Descriptor........... = [$ksnDescriptor]")
+                    appendLine("Key serial number........ = [$ksnHex]")
+                }
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$dataLenHex]")
+                appendLine("Message Block............ = [$encDataHex]")
+            })
+
+            hsmLogsListener.log("[M2] Step 1: Key derivation - keyType=$keyTypeCode, isBdk=$isBdkType, lmkSlot=${cmd.lmkId}")
+
+            val clearKey: ByteArray
+            if (isBdkType) {
+                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
+                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: 14
+                val variant = keyTypeInfo?.variant ?: 0
+                hsmLogsListener.log("[M2] Step 2: BDK path - lmkPair=$lmkPairNumber, variant=$variant")
+
+                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
+                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
+                val lmkPair = lmk.getPair(lmkPairNumber)
+                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
+
+                val combinedLmk = lmkPair.getCombinedKey()
+                hsmLogsListener.log("[M2] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
+
+                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
+                hsmLogsListener.log("[M2] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
+
+                val clearBdk = performTdesDecryptForM2(encKey, variantLmk)
+                hsmLogsListener.log("[M2] Step 5: Decrypted clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
+
+                val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
+                hsmLogsListener.log("[M2] Step 6: KSN descriptor=$ksnDescriptor, counterBits=$counterBits")
+
+                val initialKey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnHex, counterBits)
+                hsmLogsListener.log("[M2] Step 7: IPEK (Initial Key) = ${IsoUtil.bytesToHexString(initialKey)}")
+
+                val ksnBytes = IsoUtil.hexToBytes(ksnHex)
+                val counter = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
+                hsmLogsListener.log("[M2] Step 8: DUKPT counter = $counter")
+
+                val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
+                hsmLogsListener.log("[M2] Step 9: DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
+
+                val dataVariant = byteArrayOf(
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00
+                )
+                clearKey = ByteArray(sessionKey.size) { i ->
+                    (sessionKey[i].toInt() xor dataVariant[i].toInt()).toByte()
+                }
+                hsmLogsListener.log("[M2] Step 10: Data decryption key (session XOR variant) = ${IsoUtil.bytesToHexString(clearKey)}")
             } else {
-                Cipher.getInstance("DESede/ECB/NoPadding").also {
-                    it.init(Cipher.DECRYPT_MODE, SecretKeySpec(clearKey.copyOf(16), "DESede"))
-                }
+                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
+                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: 14
+                val variant = keyTypeInfo?.variant ?: 0
+                hsmLogsListener.log("[M2] Step 2: Non-BDK path - lmkPair=$lmkPairNumber, variant=$variant")
+
+                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
+                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
+                val lmkPair = lmk.getPair(lmkPairNumber)
+                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
+
+                val combinedLmk = lmkPair.getCombinedKey()
+                hsmLogsListener.log("[M2] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
+
+                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
+                hsmLogsListener.log("[M2] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
+
+                clearKey = performTdesDecryptForM2(encKey, variantLmk)
+                hsmLogsListener.log("[M2] Step 5: Decrypted clear key = ${IsoUtil.bytesToHexString(clearKey)}")
             }
-            val decData = cipherInst.doFinal(encData)
+
+            hsmLogsListener.log("[M2] Step 11: Decrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${encData.size} bytes")
+            hsmLogsListener.log("[M2] Step 11: Encrypted data = $encDataHex")
+
+            val paddedData = applyPadding(encData, "PKCS#5")
+
+            val engine = EMVEngines()
+            val cipherMode = if (mode == "01") CipherMode.CBC else CipherMode.ECB
+            val decData = engine.encryptionEngine.decrypt(
+                algorithm = CryptoAlgorithm.TDES,
+                decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                    data = paddedData,
+                    key = clearKey,
+                    iv = IsoUtil.hexToBytes(ivHex),
+                    mode = cipherMode
+                )
+            )
             val decHex  = IsoUtil.bytesToHexString(decData)
-            val outLen  = decData.size.toString(16).padStart(4, '0').uppercase()
+            val outLen  = (decData.size*2).toString(16).padStart(4, '0').uppercase()
+            val responseBody = if (mode == "01") "$ivHex$outLen$decHex" else "$outLen$decHex"
+
+            hsmLogsListener.log("[M2] Step 12: Decryption result = $decHex")
+            hsmLogsListener.log("[M2] Step 12: Response body = $responseBody")
+
+            hsmLogsListener.log(buildString {
+                appendLine("M3 - Decrypt Data Block Response")
+                appendLine("Error Code............... = [00]")
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$outLen]")
+                appendLine("Message Block............ = [$decHex]")
+            })
+            hsmLogsListener.onFormattedResponse(buildString {
+                appendLine("M3 - Decrypt Data Block Response")
+                appendLine("Error Code............... = [00]")
+                if (mode == "01") appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$outLen]")
+                appendLine("Message Block............ = [$decHex]")
+            })
 
             HsmCommandResult.Success(
-                response = "$ivHex$outLen$decHex",
+                response = responseBody,
                 data = mapOf("decryptedData" to decHex, "iv" to ivHex)
             )
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "M2 failed: ${e.message}")
         }
+    }
+
+    private fun applyLmkVariantForM2(lmkKey: ByteArray, variant: Int): ByteArray {
+        if (variant == 0) return lmkKey
+        val variantMask = A0GenerateKeyCommand.LMK_VARIANTS[variant] ?: return lmkKey
+        val variantedKey = lmkKey.copyOf()
+        variantedKey[0] = (variantedKey[0].toInt() xor variantMask).toByte()
+        return variantedKey
+    }
+
+    private suspend fun performTdesDecryptForM2(data: ByteArray, key: ByteArray): ByteArray {
+        val engine = EMVEngines()
+        val paddedData = applyPadding(data, "PKCS#5")
+        return engine.encryptionEngine.decrypt(
+            algorithm = CryptoAlgorithm.TDES,
+            decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                data = paddedData,
+                key = key,
+                mode = CipherMode.ECB
+            )
+        )
     }
 
     /**

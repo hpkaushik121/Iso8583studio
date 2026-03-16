@@ -22,7 +22,9 @@ class HsmClient(var gatewayHandler: Simulator) {
     var timeOut: Int = 30
     val clientID: String = UUID.randomUUID().toString()
     var hsmClientListener: HsmClientListener? = null
+    var tcpLengthHeaderEnabled: Boolean = false
     private var m_Buffer: ByteArray = ByteArray(10048)
+
     fun processGateway() {
         CoroutineScope(Dispatchers.IO).launch {
             incomingConnection ?: return@launch
@@ -73,7 +75,13 @@ class HsmClient(var gatewayHandler: Simulator) {
                     )
 
                 }
-                hsmClientListener?.onReceivedFormSource(String(input),this@HsmClient)
+
+                val commandBytes = if (tcpLengthHeaderEnabled && input.size >= 2) {
+                    input.copyOfRange(2, input.size)
+                } else {
+                    input
+                }
+                hsmClientListener?.onReceivedFormSource(String(commandBytes, Charsets.ISO_8859_1), this@HsmClient)
             }
 
 
@@ -82,11 +90,18 @@ class HsmClient(var gatewayHandler: Simulator) {
 
     suspend fun send(response: String?) {
         try {
-            response?.toByteArray()?.let {
-                incomingConnection!!.getOutputStream().write(it)
+            response?.let { resp ->
+                val respBytes = resp.toByteArray(Charsets.ISO_8859_1)
+                val output = if (tcpLengthHeaderEnabled) {
+                    val len = respBytes.size
+                    byteArrayOf(((len shr 8) and 0xFF).toByte(), (len and 0xFF).toByte()) + respBytes
+                } else {
+                    respBytes
+                }
+                incomingConnection!!.getOutputStream().write(output)
             }
             hsmClientListener?.onSentToSource(response)
-        }catch (ex:Exception){
+        } catch (ex: Exception) {
             ex.printStackTrace()
             throw VerificationException(
                 "CONNECTION MAY BE CLOSED BY REMOTE COMPUTER/TERMINAL ",

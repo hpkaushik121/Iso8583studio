@@ -82,6 +82,9 @@ object SimulatorSessionManager {
     /** The currently active/visible session ID (null = showing main navigation content) */
     val activeSessionId = mutableStateOf<String?>(null)
 
+    /** Session IDs that are currently displayed in their own pop-out window */
+    val poppedOutSessionIds = mutableStateListOf<String>()
+
     /** Whether the main navigation content (tools, config screens) is visible */
     val isMainContentActive: Boolean
         get() = activeSessionId.value == null
@@ -166,6 +169,8 @@ object SimulatorSessionManager {
             CoroutineScope(Dispatchers.IO).launch { svc.stop() }
         }
 
+        poppedOutSessionIds.remove(sessionId)
+
         // Removing the session causes the key() block in ISO8583Studio.kt to dispose,
         // which triggers DisposableEffect inside HsmSimulatorScreen / HostSimulatorScreen.
         sessions.removeAll { it.id == sessionId }
@@ -248,6 +253,37 @@ object SimulatorSessionManager {
         activeSessionId.value = sessionId
         return sessionId
     }
+
+    /**
+     * Pop a session out into its own separate window.
+     * The session remains running but is no longer rendered in the main window.
+     * If it was the active session, switch to the next available or main content.
+     */
+    fun popOutSession(sessionId: String) {
+        if (sessions.none { it.id == sessionId }) return
+        if (sessionId in poppedOutSessionIds) return
+
+        poppedOutSessionIds.add(sessionId)
+
+        if (activeSessionId.value == sessionId) {
+            val nextInline = sessions.firstOrNull { it.id != sessionId && it.id !in poppedOutSessionIds }
+            activeSessionId.value = nextInline?.id
+        }
+    }
+
+    /**
+     * Dock a popped-out session back into the main window tab bar.
+     * The session becomes the active tab.
+     */
+    fun dockSession(sessionId: String) {
+        poppedOutSessionIds.remove(sessionId)
+        if (sessions.any { it.id == sessionId }) {
+            activeSessionId.value = sessionId
+        }
+    }
+
+    /** Whether a session is currently displayed in its own pop-out window */
+    fun isPoppedOut(sessionId: String): Boolean = sessionId in poppedOutSessionIds
 
     /**
      * Get count of running sessions

@@ -4,6 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,6 +15,7 @@ import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
@@ -273,6 +276,7 @@ class ISO8583Studio {
                         // navigates to tools/calculators/config screens.
 
                         val activeSessionId by SimulatorSessionManager.activeSessionId
+                        val poppedOutIds = SimulatorSessionManager.poppedOutSessionIds
 
                         Column(modifier = Modifier.fillMaxSize()) {
                             // ── Global Tab Bar ──
@@ -281,33 +285,73 @@ class ISO8583Studio {
                             // ── Content Area ──
                             Box(modifier = Modifier.fillMaxSize()) {
                                 // Layer 1: Main Voyager navigation (always composed, visibility toggled)
-                                // We keep it composed so navigation state is preserved
                                 CurrentScreen()
 
-                                // Layer 2: Simulator/tool session content
-                                // Sessions are ALWAYS composed (never conditional) so that:
-                                //   a) TCP servers/state survive tab switches
-                                //   b) DisposableEffect cleanup fires when a session is closed
-                                // Visibility is controlled purely via Modifier size (0dp when hidden).
+                                // Layer 2: Inline session content (skip popped-out sessions)
                                 SimulatorSessionManager.sessions.forEach { session ->
-                                    key(session.id) {
-                                        val isVisible = session.id == activeSessionId
-                                        Box(
-                                            modifier = if (isVisible) Modifier.fillMaxSize()
-                                                       else Modifier.requiredSize(0.dp)
-                                        ) {
-                                            SessionContent(
-                                                session = session,
-                                                window = window,
-                                                onBack = {
-                                                    SimulatorSessionManager.activateMainContent()
-                                                }
-                                            )
+                                    if (session.id !in poppedOutIds) {
+                                        key(session.id) {
+                                            val isVisible = session.id == activeSessionId
+                                            Box(
+                                                modifier = if (isVisible) Modifier.fillMaxSize()
+                                                           else Modifier.requiredSize(0.dp)
+                                            ) {
+                                                SessionContent(
+                                                    session = session,
+                                                    window = window,
+                                                    onBack = {
+                                                        SimulatorSessionManager.activateMainContent()
+                                                    }
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+
+                        // ── Pop-out Windows ──
+                        // Each pop-out Window has its own composition, so we
+                        // wrap content in a Navigator to provide LocalNavigator
+                        // (required by HOST sessions for NavigationController).
+                        SimulatorSessionManager.sessions
+                            .filter { it.id in poppedOutIds }
+                            .forEach { session ->
+                                key("popout-${session.id}") {
+                                    val popoutWindowState = rememberWindowState(
+                                        size = DpSize(width = 1400.dp, height = 750.dp)
+                                    )
+                                    Window(
+                                        onCloseRequest = {
+                                            SimulatorSessionManager.dockSession(session.id)
+                                        },
+                                        title = session.displayName,
+                                        state = popoutWindowState,
+                                        icon = painterResource(Res.drawable.app)
+                                    ) {
+                                        AppTheme {
+                                            Navigator(screen = Destination.Home) {
+                                                Column(modifier = Modifier.fillMaxSize()) {
+                                                    PopOutWindowTopBar(
+                                                        session = session,
+                                                        onDock = { SimulatorSessionManager.dockSession(session.id) },
+                                                        onClose = { SimulatorSessionManager.closeSession(session.id) }
+                                                    )
+                                                    Box(modifier = Modifier.fillMaxSize()) {
+                                                        SessionContent(
+                                                            session = session,
+                                                            window = window,
+                                                            onBack = {
+                                                                SimulatorSessionManager.dockSession(session.id)
+                                                            }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                     }
                 }
             }
@@ -401,6 +445,62 @@ private fun SessionContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text("${session.simulatorType.displayName} session is running")
+            }
+        }
+    }
+}
+
+/**
+ * Compact top bar for pop-out windows with session info, dock-back, and close actions.
+ */
+@Composable
+private fun PopOutWindowTopBar(
+    session: `in`.aicortex.iso8583studio.ui.session.SimulatorSession,
+    onDock: () -> Unit,
+    onClose: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colors.surface,
+        elevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = session.displayName,
+                    style = MaterialTheme.typography.subtitle2,
+                    color = MaterialTheme.colors.onSurface
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(onClick = onDock, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.PictureInPicture,
+                        contentDescription = "Dock back to main window",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+                IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close session",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
     }

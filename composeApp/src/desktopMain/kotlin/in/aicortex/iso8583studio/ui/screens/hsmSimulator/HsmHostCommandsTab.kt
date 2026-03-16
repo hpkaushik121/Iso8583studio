@@ -375,8 +375,8 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
     HostCommand(
         code = "M0", responseCode = "M1", name = "Encrypt Data Block",
         category = HostCommandCategory.ENCRYPTION,
-        description = "Encrypts a data block using a ZEK/DEK key (ECB or CBC).",
-        wireFormatHint = "0000M0 [Mode_2N] [InFmt_1N] [OutFmt_1N] [KeyType_3H] [Key_1A+32H] [IV_16H] [MsgLen_4H] [Data_nH]",
+        description = "Encrypts a data block using a ZEK/DEK or BDK (DUKPT) key (ECB or CBC). For BDK types (009/609/809/909), KSN Descriptor and KSN are required.",
+        wireFormatHint = "0000M0 [Mode_2N] [InFmt_1N] [OutFmt_1N] [KeyType_3H] [Key_1A+32H] [KSNDesc_3H?] [KSN_20H?] [IV_16H?] [MsgLen_4H] [Data_nH]",
         params = listOf(
             HostCommandParam("mode",    "Cipher Mode",     "",              HostParamType.DROPDOWN,"00",true, "", CIPHER_MODE_OPTIONS),
             HostCommandParam("inFmt",   "Input Format",    "0=Binary 1=Hex",HostParamType.DROPDOWN,"1", true, "", listOf(
@@ -385,8 +385,10 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
             HostCommandParam("outFmt",  "Output Format",   "0=Binary 1=Hex",HostParamType.DROPDOWN,"1", true, "", listOf(
                 HostParamOption("0 – Binary", "0"), HostParamOption("1 – Hex-encoded", "1"),
             )),
-            HostCommandParam("keyType", "Key Type",        "ZEK / DEK",     HostParamType.DROPDOWN,"00A",true, "", KEY_TYPE_OPTIONS),
+            HostCommandParam("keyType", "Key Type",        "ZEK / DEK / BDK",HostParamType.DROPDOWN,"00A",true, "", KEY_TYPE_OPTIONS),
             HostCommandParam("key",     "Encryption Key",  "prefix + hex",  HostParamType.TEXT,    "", true, "U...ZEK..."),
+            HostCommandParam("ksnDesc", "KSN Descriptor (3H)", "BDK only: BDK_ID len, Sub-Key len, Device_ID len", HostParamType.HEX, "609", false, "609"),
+            HostCommandParam("ksn",     "KSN (20H)",       "BDK only: Key Serial Number",  HostParamType.HEX, "", false, "FFFF9876543210E00001"),
             HostCommandParam("iv",      "IV (16H)",        "CBC mode only", HostParamType.HEX,     "0000000000000000", false, "0000000000000000"),
             HostCommandParam("data",    "Plaintext Data (hex)","Data to encrypt",HostParamType.TEXT,"", true, "48656C6C6F"),
         )
@@ -395,8 +397,8 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
     HostCommand(
         code = "M2", responseCode = "M3", name = "Decrypt Data Block",
         category = HostCommandCategory.ENCRYPTION,
-        description = "Decrypts a data block using a ZEK/DEK or BDK (DUKPT) key.",
-        wireFormatHint = "0000M2 [Mode_2N] [InFmt_1N] [OutFmt_1N] [KeyType_3H] [Key_1A+32H] [IV_16H] [MsgLen_4H] [Data_nH]",
+        description = "Decrypts a data block using a ZEK/DEK or BDK (DUKPT) key. For BDK types (009/609/809/909), KSN Descriptor and KSN are required.",
+        wireFormatHint = "0000M2 [Mode_2N] [InFmt_1N] [OutFmt_1N] [KeyType_3H] [Key_1A+32H] [KSNDesc_3H?] [KSN_20H?] [IV_16H?] [MsgLen_4H] [Data_nH]",
         params = listOf(
             HostCommandParam("mode",    "Cipher Mode",     "",              HostParamType.DROPDOWN,"00",true, "", CIPHER_MODE_OPTIONS),
             HostCommandParam("inFmt",   "Input Format",    "0=Binary 1=Hex",HostParamType.DROPDOWN,"1", true, "", listOf(
@@ -407,6 +409,8 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
             )),
             HostCommandParam("keyType", "Key Type",        "ZEK / DEK / BDK",HostParamType.DROPDOWN,"00A",true,"", KEY_TYPE_OPTIONS),
             HostCommandParam("key",     "Decryption Key",  "prefix + hex",  HostParamType.TEXT,    "", true, "U...ZEK..."),
+            HostCommandParam("ksnDesc", "KSN Descriptor (3H)", "BDK only: BDK_ID len, Sub-Key len, Device_ID len", HostParamType.HEX, "609", false, "609"),
+            HostCommandParam("ksn",     "KSN (20H)",       "BDK only: Key Serial Number",  HostParamType.HEX, "", false, "FFFF9876543210E00001"),
             HostCommandParam("iv",      "IV (16H)",        "CBC mode only", HostParamType.HEX,     "0000000000000000", false, "0000000000000000"),
             HostCommandParam("data",    "Ciphertext (hex)","Data to decrypt",HostParamType.TEXT,    "", true, ""),
         )
@@ -1154,21 +1158,33 @@ private fun buildHostCommand(cmd: HostCommand, p: Map<String, String>): String {
 
         "M0" -> buildString {
             val data = v("data")
-            val dataLen = (data.length / 2).toString(16).padStart(4,'0').uppercase()
+            val dataLen = data.length.toString(16).padStart(4,'0').uppercase()
+            val keyType = v("keyType","00A")
+            val isBdk = keyType in listOf("009", "609", "809", "909")
             append(h); append("M0")
             append(v("mode","00")); append(v("inFmt","1")); append(v("outFmt","1"))
-            append(v("keyType","00A")); append(v("key"))
+            append(keyType); append(v("key"))
+            if (isBdk) {
+                append(v("ksnDesc","609"))
+                append(v("ksn"))
+            }
             if (v("mode","00") == "01") append(v("iv","0000000000000000"))
             append(dataLen); append(data)
         }
 
         "M2" -> buildString {
             val data = v("data")
-            val dataLen = (data.length / 2).toString(16).padStart(4,'0').uppercase()
+            val dataLen = data.length.toString(16).padStart(4,'0').uppercase()
+            val keyType = v("keyType","00A")
+            val isBdk = keyType in listOf("009", "609", "809", "909")
             append(h); append("M2")
             append(v("mode","00")); append(v("inFmt","1")); append(v("outFmt","1"))
-            append(v("keyType","00A")); append(v("key"))
-            if (v("mode","00") == "01") append(v("iv","0000000000000000"))
+            append(keyType); append(v("key"))
+            if (isBdk) {
+                append(v("ksnDesc","609"))
+                append(v("ksn"))
+            }
+            if (!isBdk && v("mode","00") == "01") append(v("iv","0000000000000000"))
             append(dataLen); append(data)
         }
 

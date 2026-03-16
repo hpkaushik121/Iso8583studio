@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
  *   LD - Delete Data from User Storage
  *   BW - Translate Key (old → new LMK)
  *   BG - Translate PIN (old → new LMK)
+ *   DK - Decrypt Key Under LMK (get plain key)
  *   EI - Generate RSA Key Pair
  *   VT - View LMK Table
  *   VR - Version Information
@@ -139,6 +140,7 @@ fun HsmSecureCommandsTab(hsm: HsmServiceImpl) {
                                 val result = when (cmd.code) {
                                     "GC" -> executeGcMultiple(cmd, params, hsm)
                                     "FK" -> executeFkDirect(params, hsm)
+                                    "DK" -> executeDecryptKeyDirect(params, hsm)
                                     else -> {
                                         val rawCmd = buildHsmCommand(cmd, params, hsm)
                                         hsm.executeSecureCommand(rawCmd, source = "SECURE-CMD")
@@ -599,6 +601,7 @@ private fun SecureCommandForm(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun ParamField(
     param: CommandParam,
@@ -623,18 +626,62 @@ private fun ParamField(
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
             )
         }
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = !param.multiline,
-            maxLines = if (param.multiline) 4 else 1,
-            placeholder = { Text(param.placeholder, style = MaterialTheme.typography.caption) },
-            textStyle = LocalTextStyle.current.copy(
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp
+
+        if (param.options.isNotEmpty()) {
+            var expanded by remember { mutableStateOf(false) }
+            val selectedLabel = param.options.find { it.first == value }?.second
+                ?: param.options.find { it.first == param.default }?.second
+                ?: value
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    param.options.forEach { (code, label) ->
+                        DropdownMenuItem(onClick = {
+                            onValueChange(code)
+                            expanded = false
+                        }) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.body2,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = !param.multiline,
+                maxLines = if (param.multiline) 4 else 1,
+                placeholder = { Text(param.placeholder, style = MaterialTheme.typography.caption) },
+                textStyle = LocalTextStyle.current.copy(
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp
+                )
             )
-        )
+        }
     }
 }
 
@@ -760,6 +807,100 @@ private suspend fun executeFkDirect(
             appendLine("  • Distribute 'Key Under LMK' to terminals/hosts.")
             appendLine("  • Verify KCV with each custodian before distributing.")
             appendLine("  • The plain key above must NEVER leave the secure room.")
+        }
+    }
+}
+
+/**
+ * Secure-command DK execution (direct, bypasses wire format).
+ * Decrypts a key encrypted under LMK and shows the plain (clear) key + KCV.
+ */
+private suspend fun executeDecryptKeyDirect(
+    params: Map<String, String>,
+    hsm: HsmServiceImpl
+): String {
+    val encryptedKey = params["encryptedKey"]?.trim()?.uppercase() ?: ""
+    val keyType      = params["keyType"]?.trim() ?: "001"
+
+    if (encryptedKey.isBlank()) {
+        return buildString {
+            appendLine("✗  Decrypt Key failed")
+            appendLine()
+            appendLine("  The encrypted key field is empty.")
+            appendLine("  Enter the LMK-encrypted key (hex) — with or without scheme prefix (U/X/T).")
+        }
+    }
+
+    val keyTypeLabels = mapOf(
+        "000" to "ZMK  (Zone Master Key)",
+        "001" to "ZPK  (Zone PIN Key)",
+        "002" to "PVK / TPK / TMK",
+        "003" to "TAK  (Terminal Authentication Key)",
+        "008" to "ZAK  (Zone Authentication Key)",
+        "009" to "BDK  (Base Derivation Key)",
+        "109" to "MK-AC",
+        "209" to "MK-SMI",
+        "309" to "MK-SMC",
+        "409" to "MK-DAC",
+        "509" to "MK-DN",
+        "609" to "BDK-2",
+        "709" to "MK-CVC3",
+        "809" to "BDK-3",
+        "909" to "BDK-4",
+        "00A" to "ZEK  (Zone Encryption Key)",
+        "00B" to "DEK  (Data Encryption Key)",
+        "402" to "CVK  (Card Verification Key)",
+        "302" to "IKEY (Initial Key for DUKPT)"
+    )
+
+    val keyLabel = keyTypeLabels[keyType] ?: "Key type $keyType"
+
+    val data = hsm.decryptKeyUnderLmk(encryptedKey, keyType)
+
+    return buildString {
+        appendLine("╔════════════════════════════════════════════════════╗")
+        appendLine("║           DECRYPT KEY UNDER LMK                    ║")
+        appendLine("╚════════════════════════════════════════════════════╝")
+        appendLine()
+        appendLine("  Key Type : $keyLabel")
+        appendLine()
+
+        if (data == null) {
+            appendLine("  ✗ HSM not started or not available.")
+        } else if (data.containsKey("error")) {
+            appendLine("  ✗ Error: ${data["error"]}")
+        } else {
+            val clearKey    = data["clearKey"]            ?: "?"
+            val kcv         = data["kcv"]                 ?: "?"
+            val lmkPair     = data["lmkPair"]             ?: "?"
+            val variant     = data["variant"]             ?: "0"
+            val description = data["keyTypeDescription"]  ?: ""
+
+            appendLine("  ┌─── Input ──────────────────────────────────────────┐")
+            appendLine("  │  Encrypted Key (under LMK):")
+            appendLine("  │    ${encryptedKey.chunked(8).joinToString(" ")}")
+            appendLine("  │")
+            appendLine("  │  LMK Pair Used : $lmkPair ($description)")
+            if (variant != "0") {
+                appendLine("  │  LMK Variant   : $variant")
+            }
+            appendLine("  └──────────────────────────────────────────────────┘")
+            appendLine()
+            appendLine("  ════════════════════════════════════════════════════")
+            appendLine("   RESULT")
+            appendLine("  ════════════════════════════════════════════════════")
+            appendLine()
+            appendLine("  Plain Key (clear — console only):")
+            appendLine("    ${clearKey.chunked(8).joinToString(" ")}")
+            appendLine()
+            appendLine("  Key Check Value (KCV) : $kcv")
+            appendLine()
+            appendLine("  ✓ Key decrypted successfully.")
+            appendLine()
+            appendLine("  ─── WARNING ─────────────────────────────────────────")
+            appendLine("  • The plain key above must NEVER leave the secure room.")
+            appendLine("  • Use the KCV to verify the key matches your records.")
+            appendLine("  • This operation is for diagnostic/audit purposes only.")
         }
     }
 }
@@ -1001,7 +1142,8 @@ data class CommandParam(
     val placeholder: String = "",
     val default: String = "",
     val required: Boolean = true,
-    val multiline: Boolean = false
+    val multiline: Boolean = false,
+    val options: List<Pair<String, String>> = emptyList()
 )
 
 data class SecureCommand(
@@ -1011,6 +1153,31 @@ data class SecureCommand(
     val category: CommandCategory,
     val parameters: List<CommandParam> = emptyList(),
     val wireFormat: String = ""
+)
+
+val LMK_KEY_TYPE_OPTIONS = listOf(
+    "000" to "000 — ZMK  (Zone Master Key)            LMK 14-15",
+    "001" to "001 — ZPK  (Zone PIN Key)               LMK 14-15",
+    "002" to "002 — PVK / TPK / TMK                   LMK 14-15",
+    "003" to "003 — TAK  (Terminal Auth Key)           LMK 14-15",
+    "008" to "008 — ZAK  (Zone Auth Key)               LMK 14-15",
+    "009" to "009 — BDK  (Base Derivation Key)         LMK 14-15",
+    "109" to "109 — MK-AC                              LMK 14-15 var 1",
+    "209" to "209 — MK-SMI                             LMK 14-15 var 2",
+    "309" to "309 — MK-SMC                             LMK 14-15 var 3",
+    "409" to "409 — MK-DAC                             LMK 14-15 var 4",
+    "509" to "509 — MK-DN                              LMK 14-15 var 5",
+    "609" to "609 — BDK-2                              LMK 14-15 var 6",
+    "709" to "709 — MK-CVC3                            LMK 14-15 var 7",
+    "809" to "809 — BDK-3                              LMK 14-15 var 8",
+    "909" to "909 — BDK-4                              LMK 14-15 var 9",
+    "00A" to "00A — ZEK  (Zone Encryption Key)         LMK 14-15",
+    "00B" to "00B — DEK  (Data Encryption Key)         LMK 14-15",
+    "402" to "402 — CVK  (Card Verification Key)       LMK 14-15 var 4",
+    "302" to "302 — IKEY (Initial Key / DUKPT)         LMK 14-15",
+    "70D" to "70D — TPK-PCI                            LMK 14-15",
+    "80D" to "80D — TMK-PCI                            LMK 14-15",
+    "90D" to "90D — TKR                                LMK 14-15",
 )
 
 val SECURE_COMMANDS = listOf(
@@ -1140,6 +1307,29 @@ val SECURE_COMMANDS = listOf(
         parameters = listOf(
             CommandParam("account", "Account number (12N)", "12 rightmost digits excl. check", "", true),
             CommandParam("pin", "LMK-encrypted PIN", "", "", true)
+        )
+    ),
+    // Decrypt Key under LMK (console utility)
+    SecureCommand(
+        code = "DK", name = "Decrypt Key Under LMK", category = CommandCategory.KEY_MGMT,
+        description = "Decrypts a key encrypted under the LMK to reveal the plain (clear) key. " +
+                "This is a console-only operation — the clear key is only shown on the secure console.",
+        wireFormat = "Console-only (not a wire command)",
+        parameters = listOf(
+            CommandParam(
+                name = "encryptedKey",
+                description = "Key encrypted under LMK (hex, with optional U/X/T prefix)",
+                placeholder = "U1234567890ABCDEF1234567890ABCDEF",
+                default = "",
+                required = true
+            ),
+            CommandParam(
+                name = "keyType",
+                description = "Key type — determines which LMK pair and variant to use for decryption",
+                default = "001",
+                required = true,
+                options = LMK_KEY_TYPE_OPTIONS
+            )
         )
     ),
     // RSA

@@ -14,6 +14,8 @@ data class HsmConfig(
     val hsmType: HSMVendor = HSMVendor.THALES,
     val lmkStorage: LmkStorage = LmkStorage(),
     val lmkId: String = "00",
+    val tcpLengthHeaderEnabled: Boolean = false,
+    val messageHeaderLength: Int = 4,
     // Terminal & Acquirer Management
     val terminalProfiles: MutableMap<String, TerminalKeyProfile> = mutableMapOf<String, TerminalKeyProfile>(),
     val acquirerProfiles: MutableMap<String, AcquirerProfile> = mutableMapOf<String, AcquirerProfile>()

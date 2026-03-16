@@ -44,7 +44,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     private var enabledPinBlockFormats = mutableSetOf<String>("01", "03", "47", "48")
 
     // System Configuration
-    private var messageHeaderLength = 4
+    private var messageHeaderLength = hsmConfig.messageHeaderLength
     private var systemDateTime = LocalDateTime.now()
     private var selfTestTime = "09:00"
 
@@ -445,7 +445,8 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
                 algorithm = CryptoAlgorithm.TDES,
                 encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                     key = pair.getCombinedKey(),
-                    data = data
+                    data = data,
+                    mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
         } catch (e: Exception) {
@@ -466,7 +467,8 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
                 algorithm = CryptoAlgorithm.TDES,
                 decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                     key = pair.getCombinedKey(),
-                    data = data
+                    data = data,
+                    mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
         } catch (e: Exception) {

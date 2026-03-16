@@ -11,5 +11,8 @@ data class A0Request(
     val keySchemeZmk: Char? = null,
     val zmk: String? = null,
     val ksn: String? = null,
-    val lmkId: String = "00"
+    val lmkId: String = "00",
+    val deriveKeyMode: Char? = null,
+    val dukptMasterKeyType: String? = null,
+    val bdk: String? = null
 )
