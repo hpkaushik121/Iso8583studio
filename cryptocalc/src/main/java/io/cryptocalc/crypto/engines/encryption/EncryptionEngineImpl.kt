@@ -3,6 +3,7 @@ package io.cryptocalc.crypto.engines.encryption
 import ai.cortex.core.types.AlgorithmType
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.CryptoAlgorithm
+import ai.cortex.core.types.PaddingMethods
 import io.cryptocalc.crypto.engines.encryption.models.DecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.EncryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.HashingEncryptionEngineParameters
@@ -10,6 +11,47 @@ import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineP
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 
 internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : EncryptionEngine {
+
+    private val logger: CryptoLogger? get() = emvEngines.logger
+
+    private fun toHex(bytes: ByteArray): String =
+        bytes.joinToString("") { "%02X".format(it) }
+
+    private fun logSymmetricParams(
+        operation: String,
+        algorithm: String,
+        data: ByteArray,
+        key: ByteArray,
+        iv: ByteArray?,
+        mode: CipherMode,
+        padding: PaddingMethods
+    ) {
+        logger?.log(buildString {
+            appendLine("╔══════════════════════════════════════════════════════════════")
+            appendLine("║ EMVEngine ► $operation")
+            appendLine("╠══════════════════════════════════════════════════════════════")
+            appendLine("║ Algorithm........ = $algorithm")
+            appendLine("║ Cipher Mode...... = $mode")
+            appendLine("║ Padding.......... = $padding")
+            appendLine("║ Key (${key.size} bytes).. = ${toHex(key)}")
+            if (iv != null && mode != CipherMode.ECB) {
+                appendLine("║ IV (${iv.size} bytes)... = ${toHex(iv)}")
+            }
+            appendLine("║ Data (${data.size} bytes). = ${toHex(data)}")
+            append("╚══════════════════════════════════════════════════════════════")
+        })
+    }
+
+    private fun logResult(operation: String, result: ByteArray) {
+        logger?.log(buildString {
+            appendLine("╔══════════════════════════════════════════════════════════════")
+            appendLine("║ EMVEngine ► $operation Result")
+            appendLine("╠══════════════════════════════════════════════════════════════")
+            appendLine("║ Output (${result.size} bytes) = ${toHex(result)}")
+            append("╚══════════════════════════════════════════════════════════════")
+        })
+    }
+
     override suspend fun <T : AlgorithmType> encrypt(
         algorithm: CryptoAlgorithm<T>,
         encryptionEngineParameters: EncryptionEngineParameters<T>
@@ -28,30 +70,29 @@ internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : Encry
                 byteArrayOf()
             }
 
-            is CryptoAlgorithm.TDES  -> {
+            is CryptoAlgorithm.TDES -> {
                 val parameter = encryptionEngineParameters as SymmetricEncryptionEngineParameters
-                when (parameter.mode) {
-                    CipherMode.ECB -> TdesCalculatorEngine.encryptECB(parameter.data, parameter.key)
+                logSymmetricParams(
+                    "Encrypt", "TDES",
+                    parameter.data, parameter.key, parameter.iv,
+                    parameter.mode, parameter.padding
+                )
+                val result = when (parameter.mode) {
+                    CipherMode.ECB -> TdesCalculatorEngine.encryptECB(parameter.data, parameter.key, parameter.padding)
                     CipherMode.CBC -> TdesCalculatorEngine.encryptCBC(
-                        parameter.data,
-                        parameter.key,
-                        parameter.iv
+                        parameter.data, parameter.key, parameter.iv, parameter.padding
                     )
-
-                    CipherMode.CFB -> TdesCalculatorEngine.encryptCBC(
-                        parameter.data,
-                        parameter.key,
-                        parameter.iv!!
+                    CipherMode.CFB -> TdesCalculatorEngine.encryptCFB(
+                        parameter.data, parameter.key, parameter.iv!!, parameter.padding
                     )
                     CipherMode.OFB -> TdesCalculatorEngine.encryptOFB(
-                        parameter.data,
-                        parameter.key,
-                        parameter.iv!!
+                        parameter.data, parameter.key, parameter.iv!!, parameter.padding
                     )
                     CipherMode.GCM -> TODO()
                     CipherMode.CTR -> TODO()
                 }
-
+                logResult("Encrypt", result)
+                result
             }
 
             is CryptoAlgorithm.SHA1 -> SHA1CalculatorEngine.calculateSHA1(data = (encryptionEngineParameters as HashingEncryptionEngineParameters).data)
@@ -64,23 +105,27 @@ internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : Encry
         algorithm: CryptoAlgorithm<T>,
         decryptionEngineParameters: DecryptionEngineParameters<T>
     ): ByteArray {
-        return when(algorithm){
-            is CryptoAlgorithm.TDES ->{
+        return when (algorithm) {
+            is CryptoAlgorithm.TDES -> {
                 val parameter = decryptionEngineParameters as SymmetricDecryptionEngineParameters
-                when (parameter.mode) {
-                    CipherMode.ECB -> TdesCalculatorEngine.decryptECB(parameter.data,parameter.key)
-                    CipherMode.CBC -> TdesCalculatorEngine.decryptCBC(parameter.data,parameter.key)
-                    CipherMode.CFB -> TODO()
-                    CipherMode.OFB -> TODO()
+                logSymmetricParams(
+                    "Decrypt", "TDES",
+                    parameter.data, parameter.key, parameter.iv,
+                    parameter.mode, parameter.padding
+                )
+                val result = when (parameter.mode) {
+                    CipherMode.ECB -> TdesCalculatorEngine.decryptECB(parameter.data, parameter.key, parameter.padding)
+                    CipherMode.CBC -> TdesCalculatorEngine.decryptCBC(parameter.data, parameter.key, parameter.iv, parameter.padding)
+                    CipherMode.CFB -> TdesCalculatorEngine.decryptCFB(parameter.data, parameter.key, parameter.iv, parameter.padding)
+                    CipherMode.OFB -> TdesCalculatorEngine.decryptOFB(parameter.data, parameter.key, parameter.iv, parameter.padding)
                     CipherMode.GCM -> TODO()
                     CipherMode.CTR -> TODO()
                 }
-
+                logResult("Decrypt", result)
+                result
             }
+
             else -> TODO("Not Yet Implemented for decryption ${algorithm::class.java}")
         }
     }
-
-
-
 }

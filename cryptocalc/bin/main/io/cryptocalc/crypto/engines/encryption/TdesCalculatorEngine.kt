@@ -2,6 +2,7 @@ package io.cryptocalc.crypto.engines.encryption
 
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.PaddingMethods
+import ai.cortex.core.types.PaddingMethods.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.SecureRandom
 import java.security.Security
@@ -40,57 +41,57 @@ internal object TdesCalculatorEngine {
     /**
      * Encrypts data using 3DES in CBC mode.
      */
-    fun encryptCBC(data: ByteArray, key: ByteArray, iv: ByteArray? = null): ByteArray {
-        return performCipherOperation(data, key, iv, Cipher.ENCRYPT_MODE, CipherMode.CBC)
+    fun encryptCBC(data: ByteArray, key: ByteArray, iv: ByteArray? = null, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, iv, Cipher.ENCRYPT_MODE, CipherMode.CBC, padding)
     }
 
     /**
      * Decrypts data using 3DES in CBC mode.
      */
-    fun decryptCBC(data: ByteArray, key: ByteArray, iv: ByteArray? = null): ByteArray {
-        return performCipherOperation(data, key, iv, Cipher.DECRYPT_MODE, CipherMode.CBC)
+    fun decryptCBC(data: ByteArray, key: ByteArray, iv: ByteArray? = null, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, iv, Cipher.DECRYPT_MODE, CipherMode.CBC, padding)
     }
 
     /**
      * Encrypts data using 3DES in ECB mode.
      */
-    fun encryptECB(data: ByteArray, key: ByteArray): ByteArray {
-        return performCipherOperation(data, key, null, Cipher.ENCRYPT_MODE, CipherMode.ECB)
+    fun encryptECB(data: ByteArray, key: ByteArray, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, null, Cipher.ENCRYPT_MODE, CipherMode.ECB, padding)
     }
 
     /**
      * Decrypts data using 3DES in ECB mode.
      */
-    fun decryptECB(data: ByteArray, key: ByteArray): ByteArray {
-        return performCipherOperation(data, key, null, Cipher.DECRYPT_MODE, CipherMode.ECB)
+    fun decryptECB(data: ByteArray, key: ByteArray, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, null, Cipher.DECRYPT_MODE, CipherMode.ECB, padding)
     }
 
     /**
      * Encrypts data using 3DES in CFB mode.
      */
-    fun encryptCFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null): ByteArray {
-        return performCipherOperation(data, key, iv, Cipher.ENCRYPT_MODE, CipherMode.CFB)
+    fun encryptCFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, iv, Cipher.ENCRYPT_MODE, CipherMode.CFB, padding)
     }
 
     /**
      * Decrypts data using 3DES in CFB mode.
      */
-    fun decryptCFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null): ByteArray {
-        return performCipherOperation(data, key, iv, Cipher.DECRYPT_MODE, CipherMode.CFB)
+    fun decryptCFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, iv, Cipher.DECRYPT_MODE, CipherMode.CFB, padding)
     }
 
     /**
      * Encrypts data using 3DES in OFB mode.
      */
-    fun encryptOFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null): ByteArray {
-        return performCipherOperation(data, key, iv, Cipher.ENCRYPT_MODE, CipherMode.OFB)
+    fun encryptOFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, iv, Cipher.ENCRYPT_MODE, CipherMode.OFB, padding)
     }
 
     /**
      * Decrypts data using 3DES in OFB mode.
      */
-    fun decryptOFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null): ByteArray {
-        return performCipherOperation(data, key, iv, Cipher.DECRYPT_MODE, CipherMode.OFB)
+    fun decryptOFB(data: ByteArray, key: ByteArray, iv: ByteArray? = null, padding: PaddingMethods = NONE): ByteArray {
+        return performCipherOperation(data, key, iv, Cipher.DECRYPT_MODE, CipherMode.OFB, padding)
     }
 
     // ============================================================================
@@ -225,13 +226,25 @@ internal object TdesCalculatorEngine {
     /**
      * Central private function to handle all cipher operations.
      */
-    private fun performCipherOperation(data: ByteArray, key: ByteArray, iv: ByteArray?, mode: Int, cipherMode: CipherMode): ByteArray {
+    private fun performCipherOperation(
+        data: ByteArray,
+        key: ByteArray,
+        iv: ByteArray?,
+        mode: Int,
+        cipherMode: CipherMode,
+        padding: PaddingMethods = NONE
+    ): ByteArray {
         validateKey(key)
         val effectiveIV = iv ?: ByteArray(8) { 0 }
         validateIV(effectiveIV, cipherMode)
         val algorithm = if (key.size == 8) "DES" else "DESede"
 
-        val transformation = "$algorithm/$cipherMode/NoPadding"
+        val paddingSuffix = when (padding) {
+            PKCS5-> "PKCS5Padding"
+            PKCS7 -> "PKCS7Padding"
+            else -> "NoPadding"
+        }
+        val transformation = "$algorithm/$cipherMode/$paddingSuffix"
         val keySpec = SecretKeySpec(key, algorithm)
         val cipher = Cipher.getInstance(transformation)
 

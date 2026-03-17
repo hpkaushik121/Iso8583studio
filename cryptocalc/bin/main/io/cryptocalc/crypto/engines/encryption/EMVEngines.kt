@@ -6,7 +6,7 @@ import io.cryptocalc.crypto.engines.keys.KeysEngine
 import io.cryptocalc.crypto.engines.keys.KeysEngineImpl
 import io.cryptocalc.crypto.engines.encryption.EncryptionEngine
 
-class EMVEngines() {
+class EMVEngines(val logger: CryptoLogger? = null) {
     val encryptionEngine: EncryptionEngine = EncryptionEngineImpl(this)
     val keysEngine: KeysEngine = KeysEngineImpl(this)
     val acEngine: AcEngine = AcEngineImpl(this)
