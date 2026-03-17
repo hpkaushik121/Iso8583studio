@@ -16,6 +16,7 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkPair
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkSet
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkStorage
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.TerminalKeyProfile
+import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
@@ -37,6 +38,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     private val authorizations = mutableMapOf<String, MutableList<AuthorizationRecord>>()
     val auditLog = AuditLog(hsmLogsListener)
     private val slotManager = HsmSlotManager()
+    private fun engine() = EMVEngines(CryptoLogger { message -> hsmLogsListener.log(message) })
 
     // Security Configuration
     private var enabledCommands = mutableSetOf<String>()
@@ -440,8 +442,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
         val pair = lmk.getPair(pairNumber) ?: return data
 
         return try {
-            val engine = EMVEngines()
-            engine.encryptionEngine.encrypt(
+            engine().encryptionEngine.encrypt(
                 algorithm = CryptoAlgorithm.TDES,
                 encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                     key = pair.getCombinedKey(),
@@ -462,8 +463,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
         val pair = lmk.getPair(pairNumber) ?: return data
 
         return try {
-            val engine = EMVEngines()
-            engine.encryptionEngine.decrypt(
+            engine().encryptionEngine.decrypt(
                 algorithm = CryptoAlgorithm.TDES,
                 decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                     key = pair.getCombinedKey(),

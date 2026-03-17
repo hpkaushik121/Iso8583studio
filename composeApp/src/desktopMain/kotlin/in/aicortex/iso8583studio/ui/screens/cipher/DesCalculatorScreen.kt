@@ -36,6 +36,7 @@ import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
+import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
@@ -122,6 +123,11 @@ private object DesLogManager {
         if (_logEntries.size > 500) _logEntries.removeRange(400, _logEntries.size)
     }
 
+    fun logEngine(message: String) {
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+        addLog(LogEntry(timestamp = timestamp, type = LogType.HSM, message = "EMVEngine", details = message))
+    }
+
     fun logOperation(
         operation: String,
         inputs: Map<String, String>,
@@ -157,6 +163,11 @@ private object DesLogManager {
 
 @Composable
 fun DesCalculatorScreen(onBack: () -> Unit) {
+    DisposableEffect(Unit) {
+        DesCryptoService.logger = CryptoLogger { message -> DesLogManager.logEngine(message) }
+        onDispose { DesCryptoService.logger = null }
+    }
+
     Scaffold(
         topBar = { AppBarWithBack(title = "DES/3DES Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background

@@ -19,6 +19,7 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyLength
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.KeyType
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.PinBlockFormat
 import ai.cortex.core.types.CryptoAlgorithm
+import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -173,8 +174,7 @@ class PayShield10K(val config: HsmConfig,val hsmLogsListener: HsmLogsListener) :
         }
 
         val clearBytes = try {
-            val engine = EMVEngines()
-            engine.encryptionEngine.decrypt(
+            EMVEngines(CryptoLogger { msg -> hsmLogsListener.log(msg) }).encryptionEngine.decrypt(
                 algorithm = CryptoAlgorithm.TDES,
                 decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                     key = lmkKey,

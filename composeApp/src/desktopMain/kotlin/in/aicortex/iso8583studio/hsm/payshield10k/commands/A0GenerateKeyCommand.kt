@@ -16,6 +16,7 @@ import java.security.SecureRandom
 
 import `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
+import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.EncryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
@@ -416,12 +417,11 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         }
     }
 
+    private fun engine() = EMVEngines(CryptoLogger { msg -> hsm.hsmLogsListener.log(msg) })
+
     private suspend fun performTdesEncrypt(data: ByteArray, key: ByteArray): ByteArray {
         return try {
-            hsm.hsmLogsListener.log("=======================================================================")
-            hsm.hsmLogsListener.log("Plain=${IsoUtil.bytesToHex(data)}")
-            val calculator = EMVEngines()
-            val data =  calculator.encryptionEngine.encrypt(
+            val result = engine().encryptionEngine.encrypt(
                 algorithm = CryptoAlgorithm.TDES,
                 encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                     data = data,
@@ -429,9 +429,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                     mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
-            hsm.hsmLogsListener.log("encrypted=${IsoUtil.bytesToHex(data)}, Key=${IsoUtil.bytesToHex(key)}")
-            hsm.hsmLogsListener.log("=======================================================================")
-            return data
+            return result
         } catch (e: Exception) {
             data
         }
@@ -439,9 +437,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
 
     private suspend fun performTdesDecrypt(data: ByteArray, key: ByteArray): ByteArray {
         return try {
-            hsm.hsmLogsListener.log("encrypted ${IsoUtil.bytesToHex(data)} data, Key=${IsoUtil.bytesToHex(key)}")
-            val calculator = EMVEngines()
-            val data =  calculator.encryptionEngine.decrypt(
+            val result = engine().encryptionEngine.decrypt(
                 algorithm = CryptoAlgorithm.TDES,
                 decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                     data = data,
@@ -449,8 +445,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                     mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
-            hsm.hsmLogsListener.log("decrypted ${IsoUtil.bytesToHex(data)} data, Key=${IsoUtil.bytesToHex(key)}")
-            data
+            result
         } catch (e: Exception) {
             data
         }

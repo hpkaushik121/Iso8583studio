@@ -24,7 +24,8 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.*
 import ai.cortex.core.IsoUtil
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.CryptoAlgorithm
-import `in`.aicortex.iso8583studio.domain.utils.DesCryptoService.applyPadding
+import ai.cortex.core.types.PaddingMethods
+import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import `in`.aicortex.iso8583studio.hsm.HsmConfig
 import `in`.aicortex.iso8583studio.hsm.payshield10k.commands.A0GenerateKeyCommand
 import `in`.aicortex.iso8583studio.hsm.payshield10k.commands.KeyTypeLmkInfo
@@ -63,6 +64,9 @@ class PayShieldStringCommandProcessor(
 ) {
     private val commandProcessor = PayShield10KCommandProcessor(simulator,hsmLogsListener)
     private val advancedFeatures = PayShield10KAdvancedFeatures(simulator, commandProcessor)
+    private val cryptoLogger = CryptoLogger { message -> hsmLogsListener.log(message) }
+
+    private fun engine() = EMVEngines(cryptoLogger)
 
     companion object {
         val BDK_KEY_TYPES = setOf("009", "609", "809", "909")
@@ -914,16 +918,15 @@ class PayShieldStringCommandProcessor(
             hsmLogsListener.log("[M0] Step 11: Encrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${plainData.size} bytes")
             hsmLogsListener.log("[M0] Step 11: Plain data = $plainDataHex")
 
-            val engine = EMVEngines()
             val cipherMode = if (mode == "01") CipherMode.CBC else CipherMode.ECB
-            val paddedData = applyPadding(plainData,"PKCS#5")
-            val encData = engine.encryptionEngine.encrypt(
+            val encData = engine().encryptionEngine.encrypt(
                 algorithm = CryptoAlgorithm.TDES,
                 encryptionEngineParameters = SymmetricEncryptionEngineParameters(
-                    data = paddedData,
+                    data = plainData,
                     key = clearKey,
                     iv = if (mode == "01") IsoUtil.hexToBytes(ivHex) else null,
-                    mode = cipherMode
+                    mode = cipherMode,
+                    padding = PaddingMethods.PKCS5
                 )
             )
             val encHex  = IsoUtil.bytesToHexString(encData)
@@ -1096,19 +1099,34 @@ class PayShieldStringCommandProcessor(
             hsmLogsListener.log("[M2] Step 11: Decrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${encData.size} bytes")
             hsmLogsListener.log("[M2] Step 11: Encrypted data = $encDataHex")
 
-            val paddedData = applyPadding(encData, "PKCS#5")
 
-            val engine = EMVEngines()
             val cipherMode = if (mode == "01") CipherMode.CBC else CipherMode.ECB
-            val decData = engine.encryptionEngine.decrypt(
-                algorithm = CryptoAlgorithm.TDES,
-                decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                    data = paddedData,
-                    key = clearKey,
-                    iv = IsoUtil.hexToBytes(ivHex),
-                    mode = cipherMode
+            val ivBytes = IsoUtil.hexToBytes(ivHex)
+            val eng = engine()
+            val decData = try {
+                eng.encryptionEngine.decrypt(
+                    algorithm = CryptoAlgorithm.TDES,
+                    decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                        data = encData,
+                        key = clearKey,
+                        iv = ivBytes,
+                        mode = cipherMode,
+                        padding = PaddingMethods.PKCS5
+                    )
                 )
-            )
+            } catch (_: Exception) {
+                hsmLogsListener.log("[M2] PKCS5 padding invalid, falling back to NoPadding")
+                eng.encryptionEngine.decrypt(
+                    algorithm = CryptoAlgorithm.TDES,
+                    decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                        data = encData,
+                        key = clearKey,
+                        iv = ivBytes,
+                        mode = cipherMode,
+                        padding = PaddingMethods.NONE
+                    )
+                )
+            }
             val decHex  = IsoUtil.bytesToHexString(decData)
             val outLen  = (decData.size*2).toString(16).padStart(4, '0').uppercase()
             val responseBody = if (mode == "01") "$ivHex$outLen$decHex" else "$outLen$decHex"
@@ -1149,12 +1167,10 @@ class PayShieldStringCommandProcessor(
     }
 
     private suspend fun performTdesDecryptForM2(data: ByteArray, key: ByteArray): ByteArray {
-        val engine = EMVEngines()
-        val paddedData = applyPadding(data, "PKCS#5")
-        return engine.encryptionEngine.decrypt(
+        return engine().encryptionEngine.decrypt(
             algorithm = CryptoAlgorithm.TDES,
             decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                data = paddedData,
+                data = data,
                 key = key,
                 mode = CipherMode.ECB
             )

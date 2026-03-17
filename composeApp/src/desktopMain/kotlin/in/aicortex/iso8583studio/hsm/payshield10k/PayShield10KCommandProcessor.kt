@@ -31,6 +31,7 @@ import ai.cortex.core.IsoUtil
 import ai.cortex.core.types.CryptoAlgorithm
 import `in`.aicortex.iso8583studio.hsm.payshield10k.*
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
+import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
@@ -45,6 +46,7 @@ class PayShield10KCommandProcessor(
     private val simulator: PayShield10KFeatures,
     private val hsmLongListener: HsmLogsListener
 ) {
+    private fun engine() = EMVEngines(CryptoLogger { msg -> hsmLongListener.log(msg) })
 
     // ====================================================================================================
     // KEY MANAGEMENT COMMANDS (CONSOLE)
@@ -1257,8 +1259,7 @@ class PayShield10KCommandProcessor(
     }
 
     private suspend fun encryptPinBlock(pinBlock: ByteArray, key: ByteArray): ByteArray {
-        val engine = EMVEngines()
-        return engine.encryptionEngine.encrypt(
+        return engine().encryptionEngine.encrypt(
             algorithm = CryptoAlgorithm.TDES,
             encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                 key = key,
@@ -1269,8 +1270,7 @@ class PayShield10KCommandProcessor(
     }
 
     private suspend fun decryptPinBlock(encryptedPinBlock: ByteArray, key: ByteArray): ByteArray {
-        val engine = EMVEngines()
-        return engine.encryptionEngine.decrypt(
+        return engine().encryptionEngine.decrypt(
             algorithm = CryptoAlgorithm.TDES,
             decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                 key = key,

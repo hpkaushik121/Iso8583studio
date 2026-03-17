@@ -5,6 +5,8 @@ import ai.cortex.core.types.AlgorithmType
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.CryptoAlgorithm
 import ai.cortex.core.types.Key
+import ai.cortex.core.types.PaddingMethods
+import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
@@ -16,12 +18,15 @@ import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineP
 //   val calculator = EMVEngines()
 //   calculator.encryptionEngine.encrypt(CryptoAlgorithm.TDES, SymmetricEncryptionEngineParameters(...))
 //
-// Padding is handled at this layer because TdesCalculatorEngine uses NoPadding.
+// PKCS#5 and PKCS#7 padding is delegated to the engine via PaddingMethods.
+// Other padding methods are handled at this layer.
 // ═══════════════════════════════════════════════════════════════════════════════════
 
 object DesCryptoService {
 
-    private val emvEngines = EMVEngines()
+    var logger: CryptoLogger? = null
+
+    private val emvEngines: EMVEngines get() = EMVEngines(logger)
 
     // ── Mode Mapping ────────────────────────────────────────────────────────────
     // UI modes → ai.cortex.core.types.CipherMode
@@ -130,6 +135,14 @@ object DesCryptoService {
 
 
 
+    private fun mapToEnginePadding(uiPadding: String): PaddingMethods? {
+        return when (uiPadding) {
+            "PKCS#5" -> PaddingMethods.PKCS5
+            "PKCS#7" -> PaddingMethods.PKCS7
+            else -> null
+        }
+    }
+
     // ── Core Encrypt via EMVEngines ─────────────────────────────────────────────
 
     suspend fun encrypt(
@@ -139,7 +152,8 @@ object DesCryptoService {
         uiMode: String,
         padding: String
     ): ByteArray {
-        val paddedData = applyPadding(data, padding)
+        val enginePadding = mapToEnginePadding(padding)
+        val paddedData = if (enginePadding != null) data else applyPadding(data, padding)
         val cipherMode = mapToCipherMode(uiMode)
         val algorithm = resolveAlgorithm(key.size)
         val effectiveIv = iv ?: ByteArray(8) { 0 }
@@ -150,7 +164,8 @@ object DesCryptoService {
                 data = paddedData,
                 key = key,
                 iv = effectiveIv,
-                mode = cipherMode
+                mode = cipherMode,
+                padding = enginePadding ?: PaddingMethods.NONE
             )
         )
     }
@@ -170,6 +185,7 @@ object DesCryptoService {
             )
         }
 
+        val enginePadding = mapToEnginePadding(padding)
         val cipherMode = mapToCipherMode(uiMode)
         val algorithm = resolveAlgorithm(key.size)
         val effectiveIv = iv ?: ByteArray(8) { 0 }
@@ -180,11 +196,12 @@ object DesCryptoService {
                 data = data,
                 key = key,
                 iv = effectiveIv,
-                mode = cipherMode
+                mode = cipherMode,
+                padding = enginePadding ?: PaddingMethods.NONE
             )
         )
 
-        return removePadding(decrypted, padding)
+        return if (enginePadding != null) decrypted else removePadding(decrypted, padding)
     }
 
     // ── KCV via KeysEngine ──────────────────────────────────────────────────────
