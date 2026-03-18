@@ -66,6 +66,15 @@ class PayShieldStringCommandProcessor(
     private val advancedFeatures = PayShield10KAdvancedFeatures(simulator, commandProcessor)
     private val cryptoLogger = CryptoLogger { message -> hsmLogsListener.log(message) }
 
+    /**
+     * Returns the 12-digit PAN portion used in ISO 9564-1 PIN block construction.
+     *
+     * payShield wire field 9 is already "12 rightmost PAN digits excluding check digit" (12N).
+     * If a caller happens to pass a longer full PAN (≥13 digits), the check digit is stripped first.
+     */
+    private fun pan12(account: String): String =
+        if (account.length >= 13) account.takeLast(13).dropLast(1) else account.takeLast(12)
+
     private fun engine() = EMVEngines(cryptoLogger)
 
     companion object {
@@ -517,7 +526,7 @@ class PayShieldStringCommandProcessor(
             val clearPinBlock = tpkCipher.doFinal(pinBlock)
 
             // Extract PIN (ISO Format 0)
-            val panPart = "0000" + account.takeLast(13).dropLast(1)
+            val panPart = "0000" + pan12(account)
             val panBytes = IsoUtil.hexToBytes(panPart)
             val xored = clearPinBlock.zip(panBytes) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
             val xoredHex = IsoUtil.bytesToHexString(xored)
@@ -540,131 +549,303 @@ class PayShieldStringCommandProcessor(
 
     /**
      * CA - Translate PIN from TPK to ZPK
-     * Command: 0000CA[ZPK][TPK][MaxPIN][PIN Block][SrcFmt][DstFmt][Account]%[LMK_ID]
-     * Response: 0000CB00[Translated PIN Block]
+     * Wire format: [Header_4A][CA][TPK_1A+32H][ZPK_1A+32H][MaxPINLen_2N][PINBlock_16H][SrcFmt_2N][DstFmt_2N][Account_12N]
+     * Response:    [Header_4A][CB][00][PINLen_2N][PINBlock_16H][DstFmt_2N]
+     *
+     * Field order per Thales payShield 10K Host Command Reference (section 3.4.1):
+     *   Field 3 = TPK (1A + 32H)   — key encrypted under LMK pair 14-15
+     *   Field 4 = ZPK (1A + 32H)   — key encrypted under LMK pair 06-07
+     *   Field 5 = Max PIN length (2N)
+     *   Field 6 = Source PIN block (16H)
+     *   Field 7 = Source format code (2N)
+     *   Field 8 = Destination format code (2N)
+     *   Field 9 = Account number, 12 rightmost PAN digits excl. check digit (12N)
      */
     private suspend fun executeCA(cmd: ParsedCommand): HsmCommandResult {
-        var pos = 0
-        val data = cmd.data
 
-        // ZPK (33 chars with scheme)
-        val zpkScheme = data[pos]
-        pos++
-        val zpkHex = data.substring(pos, pos + 32)
-        pos += 32
-        val zpk = IsoUtil.hexToBytes(zpkHex)
+        fun resolveFormat(code: String) = when (code) {
+            "01" -> PinBlockFormat.ISO_FORMAT_0
+            "02" -> PinBlockFormat.DOCUTEL
+            "03" -> PinBlockFormat.DIEBOLD_IBM
+            "04" -> PinBlockFormat.PLUS_NETWORK
+            "05" -> PinBlockFormat.ISO_FORMAT_1
+            "46" -> PinBlockFormat.AS2805
+            "47" -> PinBlockFormat.ISO_FORMAT_3
+            "48" -> PinBlockFormat.ISO_FORMAT_4
+            else -> PinBlockFormat.ISO_FORMAT_0
+        }
 
-        // TPK (33 chars with scheme)
-        val tpkScheme = data[pos]
-        pos++
-        val tpkHex = data.substring(pos, pos + 32)
-        pos += 32
-        val tpk = IsoUtil.hexToBytes(tpkHex)
+        val sep = "─".repeat(56)
 
-        // Max PIN length (2 chars)
-        val maxPinLen = data.substring(pos, pos + 2).toIntOrNull() ?: 12
-        pos += 2
+        return try {
+            var pos = 0
+            val data = cmd.data
 
-        // PIN block (16 hex chars = 8 bytes)
-        val pinBlockHex = data.substring(pos, pos + 32)
-        pos += 32
-        val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
+            // ── Step 1: Parse all wire fields ────────────────────────────────
+            hsmLogsListener.log("► CA  [1/5]  Parsing wire fields  (LMK slot: ${cmd.lmkId})")
 
-        // Source format (2 chars)
-        val srcFormat = data.substring(pos, pos + 2)
-        pos += 2
+            // Field 3 — TPK: scheme char (1A) + key hex (32H)
+            val tpkScheme = data[pos]; pos++
+            val tpkHex = data.substring(pos, pos + 32); pos += 32
+            val tpk = IsoUtil.hexToBytes(tpkHex)
+            hsmLogsListener.log("          Field 3  Source TPK     (LMK 14-15) : $tpkScheme$tpkHex")
 
-        // Destination format (2 chars)
-        val dstFormat = data.substring(pos, pos + 2)
-        pos += 2
+            // Field 4 — ZPK: scheme char (1A) + key hex (32H)
+            val zpkScheme = data[pos]; pos++
+            val zpkHex = data.substring(pos, pos + 32); pos += 32
+            val zpk = IsoUtil.hexToBytes(zpkHex)
+            hsmLogsListener.log("          Field 4  Destination ZPK (LMK 06-07) : $zpkScheme$zpkHex")
 
-        // Account number (12 chars)
-        val account = data.substring(pos, minOf(pos + 16, data.length))
-        hsmLogsListener.onFormattedRequest(
-            """
-                zpkScheme: ${zpkScheme}
-                zpkHex: ${zpkHex}
-                tpkScheme: ${tpkScheme}
-                tpkHex: ${tpkHex}
-                maxPinLen: ${maxPinLen}
-                pinBlockHex: ${pinBlockHex}
-                srcFormat: ${srcFormat}
-                dstFormat: ${dstFormat}
-                
-            """.trimIndent()
-        )
-        val result = commandProcessor.executeTranslatePinTpkToZpk(
-            lmkId = cmd.lmkId,
-            encryptedPinBlock = pinBlock,
-            encryptedSourceTpk = tpk,
-            encryptedDestZpk = zpk,
-            accountNumber = account,
-            sourcePinBlockFormat = if (srcFormat == "01") PinBlockFormat.ISO_FORMAT_0 else PinBlockFormat.ISO_FORMAT_1,
-            destPinBlockFormat = if (dstFormat == "01") PinBlockFormat.ISO_FORMAT_0 else PinBlockFormat.ISO_FORMAT_1
-        )
+            // Field 5 — Maximum PIN length (2N)
+            val maxPinLen = data.substring(pos, pos + 2).toIntOrNull() ?: 12; pos += 2
+            hsmLogsListener.log("          Field 5  Max PIN Length              : ${maxPinLen.toString().padStart(2, '0')}")
 
-        return if (result is HsmCommandResult.Success) {
-            HsmCommandResult.Success(
-                response = result.data["encryptedPinBlock"] as String,
-                data = result.data
+            // Field 6 — Source PIN block (16H = 8 bytes)
+            val pinBlockHex = data.substring(pos, pos + 16); pos += 16
+            val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
+            hsmLogsListener.log("          Field 6  Source PIN Block (enc/TPK)  : $pinBlockHex")
+
+            // Field 7 — Source PIN block format code (2N)
+            val srcFormat = data.substring(pos, pos + 2); pos += 2
+            hsmLogsListener.log("          Field 7  Source Format Code          : $srcFormat  [${resolveFormat(srcFormat).description}]")
+
+            // Field 8 — Destination PIN block format code (2N)
+            val dstFormat = data.substring(pos, pos + 2); pos += 2
+            hsmLogsListener.log("          Field 8  Destination Format Code     : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+            // Field 9 — Account number (12N)
+            val account = data.substring(pos, minOf(pos + 12, data.length))
+            hsmLogsListener.log("          Field 9  Account Number (12 PAN dig) : $account")
+
+            // ── Emit structured formatted request ────────────────────────────
+            hsmLogsListener.onFormattedRequest(buildString {
+                appendLine("Message Header........... = [${cmd.header}]")
+                appendLine("Command Code............. = [CA] Translate PIN from TPK to ZPK Request")
+                appendLine("Source TPK............... = [$tpkScheme$tpkHex]")
+                appendLine("Destination ZPK.......... = [$zpkScheme$zpkHex]")
+                appendLine("Maximum PIN Length....... = [${maxPinLen.toString().padStart(2, '0')}]")
+                appendLine("PIN Block Under TPK...... = [$pinBlockHex]")
+                appendLine("Source Format Code....... = [$srcFormat] ${resolveFormat(srcFormat).description}")
+                appendLine("Destination Format Code.. = [$dstFormat] ${resolveFormat(dstFormat).description}")
+                appendLine("Account Number........... = [$account]")
+            })
+
+            // ── Step 2: Decrypt TPK under LMK ───────────────────────────────
+            hsmLogsListener.log("► CA  [2/5]  Decrypting TPK under LMK pair 14-15  (${tpkScheme} = ${
+                when (tpkScheme) { 'U' -> "Double-length 3DES"; 'T' -> "Triple-length 3DES"; else -> "Single-length DES" }
+            })")
+
+            // ── Step 3: Decrypt ZPK under LMK ───────────────────────────────
+            hsmLogsListener.log("► CA  [3/5]  Decrypting ZPK under LMK pair 06-07  (${zpkScheme} = ${
+                when (zpkScheme) { 'U' -> "Double-length 3DES"; 'T' -> "Triple-length 3DES"; else -> "Single-length DES" }
+            })")
+
+            // ── Step 4: Translate — decrypt block under TPK, re-encrypt under ZPK
+            hsmLogsListener.log("► CA  [4/5]  Decrypting source PIN block under clear TPK")
+            hsmLogsListener.log("             Source format  : $srcFormat  [${resolveFormat(srcFormat).description}]")
+            hsmLogsListener.log("             Account (PAN)  : $account")
+
+            hsmLogsListener.log("► CA  [5/5]  Re-formatting PIN block and encrypting under clear ZPK")
+            hsmLogsListener.log("             Dest format    : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+            val result = commandProcessor.executeTranslatePinTpkToZpk(
+                lmkId = cmd.lmkId,
+                encryptedPinBlock = pinBlock,
+                encryptedSourceTpk = tpk,
+                encryptedDestZpk = zpk,
+                accountNumber = account,
+                sourcePinBlockFormat = resolveFormat(srcFormat),
+                destPinBlockFormat = resolveFormat(dstFormat)
             )
-        } else {
-            result
+
+            if (result is HsmCommandResult.Success) {
+                val encPinBlock = result.data["encryptedPinBlock"] as String
+                val pinLength   = result.data["pinLength"] as String
+                val pinLenPad   = pinLength.padStart(2, '0')
+                val wireResponse = "${cmd.header}CB00${pinLenPad}${encPinBlock}${dstFormat}"
+
+                hsmLogsListener.log("◄ CA  Translation successful")
+                hsmLogsListener.log("          Translated PIN Block (enc/ZPK) : $encPinBlock")
+                hsmLogsListener.log("          Returned PIN Length            : $pinLenPad")
+                hsmLogsListener.log("          Output Format Code             : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+                hsmLogsListener.onFormattedResponse(buildString {
+                    appendLine(sep)
+                    appendLine("◄ CB  Response — Translate PIN from TPK to ZPK")
+                    appendLine(sep)
+                    appendLine("  Response Code          : CB")
+                    appendLine("  Error Code             : 00  ✓ No error")
+                    appendLine("  PIN Length             : $pinLenPad")
+                    appendLine("  Output PIN Block       : $encPinBlock")
+                    appendLine("  Output Format Code     : $dstFormat  [${resolveFormat(dstFormat).description}]")
+                    appendLine(sep)
+                    appendLine("  Wire Response          : $wireResponse")
+                })
+
+                // CB response body: [PINLen_2N][PINBlock_16H][DstFmt_2N]
+                HsmCommandResult.Success(
+                    response = "${pinLenPad}${encPinBlock}${dstFormat}",
+                    data = result.data
+                )
+            } else {
+                val err = result as HsmCommandResult.Error
+                hsmLogsListener.log("✗ CA  Translation FAILED — errorCode=${err.errorCode}  ${err.message}")
+                result
+            }
+        } catch (e: Exception) {
+            hsmLogsListener.log("✗ CA  Exception: ${e.message}")
+            HsmCommandResult.Error("15", "CA failed: ${e.message}")
         }
     }
 
     /**
-     * CI - Translate PIN from DUKPT to ZPK
-     * Command: 0000CI[ZPK][KSN][PIN Block][SrcFmt][DstFmt][Account]%[LMK_ID]
-     * Response: 0000CJ00[Translated PIN Block]
+     * CI - Translate PIN from DUKPT (BDK) to ZPK
+     * Wire format: [Header_4A][CI][BDK_1A+32H][ZPK_1A+32H][KSNDesc_3H][KSN_20H][PINBlock_16H][DstFmt_2N][Account_12N]
+     * Response:    [Header_4A][CJ][00][PINLen_2N][PINBlock_16H][DstFmt_2N]
+     *
+     * Field order per Thales payShield 10K Host Command Reference:
+     *   Field 3 = BDK (1A + 32H)         — Base Derivation Key under LMK pair 28-29
+     *   Field 4 = ZPK (1A + 32H)         — destination Zone PIN Key under LMK pair 06-07
+     *   Field 5 = KSN Descriptor (3H)    — lengths of BDK_ID, sub-key ID, device ID fields
+     *   Field 6 = KSN (20H)              — Key Serial Number from the terminal
+     *   Field 7 = Source PIN block (16H) — encrypted under the DUKPT transaction key
+     *   Field 8 = Destination format (2N)
+     *   Field 9 = Account number (12N)   — 12 rightmost PAN digits excl. check digit
      */
     private suspend fun executeCI(cmd: ParsedCommand): HsmCommandResult {
-        var pos = 0
-        val data = cmd.data
 
-        // ZPK
-        val zpkScheme = data[pos]
-        pos++
-        val zpkHex = data.substring(pos, pos + 32)
-        pos += 32
-        val zpk = IsoUtil.hexToBytes(zpkHex)
+        fun resolveFormat(code: String) = when (code) {
+            "01" -> PinBlockFormat.ISO_FORMAT_0
+            "02" -> PinBlockFormat.DOCUTEL
+            "03" -> PinBlockFormat.DIEBOLD_IBM
+            "04" -> PinBlockFormat.PLUS_NETWORK
+            "05" -> PinBlockFormat.ISO_FORMAT_1
+            "46" -> PinBlockFormat.AS2805
+            "47" -> PinBlockFormat.ISO_FORMAT_3
+            "48" -> PinBlockFormat.ISO_FORMAT_4
+            else -> PinBlockFormat.ISO_FORMAT_0
+        }
 
-        // KSN (20 hex chars = 10 bytes)
-        val ksnHex = data.substring(pos, pos + 20)
-        pos += 20
+        val sep = "─".repeat(56)
 
-        // PIN block
-        val pinBlockHex = data.substring(pos, pos + 16)
-        pos += 16
-        val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
+        return try {
+            var pos = 0
+            val data = cmd.data
 
-        // Formats
-        val srcFormat = data.substring(pos, pos + 2)
-        pos += 2
-        val dstFormat = data.substring(pos, pos + 2)
-        pos += 2
+            // ── Step 1: Parse all wire fields ────────────────────────────────
+            hsmLogsListener.log("► CI  [1/6]  Parsing wire fields  (LMK slot: ${cmd.lmkId})")
 
-        // Account
-        val account = data.substring(pos, minOf(pos + 12, data.length))
+            // Field 3 — BDK: scheme char (1A) + key hex (32H)
+            val bdkScheme = data[pos]; pos++
+            val bdkHex = data.substring(pos, pos + 32); pos += 32
+            val bdk = IsoUtil.hexToBytes(bdkHex)
+            hsmLogsListener.log("          Field 3  BDK                (LMK 28-29) : $bdkScheme$bdkHex")
 
-        val result = commandProcessor.executeTranslatePinDukptToZpk(
-            lmkId = cmd.lmkId,
-            encryptedDestZpk = zpk,
-            ksn = ksnHex,
-            encryptedPinBlock = pinBlock,
-            accountNumber = account,
-            sourcePinBlockFormat = if (srcFormat == "01") PinBlockFormat.ISO_FORMAT_0 else PinBlockFormat.ISO_FORMAT_1,
-            destPinBlockFormat = if (dstFormat == "01") PinBlockFormat.ISO_FORMAT_0 else PinBlockFormat.ISO_FORMAT_1,
-            encryptedBdk = "".toByteArray()
-        )
+            // Field 4 — ZPK: scheme char (1A) + key hex (32H)
+            val zpkScheme = data[pos]; pos++
+            val zpkHex = data.substring(pos, pos + 32); pos += 32
+            val zpk = IsoUtil.hexToBytes(zpkHex)
+            hsmLogsListener.log("          Field 4  Destination ZPK   (LMK 06-07) : $zpkScheme$zpkHex")
 
-        return if (result is HsmCommandResult.Success) {
-            HsmCommandResult.Success(
-                response = result.data["translatedPinBlock"] as String,
-                data = result.data
+            // Field 5 — KSN Descriptor (3H): encodes BDK-ID / sub-key / device-ID field lengths
+            val ksnDescriptor = data.substring(pos, pos + 3); pos += 3
+            val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
+            hsmLogsListener.log("          Field 5  KSN Descriptor                 : $ksnDescriptor  (counter bits: $counterBits)")
+
+            // Field 6 — KSN (20H = 10 bytes)
+            val ksnHex = data.substring(pos, pos + 20); pos += 20
+            hsmLogsListener.log("          Field 6  KSN                            : $ksnHex")
+
+            // Field 7 — Source PIN block (16H = 8 bytes, encrypted under DUKPT session key)
+            val pinBlockHex = data.substring(pos, pos + 16); pos += 16
+            val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
+            hsmLogsListener.log("          Field 7  Source PIN Block  (enc/DUKPT)  : $pinBlockHex")
+
+            // Field 8 — Destination PIN block format code (2N)
+            val dstFormat = data.substring(pos, pos + 2); pos += 2
+            hsmLogsListener.log("          Field 8  Destination Format Code        : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+            // Field 9 — Account number (12N)
+            val account = data.substring(pos, minOf(pos + 12, data.length))
+            hsmLogsListener.log("          Field 9  Account Number (12 PAN dig)    : $account")
+
+            // ── Emit structured formatted request ────────────────────────────
+            hsmLogsListener.onFormattedRequest(buildString {
+                appendLine("Message Header........... = [${cmd.header}]")
+                appendLine("Command Code............. = [CI] Translate PIN from BDK to ZPK (DUKPT) Request")
+                appendLine("BDK...................... = [$bdkScheme$bdkHex]")
+                appendLine("ZPK...................... = [$zpkScheme$zpkHex]")
+                appendLine("KSN Descriptor........... = [$ksnDescriptor]")
+                appendLine("Key serial number........ = [$ksnHex]")
+                appendLine("Source Encrypted Block... = [$pinBlockHex]")
+                appendLine("Destination Format Code.. = [$dstFormat] ${resolveFormat(dstFormat).description}")
+                appendLine("Account Number........... = [$account]")
+            })
+
+            // ── Steps 2–6: DUKPT derivation + translation ────────────────────
+            hsmLogsListener.log("► CI  [2/6]  Decrypting BDK under LMK pair 28-29  ($bdkScheme = ${
+                when (bdkScheme) { 'U' -> "Double-length 3DES"; 'T' -> "Triple-length 3DES"; else -> "Single-length DES" }
+            })")
+            hsmLogsListener.log("► CI  [3/6]  Decrypting ZPK under LMK pair 06-07  ($zpkScheme = ${
+                when (zpkScheme) { 'U' -> "Double-length 3DES"; 'T' -> "Triple-length 3DES"; else -> "Single-length DES" }
+            })")
+            hsmLogsListener.log("► CI  [4/6]  Deriving IPEK from BDK + KSN  (ANSI X9.24)")
+            hsmLogsListener.log("             KSN descriptor : $ksnDescriptor  →  counter bits: $counterBits")
+            hsmLogsListener.log("             KSN            : $ksnHex")
+            hsmLogsListener.log("► CI  [5/6]  Advancing to transaction key and decrypting PIN block")
+            hsmLogsListener.log("             Source PIN block (enc/DUKPT) : $pinBlockHex")
+            hsmLogsListener.log("► CI  [6/6]  Re-formatting PIN block and encrypting under clear ZPK")
+            hsmLogsListener.log("             Dest format  : $dstFormat  [${resolveFormat(dstFormat).description}]  account: $account")
+
+            val result = commandProcessor.executeTranslatePinDukptToZpk(
+                lmkId         = cmd.lmkId,
+                encryptedBdk  = bdk,
+                encryptedDestZpk = zpk,
+                ksn           = ksnHex,
+                encryptedPinBlock = pinBlock,
+                accountNumber = account,
+                sourcePinBlockFormat = PinBlockFormat.ISO_FORMAT_0,  // DUKPT source is always ISO Format 0
+                destPinBlockFormat   = resolveFormat(dstFormat),
+                counterBits   = counterBits
             )
-        } else {
-            result
+
+            if (result is HsmCommandResult.Success) {
+                val encPinBlock = result.data["encryptedPinBlock"] as String
+                val pinLength   = (result.data["pinLength"] as? String) ?: "04"
+                val pinLenPad   = pinLength.padStart(2, '0')
+                val wireResponse = "${cmd.header}CJ00${pinLenPad}${encPinBlock}${dstFormat}"
+
+                hsmLogsListener.log("◄ CI  Translation successful")
+                hsmLogsListener.log("          Translated PIN Block (enc/ZPK) : $encPinBlock")
+                hsmLogsListener.log("          Returned PIN Length            : $pinLenPad")
+                hsmLogsListener.log("          Output Format Code             : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+                hsmLogsListener.onFormattedResponse(buildString {
+                    appendLine(sep)
+                    appendLine("◄ CJ  Response — Translate PIN from BDK (DUKPT) to ZPK")
+                    appendLine(sep)
+                    appendLine("  Response Code          : CJ")
+                    appendLine("  Error Code             : 00  ✓ No error")
+                    appendLine("  PIN Length             : $pinLenPad")
+                    appendLine("  Output PIN Block       : $encPinBlock")
+                    appendLine("  Output Format Code     : $dstFormat  [${resolveFormat(dstFormat).description}]")
+                    appendLine(sep)
+                    appendLine("  Wire Response          : $wireResponse")
+                })
+
+                // CJ response body: [PINLen_2N][PINBlock_16H][DstFmt_2N]
+                HsmCommandResult.Success(
+                    response = "${pinLenPad}${encPinBlock}${dstFormat}",
+                    data = result.data
+                )
+            } else {
+                val err = result as HsmCommandResult.Error
+                hsmLogsListener.log("✗ CI  Translation FAILED — errorCode=${err.errorCode}  ${err.message}")
+                result
+            }
+        } catch (e: Exception) {
+            hsmLogsListener.log("✗ CI  Exception: ${e.message}")
+            HsmCommandResult.Error("15", "CI failed: ${e.message}")
         }
     }
 
@@ -705,7 +886,7 @@ class PayShieldStringCommandProcessor(
             val clearPvk = simulator.decryptUnderLmk(pvk, cmd.lmkId, 14)
 
             // Generate natural PIN: encrypt 12-digit PAN with PVK, decimalize
-            val pan = account.takeLast(13).dropLast(1).padStart(16, '0')
+            val pan = pan12(account).padStart(16, '0')
             val pvkCipher = Cipher.getInstance("DESede/ECB/NoPadding")
             pvkCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(clearPvk.copyOf(16), "DESede"))
             val encPan = pvkCipher.doFinal(IsoUtil.hexToBytes(pan))
@@ -1304,81 +1485,163 @@ class PayShieldStringCommandProcessor(
     // Response: G1 00 [PIN_LEN] [PIN_BLOCK] [DST_FMT]
     // BDK_FLAG: ~ = Type2 BDK
     // ====================================================================================================
+    /**
+     * G0 - Translate PIN from BDK (3DES DUKPT) to ZPK
+     * Wire format: [Header_4A][G0][BDK_1A+32H][ZPK_1A+32H][KSNDesc_3H][KSN_20H][PINBlock_16H][SrcFmt_2N][DstFmt_2N][Account_12N]
+     * Response:    [Header_4A][G1][00][PINLen_2N][PINBlock_16H][DstFmt_2N]
+     *
+     * Differs from CI only in that G0 carries an explicit Source Format Code (Field 8)
+     * before the Destination Format Code (Field 9).
+     *
+     * Field order per Thales payShield 10K Host Command Reference:
+     *   Field 3 = BDK (1A + 32H)          — Base Derivation Key under LMK pair 28-29
+     *   Field 4 = ZPK (1A + 32H)          — destination Zone PIN Key under LMK pair 06-07
+     *   Field 5 = KSN Descriptor (3H)     — BDK ID / sub-key / device ID lengths
+     *   Field 6 = KSN (20H)               — Key Serial Number from the terminal
+     *   Field 7 = Source PIN block (16H)  — encrypted under the DUKPT transaction key
+     *   Field 8 = Source format code (2N)
+     *   Field 9 = Destination format (2N)
+     *   Field 10 = Account number (12N)   — 12 rightmost PAN digits excl. check digit
+     */
     private suspend fun executeG0(cmd: ParsedCommand): HsmCommandResult {
+
+        fun resolveFormat(code: String) = when (code) {
+            "01" -> PinBlockFormat.ISO_FORMAT_0
+            "02" -> PinBlockFormat.DOCUTEL
+            "03" -> PinBlockFormat.DIEBOLD_IBM
+            "04" -> PinBlockFormat.PLUS_NETWORK
+            "05" -> PinBlockFormat.ISO_FORMAT_1
+            "46" -> PinBlockFormat.AS2805
+            "47" -> PinBlockFormat.ISO_FORMAT_3
+            "48" -> PinBlockFormat.ISO_FORMAT_4
+            else -> PinBlockFormat.ISO_FORMAT_0
+        }
+
+        val sep = "─".repeat(56)
+
         return try {
             var pos = 0
             val data = cmd.data
 
-            // BDK Flag (1 char: ~ = Type2)
-            val bdkFlag = data[pos]
-            pos++
+            // ── Step 1: Parse all wire fields ────────────────────────────────
+            hsmLogsListener.log("► G0  [1/6]  Parsing wire fields  (LMK slot: ${cmd.lmkId})")
 
-            // BDK (scheme char + 32H = 33 chars)
-            val bdkScheme = data[pos]
-            pos++
-            val bdkHex = data.substring(pos, pos + 32)
-            pos += 32
+            // Field 3 — BDK: scheme char (1A) + key hex (32H)
+            val bdkScheme = data[pos]; pos++
+            val bdkHex = data.substring(pos, pos + 32); pos += 32
             val bdk = IsoUtil.hexToBytes(bdkHex)
+            hsmLogsListener.log("          Field 3  BDK                (LMK 28-29) : $bdkScheme$bdkHex")
 
-            // ZPK (scheme char + 32H = 33 chars)
-            val zpkScheme = data[pos]
-            pos++
-            val zpkHex = data.substring(pos, pos + 32)
-            pos += 32
+            // Field 4 — ZPK: scheme char (1A) + key hex (32H)
+            val zpkScheme = data[pos]; pos++
+            val zpkHex = data.substring(pos, pos + 32); pos += 32
             val zpk = IsoUtil.hexToBytes(zpkHex)
+            hsmLogsListener.log("          Field 4  Destination ZPK   (LMK 06-07) : $zpkScheme$zpkHex")
 
-            // KSN Descriptor (3H)
-            pos += 3 // skip KSN descriptor
+            // Field 5 — KSN Descriptor (3H): encodes BDK-ID / sub-key / device-ID field lengths
+            val ksnDescriptor = data.substring(pos, pos + 3); pos += 3
+            val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
+            hsmLogsListener.log("          Field 5  KSN Descriptor                 : $ksnDescriptor  (counter bits: $counterBits)")
 
-            // KSN (20H = 10 bytes)
-            val ksnHex = data.substring(pos, pos + 20)
-            pos += 20
+            // Field 6 — KSN (20H = 10 bytes)
+            val ksnHex = data.substring(pos, pos + 20); pos += 20
+            hsmLogsListener.log("          Field 6  KSN                            : $ksnHex")
 
-            // PIN Block (16H = 8 bytes)
-            val pinBlockHex = data.substring(pos, pos + 16)
-            pos += 16
+            // Field 7 — Source PIN block (16H = 8 bytes, encrypted under DUKPT session key)
+            val pinBlockHex = data.substring(pos, pos + 16); pos += 16
             val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
+            hsmLogsListener.log("          Field 7  Source PIN Block  (enc/DUKPT)  : $pinBlockHex")
 
-            // Source and dest format (2N each)
-            val srcFmt = data.substring(pos, pos + 2)
-            pos += 2
-            val dstFmt = data.substring(pos, pos + 2)
-            pos += 2
+            // Field 8 — Source PIN block format code (2N)
+            val srcFormat = data.substring(pos, pos + 2); pos += 2
+            hsmLogsListener.log("          Field 8  Source Format Code             : $srcFormat  [${resolveFormat(srcFormat).description}]")
 
-            // Account number (12N)
+            // Field 9 — Destination PIN block format code (2N)
+            val dstFormat = data.substring(pos, pos + 2); pos += 2
+            hsmLogsListener.log("          Field 9  Destination Format Code        : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+            // Field 10 — Account number (12N)
             val account = data.substring(pos, minOf(pos + 12, data.length))
+            hsmLogsListener.log("          Field 10 Account Number (12 PAN dig)    : $account")
 
-            hsmLogsListener.onFormattedRequest("""
-                G0 - DUKPT PIN Translation
-                BDK Flag: $bdkFlag  BDK: $bdkHex
-                ZPK: $zpkHex
-                KSN: $ksnHex  PIN Block: $pinBlockHex
-                Src Format: $srcFmt  Dst Format: $dstFmt  Account: $account
-            """.trimIndent())
+            // ── Emit structured formatted request ────────────────────────────
+            hsmLogsListener.onFormattedRequest(buildString {
+                appendLine("Message Header........... = [${cmd.header}]")
+                appendLine("Command Code............. = [G0] Translate PIN from BDK to ZPK (3DES DUKPT) Request")
+                appendLine("BDK...................... = [$bdkScheme$bdkHex]")
+                appendLine("ZPK...................... = [$zpkScheme$zpkHex]")
+                appendLine("KSN Descriptor........... = [$ksnDescriptor]")
+                appendLine("Key serial number........ = [$ksnHex]")
+                appendLine("Source Encrypted Block... = [$pinBlockHex]")
+                appendLine("Source PIN block Format.. = [$srcFormat] ${resolveFormat(srcFormat).description}")
+                appendLine("Destination Format Code.. = [$dstFormat] ${resolveFormat(dstFormat).description}")
+                appendLine("Account Number........... = [$account]")
+            })
 
-            val srcPinBlockFormat = parsePinBlockFormat(srcFmt)
-            val dstPinBlockFormat = parsePinBlockFormat(dstFmt)
+            // ── Steps 2–6: DUKPT derivation + translation ────────────────────
+            hsmLogsListener.log("► G0  [2/6]  Decrypting BDK under LMK pair 28-29  ($bdkScheme = ${
+                when (bdkScheme) { 'U' -> "Double-length 3DES"; 'T' -> "Triple-length 3DES"; else -> "Single-length DES" }
+            })")
+            hsmLogsListener.log("► G0  [3/6]  Decrypting ZPK under LMK pair 06-07  ($zpkScheme = ${
+                when (zpkScheme) { 'U' -> "Double-length 3DES"; 'T' -> "Triple-length 3DES"; else -> "Single-length DES" }
+            })")
+            hsmLogsListener.log("► G0  [4/6]  Deriving IPEK from BDK + KSN  (ANSI X9.24)")
+            hsmLogsListener.log("             KSN descriptor : $ksnDescriptor  →  counter bits: $counterBits")
+            hsmLogsListener.log("             KSN            : $ksnHex")
+            hsmLogsListener.log("► G0  [5/6]  Advancing to transaction key and decrypting PIN block")
+            hsmLogsListener.log("             Source PIN block (enc/DUKPT) : $pinBlockHex  src format: $srcFormat [${resolveFormat(srcFormat).description}]")
+            hsmLogsListener.log("► G0  [6/6]  Re-formatting PIN block and encrypting under clear ZPK")
+            hsmLogsListener.log("             Dest format  : $dstFormat  [${resolveFormat(dstFormat).description}]  account: $account")
 
             val result = commandProcessor.executeTranslatePinDukptToZpk(
-                lmkId = cmd.lmkId,
+                lmkId            = cmd.lmkId,
+                encryptedBdk     = bdk,
                 encryptedDestZpk = zpk,
-                ksn = ksnHex,
+                ksn              = ksnHex,
                 encryptedPinBlock = pinBlock,
-                accountNumber = account,
-                sourcePinBlockFormat = srcPinBlockFormat,
-                destPinBlockFormat = dstPinBlockFormat,
-                encryptedBdk = bdk
+                accountNumber    = account,
+                sourcePinBlockFormat = resolveFormat(srcFormat),
+                destPinBlockFormat   = resolveFormat(dstFormat),
+                counterBits      = counterBits
             )
 
             if (result is HsmCommandResult.Success) {
-                val outBlock = result.data["translatedPinBlock"] as? String ?: result.response
+                val encPinBlock = result.data["encryptedPinBlock"] as String
+                val pinLength   = (result.data["pinLength"] as? String) ?: "04"
+                val pinLenPad   = pinLength.padStart(2, '0')
+                val wireResponse = "${cmd.header}G100${pinLenPad}${encPinBlock}${dstFormat}"
+
+                hsmLogsListener.log("◄ G0  Translation successful")
+                hsmLogsListener.log("          Translated PIN Block (enc/ZPK) : $encPinBlock")
+                hsmLogsListener.log("          Returned PIN Length            : $pinLenPad")
+                hsmLogsListener.log("          Output Format Code             : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+                hsmLogsListener.onFormattedResponse(buildString {
+                    appendLine(sep)
+                    appendLine("◄ G1  Response — Translate PIN from BDK (3DES DUKPT) to ZPK")
+                    appendLine(sep)
+                    appendLine("  Response Code          : G1")
+                    appendLine("  Error Code             : 00  ✓ No error")
+                    appendLine("  PIN Length             : $pinLenPad")
+                    appendLine("  Output PIN Block       : $encPinBlock")
+                    appendLine("  Output Format Code     : $dstFormat  [${resolveFormat(dstFormat).description}]")
+                    appendLine(sep)
+                    appendLine("  Wire Response          : $wireResponse")
+                })
+
+                // G1 response body: [PINLen_2N][PINBlock_16H][DstFmt_2N]
                 HsmCommandResult.Success(
-                    response = "04$outBlock$dstFmt",
+                    response = "${pinLenPad}${encPinBlock}${dstFormat}",
                     data = result.data
                 )
-            } else result
+            } else {
+                val err = result as HsmCommandResult.Error
+                hsmLogsListener.log("✗ G0  Translation FAILED — errorCode=${err.errorCode}  ${err.message}")
+                result
+            }
 
         } catch (e: Exception) {
+            hsmLogsListener.log("✗ G0  Exception: ${e.message}")
             HsmCommandResult.Error("15", "G0 failed: ${e.message}")
         }
     }
@@ -2054,7 +2317,7 @@ class PayShieldStringCommandProcessor(
             val clearPinBlock = tpkCipher.doFinal(pinBlock)
 
             // Extract PIN (ISO Format 0 XOR with PAN)
-            val panPart = "0000" + account.takeLast(13).dropLast(1)
+            val panPart = "0000" + pan12(account)
             val panBytes = IsoUtil.hexToBytes(panPart)
             val xored = clearPinBlock.zip(panBytes) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
             val xHex = IsoUtil.bytesToHexString(xored)
@@ -2065,7 +2328,7 @@ class PayShieldStringCommandProcessor(
             val clearPvk = simulator.decryptUnderLmk(pvk, cmd.lmkId, 14)
 
             // Generate natural PIN
-            val pan = account.takeLast(13).dropLast(1).padStart(16, '0')
+            val pan = pan12(account).padStart(16, '0')
             val pvkCipher = Cipher.getInstance("DESede/ECB/NoPadding")
             pvkCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(clearPvk.copyOf(16), "DESede"))
             val encPan = pvkCipher.doFinal(IsoUtil.hexToBytes(pan))
@@ -2120,7 +2383,7 @@ class PayShieldStringCommandProcessor(
             tpkCipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(clearTpk.copyOf(16), "DESede"))
             val clearPinBlock = tpkCipher.doFinal(pinBlock)
 
-            val panPart  = "0000" + account.takeLast(13).dropLast(1)
+            val panPart  = "0000" + pan12(account)
             val xored    = clearPinBlock.zip(IsoUtil.hexToBytes(panPart)) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
             val xHex     = IsoUtil.bytesToHexString(xored)
             val pinLen   = xHex[1].digitToIntOrNull() ?: 4

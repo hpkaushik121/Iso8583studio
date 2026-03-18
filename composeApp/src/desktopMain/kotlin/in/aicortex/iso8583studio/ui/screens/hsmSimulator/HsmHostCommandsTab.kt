@@ -81,15 +81,14 @@ private val KEY_SCHEME_OPTIONS = listOf(
     HostParamOption("X  – Single DES          (16H)",  "X"),
 )
 private val PIN_BLOCK_FORMAT_OPTIONS = listOf(
-    HostParamOption("01 – ISO/ANSI Format 0 (most common)", "01"),
-    HostParamOption("02 – Docutel",                         "02"),
-    HostParamOption("03 – Diebold / IBM 3624",              "03"),
-    HostParamOption("05 – ISO Format 1",                    "05"),
-    HostParamOption("34 – ISO Format 4 (AES)",              "34"),
-    HostParamOption("41 – AS2805.8.3",                      "41"),
-    HostParamOption("42 – Docutel 2",                       "42"),
-    HostParamOption("47 – ISO Format 3",                    "47"),
-    HostParamOption("48 – ISO Format 4",                    "48"),
+    HostParamOption("01 – ISO 9564-1 & ANSI X9.8 format 0", "01"),
+    HostParamOption("02 – Docutel ATM format",               "02"),
+    HostParamOption("03 – Diebold & IBM ATM format",         "03"),
+    HostParamOption("04 – PLUS Network format",              "04"),
+    HostParamOption("05 – ISO 9564-1 format 1",             "05"),
+    HostParamOption("46 – AS2805",                           "46"),
+    HostParamOption("47 – ISO 9564-1 & ANSI X9.8 format 3", "47"),
+    HostParamOption("48 – ISO 9564-1 format 4",             "48"),
 )
 private val KEY_TYPE_OPTIONS = listOf(
     HostParamOption("000 – ZMK  (Zone Master Key)",       "000"),
@@ -317,8 +316,10 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
         wireFormatHint = "0000A0 [Mode_1H] [KeyType_3H] [Scheme_1A] ; [TMKFlag_1N] [TMK_1A+32H] [ExportScheme_1A]",
         params = listOf(
             HostCommandParam("mode",     "Mode",         "0=Gen+export under TMK; 1=Gen under LMK only",HostParamType.DROPDOWN,"1", true, "", listOf(
-                HostParamOption("0 – Generate + export under TMK", "0"),
-                HostParamOption("1 – Generate under LMK only",     "1"),
+                HostParamOption("0 – Generate Under LMK", "0"),
+                HostParamOption("1 – Generate under LMK and ZMK",     "1"),
+                HostParamOption("A – Derive Key",     "A"),
+                HostParamOption("B – Derive Key and encrypt Under ZMK",     "B"),
             )),
             HostCommandParam("keyType",  "Key Type",     "3H key type code",                            HostParamType.DROPDOWN,"001", true, "", KEY_TYPE_OPTIONS),
             HostCommandParam("scheme",   "LMK Scheme",   "Key scheme / length under LMK",               HostParamType.DROPDOWN,"U", true, "", KEY_SCHEME_OPTIONS),
@@ -1342,7 +1343,7 @@ private fun formatHostResponse(cmd: HostCommand, raw: String): String {
 
         when (cmd.code) {
             "NC" -> appendLine("  Status : $body")
-            "CA", "G0" -> {
+            "CA", "CI", "G0" -> {
                 val pinLen  = body.take(2)
                 val pinBlk  = body.drop(2).take(16)
                 val fmtCode = body.drop(18).take(2)

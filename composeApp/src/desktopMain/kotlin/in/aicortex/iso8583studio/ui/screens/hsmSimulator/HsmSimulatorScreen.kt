@@ -95,19 +95,22 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
     var rawResponse by remember { mutableStateOf("") }
     var formattedResponse by remember { mutableStateOf("") }
 
-    hsm.receivedFromSource =  {
-        rawRequest  = it + "\n"
+    hsm.receivedFromSource = {
+        rawResponse = ""
+        formattedResponse = ""
+        formattedRequest = ""
+        rawRequest = it + "\n"
     }
 
-    hsm.receivedFromSourceFormatted =  {
-        formattedRequest  = it + "\n"
+    hsm.receivedFromSourceFormatted = {
+        formattedRequest = it + "\n"
     }
 
-    hsm.sentToSource =  {
-        rawResponse  = it + "\n"
+    hsm.sentToSource = {
+        rawResponse = it + "\n"
     }
-    hsm.sentToSourceFormatted =  {
-        formattedResponse  = it + "\n"
+    hsm.sentToSourceFormatted = {
+        formattedResponse = it + "\n"
     }
 
 

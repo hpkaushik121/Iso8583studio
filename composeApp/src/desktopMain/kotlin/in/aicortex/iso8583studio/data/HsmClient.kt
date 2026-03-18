@@ -27,65 +27,80 @@ class HsmClient(var gatewayHandler: Simulator) {
 
     fun processGateway() {
         CoroutineScope(Dispatchers.IO).launch {
-            incomingConnection ?: return@launch
-
-            val now = LocalDateTime.now()
+            val socket = incomingConnection ?: return@launch
+            val stream = socket.getInputStream()
 
             gatewayHandler.writeLog(createLogEntry(type = LogType.INFO, "RECEIVING MESSAGE......."))
-            while (incomingConnection?.isConnected == true && incomingConnection?.isClosed == false && incomingConnection?.isInputShutdown == false
-                && incomingConnection?.isOutputShutdown == false
-            ) {
-                var length = 0
 
-                val input: ByteArray = try {
-                    val buffer = ByteArray(m_Buffer.size)
-                    var bytesRead: Int
+            try {
+                while (socket.isConnected && !socket.isClosed &&
+                       !socket.isInputShutdown && !socket.isOutputShutdown
+                ) {
+                    val commandBytes: ByteArray = if (tcpLengthHeaderEnabled) {
+                        // ── Length-prefixed mode ─────────────────────────────
+                        // Read exactly 2-byte big-endian length header, blocking until available.
+                        val lenBuf = ByteArray(2)
+                        if (!readFully(stream, lenBuf, 2)) break   // EOF while reading header
 
-                    do {
-                        if (length == buffer.size) {
-                            throw VerificationException(
-                                "Length exceeds buffer size",
-                                VerificationError.OTHERS
-                            )
+                        val msgLen = ((lenBuf[0].toInt() and 0xFF) shl 8) or
+                                     (lenBuf[1].toInt() and 0xFF)
+
+                        if (msgLen <= 0) continue   // zero-length frame — skip silently
+
+                        // Read exactly msgLen bytes, blocking until the full payload arrives.
+                        val payload = ByteArray(msgLen)
+                        if (!readFully(stream, payload, msgLen)) break  // EOF mid-payload
+
+                        payload
+
+                    } else {
+                        // ── No length header ─────────────────────────────────
+                        // Block on the first read, then drain anything already
+                        // buffered in the socket (handles back-to-back chunks of
+                        // a single command arriving in quick succession).
+                        val buffer = ByteArray(m_Buffer.size)
+                        var total = 0
+
+                        val first = stream.read(buffer, 0, buffer.size)
+                        if (first < 0) break    // -1 = remote closed: real EOF, not "no data yet"
+                        total = first
+
+                        // Drain bytes that arrived in the same TCP burst
+                        while (stream.available() > 0 && total < buffer.size) {
+                            val n = stream.read(buffer, total, buffer.size - total)
+                            if (n < 0) break
+                            total += n
                         }
 
-                        bytesRead =
-                            incomingConnection!!.getInputStream()
-                                .read(buffer, length, buffer.size - length)
+                        if (total == 0) continue    // nothing useful; keep looping
+                        buffer.copyOf(total)
+                    }
 
-                        if (bytesRead == 0) {
-                            throw VerificationException(
-                                "CONNECTION WAS CLOSED BY REMOTE COMPUTER/TERMINAL",
-                                VerificationError.DISCONNECTED_FROM_SOURCE
-                            )
-                        }
-
-                        length += bytesRead
-                    } while (incomingConnection!!.getInputStream().available() > 0)
-
-                    val result = ByteArray(length)
-                    buffer.copyInto(result, 0, 0, length)
-                    result
-
-                } catch (ex: Exception) {
-                    hsmClientListener?.onDisconnected(this@HsmClient)
-                    throw VerificationException(
-                        "CONNECTION MAY BE CLOSED BY REMOTE COMPUTER/TERMINAL ",
-                        VerificationError.DISCONNECTED_FROM_SOURCE
+                    hsmClientListener?.onReceivedFormSource(
+                        String(commandBytes, Charsets.ISO_8859_1), this@HsmClient
                     )
-
                 }
-
-                val commandBytes = if (tcpLengthHeaderEnabled && input.size >= 2) {
-                    input.copyOfRange(2, input.size)
-                } else {
-                    input
-                }
-                hsmClientListener?.onReceivedFormSource(String(commandBytes, Charsets.ISO_8859_1), this@HsmClient)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            } finally {
+                hsmClientListener?.onDisconnected(this@HsmClient)
             }
-
-
         }
+    }
+
+    /**
+     * Reads exactly [needed] bytes from [stream] into [buf], blocking until all
+     * bytes are available. Returns false if the stream reaches EOF before [needed]
+     * bytes have been read (i.e. the remote side closed the connection mid-message).
+     */
+    private fun readFully(stream: java.io.InputStream, buf: ByteArray, needed: Int): Boolean {
+        var offset = 0
+        while (offset < needed) {
+            val n = stream.read(buf, offset, needed - offset)
+            if (n < 0) return false   // EOF — connection closed
+            offset += n
+        }
+        return true
     }
 
     suspend fun send(response: String?) {

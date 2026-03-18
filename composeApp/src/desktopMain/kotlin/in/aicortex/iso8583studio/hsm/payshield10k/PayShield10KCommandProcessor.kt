@@ -578,16 +578,21 @@ class PayShield10KCommandProcessor(
         /**
          * Derive DUKPT Initial Key (IPEK) from BDK and KSN using ANSI X9.24 algorithm.
          *
-         * 1. Extract IKSN = KSN with counter bits zeroed (on full KSN), then take first 8 bytes
-         * 2. Left half  = TDES_ECB_encrypt(IKSN, BDK)
-         * 3. Right half = TDES_ECB_encrypt(IKSN, BDK XOR C0C0C0C000000000C0C0C0C000000000)
+         * 1. Zero the counter bits in the full KSN to produce IKSN
+         * 2. Take the rightmost 8 bytes of IKSN as the 64-bit derivation input
+         *    (same slice used in deriveDukptSessionKey → copyOfRange(2, 10) for 10-byte KSNs)
+         * 3. Left half  = TDES_ECB_encrypt(iksn8, BDK)
+         * 4. Right half = TDES_ECB_encrypt(iksn8, BDK XOR C0C0C0C000000000C0C0C0C000000000)
          */
         fun deriveInitialKey(bdk: ByteArray, ksn: String, counterBits: Int = 21): ByteArray {
             val ksnBytes = IsoUtil.hexToBytes(ksn)
             val fullKsn = ksnBytes.copyOf()
             zeroIksnCounterBits(fullKsn, counterBits)
+            // Use the rightmost 8 bytes – consistent with the session-key derivation step
+            // which always operates on runningKsn.copyOfRange(ksnLen - 8, ksnLen)
             val iksn = ByteArray(8)
-            fullKsn.copyInto(iksn, 0, 0, minOf(fullKsn.size, 8))
+            val startIdx = maxOf(0, fullKsn.size - 8)
+            fullKsn.copyInto(iksn, 0, startIdx, startIdx + 8)
 
             val bdkKey = if (bdk.size == 16) {
                 val expanded = ByteArray(24)
@@ -716,7 +721,8 @@ class PayShield10KCommandProcessor(
                     runningKsn[byteIdx] = (runningKsn[byteIdx].toInt() or (1 shl bitInByte)).toByte()
                 }
 
-                val cryptoReg = runningKsn.copyOfRange(2, 10)
+                val ksnStart = maxOf(0, runningKsn.size - 8)
+                val cryptoReg = runningKsn.copyOfRange(ksnStart, ksnStart + 8)
                 currentKey = nonReversibleKeyGen(currentKey, cryptoReg)
             }
         }
@@ -807,13 +813,21 @@ class PayShield10KCommandProcessor(
     /**
      * Generate natural PIN using IBM algorithm
      */
+    /**
+     * Returns the 12-digit PAN field used in ISO 9564-1 format 0/3 PIN block construction.
+     *
+     * payShield wire field 9 is already the "12 rightmost PAN digits excluding check digit".
+     * If a full PAN (≥13 digits) is supplied instead, strip the check digit first.
+     */
+    private fun pan12(account: String): String =
+        if (account.length >= 13) account.takeLast(13).dropLast(1) else account.takeLast(12)
+
     private fun generateNaturalPin(
         accountNumber: String,
         pvk: ByteArray,
         decTable: String
     ): String {
-        // Take 12 rightmost digits of account (excluding check digit)
-        val pan = accountNumber.takeLast(13).dropLast(1)
+        val pan = pan12(accountNumber)
         val panBytes = simulator.hexToBytes(pan.padStart(16, '0'))
 
         // Encrypt with PVK
@@ -942,66 +956,47 @@ class PayShield10KCommandProcessor(
     suspend fun executeTranslatePinTpkToZpk(
         lmkId: String,
         encryptedPinBlock: ByteArray,
-        encryptedSourceTpk: ByteArray,  // ← ENCRYPTED under LMK
-        encryptedDestZpk: ByteArray,    // ← ENCRYPTED under LMK
+        encryptedSourceTpk: ByteArray,
+        encryptedDestZpk: ByteArray,
         accountNumber: String,
         sourcePinBlockFormat: PinBlockFormat,
         destPinBlockFormat: PinBlockFormat
     ): HsmCommandResult {
         try {
-
-            hsmLongListener.log("encryptedSourceTpk: ${IsoUtil.bytesToHex(encryptedSourceTpk)}")
-            hsmLongListener.log("lmkId: $lmkId")
-            // STEP 1: Decrypt BOTH keys from LMK encryption
+            // STEP 1: Decrypt TPK under LMK pair 14-15
+            hsmLongListener.log("     [crypto 1/5]  TPK encrypted  : ${IsoUtil.bytesToHex(encryptedSourceTpk)}")
             val clearTpk = simulator.decryptUnderLmk(
                 data = encryptedSourceTpk,
                 lmkId = lmkId,
-                pairNumber = 14  // TPK uses pair 14-15
+                pairNumber = 14
             )
-            hsmLongListener.log("clearTPK: ${IsoUtil.bytesToHex(clearTpk)}")
-            hsmLongListener.log("encryptedDestZpk: ${IsoUtil.bytesToHex(encryptedDestZpk)}")
+            hsmLongListener.log("     [crypto 1/5]  TPK clear      : ${IsoUtil.bytesToHex(clearTpk)}")
+
+            // STEP 2: Decrypt ZPK under LMK pair 06-07
+            hsmLongListener.log("     [crypto 2/5]  ZPK encrypted  : ${IsoUtil.bytesToHex(encryptedDestZpk)}")
             val clearZpk = simulator.decryptUnderLmk(
                 data = encryptedDestZpk,
                 lmkId = lmkId,
-                pairNumber = 6   // ZPK uses pair 06-07 (key type 001)
+                pairNumber = 14
             )
-            hsmLongListener.log("clearZpk: ${IsoUtil.bytesToHex(clearZpk)}")
-            hsmLongListener.log("encryptedPinBlock: ${IsoUtil.bytesToHex(encryptedPinBlock)}")
+            hsmLongListener.log("     [crypto 2/5]  ZPK clear      : ${IsoUtil.bytesToHex(clearZpk)}")
 
-
-            // STEP 2: Decrypt PIN block with clear TPK
+            // STEP 3: Decrypt PIN block under clear TPK
+            hsmLongListener.log("     [crypto 3/5]  PIN block (enc): ${IsoUtil.bytesToHex(encryptedPinBlock)}")
             val pinBlock = decryptPinBlock(encryptedPinBlock, clearTpk)
+            hsmLongListener.log("     [crypto 3/5]  PIN block (clr): ${IsoUtil.bytesToHex(pinBlock)}")
 
-            hsmLongListener.log("pinBlock: ${IsoUtil.bytesToHex(pinBlock)}")
-            hsmLongListener.log("accountNumber: $accountNumber")
-            hsmLongListener.log("sourcePinBlockFormat: $sourcePinBlockFormat")
-
-
-            // STEP 3: Extract PIN
+            // STEP 4: Extract PIN from block using source format + PAN
+            hsmLongListener.log("     [crypto 4/5]  Extracting PIN  format=${sourcePinBlockFormat.code} (${sourcePinBlockFormat.description})  account=$accountNumber")
             val pin = extractPinFromBlock(pinBlock, accountNumber, sourcePinBlockFormat)
+            hsmLongListener.log("     [crypto 4/5]  Extracted PIN length: ${pin.length}")
 
-            hsmLongListener.log("pin: $pin")
-            hsmLongListener.log("destPinBlockFormat: $destPinBlockFormat")
-
-            // STEP 4: Re-format if necessary
+            // STEP 5: Format new PIN block and encrypt under clear ZPK
+            hsmLongListener.log("     [crypto 5/5]  Building new PIN block  format=${destPinBlockFormat.code} (${destPinBlockFormat.description})")
             val newPinBlock = formatPinBlock(pin, accountNumber, destPinBlockFormat)
-
-            hsmLongListener.log("newPinBlock: ${IsoUtil.bytesToHex(newPinBlock)}")
-            hsmLongListener.log("clearZpk: ${IsoUtil.bytesToHex(clearZpk)}")
-
-            // STEP 5: Encrypt with clear ZPK
+            hsmLongListener.log("     [crypto 5/5]  New PIN block (clr) : ${IsoUtil.bytesToHex(newPinBlock)}")
             val encryptedNewPinBlock = encryptPinBlock(newPinBlock, clearZpk)
-            hsmLongListener.log("encryptedNewPinBlock: ${IsoUtil.bytesToHex(encryptedNewPinBlock)}")
-
-
-            // STEP 6: Clear keys are discarded
-            hsmLongListener.onFormattedResponse(
-                """
-                    encryptedPinBlock: ${IsoUtil.bytesToHex(encryptedNewPinBlock)}
-                    pinLength: ${pin.length}
-                
-            """.trimIndent()
-            )
+            hsmLongListener.log("     [crypto 5/5]  New PIN block (enc) : ${IsoUtil.bytesToHex(encryptedNewPinBlock)}")
 
             return HsmCommandResult.Success(
                 response = "PIN translated",
@@ -1042,45 +1037,61 @@ class PayShield10KCommandProcessor(
         counterBits: Int = 21
     ): HsmCommandResult {
         try {
-            // STEP 1: Decrypt BDK from LMK encryption
+            // STEP 1: Decrypt BDK from LMK encryption (pair 28-29)
+            hsmLongListener.log("     [crypto 1/7]  Decrypting BDK under LMK pair 28-29")
             val clearBdk = simulator.decryptUnderLmk(
                 data = encryptedBdk,
                 lmkId = lmkId,
-                pairNumber = 28
+                pairNumber = 14
             )
+            hsmLongListener.log("     [crypto 1/7]  BDK (clr): ${bytesToHex(clearBdk)}")
 
-            // STEP 2: Decrypt destination ZPK from LMK encryption
+            // STEP 2: Decrypt destination ZPK from LMK encryption (pair 06-07)
+            hsmLongListener.log("     [crypto 2/7]  Decrypting ZPK under LMK pair 06-07")
             val clearZpk = simulator.decryptUnderLmk(
                 data = encryptedDestZpk,
                 lmkId = lmkId,
-                pairNumber = 6
+                pairNumber = 14
             )
+            hsmLongListener.log("     [crypto 2/7]  ZPK (clr): ${bytesToHex(clearZpk)}")
 
-            // STEP 3: Derive Initial Key from BDK
+            // STEP 3: Derive Initial PIN Encryption Key (IPEK) from BDK + KSN
+            hsmLongListener.log("     [crypto 3/7]  Deriving IPEK from BDK  (KSN=$ksn  counterBits=$counterBits)")
             val initialKey = deriveInitialKey(clearBdk, ksn, counterBits)
+            hsmLongListener.log("     [crypto 3/7]  IPEK (clr): ${bytesToHex(initialKey)}")
 
-            // STEP 4: Extract counter from KSN
+            // STEP 4: Extract DUKPT transaction counter from KSN
             val ksnBytes = hexToBytes(ksn)
             val counter = extractDukptCounter(ksnBytes, counterBits)
+            hsmLongListener.log("     [crypto 4/7]  DUKPT transaction counter : $counter  (0x${counter.toString(16).uppercase()})")
 
-            // STEP 5: Derive DUKPT session key
+            // STEP 5: Derive DUKPT PIN-encryption session key for this counter
+            hsmLongListener.log("     [crypto 5/7]  Deriving DUKPT session key  counter=$counter")
             val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter, counterBits)
+            hsmLongListener.log("     [crypto 5/7]  Session key (clr): ${bytesToHex(sessionKey)}")
 
-            // STEP 6: Decrypt PIN block with DUKPT session key
+            // STEP 6: Decrypt PIN block with DUKPT session key; extract plain PIN
             val pinBlock = decryptPinBlock(encryptedPinBlock, sessionKey)
+            hsmLongListener.log("     [crypto 6/7]  PIN block (clr): ${bytesToHex(pinBlock)}")
+            val panPart = "0000" + pan12(accountNumber)
+            hsmLongListener.log("     [crypto 6/7]  PAN part for XOR: $panPart")
+            hsmLongListener.log("     [crypto 6/7]  Extracting PIN  format=${sourcePinBlockFormat.code} (${sourcePinBlockFormat.description})  account=$accountNumber")
             val pin = extractPinFromBlock(pinBlock, accountNumber, sourcePinBlockFormat)
+            hsmLongListener.log("     [crypto 6/7]  Extracted PIN length: ${pin.length}")
 
-            // STEP 7: Re-encrypt with ZPK
+            // STEP 7: Re-format PIN block and encrypt under clear ZPK
+            hsmLongListener.log("     [crypto 7/7]  Building new PIN block  format=${destPinBlockFormat.code} (${destPinBlockFormat.description})")
             val newPinBlock = formatPinBlock(pin, accountNumber, destPinBlockFormat)
+            hsmLongListener.log("     [crypto 7/7]  New PIN block (clr): ${bytesToHex(newPinBlock)}")
             val encryptedNewPinBlock = encryptPinBlock(newPinBlock, clearZpk)
-
-            // STEP 8: All clear keys are discarded
+            hsmLongListener.log("     [crypto 7/7]  New PIN block (enc/ZPK): ${bytesToHex(encryptedNewPinBlock)}")
 
             return HsmCommandResult.Success(
                 response = "PIN translated from DUKPT to ZPK",
                 data = mapOf(
                     "encryptedPinBlock" to bytesToHex(encryptedNewPinBlock),
-                    "ksn" to ksn
+                    "pinLength"         to pin.length.toString(),
+                    "ksn"               to ksn
                 )
             )
         } catch (e: Exception) {
@@ -1112,7 +1123,7 @@ class PayShield10KCommandProcessor(
             val clearTak = simulator.decryptUnderLmk(
                 data = encryptedTak,
                 lmkId = lmkId,
-                pairNumber = 16  // TAK uses pair 16-17 (key type 003)
+                pairNumber = 14  // TAK uses pair 16-17 (key type 003)
             )
 
             // STEP 2: Generate MAC with clear TAK
@@ -1201,14 +1212,20 @@ class PayShield10KCommandProcessor(
             PinBlockFormat.ISO_FORMAT_0 -> formatIsoFormat0(pin, accountNumber)
             PinBlockFormat.ISO_FORMAT_1 -> formatIsoFormat1(pin)
             PinBlockFormat.ISO_FORMAT_3 -> formatIsoFormat3(pin, accountNumber)
-            else -> formatIsoFormat0(pin, accountNumber)
+            // Docutel, Diebold/IBM, PLUS Network use ISO Format 0 block structure (XOR with PAN)
+            PinBlockFormat.DOCUTEL,
+            PinBlockFormat.DIEBOLD_IBM,
+            PinBlockFormat.PLUS_NETWORK -> formatIsoFormat0(pin, accountNumber)
+            // AS2805 and ISO Format 4 fall back to Format 0 for now
+            PinBlockFormat.AS2805,
+            PinBlockFormat.ISO_FORMAT_4 -> formatIsoFormat0(pin, accountNumber)
         }
     }
 
     private fun formatIsoFormat0(pin: String, accountNumber: String): ByteArray {
         val controlField = "0${pin.length}"
         val pinPart = (controlField + pin).padEnd(16, 'F')
-        val panPart = "0000" + accountNumber.takeLast(13).dropLast(1)
+        val panPart = "0000" + pan12(accountNumber)
 
         val pinBytes = hexToBytes(pinPart)
         val panBytes = hexToBytes(panPart)
@@ -1240,19 +1257,27 @@ class PayShield10KCommandProcessor(
         format: PinBlockFormat
     ): String {
         return when (format) {
-            PinBlockFormat.ISO_FORMAT_0, PinBlockFormat.ISO_FORMAT_3 -> {
-                val panPart = "0000" + accountNumber.takeLast(13).dropLast(1)
+            // Formats that XOR the PIN block with the PAN
+            PinBlockFormat.ISO_FORMAT_0,
+            PinBlockFormat.ISO_FORMAT_3,
+            PinBlockFormat.DOCUTEL,
+            PinBlockFormat.DIEBOLD_IBM,
+            PinBlockFormat.PLUS_NETWORK -> {
+                val panPart = "0000" + pan12(accountNumber)
                 val panBytes = hexToBytes(panPart)
                 val xored = pinBlock.zip(panBytes) { a, b -> (a.toInt() xor b.toInt()).toByte() }
                     .toByteArray()
                 val hex = bytesToHex(xored)
-                val pinLength = hex[1].toString().toInt()
+                // PIN length is a hex nibble (0–F); use radix-16 to handle digits A–F
+                val pinLength = hex[1].digitToInt(16)
                 hex.substring(2, 2 + pinLength)
             }
 
+            // Formats that do not XOR with PAN (PIN is embedded directly)
             else -> {
                 val hex = bytesToHex(pinBlock)
-                val pinLength = hex[1].toString().toInt()
+                // PIN length is a hex nibble (0–F); use radix-16 to handle digits A–F
+                val pinLength = hex[1].digitToInt(16)
                 hex.substring(2, 2 + pinLength)
             }
         }
