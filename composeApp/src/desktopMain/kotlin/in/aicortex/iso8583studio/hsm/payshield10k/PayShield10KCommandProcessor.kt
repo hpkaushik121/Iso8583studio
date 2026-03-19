@@ -31,6 +31,7 @@ import ai.cortex.core.IsoUtil
 import ai.cortex.core.types.CryptoAlgorithm
 import `in`.aicortex.iso8583studio.hsm.payshield10k.*
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
+import io.cryptocalc.crypto.engines.DukptEngine
 import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
@@ -516,29 +517,16 @@ class PayShield10KCommandProcessor(
 
     companion object {
         /**
-         * Parse a 3-char KSN Descriptor (Thales format "XYZ") and return the counter
-         * bit-width for the given KSN length.
+         * Parse KSN descriptor (e.g., "609") to determine counter bit width.
          *
-         * X  = BDK/Key Set Identifier length (hex chars)
-         * YZ = Device Identifier length (hex chars, two-digit decimal)
-         * Counter hex chars = totalKsnHexChars − X − YZ
-         * Counter bits      = counterHexChars × 4
+         * Descriptor format: [KSID_len][sub_key][DevID_len]
+         *   "609" → KSID=6hex (24 bits), DevID=9hex (36 bits) → Counter = 80-24-36 = 20 bits
          *
-         * @param descriptor  3-character KSN descriptor, e.g. "609", "605", "A05".
-         *                    Each character is a single hex digit:
-         *                    [0] = BDK identifier length (hex chars)
-         *                    [1] = Sub-key identifier length (hex chars)
-         *                    [2] = Device identifier length (hex chars)
-         * @param ksnHexLen   total KSN length in hex characters (default 20 for 10-byte KSN)
-         * @return number of counter bits
+         * For PayShield key type codes like "609", this extracts the descriptor.
+         * For standard BDK key type "009", caller should use counterBits=21 directly.
          */
-        fun parseKsnDescriptorCounterBits(descriptor: String, ksnHexLen: Int = 20): Int {
-            if (descriptor.length != 3) return 21
-            val bdkIdLen = descriptor[0].digitToIntOrNull(16) ?: return 21
-            val subKeyIdLen = descriptor[1].digitToIntOrNull(16) ?: return 21
-            val deviceIdLen = descriptor[2].digitToIntOrNull(16) ?: return 21
-            val counterHexChars = ksnHexLen - bdkIdLen - subKeyIdLen - deviceIdLen
-            return if (counterHexChars in 1..20) counterHexChars * 4 else 21
+        fun parseKsnDescriptorCounterBits(ksnDescriptor: String): Int {
+            return DukptEngine.parseKsnDescriptorCounterBits(ksnDescriptor)
         }
 
         /**
@@ -576,64 +564,19 @@ class PayShield10KCommandProcessor(
         }
 
         /**
-         * Derive DUKPT Initial Key (IPEK) from BDK and KSN using ANSI X9.24 algorithm.
+         * Derive IPEK from clear BDK and KSN hex string.
          *
-         * 1. Zero the counter bits in the full KSN to produce IKSN
-         * 2. Take the rightmost 8 bytes of IKSN as the 64-bit derivation input
-         *    (same slice used in deriveDukptSessionKey → copyOfRange(2, 10) for 10-byte KSNs)
-         * 3. Left half  = TDES_ECB_encrypt(iksn8, BDK)
-         * 4. Right half = TDES_ECB_encrypt(iksn8, BDK XOR C0C0C0C000000000C0C0C0C000000000)
+         * Called by A0 command (Mode A/B) for IKEY derivation.
+         * Delegates to DukptEngine.
+         *
+         * @param clearBdk     Clear-text BDK (16 bytes)
+         * @param ksnHex       KSN as hex string (e.g., "FFFF0000040000000007")
+         * @param counterBits  Number of counter bits (21 for key type "009",
+         *                     or parsed from KSN descriptor for others)
+         * @return 16-byte IPEK/IKEY
          */
-        fun deriveInitialKey(bdk: ByteArray, ksn: String, counterBits: Int = 21): ByteArray {
-            val ksnBytes = IsoUtil.hexToBytes(ksn)
-            val fullKsn = ksnBytes.copyOf()
-            zeroIksnCounterBits(fullKsn, counterBits)
-            // Use the rightmost 8 bytes – consistent with the session-key derivation step
-            // which always operates on runningKsn.copyOfRange(ksnLen - 8, ksnLen)
-            val iksn = ByteArray(8)
-            val startIdx = maxOf(0, fullKsn.size - 8)
-            fullKsn.copyInto(iksn, 0, startIdx, startIdx + 8)
-
-            val bdkKey = if (bdk.size == 16) {
-                val expanded = ByteArray(24)
-                bdk.copyInto(expanded, 0, 0, 16)
-                bdk.copyInto(expanded, 16, 0, 8)
-                expanded
-            } else {
-                bdk.copyOf(24)
-            }
-
-            val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-
-            val keySpec = SecretKeySpec(bdkKey, "DESede")
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec)
-            val leftHalf = cipher.doFinal(iksn)
-
-            val bdkXor = bdk.copyOf()
-            val mask = byteArrayOf(
-                0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
-                0x00, 0x00, 0x00, 0x00,
-                0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
-                0x00, 0x00, 0x00, 0x00
-            )
-            for (i in bdkXor.indices) {
-                if (i < mask.size) {
-                    bdkXor[i] = (bdkXor[i].toInt() xor mask[i].toInt()).toByte()
-                }
-            }
-            val bdkXorKey = if (bdkXor.size == 16) {
-                val expanded = ByteArray(24)
-                bdkXor.copyInto(expanded, 0, 0, 16)
-                bdkXor.copyInto(expanded, 16, 0, 8)
-                expanded
-            } else {
-                bdkXor.copyOf(24)
-            }
-            val keySpecXor = SecretKeySpec(bdkXorKey, "DESede")
-            cipher.init(Cipher.ENCRYPT_MODE, keySpecXor)
-            val rightHalf = cipher.doFinal(iksn)
-
-            return leftHalf.copyOf(8) + rightHalf.copyOf(8)
+        fun deriveInitialKey(clearBdk: ByteArray, ksnHex: String, counterBits: Int): ByteArray {
+            return DukptEngine.deriveIpek(clearBdk, ksnHex, counterBits)
         }
     }
 
@@ -665,15 +608,35 @@ class PayShield10KCommandProcessor(
     }
 
     /**
-     * Generate KSN (Key Serial Number)
-     * Format: [BDK ID: 5 hex chars][Device ID: 5 hex chars][Counter: 11 bits + 21 bits]
+     * Generate KSN (Key Serial Number) for a terminal.
+     *
+     * Format (80-bit / 10-byte):
+     *   [Key Set ID: variable] [Device ID: variable] [Counter: 21 bits]
+     *
+     * For default ANSI X9.24 (21 counter bits):
+     *   Key Set ID = 5 hex chars (20 bits)
+     *   Device ID  = 10 hex chars (40 bits)
+     *   Counter    = ~5 hex chars (21 bits, initially zero)
+     *
+     * @param terminalId Terminal identifier (used to derive device ID portion)
+     * @return 20-char hex string (10 bytes)
      */
     fun generateKsn(terminalId: String): String {
-        val bdkId = "12345"  // Example BDK identifier
-        val deviceId = terminalId.takeLast(5).padStart(5, '0')
-        val counter = "00000"  // Initial counter (21 bits = 0)
+        // Key Set ID: first 5 hex chars derived from BDK identifier
+        val keySetId = "FFFF0"
 
-        return bdkId + deviceId + counter + "00000"
+        // Device ID: derived from terminal ID, zero-padded to 10 hex chars
+        val deviceIdRaw = terminalId
+            .filter { it.isDigit() || it.uppercaseChar() in 'A'..'F' }
+            .takeLast(10)
+            .padStart(10, '0')
+            .uppercase()
+
+        // Counter starts at 0 (21 bits = ~5.25 hex chars, packed in remaining bits)
+        // Total: keySetId(5) + deviceId(10) + counter_field(5) = 20 hex chars
+        val counterField = "00000"
+
+        return (keySetId + deviceIdRaw + counterField).take(20).uppercase()
     }
 
     // ====================================================================================================
@@ -681,19 +644,40 @@ class PayShield10KCommandProcessor(
     // ====================================================================================================
 
     /**
-     * Derive DUKPT session key for current transaction from a DukptProfile.
+     * Derive DUKPT session key for a terminal's current transaction.
+     *
+     * Derives the appropriate working key based on usage type:
+     *   PIN_ENCRYPTION  → session key directly (NO variant XOR)
+     *   MAC_REQUEST     → session key XOR MAC_VARIANT
+     *   MAC_RESPONSE    → session key XOR MAC_VARIANT
+     *   DATA_ENCRYPTION → session key XOR DATA_VARIANT
+     *
+     * @param profile    Terminal's DUKPT profile (contains IPEK, KSN, counter)
+     * @param usageType  Type of key to derive
+     * @return 16-byte working key
      */
     fun deriveDukptSessionKey(
         profile: DukptProfile,
         usageType: DukptKeyUsage = DukptKeyUsage.PIN_ENCRYPTION
     ): ByteArray {
-        val counter = profile.currentCounter
-        val ksn = updateKsnWithCounter(profile.keySerialNumber, counter)
-        val ksnBytes = hexToBytes(ksn)
-        val counterBits = profile.counterBits
-        val counterInt = extractDukptCounter(ksnBytes, counterBits)
-        val futureKey = deriveDukptSessionKey(profile.initialKey, ksn, counterInt, counterBits)
-        return deriveVariantKey(futureKey, usageType)
+        // Build current KSN with transaction counter
+        val currentKsn = updateKsnWithCounter(profile.keySerialNumber, profile.currentCounter)
+        val ksnBytes = IsoUtil.hexToBytes(currentKsn)
+
+        // Derive session key from IPEK via NRKGP
+        val sessionKey = DukptEngine.deriveSessionKey(
+            ipek = profile.initialKey,
+            ksn = ksnBytes,
+            counterBits = profile.counterBits
+        )
+
+        // Apply variant based on usage
+        return when (usageType) {
+            DukptKeyUsage.PIN_ENCRYPTION -> sessionKey  // NO variant per ANSI X9.24
+            DukptKeyUsage.MAC_REQUEST,
+            DukptKeyUsage.MAC_RESPONSE   -> DukptEngine.xorBytes(sessionKey, DukptEngine.MAC_VARIANT)
+            DukptKeyUsage.DATA_ENCRYPTION -> DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
+        }
     }
 
     /**
@@ -800,13 +784,34 @@ class PayShield10KCommandProcessor(
         }
     }
 
+    /**
+     * Update KSN with current transaction counter value.
+     *
+     * Sets the rightmost 21 bits of the KSN to the counter value.
+     *
+     * @param baseKsn  Base KSN hex string (20 chars)
+     * @param counter  Current transaction counter
+     * @return Updated KSN hex string with counter set
+     */
     private fun updateKsnWithCounter(baseKsn: String, counter: Long): String {
-        val ksnBytes = simulator.hexToBytes(baseKsn).toMutableList()
-        ksnBytes[7] =
-            ((ksnBytes[7].toInt() and 0xE0) or (((counter shr 16) and 0x1F).toInt())).toByte()
-        ksnBytes[8] = ((counter shr 8) and 0xFF).toByte()
-        ksnBytes[9] = (counter and 0xFF).toByte()
-        return simulator.bytesToHex(ksnBytes.toByteArray())
+        val ksnBytes = IsoUtil.hexToBytes(baseKsn)
+
+        // Zero the counter bits first
+        DukptEngine.zeroCounterBits(ksnBytes, DukptEngine.DEFAULT_COUNTER_BITS)
+
+        // Set counter bits
+        val counterInt = counter.toInt()
+        for (bit in 0 until DukptEngine.DEFAULT_COUNTER_BITS) {
+            if (((counterInt shr bit) and 1) == 1) {
+                val byteIdx = ksnBytes.size - 1 - bit / 8
+                val bitInByte = bit % 8
+                if (byteIdx in ksnBytes.indices) {
+                    ksnBytes[byteIdx] = (ksnBytes[byteIdx].toInt() or (1 shl bitInByte)).toByte()
+                }
+            }
+        }
+
+        return IsoUtil.bytesToHex(ksnBytes).uppercase()
     }
 
 

@@ -371,8 +371,24 @@
     "hsmConfigs": [
         {
             "id": "cb49039a-1842-4b88-97e9-505479907396",
-            "name": "HSM-1",
+            "name": "PayShield 10K",
+            "description": "HSM001234567890",
             "createdDate": 1768383552215,
+            "modifiedDate": 1773587572416,
+            "deviceInfo": {
+                "capabilities": [
+                    "SYMMETRIC_CRYPTO",
+                    "ASYMMETRIC_CRYPTO",
+                    "HASH_FUNCTIONS",
+                    "DIGITAL_SIGNING",
+                    "KEY_DERIVATION",
+                    "RANDOM_NUMBER_GEN",
+                    "SSL_TLS_ACCELERATION",
+                    "CODE_SIGNING",
+                    "DATABASE_ENCRYPTION",
+                    "PAYMENT_PROCESSING"
+                ]
+            },
             "hsmConfig": {
                 "lmkStorage": {
                     "liveLmks": {
@@ -1265,7 +1281,7 @@
                     }
                 }
             },
-            "model": "payShield 9000",
+            "model": "payShield 10K",
             "network": {
                 "port": 9090
             }
@@ -1279,6 +1295,6 @@
     "switchConfigs": [],
     "acquirerConfigs": [],
     "issuerConfigs": [],
-    "exportedAt": 1768732120320,
+    "exportedAt": 1773904962804,
     "version": "1.0"
 }

@@ -1,0 +1,12 @@
+black == 24.3.0
+flake8
+pytest >= 6.0 # Min to support pyproject.toml
+pytest-cov
+coverage
+toml # Needed by coverage to support pyproject.toml
+codecov
+twine
+wheel
+setuptools
+mypy
+types-cryptography # Needed by mypy

@@ -32,6 +32,7 @@ import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
+import io.cryptocalc.crypto.engines.DukptEngine
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -110,20 +111,21 @@ data class DukptPekResult(
     val derivedPek: String,
     val pekKcv: String
 )
-
+/**
+ * ════════════════════════════════════════════════════════════════════════
+ * DUKPTService — DUKPT Tool UI Service
+ * ════════════════════════════════════════════════════════════════════════
+ *
+ * Delegates all cryptographic operations to DukptEngine (single source of truth).
+ *
+ * Changes from previous version:
+ *   FIX #1: IPEK derivation now uses LEFTMOST 8 bytes of IKSN (via DukptEngine)
+ *   FIX #2: PEK = session key directly, NO PEK_VARIANT XOR
+ *   REFACTOR: All crypto delegated to DukptEngine for consistency with HSM commands
+ */
 object DUKPTService {
-    // ANSI X9.24 DUKPT constants
-    private val KEY_MASK = byteArrayOf(
-        0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
-        0x00, 0x00, 0x00, 0x00,
-        0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
-        0x00, 0x00, 0x00, 0x00
-    )
-    private val PEK_VARIANT = byteArrayOf(
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(),
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte()
-    )
-    private const val COUNTER_BITS = 21
+
+    private const val COUNTER_BITS = DukptEngine.DEFAULT_COUNTER_BITS  // 21
 
     /**
      * Derive PEK (Pin Encryption Key) from BDK and KSN per ANSI X9.24-2004 Annex A.
@@ -137,139 +139,27 @@ object DUKPTService {
             require(bdkBytes.size == 16) { "IPEK must be 16 bytes (32 hex chars)" }
             bdkBytes
         } else {
-            deriveIpek(bdkBytes, ksnBytes)
+            DukptEngine.deriveIpek(bdkBytes, ksnBytes, COUNTER_BITS)
         }
 
-        val sessionKey = deriveSessionKey(ipek, ksnBytes)
-        val pek = ByteArray(16) { i -> (sessionKey[i].toInt() xor PEK_VARIANT[i].toInt()).toByte() }
+        // PEK = session key directly, NO variant XOR per ANSI X9.24-2004
+        val pek = if (inputKeyType == "IPEK") {
+            DukptEngine.derivePekFromIpek(ipek, ksnBytes, COUNTER_BITS)
+        } else {
+            DukptEngine.deriveSessionKey(ipek, ksnBytes, COUNTER_BITS)
+        }
 
         return DukptPekResult(
             derivedIpek = IsoUtil.bytesToHex(ipek).uppercase(),
-            ipekKcv = computeKcv(ipek),
+            ipekKcv = DukptEngine.computeKcv(ipek),
             derivedPek = IsoUtil.bytesToHex(pek).uppercase(),
-            pekKcv = computeKcv(pek)
+            pekKcv = DukptEngine.computeKcv(pek)
         )
     }
 
     /**
-     * Derive IPEK from BDK and KSN per ANSI X9.24.
-     * 1. Zero counter bits in KSN to get IKSN (mask rightmost 21 bits)
-     * 2. Extract the LEFT most 8 bytes of IKSN as derivation input (per ANSI X9.24 / IBM spec)
-     * 3. Left  = TDES_ECB(iksn8, BDK)
-     * 4. Right = TDES_ECB(iksn8, BDK XOR C0C0C0C000000000C0C0C0C000000000)
+     * Decrypt PIN block using PEK via XOR (for display/testing).
      */
-    private fun deriveIpek(bdk: ByteArray, ksn: ByteArray): ByteArray {
-        val fullKsn = ksn.copyOf()
-        zeroCounterBits(fullKsn, COUNTER_BITS)
-        val iksn8 = fullKsn.copyOfRange(0, 8)
-
-        val bdkKey = expandTo24Bytes(bdk)
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(bdkKey, "DESede"))
-        val left = cipher.doFinal(iksn8)
-
-        val bdkXor = ByteArray(bdk.size) { i -> (bdk[i].toInt() xor KEY_MASK[i].toInt()).toByte() }
-        val bdkXorKey = expandTo24Bytes(bdkXor)
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(bdkXorKey, "DESede"))
-        val right = cipher.doFinal(iksn8)
-
-        return left + right
-    }
-
-    /**
-     * Derive session key from IPEK and KSN using Non-Reversible Key Generation.
-     * Iterates through counter bits (MSB to LSB); for each set bit, applies NRKGP.
-     */
-    private fun deriveSessionKey(ipek: ByteArray, ksn: ByteArray): ByteArray {
-        var currentKey = ipek.copyOf()
-        val runningKsn = ksn.copyOf()
-        zeroCounterBits(runningKsn, COUNTER_BITS)
-
-        val counter = extractCounter(ksn, COUNTER_BITS)
-
-        for (shiftReg in (COUNTER_BITS - 1) downTo 0) {
-            if (((counter shr shiftReg) and 1) == 1) {
-                val byteIdx = runningKsn.size - 1 - shiftReg / 8
-                val bitInByte = shiftReg % 8
-                if (byteIdx in runningKsn.indices) {
-                    runningKsn[byteIdx] = (runningKsn[byteIdx].toInt() or (1 shl bitInByte)).toByte()
-                }
-                val cryptoReg = runningKsn.copyOfRange(maxOf(0, runningKsn.size - 8), runningKsn.size)
-                currentKey = nonReversibleKeyGen(currentKey, cryptoReg)
-            }
-        }
-        return currentKey
-    }
-
-    /**
-     * ANSI X9.24 Non-Reversible Key Generation Process (NRKGP).
-     */
-    private fun nonReversibleKeyGen(key: ByteArray, data: ByteArray): ByteArray {
-        val keyLeft = key.copyOfRange(0, 8)
-        val keyRight = key.copyOfRange(8, 16)
-        val desCipher = Cipher.getInstance("DES/ECB/NoPadding")
-
-        val r1 = ByteArray(8) { i -> (data[i].toInt() xor keyRight[i].toInt()).toByte() }
-        desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyLeft, "DES"))
-        val r2 = desCipher.doFinal(r1)
-        val newRight = ByteArray(8) { i -> (r2[i].toInt() xor keyRight[i].toInt()).toByte() }
-
-        val c0mask = byteArrayOf(
-            0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(), 0xC0.toByte(),
-            0x00, 0x00, 0x00, 0x00
-        )
-        val maskedLeft = ByteArray(8) { i -> (keyLeft[i].toInt() xor c0mask[i].toInt()).toByte() }
-        val maskedRight = ByteArray(8) { i -> (keyRight[i].toInt() xor c0mask[i].toInt()).toByte() }
-        val l1 = ByteArray(8) { i -> (data[i].toInt() xor maskedRight[i].toInt()).toByte() }
-        desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(maskedLeft, "DES"))
-        val l2 = desCipher.doFinal(l1)
-        val newLeft = ByteArray(8) { i -> (l2[i].toInt() xor maskedRight[i].toInt()).toByte() }
-
-        return newLeft + newRight
-    }
-
-    private fun zeroCounterBits(ksn: ByteArray, counterBits: Int) {
-        for (bit in 0 until counterBits) {
-            val byteIdx = ksn.size - 1 - bit / 8
-            val bitInByte = bit % 8
-            if (byteIdx in ksn.indices) {
-                ksn[byteIdx] = (ksn[byteIdx].toInt() and (1 shl bitInByte).inv()).toByte()
-            }
-        }
-    }
-
-    private fun extractCounter(ksn: ByteArray, counterBits: Int): Int {
-        var counter = 0
-        for (bit in 0 until counterBits) {
-            val byteIdx = ksn.size - 1 - bit / 8
-            val bitInByte = bit % 8
-            if (byteIdx in ksn.indices && (ksn[byteIdx].toInt() and (1 shl bitInByte)) != 0) {
-                counter = counter or (1 shl bit)
-            }
-        }
-        return counter
-    }
-
-    private fun expandTo24Bytes(key: ByteArray): ByteArray {
-        return if (key.size == 16) {
-            ByteArray(24).apply {
-                key.copyInto(this, 0, 0, 16)
-                key.copyInto(this, 16, 0, 8)
-            }
-        } else {
-            key.copyOf(24)
-        }
-    }
-
-    private fun computeKcv(key: ByteArray): String {
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        val key24 = expandTo24Bytes(key)
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key24, "DESede"))
-        val kcv = cipher.doFinal(ByteArray(8))
-        return IsoUtil.bytesToHex(kcv.copyOfRange(0, 3)).uppercase()
-    }
-
     fun processPinBlock(pek: String, pinBlock: String): String {
         val pekBytes = pek.decodeHex()
         val pinBlockBytes = pinBlock.decodeHex()
@@ -280,24 +170,31 @@ object DUKPTService {
         return result.toHex().uppercase()
     }
 
+    /**
+     * Generate MAC using PEK (mock — for UI testing).
+     */
     fun generateMac(pek: String, algorithm: String, data: String): String {
         val combined = "$pek|$algorithm|$data"
         return combined.hashCode().toString(16).uppercase().take(8)
     }
 
+    /**
+     * Process data encryption/decryption using PEK.
+     */
     fun processData(pek: String, isDataVariant: Boolean, dataInputType: String, data: String): String {
         val dataBytes = if (dataInputType == "ASCII") data.toByteArray() else data.decodeHex()
         val pekBytes = pek.decodeHex()
         val keyModifier = if (isDataVariant) "FFFFFFFFFFFFFFFF".decodeHex() else "0000000000000000".decodeHex()
 
         val result = ByteArray(dataBytes.size)
-        for(i in result.indices){
+        for (i in result.indices) {
             result[i] = (dataBytes[i].toInt() xor pekBytes[i % pekBytes.size].toInt() xor keyModifier[i % keyModifier.size].toInt()).toByte()
         }
         return result.toHex().uppercase()
     }
 
-    // Helper extensions
+    // ─── Helper extensions ───────────────────────────────────────────
+
     private fun String.decodeHex(): ByteArray {
         check(length % 2 == 0) { "Must have an even length" }
         return chunked(2)
@@ -305,7 +202,8 @@ object DUKPTService {
             .toByteArray()
     }
 
-    private fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
+    private fun ByteArray.toHex(): String =
+        joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
 }
 
 enum class DUKPTTabs(val title: String, val icon: ImageVector) {
