@@ -10,6 +10,7 @@ import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.net.Socket
 import java.time.LocalDateTime
@@ -25,8 +26,11 @@ class HsmClient(var gatewayHandler: Simulator) {
     var tcpLengthHeaderEnabled: Boolean = false
     private var m_Buffer: ByteArray = ByteArray(10048)
 
+    // ── FIX: Track the processing coroutine so we can cancel it on close ──
+    private var processingJob: Job? = null
+
     fun processGateway() {
-        CoroutineScope(Dispatchers.IO).launch {
+        processingJob = CoroutineScope(Dispatchers.IO).launch {
             val socket = incomingConnection ?: return@launch
             val stream = socket.getInputStream()
 
@@ -34,7 +38,7 @@ class HsmClient(var gatewayHandler: Simulator) {
 
             try {
                 while (socket.isConnected && !socket.isClosed &&
-                       !socket.isInputShutdown && !socket.isOutputShutdown
+                    !socket.isInputShutdown && !socket.isOutputShutdown
                 ) {
                     val commandBytes: ByteArray = if (tcpLengthHeaderEnabled) {
                         // ── Length-prefixed mode ─────────────────────────────
@@ -43,7 +47,7 @@ class HsmClient(var gatewayHandler: Simulator) {
                         if (!readFully(stream, lenBuf, 2)) break   // EOF while reading header
 
                         val msgLen = ((lenBuf[0].toInt() and 0xFF) shl 8) or
-                                     (lenBuf[1].toInt() and 0xFF)
+                                (lenBuf[1].toInt() and 0xFF)
 
                         if (msgLen <= 0) continue   // zero-length frame — skip silently
 
@@ -81,7 +85,10 @@ class HsmClient(var gatewayHandler: Simulator) {
                     )
                 }
             } catch (ex: Exception) {
-                ex.printStackTrace()
+                // ── Socket closed during read is expected on shutdown — only log unexpected errors ──
+                if (incomingConnection?.isClosed != true) {
+                    ex.printStackTrace()
+                }
             } finally {
                 hsmClientListener?.onDisconnected(this@HsmClient)
             }
@@ -122,6 +129,22 @@ class HsmClient(var gatewayHandler: Simulator) {
                 "CONNECTION MAY BE CLOSED BY REMOTE COMPUTER/TERMINAL ",
                 VerificationError.DISCONNECTED_FROM_SOURCE
             )
+        }
+    }
+
+    /**
+     * ── FIX: Forcefully close this client's socket and cancel its processing coroutine.
+     * Closing the socket causes any blocking read() to throw SocketException,
+     * which breaks the processing loop and triggers the finally → onDisconnected callback.
+     */
+    fun close() {
+        try {
+            processingJob?.cancel()
+            processingJob = null
+            incomingConnection?.close()
+            incomingConnection = null
+        } catch (_: Exception) {
+            // Ignore errors during forced shutdown
         }
     }
 }

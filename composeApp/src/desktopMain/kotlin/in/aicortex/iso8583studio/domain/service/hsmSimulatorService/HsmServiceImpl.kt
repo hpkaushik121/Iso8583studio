@@ -34,6 +34,7 @@ import java.nio.charset.Charset
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.coroutines.coroutineContext
 
 // Main HSM Service Implementation
 class HsmServiceImpl(
@@ -205,6 +206,8 @@ class HsmServiceImpl(
         this.configuration = config as HSMSimulatorConfig
     }
 
+
+    private var serverScope: CoroutineScope? = null
     /**
      * Start the HSM service
      */
@@ -242,7 +245,10 @@ class HsmServiceImpl(
 
         // Start server thread based on connection type
         _hsmState.value = _hsmState.value.copy(started = true)
-        serverJob = CoroutineScope(Dispatchers.IO).launch{
+
+        // ── FIX: Use a dedicated scope so cancel() propagates to ALL children ──
+        serverScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        serverJob = serverScope!!.launch {
             doListener()
         }
     }
@@ -252,10 +258,14 @@ class HsmServiceImpl(
      */
     @OptIn(ExperimentalAtomicApi::class)
     private suspend fun doListener() {
-        while (_hsmState.value.started && NonCancellable.isActive) {
+        while (_hsmState.value.started && coroutineContext.isActive) {  // ← FIX: was NonCancellable.isActive
             try {
                 processTcpIp()
             } catch (e: Exception) {
+                if (!_hsmState.value.started || !coroutineContext.isActive) {
+                    // Server is shutting down — don't restart
+                    break
+                }
                 // Handle errors
                 writeLog(createLogEntry(type = LogType.ERROR, message = "FATAL ERROR ${e}"))
                 writeLog(
@@ -267,25 +277,27 @@ class HsmServiceImpl(
                 // Wait before restart
                 val waitUntil =
                     LocalDateTime.now().plusSeconds(configuration.waitToRestart.toLong())
-                while (LocalDateTime.now().isBefore(waitUntil) && _hsmState.value.started) {
+                while (LocalDateTime.now().isBefore(waitUntil) && _hsmState.value.started && coroutineContext.isActive) {
                     delay(500)
                 }
             }
         }
     }
 
-
-    /**
-     * Process TCP/IP connections
-     */
+    // ──────────────────────────────────────────────────────────────
+    // FIX 3: processTcpIp() — same NonCancellable fix
+    // ──────────────────────────────────────────────────────────────
     @OptIn(ExperimentalAtomicApi::class)
     private suspend fun processTcpIp() {
-        while (_hsmState.value.started && NonCancellable.isActive) {
+        while (_hsmState.value.started && coroutineContext.isActive) {  // ← FIX: was NonCancellable.isActive
             try {
                 // Wait until we have space for a new connection
-                while (_hsmState.value.started && _hsmState.value.activeClients.size >= configuration.maxConcurrentConnection) {
+                while (_hsmState.value.started && _hsmState.value.activeClients.size >= configuration.maxConcurrentConnection && coroutineContext.isActive) {
                     delay(30)
                 }
+
+                // ── FIX: Check again after the wait — stop() may have fired ──
+                if (!_hsmState.value.started || !coroutineContext.isActive) break
 
                 // Accept a new client connection
                 val client = createClient()
@@ -323,7 +335,7 @@ class HsmServiceImpl(
 
 
             } catch (e: Exception) {
-                if (_hsmState.value.started) {
+                if (_hsmState.value.started && coroutineContext.isActive) {
                     writeLog(createLogEntry(type = LogType.ERROR, message = "GATEWAY ERROR $e"))
 
                     // Call error callbacks
@@ -334,6 +346,8 @@ class HsmServiceImpl(
             }
         }
     }
+
+
     /**
      * Create a new client
      */
@@ -350,23 +364,35 @@ class HsmServiceImpl(
             return@withContext
         }
 
+        // ── Step 1: Signal all loops to exit ──
         _hsmState.value = _hsmState.value.copy(started = false)
         stopTime = LocalDateTime.now()
 
-        // Close server socket
-        serverSocket?.close()
+        // ── Step 2: Close server socket ──
+        // This unblocks any pending accept() call, causing it to throw SocketException
+        try {
+            serverSocket?.close()
+        } catch (_: Exception) { }
         serverSocket = null
 
-        // Cancel server thread
-        serverJob?.cancel()
+        // ── Step 3: Cancel the entire server scope (kills doListener + processTcpIp) ──
+        serverScope?.cancel()
+        serverScope = null
         serverJob = null
 
-        // Close all client connections
-        while (_hsmState.value.activeClients.isNotEmpty()) {
-            val client = _hsmState.value.activeClients[0]
+        // ── Step 4: FIX — Forcefully close ALL active client connections ──
+        // Take a snapshot to avoid ConcurrentModificationException, then close each.
+        // Closing the socket causes the client's blocking read() to throw,
+        // which triggers its finally block → onDisconnected → removal from list.
+        val clientsSnapshot = _hsmState.value.activeClients.toList()
+        for (client in clientsSnapshot) {
+            try {
+                client.close()
+            } catch (_: Exception) { }
         }
+        _hsmState.value.activeClients.clear()
 
-        // Log shutdown
+        // ── Step 5: Log shutdown ──
         writeLog(
             createLogEntry(
                 type = LogType.SOCKET,
