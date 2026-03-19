@@ -153,15 +153,15 @@ object DUKPTService {
 
     /**
      * Derive IPEK from BDK and KSN per ANSI X9.24.
-     * 1. Zero counter bits in KSN to get IKSN
-     * 2. Take rightmost 8 bytes of IKSN as derivation input
+     * 1. Zero counter bits in KSN to get IKSN (mask rightmost 21 bits)
+     * 2. Extract the LEFT most 8 bytes of IKSN as derivation input (per ANSI X9.24 / IBM spec)
      * 3. Left  = TDES_ECB(iksn8, BDK)
      * 4. Right = TDES_ECB(iksn8, BDK XOR C0C0C0C000000000C0C0C0C000000000)
      */
     private fun deriveIpek(bdk: ByteArray, ksn: ByteArray): ByteArray {
         val fullKsn = ksn.copyOf()
         zeroCounterBits(fullKsn, COUNTER_BITS)
-        val iksn8 = fullKsn.copyOfRange(maxOf(0, fullKsn.size - 8), fullKsn.size)
+        val iksn8 = fullKsn.copyOfRange(0, 8)
 
         val bdkKey = expandTo24Bytes(bdk)
         val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
