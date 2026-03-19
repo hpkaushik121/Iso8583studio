@@ -38,7 +38,7 @@ class HsmClient(var gatewayHandler: Simulator) {
 
             try {
                 while (socket.isConnected && !socket.isClosed &&
-                    !socket.isInputShutdown && !socket.isOutputShutdown
+                       !socket.isInputShutdown && !socket.isOutputShutdown
                 ) {
                     val commandBytes: ByteArray = if (tcpLengthHeaderEnabled) {
                         // ── Length-prefixed mode ─────────────────────────────
@@ -47,7 +47,7 @@ class HsmClient(var gatewayHandler: Simulator) {
                         if (!readFully(stream, lenBuf, 2)) break   // EOF while reading header
 
                         val msgLen = ((lenBuf[0].toInt() and 0xFF) shl 8) or
-                                (lenBuf[1].toInt() and 0xFF)
+                                     (lenBuf[1].toInt() and 0xFF)
 
                         if (msgLen <= 0) continue   // zero-length frame — skip silently
 
@@ -85,10 +85,7 @@ class HsmClient(var gatewayHandler: Simulator) {
                     )
                 }
             } catch (ex: Exception) {
-                // ── Socket closed during read is expected on shutdown — only log unexpected errors ──
-                if (incomingConnection?.isClosed != true) {
-                    ex.printStackTrace()
-                }
+                ex.printStackTrace()
             } finally {
                 hsmClientListener?.onDisconnected(this@HsmClient)
             }
