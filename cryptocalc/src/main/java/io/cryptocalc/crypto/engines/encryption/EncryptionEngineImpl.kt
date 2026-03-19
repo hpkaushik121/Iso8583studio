@@ -26,30 +26,20 @@ internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : Encry
         mode: CipherMode,
         padding: PaddingMethods
     ) {
-        logger?.log(buildString {
-            appendLine("╔══════════════════════════════════════════════════════════════")
-            appendLine("║ EMVEngine ► $operation")
-            appendLine("╠══════════════════════════════════════════════════════════════")
-            appendLine("║ Algorithm........ = $algorithm")
-            appendLine("║ Cipher Mode...... = $mode")
-            appendLine("║ Padding.......... = $padding")
-            appendLine("║ Key (${key.size} bytes).. = ${toHex(key)}")
-            if (iv != null && mode != CipherMode.ECB) {
-                appendLine("║ IV (${iv.size} bytes)... = ${toHex(iv)}")
-            }
-            appendLine("║ Data (${data.size} bytes). = ${toHex(data)}")
-            append("╚══════════════════════════════════════════════════════════════")
-        })
+        logger?.log("EMVEngine ► $operation")
+        logger?.log("Algorithm........ = $algorithm")
+        logger?.log("Cipher Mode...... = $mode")
+        logger?.log("Padding.......... = $padding")
+        logger?.log("Key (${key.size} bytes).. = ${toHex(key)}")
+        if (iv != null && mode != CipherMode.ECB) {
+            logger?.log("IV (${iv.size} bytes)... = ${toHex(iv)}")
+        }
+        logger?.log("Data (${data.size} bytes). = ${toHex(data)}")
     }
 
     private fun logResult(operation: String, result: ByteArray) {
-        logger?.log(buildString {
-            appendLine("╔══════════════════════════════════════════════════════════════")
-            appendLine("║ EMVEngine ► $operation Result")
-            appendLine("╠══════════════════════════════════════════════════════════════")
-            appendLine("║ Output (${result.size} bytes) = ${toHex(result)}")
-            append("╚══════════════════════════════════════════════════════════════")
-        })
+        logger?.log("EMVEngine ► $operation Result")
+        logger?.log("Output (${result.size} bytes) = ${toHex(result)}")
     }
 
     override suspend fun <T : AlgorithmType> encrypt(

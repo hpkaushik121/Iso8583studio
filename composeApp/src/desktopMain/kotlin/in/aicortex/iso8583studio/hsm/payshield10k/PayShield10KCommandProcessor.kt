@@ -1077,12 +1077,14 @@ class PayShield10KCommandProcessor(
 
             // STEP 6: Decrypt PIN block with DUKPT session key; extract plain PIN
             val pinBlock = decryptPinBlock(encryptedPinBlock, sessionKey)
-            hsmLongListener.log("     [crypto 6/7]  PIN block (clr): ${bytesToHex(pinBlock)}")
+            hsmLongListener.log("     [crypto 6/7]  PIN block (clr) hex: ${bytesToHex(pinBlock)}")
+            hsmLongListener.log("     [crypto 6/7]  PIN block (clr) bytes as ASCII decimal: ${pinBlock.joinToString(", ") { (it.toInt() and 0xFF).toString() }}")
             val panPart = "0000" + pan12(accountNumber)
             hsmLongListener.log("     [crypto 6/7]  PAN part for XOR: $panPart")
             hsmLongListener.log("     [crypto 6/7]  Extracting PIN  format=${sourcePinBlockFormat.code} (${sourcePinBlockFormat.description})  account=$accountNumber")
             val pin = extractPinFromBlock(pinBlock, accountNumber, sourcePinBlockFormat)
             hsmLongListener.log("     [crypto 6/7]  Extracted PIN length: ${pin.length}")
+            hsmLongListener.log("     [crypto 6/7]  Extracted PIN (actual): $pin")
 
             // STEP 7: Re-format PIN block and encrypt under clear ZPK
             hsmLongListener.log("     [crypto 7/7]  Building new PIN block  format=${destPinBlockFormat.code} (${destPinBlockFormat.description})")

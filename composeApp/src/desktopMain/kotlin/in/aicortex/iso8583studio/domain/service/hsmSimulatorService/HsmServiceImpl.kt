@@ -340,7 +340,6 @@ class HsmServiceImpl(
     private fun createClient(): HsmClient {
         val client = HsmClient(this)
         client.hsmClientListener = this
-        client.tcpLengthHeaderEnabled = configuration.hsmConfig.tcpLengthHeaderEnabled
         return client
     }
 
@@ -512,43 +511,6 @@ class HsmServiceImpl(
         return result
     }
 
-    /**
-     * Decrypts a key encrypted under the LMK to obtain the clear (plain) key.
-     * Used by the Secure Command GUI — the plain key is intentionally visible
-     * because this simulates physical console access.
-     *
-     * @param encryptedKeyHex  The key as stored (hex, with optional U/X/T scheme prefix)
-     * @param keyTypeCode      Key type code (e.g. "001" = ZPK, "002" = TPK)
-     * @return Map with clearKey, encryptedKey, kcv, keyType info — or an error entry
-     */
-    suspend fun decryptKeyUnderLmk(
-        encryptedKeyHex: String,
-        keyTypeCode: String
-    ): Map<String, String>? {
-        writeLog(
-            createLogEntry(
-                type    = LogType.HSM,
-                message = "► [SECURE-CMD] DECRYPT-LMK  KeyType=$keyTypeCode  Key=${encryptedKeyHex.take(16)}…"
-            ).also { it.source = "SECURE-CMD" }
-        )
-        val ps = getPayShield10K() ?: return null
-        val result = when (val r = ps.decryptKeyUnderLmkDirect(encryptedKeyHex, keyTypeCode)) {
-            is HsmCommandResult.Success -> r.data.mapValues { it.value.toString() }
-            is HsmCommandResult.Error   -> mapOf("error" to "${r.errorCode}: ${r.message}")
-        }
-        val isError = result.containsKey("error")
-        writeLog(
-            createLogEntry(
-                type    = if (isError) LogType.ERROR else LogType.HSM,
-                message = if (isError)
-                    "◄ [SECURE-CMD] DECRYPT-LMK  FAILED: ${result["error"]}"
-                else
-                    "◄ [SECURE-CMD] DECRYPT-LMK  KCV=${result["kcv"]}  ClearKey=${result["clearKey"]?.take(16)}…"
-            ).also { it.source = "SECURE-CMD" }
-        )
-        return result
-    }
-
     // ── Console Authorization ────────────────────────────────────────────────
 
     private fun payShieldFeatures(): PayShield10KFeatures? =
@@ -611,9 +573,9 @@ class HsmServiceImpl(
 
     override fun onSentToSource(data: String?) {
         val raw = data ?: "NULL"
-        // Response format: header(4) + responseCode(2) + errorCode(2) + data
-        val cmdCode = if (raw.length >= 6) raw.substring(4, 6) else "??"
-        val errCode = if (raw.length >= 8) raw.substring(6, 8) else "??"
+        // Derive the response command code (bytes 7-8: header=4 + resp-cmd=2)
+        val cmdCode = if (raw.length >= 8) raw.substring(6, 8) else "??"
+        val errCode = if (raw.length >= 10) raw.substring(8, 10) else "??"
         val logType = if (errCode == "00") LogType.HSM else LogType.ERROR
         writeLog(
             createLogEntry(

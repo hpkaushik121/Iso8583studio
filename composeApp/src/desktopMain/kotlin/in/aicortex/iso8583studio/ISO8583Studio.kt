@@ -48,6 +48,7 @@ import iso8583studio.composeapp.generated.resources.app
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import java.awt.Desktop
+import java.awt.desktop.AboutHandler
 
 enum class DialogType {
     SUCCESS, ERROR, NONE
@@ -69,6 +70,17 @@ class ISO8583Studio {
             }
             var showAboutDialog by remember { mutableStateOf(false) }
             val isoCoroutine = rememberCoroutineScope()
+
+            // Override macOS application menu "About" to show our custom About dialog
+            LaunchedEffect(Unit) {
+                if (System.getProperty("os.name").lowercase().contains("mac")) {
+                    try {
+                        Desktop.getDesktop().setAboutHandler(AboutHandler { showAboutDialog = true })
+                    } catch (_: Exception) {
+                        // setAboutHandler not supported on this platform
+                    }
+                }
+            }
 
             AppTheme {
                 Window(
