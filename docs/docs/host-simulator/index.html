@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Simulator Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary-blue: #6ab7ff;
+            --primary-blue-light: #9fd3ff;
+            --primary-blue-dark: #1e88e5;
+            --accent-teal: #64d8cb;
+            --accent-teal-light: #a0f4ea;
+            --accent-teal-dark: #26a69a;
+            --accent-purple: #9c27b0;
+            --accent-orange: #ff9800;
+            --background-light: #252836;
+            --background-dark: #1a1d2e;
+            --card-light: #2F3142;
+            --card-dark: #1e1f2e;
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+            --warning-yellow: #ffd43b;
+            --border-light: #3d3d3d;
+            --border-dark: #2a2a2a;
+            --text-primary: #eceff1;
+            --text-secondary: #b0bec5;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--background-dark);
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 70px;
+            background: rgba(26, 29, 46, 0.98);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(106, 183, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+        }
+
+        .nav { display: flex; align-items: center; gap: 8px; }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-blue);
+            background: rgba(106, 183, 255, 0.1);
+        }
+
+        .header-cta {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            color: var(--background-dark);
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.4);
+        }
+
+        .header-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(106, 183, 255, 0.5);
+        }
+
+        /* Page Layout */
+        .page-wrapper {
+            display: flex;
+            margin-top: 70px;
+            min-height: calc(100vh - 70px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--card-dark);
+            border-right: 1px solid var(--border-light);
+            padding: 32px 0;
+            position: fixed;
+            top: 70px;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            padding: 0 24px;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-link {
+            display: block;
+            padding: 8px 24px 8px 28px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            color: var(--primary-blue);
+            background: rgba(106, 183, 255, 0.05);
+            border-left-color: rgba(106, 183, 255, 0.3);
+        }
+
+        .sidebar-link.active {
+            color: var(--primary-blue);
+            background: rgba(106, 183, 255, 0.1);
+            border-left-color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 16px 24px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 48px 64px;
+            max-width: calc(100% - 280px);
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 32px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .breadcrumb a {
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover { text-decoration: underline; }
+
+        .breadcrumb-sep { opacity: 0.5; }
+
+        /* Page Title */
+        .page-title {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-description {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        /* Content Sections */
+        .doc-section { margin-bottom: 56px; }
+
+        .doc-section h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(106, 183, 255, 0.2);
+        }
+
+        .doc-section h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-blue-light);
+            margin: 32px 0 12px;
+        }
+
+        .doc-section h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent-teal);
+            margin: 24px 0 8px;
+        }
+
+        .doc-section p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        .doc-section ul, .doc-section ol {
+            margin: 0 0 16px 24px;
+            color: var(--text-secondary);
+        }
+
+        .doc-section li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .doc-section li strong { color: var(--text-primary); }
+
+        /* Info Cards */
+        .info-card {
+            background: var(--card-light);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .info-card.tip {
+            border-left: 4px solid var(--accent-teal);
+            background: rgba(100, 216, 203, 0.05);
+        }
+
+        .info-card.warning {
+            border-left: 4px solid var(--warning-yellow);
+            background: rgba(255, 212, 59, 0.05);
+        }
+
+        .info-card.note {
+            border-left: 4px solid var(--primary-blue);
+            background: rgba(106, 183, 255, 0.05);
+        }
+
+        .info-card-title {
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .info-card.tip .info-card-title { color: var(--accent-teal); }
+        .info-card.warning .info-card-title { color: var(--warning-yellow); }
+        .info-card.note .info-card-title { color: var(--primary-blue); }
+
+        .info-card p { margin-bottom: 0; }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: var(--card-light);
+        }
+
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            font-weight: 700;
+            color: var(--primary-blue);
+            border-bottom: 2px solid rgba(106, 183, 255, 0.2);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover td { background: rgba(106, 183, 255, 0.03); }
+
+        /* Code */
+        code {
+            background: rgba(106, 183, 255, 0.1);
+            color: var(--primary-blue);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+        }
+
+        pre {
+            background: var(--card-dark);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 20px 24px;
+            overflow-x: auto;
+            margin-bottom: 24px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            margin: 0 0 24px 0;
+            padding: 0;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            position: relative;
+            padding: 16px 16px 16px 60px;
+            margin-bottom: 12px;
+            background: var(--card-light);
+            border-radius: 10px;
+            border: 1px solid var(--border-light);
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            color: var(--background-dark);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .feature-item {
+            background: var(--card-light);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            border-color: rgba(106, 183, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .feature-item-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .feature-item h4 {
+            color: var(--text-primary);
+            font-size: 16px;
+            margin: 0 0 8px;
+        }
+
+        .feature-item p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-blue { background: rgba(106, 183, 255, 0.2); color: var(--primary-blue); }
+        .badge-teal { background: rgba(100, 216, 203, 0.2); color: var(--accent-teal); }
+        .badge-yellow { background: rgba(255, 212, 59, 0.2); color: var(--warning-yellow); }
+        .badge-green { background: rgba(81, 207, 102, 0.2); color: var(--success-green); }
+
+        /* Footer */
+        .footer {
+            background: var(--card-dark);
+            padding: 40px 24px;
+            border-top: 1px solid var(--border-light);
+            margin-left: 280px;
+            text-align: center;
+        }
+
+        .footer-copyright {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover { color: var(--primary-blue); }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .mobile-menu-toggle span {
+            width: 24px;
+            height: 2px;
+            background: var(--text-primary);
+            margin: 3px 0;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-close {
+            display: none;
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 18px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 70px; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 90;
+        }
+
+        @media (max-width: 1024px) {
+            .nav { display: none; }
+            .mobile-menu-toggle { display: flex; }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-close { display: flex; }
+            .sidebar-overlay.open { display: block; }
+
+            .main-content {
+                margin-left: 0;
+                max-width: 100%;
+                padding: 32px 24px;
+            }
+
+            .footer { margin-left: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .page-title { font-size: 32px; }
+            .page-description { font-size: 16px; }
+            .main-content { padding: 24px 16px; }
+            .doc-section h2 { font-size: 24px; }
+        }
+
+        @media (max-width: 480px) {
+            .header { height: 60px; }
+            .page-wrapper { margin-top: 60px; }
+            .sidebar { top: 60px; }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../host-simulator/" class="nav-link active">Host Simulator</a>
+            <a href="../hsm-simulator/" class="nav-link">HSM Simulator</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Getting Started</div>
+            <a href="#overview" class="sidebar-link active">Overview</a>
+            <a href="#quick-start" class="sidebar-link">Quick Start Guide</a>
+            <a href="#gateway-types" class="sidebar-link">Gateway Types</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Configuration</div>
+            <a href="#gateway-config" class="sidebar-link">Gateway Configuration</a>
+            <a href="#transmission" class="sidebar-link">Transmission Settings</a>
+            <a href="#connection-types" class="sidebar-link">Connection Types</a>
+            <a href="#message-formats" class="sidebar-link">Message Formats</a>
+            <a href="#log-settings" class="sidebar-link">Log Settings</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Using the Simulator</div>
+            <a href="#host-handler" class="sidebar-link">Host Handler</a>
+            <a href="#transaction-rules" class="sidebar-link">Transaction Rules</a>
+            <a href="#placeholders" class="sidebar-link">Dynamic Placeholders</a>
+            <a href="#rest-matching" class="sidebar-link">REST Matching</a>
+            <a href="#iso8583-template" class="sidebar-link">ISO8583 Template</a>
+            <a href="#unsolicited" class="sidebar-link">Unsolicited Messages</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#security" class="sidebar-link">Security Options</a>
+            <a href="#tabs-reference" class="sidebar-link">Tabs Reference</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>Documentation</span>
+            <span class="breadcrumb-sep">/</span>
+            <span>Host Simulator</span>
+        </div>
+
+        <h1 class="page-title">Host Simulator</h1>
+        <p class="page-description">Simulate acquirer and issuer host responses for payment terminals, ATMs, and client applications. Test your ISO8583 integrations without a production host.</p>
+
+        <!-- Overview -->
+        <section class="doc-section" id="overview">
+            <h2>Overview</h2>
+            <p>The Host Simulator in ISO8583Studio acts as a payment host simulator for development and testing. It accepts incoming connections from POS terminals, ATMs, or other financial clients and returns configurable responses based on matching rules. This eliminates the need for a real host environment during development and QA testing.</p>
+
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <div class="feature-item-icon">🖥️</div>
+                    <h4>Multi-Mode Gateway</h4>
+                    <p>Run as Server, Client, or Proxy with support for synchronous and asynchronous transmission.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">🔌</div>
+                    <h4>Multiple Protocols</h4>
+                    <p>TCP/IP, REST/HTTP, RS232 serial, and dial-up connections all supported out of the box.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">📋</div>
+                    <h4>Configurable Rules</h4>
+                    <p>Match requests by MTI, processing code, REST paths, headers, and return dynamic responses.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">🔄</div>
+                    <h4>Format Support</h4>
+                    <p>Handle ISO8583 binary, JSON, XML, HEX, and plain text message formats with conversion.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">📨</div>
+                    <h4>Unsolicited Messages</h4>
+                    <p>Send and receive unsolicited messages for network management and terminal notifications.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">📊</div>
+                    <h4>Live Monitoring</h4>
+                    <p>Real-time transaction monitoring with request/response inspection and hex dump views.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start -->
+        <section class="doc-section" id="quick-start">
+            <h2>Quick Start Guide</h2>
+            <p>Follow these steps to get a basic host simulator up and running:</p>
+
+            <ol class="steps">
+                <li><strong>Create a new simulator</strong> &mdash; From the Home screen, navigate to <code>Simulator &rarr; Host Simulator</code> and create a new configuration.</li>
+                <li><strong>Choose a Gateway Type</strong> &mdash; Select <strong>Server</strong> to accept incoming connections, <strong>Client</strong> to connect outward, or <strong>Proxy</strong> to bridge two sides.</li>
+                <li><strong>Configure Transmission Settings</strong> &mdash; Set the IP address, port, connection type (TCP/IP or REST), and message length type.</li>
+                <li><strong>Add Transaction Rules</strong> &mdash; In the <strong>Settings</strong> tab, add transactions with MTI, processing code, and the ISO8583 response fields you want to return.</li>
+                <li><strong>Configure the ISO8583 Template</strong> &mdash; Ensure the template matches your message specification (field formats, lengths, encoding).</li>
+                <li><strong>Start the Simulator</strong> &mdash; Open the <strong>Host Handler</strong> tab and click <strong>Start</strong>. The simulator will begin accepting connections and responding to requests.</li>
+            </ol>
+
+            <div class="info-card tip">
+                <div class="info-card-title">Tip</div>
+                <p>Use placeholders like <code>[SV]</code> in response fields to echo back request values. This is useful for fields like System Trace or RRN that must match the original request.</p>
+            </div>
+        </section>
+
+        <!-- Gateway Types -->
+        <section class="doc-section" id="gateway-types">
+            <h2>Gateway Types</h2>
+            <p>The host simulator supports three gateway modes, each suited to different testing scenarios:</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Gateway Type</th>
+                            <th>Mode</th>
+                            <th>Description</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-blue">Server</span></td>
+                            <td>Listens for connections</td>
+                            <td>Binds to a port and accepts incoming connections from clients (POS, ATM, payment apps). Parses incoming ISO8583 requests and returns configured responses.</td>
+                            <td>Simulating an acquirer or issuer host during terminal testing.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-teal">Client</span></td>
+                            <td>Initiates connections</td>
+                            <td>Connects outward to an external host. Allows sending crafted messages and inspecting responses.</td>
+                            <td>Testing outbound integrations, sending test transactions to a real or simulated host.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-yellow">Proxy</span></td>
+                            <td>Bridges two sides</td>
+                            <td>Receives from one side (source), optionally modifies, and forwards to the other side (destination). Returns destination responses to source.</td>
+                            <td>Man-in-the-middle testing, message inspection, protocol translation between endpoints.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-card note">
+                <div class="info-card-title">Note</div>
+                <p>For <strong>Server</strong> and <strong>Proxy</strong> modes, you can choose between <strong>Synchronous</strong> (one request at a time per connection) and <strong>Asynchronous</strong> (multiple concurrent requests) transmission modes.</p>
+            </div>
+        </section>
+
+        <!-- Gateway Configuration -->
+        <section class="doc-section" id="gateway-config">
+            <h2>Gateway Configuration</h2>
+            <p>The Gateway Type tab provides the core configuration for your simulator instance.</p>
+
+            <h3>Basic Settings</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Setting</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Name</strong></td><td>A descriptive name for your simulator instance.</td></tr>
+                        <tr><td><strong>Description</strong></td><td>Optional description for documentation purposes.</td></tr>
+                        <tr><td><strong>Gateway Type</strong></td><td>Server, Client, or Proxy.</td></tr>
+                        <tr><td><strong>Auto-Start</strong></td><td>Automatically start the simulator when the configuration is loaded.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Response Delay</h3>
+            <p>Control how quickly the simulator responds to incoming requests. Useful for simulating real-world network conditions.</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Option</th><th>Delay</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Instant</td><td>0 ms</td><td>Responds immediately. Ideal for high-throughput testing.</td></tr>
+                        <tr><td>Realistic</td><td>~200-500 ms</td><td>Simulates typical production host response times.</td></tr>
+                        <tr><td>Slow</td><td>~1-3 s</td><td>Simulates slow networks or stressed hosts.</td></tr>
+                        <tr><td>Custom</td><td>User-defined</td><td>Set an exact delay in milliseconds.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Performance Settings</h3>
+            <ul>
+                <li><strong>Max Concurrent Transactions</strong> &mdash; Limit the number of simultaneous transactions the simulator will process.</li>
+                <li><strong>Detailed Logging</strong> &mdash; Enable verbose logging for debugging purposes.</li>
+            </ul>
+        </section>
+
+        <!-- Transmission Settings -->
+        <section class="doc-section" id="transmission">
+            <h2>Transmission Settings</h2>
+            <p>Configure how the simulator communicates over the network. Settings differ based on your gateway type.</p>
+
+            <h3>Incoming Connection (Server / Proxy)</h3>
+            <p>Configure the listener that accepts incoming connections:</p>
+            <ul>
+                <li><strong>IP Address</strong> &mdash; Bind address (e.g. <code>0.0.0.0</code> for all interfaces, or a specific IP).</li>
+                <li><strong>Port</strong> &mdash; TCP port to listen on.</li>
+                <li><strong>Message Length Type</strong> &mdash; How message boundaries are determined.</li>
+                <li><strong>Max Concurrent Connections</strong> &mdash; Limit on simultaneous client connections.</li>
+                <li><strong>Timeout</strong> &mdash; Connection idle timeout in seconds.</li>
+            </ul>
+
+            <h3>Outgoing Connection (Client / Proxy)</h3>
+            <p>Configure the connection to the destination host:</p>
+            <ul>
+                <li><strong>Target Address</strong> &mdash; Hostname or IP of the target.</li>
+                <li><strong>Target Port</strong> &mdash; Port to connect to.</li>
+                <li><strong>Terminate on Error</strong> &mdash; Whether to close the connection on errors.</li>
+            </ul>
+
+            <h3>Message Length Types</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Type</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>BCD</code></td><td>Binary-coded decimal length header.</td></tr>
+                        <tr><td><code>NONE</code></td><td>No length header; messages are delimited by the stream itself.</td></tr>
+                        <tr><td><code>STRING_4</code></td><td>4-character ASCII string length prefix.</td></tr>
+                        <tr><td><code>HEX_HL</code></td><td>2-byte hex length header, high byte first.</td></tr>
+                        <tr><td><code>HEX_LH</code></td><td>2-byte hex length header, low byte first.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Connection Types -->
+        <section class="doc-section" id="connection-types">
+            <h2>Connection Types</h2>
+            <p>The simulator supports multiple connection protocols for maximum flexibility:</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Type</th><th>Protocol</th><th>Status</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-green">TCP/IP</span></td>
+                            <td>TCP Socket</td>
+                            <td>Full support</td>
+                            <td>Standard TCP/IP socket connections. Most common for ISO8583 host communication.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-blue">REST</span></td>
+                            <td>HTTP/HTTPS</td>
+                            <td>Full support</td>
+                            <td>REST API endpoints supporting JSON, XML, HEX, BASE64, BINARY, and FORM_DATA formats.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-yellow">COM</span></td>
+                            <td>RS232 Serial</td>
+                            <td>Available</td>
+                            <td>Serial port communication with configurable baud rate, data bits, stop bits, and parity.</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-yellow">Dial-Up</span></td>
+                            <td>Modem</td>
+                            <td>Available</td>
+                            <td>Legacy modem dial-up connections via phone number.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Message Formats -->
+        <section class="doc-section" id="message-formats">
+            <h2>Message Formats</h2>
+            <p>The simulator can handle multiple message encoding formats for both source and destination.</p>
+
+            <h3>ISO8583 Formats</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Format</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>BYTE_ARRAY</code></td><td>Standard binary ISO8583 encoding. Default for most payment hosts.</td></tr>
+                        <tr><td><code>JSON</code></td><td>JSON representation with configurable field mapping.</td></tr>
+                        <tr><td><code>XML</code></td><td>XML representation with configurable field mapping.</td></tr>
+                        <tr><td><code>HEX</code></td><td>Hexadecimal string representation of the binary message.</td></tr>
+                        <tr><td><code>PLAIN_TEXT</code></td><td>Key-value pairs with configurable delimiters.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>REST Message Formats</h3>
+            <p>When using REST connections, the following content types are supported:</p>
+            <ul>
+                <li><strong>JSON</strong> &mdash; Application/json content type</li>
+                <li><strong>XML</strong> &mdash; Application/xml content type</li>
+                <li><strong>HEX</strong> &mdash; Hex-encoded message body</li>
+                <li><strong>BASE64</strong> &mdash; Base64-encoded message body</li>
+                <li><strong>BINARY</strong> &mdash; Raw binary body</li>
+                <li><strong>FORM_DATA</strong> &mdash; Multipart form data</li>
+            </ul>
+
+            <h3>Format Mapping</h3>
+            <p>For non-binary formats (JSON, XML, PlainText), use the <strong>Format Mapping Config</strong> in the ISO8583 Template tab to map ISO8583 fields to JSON keys, XML elements, or delimited fields.</p>
+        </section>
+
+        <!-- Log Settings -->
+        <section class="doc-section" id="log-settings">
+            <h2>Log Settings</h2>
+            <p>Configure how the simulator logs transactions and connections.</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Setting</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Log Filename</strong></td><td>Output file path for transaction logs.</td></tr>
+                        <tr><td><strong>Max Log Size</strong></td><td>Maximum log file size in MB before rotation.</td></tr>
+                        <tr><td><strong>Simple</strong></td><td>Basic transaction summaries (MTI, response code, timestamps).</td></tr>
+                        <tr><td><strong>Raw Data</strong></td><td>Full hex dump of request/response messages.</td></tr>
+                        <tr><td><strong>Text Data</strong></td><td>Text-decoded message content with configurable encoding.</td></tr>
+                        <tr><td><strong>Parsed Data</strong></td><td>Fully parsed ISO8583 fields using a template file for structured output.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Host Handler -->
+        <section class="doc-section" id="host-handler">
+            <h2>Host Handler</h2>
+            <p>The Host Handler is the main runtime interface for controlling and monitoring the simulator.</p>
+
+            <h3>Controls</h3>
+            <ul>
+                <li><strong>Start / Stop</strong> &mdash; Launch or shut down the simulator server.</li>
+                <li><strong>Hold Message</strong> &mdash; When enabled, the simulator will not auto-respond. Responses are sent only when you manually click "Send" or after a configurable delay. Useful for inspecting requests before responding.</li>
+            </ul>
+
+            <h3>Live View</h3>
+            <p>The Host Handler provides real-time visibility into all traffic:</p>
+            <ul>
+                <li><strong>Formatted View</strong> &mdash; Parsed ISO8583 fields shown in a readable table.</li>
+                <li><strong>Raw Hex View</strong> &mdash; Full hexadecimal dump of the message bytes.</li>
+                <li><strong>Request / Response Split</strong> &mdash; Side-by-side view of incoming request and outgoing response.</li>
+            </ul>
+        </section>
+
+        <!-- Transaction Rules -->
+        <section class="doc-section" id="transaction-rules">
+            <h2>Transaction Rules</h2>
+            <p>Transaction rules define how the simulator matches incoming requests and what responses to return. Configure these in the <strong>Settings</strong> tab.</p>
+
+            <h3>Rule Structure</h3>
+            <p>Each transaction rule consists of:</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Field</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>MTI</strong></td><td>Message Type Indicator to match (e.g. <code>0100</code>, <code>0200</code>, <code>0800</code>).</td></tr>
+                        <tr><td><strong>Processing Code</strong></td><td>Field 3 value to match. Use <code>*</code> to match any processing code.</td></tr>
+                        <tr><td><strong>Description</strong></td><td>Human-readable label for the rule (e.g. "Balance Inquiry", "Purchase").</td></tr>
+                        <tr><td><strong>Response Fields</strong></td><td>List of ISO8583 bit fields and their values to include in the response.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Matching Logic</h3>
+            <p>When a request arrives, the simulator evaluates rules in order:</p>
+            <ol>
+                <li>Parse the incoming message to extract MTI and processing code (Field 3).</li>
+                <li>Compare against each configured transaction rule.</li>
+                <li>The <strong>first matching rule</strong> wins and its response fields are used to build the response.</li>
+            </ol>
+
+            <div class="info-card tip">
+                <div class="info-card-title">Tip</div>
+                <p>Place more specific rules (with exact processing codes) before generic ones (with <code>*</code> wildcard) to ensure correct matching priority.</p>
+            </div>
+
+            <h3>Example Rule</h3>
+            <pre><code>MTI:            0200
+Processing Code: 000000
+Description:    Purchase Transaction
+
+Response Fields:
+  Field 39 (Response Code):     00
+  Field 38 (Auth Code):         [RAND]
+  Field 11 (System Trace):      [SV]
+  Field 37 (RRN):               [SV]
+  Field 12 (Local Time):        [TIME]
+  Field 13 (Local Date):        [TIME]</code></pre>
+        </section>
+
+        <!-- Placeholders -->
+        <section class="doc-section" id="placeholders">
+            <h2>Dynamic Placeholders</h2>
+            <p>Use placeholders in response field values to generate dynamic content at runtime instead of static values.</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Placeholder</th><th>Name</th><th>Description</th><th>Example</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>[SV]</code></td>
+                            <td>Source Value</td>
+                            <td>Copies the value of the same field from the incoming request. Essential for echo-back fields like System Trace, RRN, and Terminal ID.</td>
+                            <td>If request Field 11 is <code>123456</code>, response Field 11 with <code>[SV]</code> will be <code>123456</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><code>[TIME]</code></td>
+                            <td>Current Time</td>
+                            <td>Generates a timestamp formatted based on the field's length. Uses formats like <code>MMdd</code>, <code>HHmmss</code>, or <code>yyMMddHHmmss</code> automatically.</td>
+                            <td>Field 12 (6 chars) &rarr; <code>143052</code> (HHmmss)</td>
+                        </tr>
+                        <tr>
+                            <td><code>[RAND]</code></td>
+                            <td>Random Value</td>
+                            <td>Generates a random numeric string matching the field's expected length. Useful for authorization codes and reference numbers.</td>
+                            <td>Field 38 (6 chars) &rarr; <code>847291</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-card note">
+                <div class="info-card-title">Note</div>
+                <p>Placeholders can be combined with static text. Any field value that does not contain a placeholder is sent as a literal static value.</p>
+            </div>
+        </section>
+
+        <!-- REST Matching -->
+        <section class="doc-section" id="rest-matching">
+            <h2>REST API Matching</h2>
+            <p>When using REST connections, the simulator provides advanced request matching beyond MTI/processing code.</p>
+
+            <h3>Match Criteria</h3>
+            <ul>
+                <li><strong>Path</strong> &mdash; Match the URL path exactly or use <code>*</code> as a wildcard.</li>
+                <li><strong>HTTP Method</strong> &mdash; Match by GET, POST, PUT, DELETE, etc.</li>
+                <li><strong>Query Parameters</strong> &mdash; Match by URL query parameters.</li>
+                <li><strong>Headers</strong> &mdash; Match by HTTP request headers.</li>
+                <li><strong>Body Fields</strong> &mdash; Match by fields in the request body (JSON/XML).</li>
+            </ul>
+
+            <h3>Match Operators</h3>
+            <p>Each matcher supports these comparison operators:</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Operator</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>EQUALS</code></td><td>Exact string match.</td></tr>
+                        <tr><td><code>NOT_EQUALS</code></td><td>Value does not equal the specified string.</td></tr>
+                        <tr><td><code>STARTS_WITH</code></td><td>Value starts with the specified prefix.</td></tr>
+                        <tr><td><code>ENDS_WITH</code></td><td>Value ends with the specified suffix.</td></tr>
+                        <tr><td><code>CONTAINS</code></td><td>Value contains the specified substring.</td></tr>
+                        <tr><td><code>REGEX</code></td><td>Value matches a regular expression pattern.</td></tr>
+                        <tr><td><code>GREATER_THAN</code></td><td>Numeric comparison (value > threshold).</td></tr>
+                        <tr><td><code>LESS_THAN</code></td><td>Numeric comparison (value < threshold).</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Response Mapping</h3>
+            <p>For REST responses, use <strong>Response Mapping</strong> to define which fields appear in the response body and headers:</p>
+            <ul>
+                <li><strong>targetKey</strong> &mdash; JSON/XML key in the response body.</li>
+                <li><strong>value</strong> &mdash; Static value or placeholder (<code>[SV]</code>, <code>[TIME]</code>, <code>[RAND]</code>).</li>
+                <li><strong>targetHeader</strong> &mdash; Set a response HTTP header instead of a body field.</li>
+            </ul>
+        </section>
+
+        <!-- ISO8583 Template -->
+        <section class="doc-section" id="iso8583-template">
+            <h2>ISO8583 Template</h2>
+            <p>The ISO8583 Template tab defines the message specification used for parsing and building messages.</p>
+
+            <h3>Template Configuration</h3>
+            <ul>
+                <li><strong>Bit Definitions</strong> &mdash; Define each ISO8583 field (bit number, name, format, length, encoding).</li>
+                <li><strong>Message Format</strong> &mdash; Select the encoding format: ByteArray, JSON, XML, HEX, or PlainText.</li>
+                <li><strong>Format Mapping</strong> &mdash; Map ISO8583 fields to JSON keys, XML elements, or text delimiters for non-binary formats.</li>
+                <li><strong>TPDU / Header</strong> &mdash; Configure transaction protocol data unit and message header settings.</li>
+            </ul>
+
+            <div class="info-card warning">
+                <div class="info-card-title">Important</div>
+                <p>The template must match the message specification used by the connecting client. Mismatched templates will cause parsing errors. Ensure field lengths, formats, and encoding match your ISO8583 specification.</p>
+            </div>
+        </section>
+
+        <!-- Unsolicited Messages -->
+        <section class="doc-section" id="unsolicited">
+            <h2>Unsolicited Messages</h2>
+            <p>Unsolicited messages are messages sent outside the normal request-response flow, typically for network management, notifications, or terminal updates.</p>
+
+            <h3>Send Message (Client / Proxy)</h3>
+            <p>Craft and send outbound unsolicited messages to connected hosts. Available in <strong>Client</strong> and <strong>Proxy</strong> modes. Use the message builder to construct ISO8583 messages with specific fields and send them on demand.</p>
+
+            <h3>Receive Unsolicited (Server / Proxy)</h3>
+            <p>In <strong>Server</strong> and <strong>Proxy</strong> modes, incoming unsolicited messages from clients are displayed in the Unsolicited Message tab. Messages are parsed using the active ISO8583 template.</p>
+        </section>
+
+        <!-- Security -->
+        <section class="doc-section" id="security">
+            <h2>Security Options</h2>
+            <p>The simulator supports several security features for testing encrypted and authenticated connections.</p>
+
+            <h3>Cipher Types</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Algorithm</th><th>Key Sizes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>DES</td><td>56-bit</td></tr>
+                        <tr><td>Triple DES (3DES)</td><td>112/168-bit</td></tr>
+                        <tr><td>AES</td><td>128, 192, 256-bit</td></tr>
+                        <tr><td>RSA</td><td>Variable</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Cipher Modes</h3>
+            <p>ECB, CBC, CFB, OFB, and CTS modes are available for block cipher operations.</p>
+
+            <h3>Authentication</h3>
+            <ul>
+                <li><strong>None</strong> &mdash; No authentication required.</li>
+                <li><strong>Single Password</strong> &mdash; One shared password for all clients.</li>
+                <li><strong>Client Password</strong> &mdash; Per-client authentication credentials.</li>
+            </ul>
+
+            <h3>SSL/TLS</h3>
+            <p>Enable SSL for both the server listener and REST API client connections for encrypted transport.</p>
+        </section>
+
+        <!-- Tabs Reference -->
+        <section class="doc-section" id="tabs-reference">
+            <h2>Tabs Reference</h2>
+            <p>The runtime simulator screen has different tabs available depending on the gateway type.</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tab</th>
+                            <th>Server</th>
+                            <th>Client</th>
+                            <th>Proxy</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Host Handler</strong></td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>Start/stop, live request/response view, hold message control.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Logs</strong></td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>Transaction and connection logs, connection count, bytes in/out.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Settings</strong></td>
+                            <td>&#10003;</td>
+                            <td>&mdash;</td>
+                            <td>&#10003;</td>
+                            <td>Transaction response rules configuration.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ISO8583 Template</strong></td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>Message specification, field definitions, format mapping.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Send Message</strong></td>
+                            <td>&mdash;</td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>Craft and send unsolicited outbound messages.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Unsolicited Message</strong></td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>View incoming unsolicited messages from connected peers.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-links">
+        <a href="../../" class="footer-link">Home</a>
+        <a href="../" class="footer-link">Documentation</a>
+        <a href="../host-simulator/" class="footer-link">Host Simulator</a>
+        <a href="../hsm-simulator/" class="footer-link">HSM Simulator</a>
+        <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+        <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+    </div>
+    <div class="footer-copyright">
+        &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

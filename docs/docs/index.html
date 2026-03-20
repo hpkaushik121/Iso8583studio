@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../images/app.png" type="image/x-icon">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary-blue: #6ab7ff;
+            --primary-blue-light: #9fd3ff;
+            --primary-blue-dark: #1e88e5;
+            --accent-teal: #64d8cb;
+            --accent-teal-light: #a0f4ea;
+            --accent-teal-dark: #26a69a;
+            --accent-purple: #9c27b0;
+            --accent-orange: #ff9800;
+            --background-light: #252836;
+            --background-dark: #1a1d2e;
+            --card-light: #2F3142;
+            --card-dark: #1e1f2e;
+            --error-red: #ff6b6b;
+            --success-green: #51cf66;
+            --warning-yellow: #ffd43b;
+            --border-light: #3d3d3d;
+            --border-dark: #2a2a2a;
+            --text-primary: #eceff1;
+            --text-secondary: #b0bec5;
+        }
+
+        html { scroll-behavior: smooth; overflow-x: hidden; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--background-dark);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 70px;
+            background: rgba(26, 29, 46, 0.98);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(106, 183, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 22px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .logo:hover { transform: scale(1.02); }
+
+        .logo-icon { width: 36px; height: 36px; border-radius: 10px; }
+
+        .nav { display: flex; align-items: center; gap: 8px; }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-blue);
+            background: rgba(106, 183, 255, 0.1);
+        }
+
+        .header-cta {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            color: var(--background-dark);
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.4);
+        }
+
+        .header-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(106, 183, 255, 0.5);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .mobile-menu-toggle span {
+            width: 24px; height: 2px;
+            background: var(--text-primary);
+            margin: 3px 0;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 70px; left: 0; right: 0;
+            background: rgba(26, 29, 46, 0.98);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(106, 183, 255, 0.2);
+            padding: 24px;
+            z-index: 999;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .mobile-menu.active { display: block; }
+
+        .mobile-menu a {
+            display: block;
+            padding: 14px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu a:hover {
+            color: var(--primary-blue);
+            background: rgba(106, 183, 255, 0.1);
+        }
+
+        .mobile-menu .header-cta {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            padding: 14px 24px;
+            font-size: 16px;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 160px 24px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(106, 183, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(100, 216, 203, 0.08) 0%, transparent 50%);
+        }
+
+        .hero-container {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-title {
+            font-size: clamp(36px, 6vw, 56px);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(16px, 3vw, 20px);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Doc Cards Grid */
+        .docs-section {
+            padding: 0 24px 100px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .docs-category {
+            margin-bottom: 56px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .category-icon.sim { background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%); }
+        .category-icon.services { background: linear-gradient(135deg, var(--accent-orange) 0%, var(--warning-yellow) 100%); }
+        .category-icon.general { background: linear-gradient(135deg, var(--accent-purple) 0%, var(--primary-blue) 100%); }
+
+        .category-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+        }
+
+        .docs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        /* Doc Card */
+        .doc-card {
+            background: var(--card-light);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 28px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .doc-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--accent-teal));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .doc-card:hover {
+            border-color: rgba(106, 183, 255, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-card:hover::before { opacity: 1; }
+
+        .doc-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .doc-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .doc-card-icon.blue { background: rgba(106, 183, 255, 0.15); }
+        .doc-card-icon.teal { background: rgba(100, 216, 203, 0.15); }
+        .doc-card-icon.purple { background: rgba(156, 39, 176, 0.15); }
+        .doc-card-icon.orange { background: rgba(255, 152, 0, 0.15); }
+        .doc-card-icon.green { background: rgba(81, 207, 102, 0.15); }
+
+        .doc-card-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .badge-available { background: rgba(81, 207, 102, 0.15); color: var(--success-green); }
+        .badge-coming { background: rgba(255, 212, 59, 0.15); color: var(--warning-yellow); }
+
+        .doc-card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .doc-card-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+            flex: 1;
+        }
+
+        .doc-card-topics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .topic-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(106, 183, 255, 0.08);
+            color: var(--primary-blue-light);
+            border: 1px solid rgba(106, 183, 255, 0.15);
+        }
+
+        .doc-card-footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            transition: gap 0.3s ease;
+        }
+
+        .doc-card:hover .doc-card-footer { gap: 12px; }
+
+        .doc-card-footer .arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .doc-card:hover .doc-card-footer .arrow { transform: translateX(4px); }
+
+        .doc-card.disabled {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .doc-card.disabled .doc-card-footer { color: var(--text-secondary); }
+
+        /* Footer */
+        .footer {
+            background: var(--card-dark);
+            padding: 40px 24px;
+            border-top: 1px solid var(--border-light);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover { color: var(--primary-blue); }
+
+        .footer-copyright {
+            color: var(--text-secondary);
+            font-size: 14px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .nav { display: none; }
+            .mobile-menu-toggle { display: flex; }
+        }
+
+        @media (max-width: 768px) {
+            .hero { padding: 130px 16px 60px; }
+            .docs-section { padding: 0 16px 60px; }
+            .docs-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .header { height: 60px; }
+            .mobile-menu { top: 60px; }
+            .hero { padding: 110px 12px 48px; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../" class="logo">
+            <img src="../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../" class="nav-link">Home</a>
+            <a href="./" class="nav-link active">Documentation</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="mobile-menu" id="mobileMenu">
+    <a href="../">Home</a>
+    <a href="./">Documentation</a>
+    <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-container">
+        <h1 class="hero-title">Documentation</h1>
+        <p class="hero-subtitle">Guides, references, and tutorials to help you get the most out of ISO8583Studio&rsquo;s simulators and tools.</p>
+    </div>
+</section>
+
+<!-- Docs Grid -->
+<section class="docs-section">
+
+    <!-- Simulator Guides -->
+    <div class="docs-category">
+        <div class="category-header">
+            <div class="category-icon sim"></div>
+            <span class="category-title">Simulator Guides</span>
+        </div>
+
+        <div class="docs-grid">
+            <a href="./host-simulator/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon blue">🖥️</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">Host Simulator</div>
+                <div class="doc-card-description">Simulate acquirer and issuer host responses for payment terminals and ATMs. Configure gateway types, transaction rules, and dynamic response placeholders.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">Server / Client / Proxy</span>
+                    <span class="topic-tag">TCP/IP &amp; REST</span>
+                    <span class="topic-tag">ISO8583</span>
+                    <span class="topic-tag">Transaction Rules</span>
+                    <span class="topic-tag">Placeholders</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./hsm-simulator/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon teal">🔐</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">HSM Simulator</div>
+                <div class="doc-card-description">Emulate a Thales PayShield 10K Hardware Security Module. Full support for 35+ host commands including key management, PIN operations, MAC, RSA, and more.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">PayShield 10K</span>
+                    <span class="topic-tag">Key Management</span>
+                    <span class="topic-tag">PIN Translation</span>
+                    <span class="topic-tag">Encryption</span>
+                    <span class="topic-tag">LMK Storage</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Professional Services -->
+    <div class="docs-category">
+        <div class="category-header">
+            <div class="category-icon services"></div>
+            <span class="category-title">Professional Services</span>
+        </div>
+
+        <div class="docs-grid">
+            <a href="../emv-certification/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon orange">🏆</div>
+                    <span class="doc-card-badge badge-coming">Service</span>
+                </div>
+                <div class="doc-card-title">EMV Certification</div>
+                <div class="doc-card-description">Level 1 &amp; Level 2 EMV testing and certification services for payment terminals and applications.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">Level 1</span>
+                    <span class="topic-tag">Level 2</span>
+                    <span class="topic-tag">Contact &amp; Contactless</span>
+                </div>
+                <div class="doc-card-footer">
+                    Learn more <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="../cloud-simulators/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon blue">☁️</div>
+                    <span class="doc-card-badge badge-coming">Service</span>
+                </div>
+                <div class="doc-card-title">Cloud Simulators</div>
+                <div class="doc-card-description">Scalable, cloud-hosted payment testing infrastructure for teams that need always-on simulation environments.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">Cloud Hosted</span>
+                    <span class="topic-tag">Scalable</span>
+                    <span class="topic-tag">Always-On</span>
+                </div>
+                <div class="doc-card-footer">
+                    Learn more <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="../middleware/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon purple">🔗</div>
+                    <span class="doc-card-badge badge-coming">Service</span>
+                </div>
+                <div class="doc-card-title">Payment Middleware</div>
+                <div class="doc-card-description">Enterprise transaction processing middleware for routing, switching, and managing payment flows at scale.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">Transaction Routing</span>
+                    <span class="topic-tag">Switching</span>
+                    <span class="topic-tag">Enterprise</span>
+                </div>
+                <div class="doc-card-footer">
+                    Learn more <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="../kernel/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon orange">⚙️</div>
+                    <span class="doc-card-badge badge-coming">Service</span>
+                </div>
+                <div class="doc-card-title">Kernel Development</div>
+                <div class="doc-card-description">Custom payment kernel solutions for terminal manufacturers and payment application developers.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">Payment Kernels</span>
+                    <span class="topic-tag">Custom Development</span>
+                </div>
+                <div class="doc-card-footer">
+                    Learn more <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- General -->
+    <div class="docs-category">
+        <div class="category-header">
+            <div class="category-icon general"></div>
+            <span class="category-title">General</span>
+        </div>
+
+        <div class="docs-grid">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/README.md" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon green">📖</div>
+                    <span class="doc-card-badge badge-available">GitHub</span>
+                </div>
+                <div class="doc-card-title">README &amp; Getting Started</div>
+                <div class="doc-card-description">Project overview, installation instructions, and getting started guide on GitHub.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">Installation</span>
+                    <span class="topic-tag">Setup</span>
+                    <span class="topic-tag">Overview</span>
+                </div>
+                <div class="doc-card-footer">
+                    View on GitHub <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon green">📦</div>
+                    <span class="doc-card-badge badge-available">GitHub</span>
+                </div>
+                <div class="doc-card-title">Releases &amp; Changelog</div>
+                <div class="doc-card-description">Download the latest version and review the changelog for new features, improvements, and bug fixes.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">Downloads</span>
+                    <span class="topic-tag">Changelog</span>
+                    <span class="topic-tag">Versions</span>
+                </div>
+                <div class="doc-card-footer">
+                    View releases <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-links">
+        <a href="../" class="footer-link">Home</a>
+        <a href="./" class="footer-link">Documentation</a>
+        <a href="../privacy-policy.html" class="footer-link">Privacy Policy</a>
+        <a href="../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+    </div>
+    <div class="footer-copyright">
+        &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+    </div>
+</footer>
+
+<script>
+    function toggleMobileMenu() {
+        document.getElementById('mobileMenu').classList.toggle('active');
+    }
+
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('mobileMenu');
+        const toggle = document.querySelector('.mobile-menu-toggle');
+        if (!menu.contains(e.target) && !toggle.contains(e.target) && menu.classList.contains('active')) {
+            menu.classList.remove('active');
+        }
+    });
+</script>
+
+</body>
+</html>

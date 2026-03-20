@@ -530,7 +530,6 @@
             position: relative;
             overflow: hidden;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            aspect-ratio: 16 / 9;
             transform: translateZ(0);
         }
 
@@ -548,11 +547,9 @@
 
         .hero-image img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
+            height: auto;
+            display: block;
             border-radius: clamp(12px, 3vw, 20px);
-            filter: brightness(1.1) contrast(1.1) saturate(1.2);
         }
 
         .hero-image-placeholder {
@@ -742,13 +739,19 @@
             width: 100%;
             max-width: 1000px;
             margin: 0 auto;
-            aspect-ratio: 16 / 9;
             background: linear-gradient(135deg, var(--card-dark) 0%, var(--card-light) 100%);
             border-radius: clamp(12px, 3vw, 20px);
             position: relative;
             overflow: hidden;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             transform: translateZ(0);
+        }
+
+        .screenshot-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: clamp(12px, 3vw, 20px);
         }
 
         .screenshot-container::before {
@@ -1536,11 +1539,11 @@
         </div>
 
         <div class="hero-image">
-            <!-- <img src="path-to-your-hero-image.jpg" alt="ISO8583Studio Desktop Application" loading="lazy"> -->
-            <div class="hero-image-placeholder">
-                🖥️ ISO8583Studio Desktop Application<br>
-                <small>Replace with actual screenshot of the desktop application interface</small>
-            </div>
+             <img src="images/img.png" alt="ISO8583Studio Desktop Application" loading="lazy">
+<!--            <div class="hero-image-placeholder">-->
+<!--                🖥️ ISO8583Studio Desktop Application<br>-->
+<!--                <small>Replace with actual screenshot of the desktop application interface</small>-->
+<!--            </div>-->
         </div>
     </div>
 </section>
@@ -1628,10 +1631,12 @@
 
             <div class="demo-screenshot">
                 <div class="screenshot-container">
-                    <div class="screenshot-placeholder">
-                        ⚙️ Gateway Configuration Interface<br>
-                        <small>Replace with screenshot showing gateway setup with multiple protocols</small>
-                    </div>
+                    <img src="images/img_1.png" alt="ISO8583Studio Gateway config" loading="lazy">
+
+                    <!--                    <div class="screenshot-placeholder">-->
+<!--                        ⚙️ Gateway Configuration Interface<br>-->
+<!--                        <small>Replace with screenshot showing gateway setup with multiple protocols</small>-->
+<!--                    </div>-->
 
                     <div class="floating-indicator success indicator-1">
                         ✓ TCP/IP Server Active
@@ -1844,9 +1849,9 @@
         </div>
 
         <div class="footer-links">
+            <a href="./docs/" class="footer-link">Documentation</a>
             <a href="./privacy-policy.html" class="footer-link">Privacy Policy</a>
             <a href="./terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/README.md" class="footer-link">Documentation</a>
             <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
             <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
         </div>
