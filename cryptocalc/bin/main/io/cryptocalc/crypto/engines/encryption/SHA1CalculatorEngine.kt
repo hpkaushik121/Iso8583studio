@@ -24,7 +24,7 @@ import javax.crypto.spec.SecretKeySpec
  * - Performance optimizations for enterprise environments
  *
  * @author Crypto SDK Team
- * @version 1.0.0
+ * @version 1.0.1
  */
 internal object SHA1CalculatorEngine {
 

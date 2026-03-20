@@ -158,13 +158,14 @@ class PayShieldStringCommandProcessor(
     private suspend fun executeCommand(cmd: ParsedCommand): HsmCommandResult {
         // Get LMK from slot
         val lmk = simulator.getSlotManager().getLmkFromSlot(cmd.lmkId)
-        if (lmk == null && cmd.code.uppercase() !in listOf("NC", "VR", "GK", "VT")) {
+        if (lmk == null && cmd.code.uppercase() !in listOf("NC", "VR", "GK", "VT", "NO")) {
             return HsmCommandResult.Error("15", "LMK not loaded in slot ${cmd.lmkId}")
         }
 
         return when (cmd.code.uppercase()) {
             // ── Diagnostic & Info ────────────────────────────────────────────
             "NC" -> executeNC(cmd)
+            "NO" -> executeNO(cmd)
             "VR" -> executeVR(cmd)
             "VT" -> executeVT(cmd)
 
@@ -307,14 +308,66 @@ class PayShieldStringCommandProcessor(
     }
 
     /**
+     * NO - HSM State Request
+     * Command: HDR1NO00 (Mode Flag 00 = Return Status Information)
+     * Response: HDR1NP00[I/O Buffer Size][Ethernet Type][TCP Sockets][Firmware][DSP fitted][DSP Firmware]
+     * Hardcoded response: 31641448-000119100
+     *   - I/O Buffer Size: 3
+     *   - Ethernet Type: 1
+     *   - Number of TCP Sockets: 64
+     *   - Firmware: 1448-0001
+     *   - DSP fitted: 1
+     *   - DSP Firmware Version: 9100
+     */
+    private fun executeNO(cmd: ParsedCommand): HsmCommandResult {
+        val modeFlag = cmd.data.take(2).ifBlank { "00" }
+
+        hsmLogsListener.onFormattedRequest(buildString {
+            appendLine("Message Header........... = [${cmd.header}]")
+            appendLine("Command Code............. = [NO] HSM State Request")
+            appendLine("Mode Flag................ = [$modeFlag] Return Status Information")
+        })
+
+        val responseData = "31641448-000119100"
+        val wireResponse = "${cmd.header}NP00$responseData"
+
+        hsmLogsListener.onFormattedResponse(buildString {
+            appendLine("Message Header........... = [${cmd.header}]")
+            appendLine("Command Code............. = [NP] HSM State Response")
+            appendLine("Error Code............... = [00] No error")
+            appendLine("I/O Buffer Size.......... = [3]")
+            appendLine("Ethernet Type............ = [1]")
+            appendLine("Number of TCP Sockets.... = [64]")
+            appendLine("Firmware number.......... = [1448-0001]")
+            appendLine("DSP fitted............... = [1]")
+            appendLine("DSP Firmware Version..... = [9100]")
+            appendLine("")
+            appendLine("<Debug Info>")
+            appendLine("Wire Response          : $wireResponse")
+        })
+
+        return HsmCommandResult.Success(
+            response = responseData,
+            data = mapOf(
+                "ioBufferSize" to "3",
+                "ethernetType" to "1",
+                "tcpSockets" to "64",
+                "firmware" to "1448-0001",
+                "dspFitted" to "1",
+                "dspFirmwareVersion" to "9100"
+            )
+        )
+    }
+
+    /**
      * VR - Version
      * Command: 0000VR
      * Response: 0000VS00[Version Info]
      */
     private fun executeVR(cmd: ParsedCommand): HsmCommandResult {
         return HsmCommandResult.Success(
-            response = "PayShield 10K Simulator v1.0.0",
-            data = mapOf("version" to "1.0.0")
+            response = "PayShield 10K Simulator v1.0.1",
+            data = mapOf("version" to "1.0.1")
         )
     }
 

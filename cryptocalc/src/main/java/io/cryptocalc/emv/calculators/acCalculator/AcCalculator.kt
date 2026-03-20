@@ -18,7 +18,7 @@ class AcCalculator() : BaseCalculator<AcCalculatorInput, AcCalculatorResult>() {
     override val id = "AcCalculator"
     override val name = "AcCalculator"
     override val category: CalculatorCategory = CalculatorCategory.EMV_PAYMENT
-    override val version: String = "1.0.0"
+    override val version: String = "1.0.1"
     private val arqcMandatoryTags = mapOf(
         "ICC" to setOf("9F36", "82"),           // ATC, AIP only
         "TERMINAL" to setOf(
