@@ -97,6 +97,13 @@ object SimulatorSessionManager {
      * @return The session ID of the launched (or existing) session
      */
     fun launchSimulator(config: SimulatorConfig): String {
+        // If the currently active tab is a TOOL session (e.g. a config screen opened via
+        // the "open in tab" badge), remember it so we can close it after the simulator
+        // tab takes over — the TOOL tab has served its purpose.
+        val callerToolId = activeSessionId.value?.let { id ->
+            sessions.find { it.id == id && it.simulatorType == SimulatorType.TOOL }?.id
+        }
+
         // Guard: never create a duplicate session for the same config.
         // Match by config ID (exact) OR by simulatorType + config name as a fallback,
         // so even if the config object was re-created with the same logical identity
@@ -109,6 +116,7 @@ object SimulatorSessionManager {
         }
         if (existing != null) {
             activeSessionId.value = existing.id
+            callerToolId?.let { closeSession(it) }
             return existing.id
         }
 
@@ -148,6 +156,7 @@ object SimulatorSessionManager {
 
         sessions.add(session)
         activeSessionId.value = sessionId
+        callerToolId?.let { closeSession(it) }
         return sessionId
     }
 
