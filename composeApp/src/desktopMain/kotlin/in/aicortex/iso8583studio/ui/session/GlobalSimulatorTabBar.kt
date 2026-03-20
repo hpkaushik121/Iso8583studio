@@ -176,7 +176,7 @@ fun GlobalSimulatorTabBar() {
                     Spacer(Modifier.width(8.dp))
                     TabBarSearch(
                         onToolSelected = { tool ->
-                            SimulatorSessionManager.openTool(tool)
+                            `in`.aicortex.iso8583studio.license.LicenseCheck.checkAndRun { SimulatorSessionManager.openTool(tool) }
                         }
                     )
                 }

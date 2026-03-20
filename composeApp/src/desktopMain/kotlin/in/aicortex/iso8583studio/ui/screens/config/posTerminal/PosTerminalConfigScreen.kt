@@ -133,8 +133,11 @@ fun PosTerminalConfigScreen(
                 appState.save()
             },
             onLaunchSimulator = {
-                SimulatorSessionManager.launchSimulator(it)
-                navigationController.navigateTo(Destination.Home)
+                val cfg = it
+                `in`.aicortex.iso8583studio.license.LicenseCheck.checkAndRun {
+                    SimulatorSessionManager.launchSimulator(cfg)
+                    navigationController.navigateTo(Destination.Home)
+                }
             }
 
         )

@@ -47,6 +47,8 @@ import iso8583studio.composeapp.generated.resources.Res
 import iso8583studio.composeapp.generated.resources.app
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import `in`.aicortex.iso8583studio.license.*
+import kotlinx.coroutines.delay
 import java.awt.Desktop
 import java.awt.desktop.AboutHandler
 
@@ -63,13 +65,51 @@ class ISO8583Studio {
             Thread.currentThread().uncaughtExceptionHandler = ExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler())
 
+            AntiTamper.initialize()
+            IntegrityVerifier.verifyClasses()
+
             val windowState = remember {
                 WindowState(
                     size = DpSize(width = 1800.dp, height = 800.dp),
                 )
             }
             var showAboutDialog by remember { mutableStateOf(false) }
+            var showLicenseDialog by remember { mutableStateOf(false) }
             val isoCoroutine = rememberCoroutineScope()
+
+            val licenseState by LicenseService.state.collectAsState()
+            var licenseLoaded by remember { mutableStateOf(false) }
+
+            LaunchedEffect(Unit) {
+                LicenseService.validate()
+                NtpTimeVerifier.verify()
+                licenseLoaded = true
+            }
+
+            // Background license re-validation every 5 minutes
+            LaunchedEffect(Unit) {
+                while (true) {
+                    delay(5 * 60 * 1000L)
+                    AntiTamper.recheck()
+                    IntegrityVerifier.recheck()
+                    val snapshot = LicenseService.validate()
+                    NtpTimeVerifier.verify()
+
+                    if (AntiTamper.isTamperDetected || !IntegrityVerifier.isIntact || !snapshot.isUsable()) {
+                        SimulatorSessionManager.sessions.toList().forEach { session ->
+                            SimulatorSessionManager.closeSession(session.id)
+                        }
+                        LicenseWarningLogger.logError("License revoked/expired during runtime: ${snapshot.state}")
+                    }
+                }
+            }
+
+            // Log warnings for expiring licenses
+            LaunchedEffect(licenseState) {
+                if (licenseState.state == LicenseState.EXPIRING_SOON) {
+                    LicenseWarningLogger.logWarning("License expires in ${licenseState.daysUntilExpiry} days")
+                }
+            }
 
             // Override macOS application menu "About" to show our custom About dialog
             LaunchedEffect(Unit) {
@@ -80,6 +120,63 @@ class ISO8583Studio {
                         // setAboutHandler not supported on this platform
                     }
                 }
+            }
+
+            if (!licenseLoaded) {
+                Window(
+                    onCloseRequest = ::exitApplication,
+                    title = "ISO8583Studio",
+                    state = windowState,
+                    icon = painterResource(Res.drawable.app)
+                ) {
+                    AppTheme {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colors.background
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                                    Spacer(Modifier.height(16.dp))
+                                    Text("Validating license...", style = MaterialTheme.typography.h6)
+                                }
+                            }
+                        }
+                    }
+                }
+                return@application
+            }
+
+            if (licenseState.state == LicenseState.ACTIVATION_REQUIRED ||
+                licenseState.state == LicenseState.EXPIRED ||
+                licenseState.state == LicenseState.REVOKED ||
+                licenseState.state == LicenseState.OFFLINE_GRACE_EXCEEDED ||
+                licenseState.state == LicenseState.TAMPER_DETECTED ||
+                (licenseState.state == LicenseState.INVALID && !LicenseStorage.hasCertificate())
+            ) {
+                Window(
+                    onCloseRequest = ::exitApplication,
+                    title = "ISO8583Studio — License Required",
+                    state = remember { WindowState(size = DpSize(width = 750.dp, height = 650.dp)) },
+                    icon = painterResource(Res.drawable.app),
+                    resizable = true
+                ) {
+                    AppTheme {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colors.background
+                        ) {
+                            LicenseActivationScreen(
+                                licenseSnapshot = licenseState,
+                                onActivated = {
+                                    isoCoroutine.launch { LicenseService.validate() }
+                                },
+                                onExit = ::exitApplication
+                            )
+                        }
+                    }
+                }
+                return@application
             }
 
             AppTheme {
@@ -207,6 +304,8 @@ class ISO8583Studio {
                             // Only the main content area rendering logic changes below.
 
                             Menu(text = "Help") {
+                                Item(text = "License / Activate") { showLicenseDialog = true }
+                                Separator()
                                 Item(text = "About") { showAboutDialog = true }
                             }
                         }
@@ -215,6 +314,21 @@ class ISO8583Studio {
                         if (showAboutDialog) {
                             AboutDialog(onCloseRequest = { showAboutDialog = false })
                         }
+
+                        // ─── License Dialog ─────────────────────────────
+                        if (showLicenseDialog) {
+                            LicenseDialog(
+                                licenseSnapshot = licenseState,
+                                onDismiss = { showLicenseDialog = false },
+                                onActivated = {
+                                    isoCoroutine.launch { LicenseService.validate() }
+                                    showLicenseDialog = false
+                                }
+                            )
+                        }
+
+                        // ─── License Block Dialog ────────────────────────
+                        LicenseBlockDialog()
 
                         // ─── Error/Success Dialog ───────────────────────
                         var showErrorDialog by remember {
@@ -291,6 +405,27 @@ class ISO8583Studio {
                         val poppedOutIds = SimulatorSessionManager.poppedOutSessionIds
 
                         Column(modifier = Modifier.fillMaxSize()) {
+                            // ── License Banners ──
+                            when (licenseState.state) {
+                                LicenseState.TRIAL -> LicenseTrialBanner(
+                                    daysRemaining = licenseState.daysUntilExpiry,
+                                    onActivateClick = { showLicenseDialog = true }
+                                )
+                                LicenseState.EXPIRING_SOON -> LicenseExpiryBanner(
+                                    daysRemaining = licenseState.daysUntilExpiry,
+                                    onRenewClick = { showLicenseDialog = true }
+                                )
+                                LicenseState.EXPIRED, LicenseState.REVOKED,
+                                LicenseState.INVALID, LicenseState.NOT_FOUND,
+                                LicenseState.OFFLINE_GRACE_EXCEEDED,
+                                LicenseState.ACTIVATION_REQUIRED,
+                                LicenseState.TAMPER_DETECTED -> LicenseInvalidBanner(
+                                    licenseSnapshot = licenseState,
+                                    onActivateClick = { showLicenseDialog = true }
+                                )
+                                else -> {}
+                            }
+
                             // ── Global Tab Bar ──
                             GlobalSimulatorTabBar()
 
@@ -342,7 +477,7 @@ class ISO8583Studio {
                                         icon = painterResource(Res.drawable.app)
                                     ) {
                                         AppTheme {
-                                            Navigator(screen = Destination.Home) {
+                                            Navigator(screen = PopOutPlaceholderScreen(session.id)) {
                                                 Column(modifier = Modifier.fillMaxSize()) {
                                                     PopOutWindowTopBar(
                                                         session = session,
@@ -418,29 +553,12 @@ private fun SessionContent(
         }
 
         SimulatorType.TOOL -> {
-            // IMPORTANT: Wrap the nested Navigator in an isolated SaveableStateHolder scope.
-            //
-            // Problem: Voyager's CurrentScreen() calls navigator.saveableState("currentScreen", screen)
-            // which calls SaveableStateHolder.SaveableStateProvider("${screen.key}:currentScreen").
-            // Both the root Navigator and this nested Navigator share the SAME outer
-            // LocalSaveableStateRegistry (they're in the same Compose tree). If both navigators
-            // show the same Destination.* screen simultaneously (e.g. Destination.Home — which
-            // happens when the user clicks "Launch Simulator" from a config-screen tool tab,
-            // pushing Home onto the local navigator while the root also shows Home), BOTH try
-            // to register "Destination.Home:currentScreen" in the SAME parent registry → crash:
-            //   "Key …Destination.Home:currentScreen was used multiple times"
-            //
-            // Fix: wrap the nested Navigator in SaveableStateHolder.SaveableStateProvider(session.id).
-            // Inside this scope, LocalSaveableStateRegistry.current is an INNER registry managed
-            // by the holder, completely separate from the outer one. The nested Navigator's own
-            // SaveableStateHolderImpl is created with this inner registry as parent, so all its
-            // SaveableStateProvider keys live in a completely isolated namespace.
             val screen = session.toolScreen
             if (screen != null) {
                 val toolStateHolder = rememberSaveableStateHolder()
                 toolStateHolder.SaveableStateProvider(key = session.id) {
                     Navigator(screen = screen) {
-                        CurrentScreen()
+                        IsolatedCurrentScreen(session.id)
                     }
                 }
             } else {
@@ -460,6 +578,41 @@ private fun SessionContent(
             }
         }
     }
+}
+
+/**
+ * Renders the current screen of the local Navigator using its OWN SaveableStateHolder,
+ * completely isolated from the root Navigator's holder.
+ *
+ * Voyager's Navigator uses `providesDefault` for its internal SaveableStateHolder
+ * CompositionLocal. This means nested Navigators inside the root Navigator's content
+ * silently reuse the root's holder. When both the root and a nested navigator show
+ * screens with identical keys (e.g. both show Destination.Home), two
+ * SaveableStateProviders with the same key collide in the shared holder:
+ *   "IllegalArgumentException: Key …Destination.Home:currentScreen was used multiple times"
+ *
+ * This function sidesteps the issue by creating a fresh SaveableStateHolder per session
+ * and using session-prefixed keys, guaranteeing no overlap with the root.
+ */
+@Composable
+private fun IsolatedCurrentScreen(sessionKey: String) {
+    val navigator = cafe.adriel.voyager.navigator.LocalNavigator.currentOrThrow
+    val currentScreen = navigator.lastItem
+    val stateHolder = rememberSaveableStateHolder()
+    stateHolder.SaveableStateProvider(key = "$sessionKey:${currentScreen.key}") {
+        currentScreen.Content()
+    }
+}
+
+/**
+ * Placeholder screen used as the initial screen for pop-out window Navigators.
+ * Each instance gets a unique [key] derived from the session ID, avoiding key
+ * collisions with the root Navigator's Destination.Home.
+ */
+private class PopOutPlaceholderScreen(sessionId: String) : cafe.adriel.voyager.core.screen.Screen {
+    override val key: cafe.adriel.voyager.core.screen.ScreenKey = "popout-$sessionId"
+    @Composable
+    override fun Content() { }
 }
 
 /**

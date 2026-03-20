@@ -86,9 +86,12 @@ fun HostSimulatorConfigScreen(
                 appState.deleteConfig(it.id)
             },
             onLaunchSimulator = {
-                appState.selectConfig(it.id)
-                SimulatorSessionManager.launchSimulator(it)
-                navigationController.navigateTo(Destination.Home)
+                val cfg = it
+                `in`.aicortex.iso8583studio.license.LicenseCheck.checkAndRun {
+                    appState.selectConfig(cfg.id)
+                    SimulatorSessionManager.launchSimulator(cfg)
+                    navigationController.navigateTo(Destination.Home)
+                }
             },
             onSaveAllConfigs = {
                 appState.updateConfig(

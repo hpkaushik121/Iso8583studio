@@ -168,7 +168,9 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                                 if (hsmState.value.started) {
                                     scope.launch { hsm.stop() }
                                 } else {
-                                    scope.launch { hsm.start() }
+                                    `in`.aicortex.iso8583studio.license.LicenseCheck.checkAndRun {
+                                        scope.launch { hsm.start() }
+                                    }
                                 }
                             },
                             onClearClick = {

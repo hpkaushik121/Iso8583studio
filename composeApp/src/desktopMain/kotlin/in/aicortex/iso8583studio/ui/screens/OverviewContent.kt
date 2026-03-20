@@ -312,7 +312,7 @@ private fun StudioToolCard(tool: StudioTool,
                     // Open-in-global-tab button
                     OpenInGlobalTabButton(
                         isInGlobalTab = isInGlobalTab,
-                        onOpen = { SimulatorSessionManager.openTool(tool) }
+                        onOpen = { `in`.aicortex.iso8583studio.license.LicenseCheck.checkAndRun { SimulatorSessionManager.openTool(tool) } }
                     )
                 }
 

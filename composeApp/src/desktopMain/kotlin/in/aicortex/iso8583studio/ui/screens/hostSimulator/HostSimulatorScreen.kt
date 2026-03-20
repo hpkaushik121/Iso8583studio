@@ -338,13 +338,17 @@ fun HostSimulator(
                     simulator = gw,
                     isStarted = isStarted,
                     onStartStopClick = {
-                        coroutineScope.launchSafely {
-                            if (!isStarted) {
-                                gw.start()
-                                isStarted = true
-                            } else {
+                        if (isStarted) {
+                            coroutineScope.launchSafely {
                                 gw.stop()
                                 isStarted = false
+                            }
+                        } else {
+                            `in`.aicortex.iso8583studio.license.LicenseCheck.checkAndRun {
+                                coroutineScope.launchSafely {
+                                    gw.start()
+                                    isStarted = true
+                                }
                             }
                         }
                     },

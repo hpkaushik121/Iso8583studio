@@ -120,14 +120,10 @@ fun HsmSimulatorConfigScreen(
                 appState.save()
             },
             onLaunchSimulator = { config ->
-                // ══════════════════════════════════════════════════════
-                // KEY CHANGE: Launch via SimulatorSessionManager
-                // instead of navigating to Destination.HSMSimulator
-                // This registers a persistent session that appears
-                // in the global tab bar and runs in parallel.
-                // ══════════════════════════════════════════════════════
-                SimulatorSessionManager.launchSimulator(config)
-                navigationController.navigateTo(Destination.Home)
+                `in`.aicortex.iso8583studio.license.LicenseCheck.checkAndRun {
+                    SimulatorSessionManager.launchSimulator(config)
+                    navigationController.navigateTo(Destination.Home)
+                }
             }
         )
     }
