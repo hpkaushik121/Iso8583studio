@@ -49,6 +49,64 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://iso8583.studio/blogs/</loc>
+    <lastmod>2026-03-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url><loc>https://iso8583.studio/blogs/what-is-iso8583-studio.html</loc><lastmod>2025-01-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/getting-started-installation-guide.html</loc><lastmod>2025-01-20</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-studio-feature-overview.html</loc><lastmod>2025-01-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/why-payment-developers-need-iso8583-studio.html</loc><lastmod>2025-02-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-studio-vs-manual-testing.html</loc><lastmod>2025-02-10</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/cross-platform-payment-testing-tool.html</loc><lastmod>2025-02-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/understanding-iso8583-message-format.html</loc><lastmod>2025-02-20</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-bitmap-explained.html</loc><lastmod>2025-02-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-message-type-indicators.html</loc><lastmod>2025-03-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-field-types-and-formats.html</loc><lastmod>2025-03-05</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-processing-codes-guide.html</loc><lastmod>2025-03-10</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-response-codes-reference.html</loc><lastmod>2025-03-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/iso8583-message-parser-tutorial.html</loc><lastmod>2025-03-20</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/host-simulator-setup-guide.html</loc><lastmod>2025-03-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/host-simulator-tcp-connections.html</loc><lastmod>2025-04-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/host-simulator-rest-api-testing.html</loc><lastmod>2025-04-05</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/host-simulator-transaction-rules.html</loc><lastmod>2025-04-10</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/host-simulator-unsolicited-messages.html</loc><lastmod>2025-04-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/hsm-simulator-introduction.html</loc><lastmod>2025-04-20</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/hsm-simulator-payshield-commands.html</loc><lastmod>2025-04-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/hsm-simulator-key-management.html</loc><lastmod>2025-05-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/hsm-simulator-pin-operations.html</loc><lastmod>2025-05-05</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/testing-without-hardware-hsm.html</loc><lastmod>2025-05-10</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/emv-tag-parser-guide.html</loc><lastmod>2025-05-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/emv-cryptogram-validation.html</loc><lastmod>2025-05-20</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/emv-sda-verification-guide.html</loc><lastmod>2025-05-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/emv-dda-verification-guide.html</loc><lastmod>2025-05-28</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/emv-atr-parser-smart-card.html</loc><lastmod>2025-06-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/apdu-simulator-smart-card-commands.html</loc><lastmod>2025-06-05</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/des-3des-encryption-testing.html</loc><lastmod>2025-06-10</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/aes-encryption-decryption-guide.html</loc><lastmod>2025-06-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/rsa-key-generation-testing.html</loc><lastmod>2025-06-18</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/format-preserving-encryption-fpe.html</loc><lastmod>2025-06-22</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/hash-functions-md5-sha-guide.html</loc><lastmod>2025-06-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/thales-hsm-key-calculator.html</loc><lastmod>2025-06-28</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/futurex-hsm-key-calculator.html</loc><lastmod>2025-07-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/tr31-key-block-guide.html</loc><lastmod>2025-07-05</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/keyshare-generator-guide.html</loc><lastmod>2025-07-08</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/dea-key-management-guide.html</loc><lastmod>2025-07-12</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/pin-block-formats-iso9564.html</loc><lastmod>2025-07-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/pin-block-calculator-guide.html</loc><lastmod>2025-07-18</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/pin-offset-ibm3624-method.html</loc><lastmod>2025-07-22</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/pin-verification-value-pvv.html</loc><lastmod>2025-07-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/dukpt-key-derivation-guide.html</loc><lastmod>2025-07-28</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/mac-calculation-iso9797.html</loc><lastmod>2025-08-01</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/hmac-cmac-calculation.html</loc><lastmod>2025-08-05</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/cvv-generation-validation.html</loc><lastmod>2025-08-08</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/mastercard-cvc3-calculation.html</loc><lastmod>2025-08-12</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/payment-integration-testing-guide.html</loc><lastmod>2025-08-15</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/fintech-developer-essential-toolkit.html</loc><lastmod>2025-08-20</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/pci-compliance-testing-tools.html</loc><lastmod>2025-08-25</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iso8583.studio/blogs/troubleshooting-iso8583-transactions.html</loc><lastmod>2025-08-30</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url>
     <loc>https://iso8583.studio/privacy-policy.html</loc>
     <lastmod>2026-03-21</lastmod>
     <changefreq>yearly</changefreq>

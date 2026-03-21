@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - ISO8583Studio | Payment Testing & Fintech Guides</title>
+    <link rel="shortcut icon" href="../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio blog - Expert guides on ISO 8583 payment testing, HSM simulation, EMV tools, cryptography, PIN block operations, and fintech development.">
+    <meta name="keywords" content="ISO 8583 blog, payment testing guides, HSM simulator tutorial, EMV tools guide, fintech blog, payment security, PIN block, DUKPT, MAC calculation">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/blogs/">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://iso8583.studio/blogs/">
+    <meta property="og:title" content="ISO8583Studio Blog - Payment Testing & Fintech Guides">
+    <meta property="og:description" content="Expert guides on ISO 8583 payment processing, HSM simulation, EMV certification, and fintech development tools.">
+    <meta property="og:image" content="https://iso8583.studio/images/app.png">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      "name": "ISO8583Studio Blog",
+      "description": "Expert guides on payment testing, ISO 8583, HSM simulation, EMV tools, and fintech development.",
+      "url": "https://iso8583.studio/blogs/",
+      "publisher": { "@type": "Organization", "name": "AiCortex Solutions", "url": "https://iso8583.studio/" }
+    }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-blue: #6ab7ff;
+            --primary-blue-light: #9fd3ff;
+            --primary-blue-dark: #1e88e5;
+            --accent-teal: #64d8cb;
+            --accent-teal-light: #a0f4ea;
+            --accent-teal-dark: #26a69a;
+            --accent-purple: #9c27b0;
+            --accent-orange: #ff9800;
+            --background-light: #252836;
+            --background-dark: #1a1d2e;
+            --card-light: #2F3142;
+            --card-dark: #1e1f2e;
+            --success-green: #51cf66;
+            --warning-yellow: #ffd43b;
+            --border-light: #3d3d3d;
+            --border-dark: #2a2a2a;
+            --text-primary: #eceff1;
+            --text-secondary: #b0bec5;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6; color: var(--text-primary); background: var(--background-dark);
+        }
+        .header { position: fixed; top: 0; left: 0; right: 0; height: 80px; background: rgba(26,29,46,0.98); backdrop-filter: blur(15px); z-index: 1000; display: flex; align-items: center; border-bottom: 1px solid rgba(106,183,255,0.2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .header-container { width: 100%; max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-size: 22px; font-weight: 700; }
+        .logo-icon { width: 36px; height: 36px; border-radius: 10px; }
+        .nav { display: flex; gap: 8px; }
+        .nav-link { text-decoration: none; color: var(--text-secondary); font-size: 15px; font-weight: 600; padding: 10px 16px; border-radius: 8px; transition: all 0.3s; }
+        .nav-link:hover, .nav-link.active { color: var(--primary-blue); background: rgba(106,183,255,0.1); }
+        .header-cta { background: linear-gradient(135deg, var(--primary-blue), var(--accent-teal)); color: var(--background-dark); padding: 10px 20px; border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 700; box-shadow: 0 4px 12px rgba(106,183,255,0.4); transition: all 0.3s; }
+        .header-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(106,183,255,0.5); }
+        .mobile-menu-toggle { display: none; flex-direction: column; cursor: pointer; padding: 10px; }
+        .mobile-menu-toggle span { width: 24px; height: 2px; background: var(--text-primary); margin: 3px 0; border-radius: 2px; }
+        .mobile-menu { display: none; position: fixed; top: 80px; left: 0; right: 0; background: rgba(26,29,46,0.98); backdrop-filter: blur(15px); padding: 24px; z-index: 999; border-bottom: 1px solid rgba(106,183,255,0.2); }
+        .mobile-menu.active { display: block; }
+        .mobile-menu a { display: block; padding: 14px 16px; color: var(--text-secondary); text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 10px; }
+        .mobile-menu a:hover { color: var(--primary-blue); background: rgba(106,183,255,0.1); }
+        .mobile-menu .header-cta { display: block; text-align: center; margin-top: 16px; }
+        .blog-hero { padding: 140px 24px 40px; text-align: center; position: relative; }
+        .blog-hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 20% 50%, rgba(106,183,255,0.08), transparent 50%), radial-gradient(circle at 80% 50%, rgba(100,216,203,0.08), transparent 50%); }
+        .blog-hero-container { max-width: 800px; margin: 0 auto; position: relative; z-index: 1; }
+        .blog-hero-title { font-size: clamp(32px, 6vw, 52px); font-weight: 700; margin-bottom: 16px; background: linear-gradient(135deg, var(--primary-blue), var(--accent-teal)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .blog-hero-subtitle { font-size: clamp(16px, 3vw, 20px); color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
+        .blog-filters { max-width: 1200px; margin: 0 auto; padding: 24px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .filter-btn { background: var(--card-light); border: 1px solid var(--border-light); color: var(--text-secondary); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .filter-btn:hover, .filter-btn.active { background: rgba(106,183,255,0.15); border-color: var(--primary-blue); color: var(--primary-blue); }
+        .blog-grid { max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+        .blog-card { background: var(--card-light); border: 1px solid var(--border-light); border-radius: 16px; padding: 28px; text-decoration: none; color: inherit; transition: all 0.3s; position: relative; overflow: hidden; }
+        .blog-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary-blue), var(--accent-teal)); opacity: 0; transition: opacity 0.3s; }
+        .blog-card:hover { border-color: rgba(106,183,255,0.4); transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+        .blog-card:hover::before { opacity: 1; }
+        .blog-card-category { font-size: 11px; color: var(--primary-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .blog-card-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; line-height: 1.4; }
+        .blog-card-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
+        .blog-card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+        .blog-tag { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(106,183,255,0.08); color: var(--primary-blue-light); border: 1px solid rgba(106,183,255,0.15); }
+        .blog-card-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); }
+        .footer { background: var(--card-dark); padding: 60px 24px 40px; border-top: 1px solid var(--border-light); }
+        .footer-container { max-width: 1200px; margin: 0 auto; text-align: center; }
+        .footer-social { display: flex; justify-content: center; gap: 24px; margin-bottom: 32px; flex-wrap: wrap; }
+        .social-link { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: rgba(106,183,255,0.1); border: 1px solid rgba(106,183,255,0.3); border-radius: 12px; color: var(--primary-blue); text-decoration: none; transition: all 0.3s; }
+        .social-link:hover { background: rgba(106,183,255,0.2); transform: translateY(-2px); }
+        .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+        .footer-link { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.3s; }
+        .footer-link:hover { color: var(--primary-blue); }
+        .footer-copyright { color: var(--text-secondary); font-size: 14px; border-top: 1px solid var(--border-light); padding-top: 20px; }
+        @media (max-width: 1024px) { .nav { display: none; } .mobile-menu-toggle { display: flex; } }
+        @media (max-width: 768px) { .blog-grid { grid-template-columns: 1fr; padding: 0 16px 60px; } .blog-hero { padding: 120px 16px 32px; } }
+        @media (max-width: 480px) { .header { height: 70px; } .mobile-menu { top: 70px; } }
+    </style>
+</head>
+<body>
+<header class="header">
+    <div class="header-container">
+        <a href="../" class="logo">
+            <img src="../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../" class="nav-link">Home</a>
+            <a href="../docs/" class="nav-link">Docs</a>
+            <a href="./" class="nav-link active">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+<div class="mobile-menu" id="mobileMenu">
+    <a href="../">Home</a>
+    <a href="../docs/">Documentation</a>
+    <a href="./">Blog</a>
+    <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+</div>
+<section class="blog-hero">
+    <div class="blog-hero-container">
+        <h1 class="blog-hero-title">ISO8583Studio Blog</h1>
+        <p class="blog-hero-subtitle">Expert guides on payment testing, ISO 8583, HSM simulation, EMV tools, cryptography, and fintech development.</p>
+    </div>
+</section>
+<div class="blog-filters">
+    <button class="filter-btn active" data-cat="all">All</button><button class="filter-btn" data-cat="Cryptography">Cryptography</button><button class="filter-btn" data-cat="EMV Tools">EMV Tools</button><button class="filter-btn" data-cat="Getting Started">Getting Started</button><button class="filter-btn" data-cat="HSM Simulator">HSM Simulator</button><button class="filter-btn" data-cat="Host Simulator">Host Simulator</button><button class="filter-btn" data-cat="ISO8583 Fundamentals">ISO8583 Fundamentals</button><button class="filter-btn" data-cat="Key Management">Key Management</button><button class="filter-btn" data-cat="PIN Security">PIN Security</button><button class="filter-btn" data-cat="Payment Security">Payment Security</button><button class="filter-btn" data-cat="Use Cases">Use Cases</button>
+</div>
+<div class="blog-grid" id="blogGrid">
+
+        <a href="troubleshooting-iso8583-transactions.html" class="blog-card">
+            <div class="blog-card-category">Use Cases</div>
+            <div class="blog-card-title">Troubleshooting ISO8583 Transactions: Common Errors, Parsing, and Log Discipline</div>
+            <div class="blog-card-desc">Debug ISO8583 transactions faster: typical failure modes, field-level tips, message parsing, and how structured logs bea...</div>
+            <div class="blog-card-tags"><span class="blog-tag">ISO8583</span><span class="blog-tag">troubleshooting</span><span class="blog-tag">debugging</span><span class="blog-tag">payments</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-30</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="pci-compliance-testing-tools.html" class="blog-card">
+            <div class="blog-card-category">Use Cases</div>
+            <div class="blog-card-title">PCI DSS and Payment Testing: Tools That Support Compliance Work (Without Shortcuts)</div>
+            <div class="blog-card-desc">Map PCI DSS themes to practical testing: encryption validation, key handling, logging discipline, and how tooling helps ...</div>
+            <div class="blog-card-tags"><span class="blog-tag">PCI DSS</span><span class="blog-tag">compliance</span><span class="blog-tag">encryption</span><span class="blog-tag">security testing</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-25</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="fintech-developer-essential-toolkit.html" class="blog-card">
+            <div class="blog-card-category">Use Cases</div>
+            <div class="blog-card-title">The Fintech Developer’s Essential Toolkit: Why ISO8583Studio Is the Swiss Army Knife</div>
+            <div class="blog-card-desc">Explore essential tools for fintech developers building payment stacks: simulators, crypto utilities, EMV helpers, and w...</div>
+            <div class="blog-card-tags"><span class="blog-tag">fintech</span><span class="blog-tag">developer tools</span><span class="blog-tag">ISO8583</span><span class="blog-tag">payments</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-20</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="payment-integration-testing-guide.html" class="blog-card">
+            <div class="blog-card-category">Use Cases</div>
+            <div class="blog-card-title">Payment Integration Testing: An End-to-End Workflow That Survives Production</div>
+            <div class="blog-card-desc">A practical end-to-end payment integration testing workflow: scenarios, environments, regression strategy, and best prac...</div>
+            <div class="blog-card-tags"><span class="blog-tag">integration testing</span><span class="blog-tag">ISO8583</span><span class="blog-tag">payments</span><span class="blog-tag">QA</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-15</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="mastercard-cvc3-calculation.html" class="blog-card">
+            <div class="blog-card-category">Payment Security</div>
+            <div class="blog-card-title">Mastercard CVC3 for Contactless: Dynamic Codes, UN, and ATC Explained</div>
+            <div class="blog-card-desc">Understand Mastercard CVC3 for contactless: dynamic cryptograms, UN, ATC, and what to log when contactless CVM tests fai...</div>
+            <div class="blog-card-tags"><span class="blog-tag">Mastercard</span><span class="blog-tag">CVC3</span><span class="blog-tag">contactless</span><span class="blog-tag">ATC</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-12</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="cvv-generation-validation.html" class="blog-card">
+            <div class="blog-card-category">Payment Security</div>
+            <div class="blog-card-title">CVV and CVC: Generation, Validation, and the CVV1/CVV2/iCVV Family</div>
+            <div class="blog-card-desc">Learn how CVV/CVC codes are generated with DES-based schemes, how CVV1/CVV2/iCVV differ, and how to test validation with...</div>
+            <div class="blog-card-tags"><span class="blog-tag">CVV</span><span class="blog-tag">CVC</span><span class="blog-tag">card security</span><span class="blog-tag">DES</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-08</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="hmac-cmac-calculation.html" class="blog-card">
+            <div class="blog-card-category">Payment Security</div>
+            <div class="blog-card-title">HMAC-SHA256 vs CMAC-AES: Choosing the Right Message Authentication Approach</div>
+            <div class="blog-card-desc">Compare HMAC-SHA256 and CMAC-AES for payment systems: strengths, common profiles, implementation notes, and testing patt...</div>
+            <div class="blog-card-tags"><span class="blog-tag">HMAC</span><span class="blog-tag">CMAC</span><span class="blog-tag">AES</span><span class="blog-tag">SHA-256</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-05</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="mac-calculation-iso9797.html" class="blog-card">
+            <div class="blog-card-category">Payment Security</div>
+            <div class="blog-card-title">MAC Calculation for Payments: ISO 9797-1, ANSI X9.9/X9.19, and Retail MAC</div>
+            <div class="blog-card-desc">Payment MAC algorithms explained: ISO 9797-1 modes, ANSI X9.9 vs X9.19, Algorithm 1/3, and retail MAC pitfalls for integ...</div>
+            <div class="blog-card-tags"><span class="blog-tag">MAC</span><span class="blog-tag">ISO 9797</span><span class="blog-tag">ANSI X9.9</span><span class="blog-tag">retail MAC</span></div>
+            <div class="blog-card-meta">
+                <span>2025-08-01</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="dukpt-key-derivation-guide.html" class="blog-card">
+            <div class="blog-card-category">PIN Security</div>
+            <div class="blog-card-title">DUKPT Key Derivation Explained: BDK, IPEK, Future Keys, and AES DUKPT</div>
+            <div class="blog-card-desc">DUKPT fundamentals for payment terminals: BDK, IPEK, key serial numbers, future key derivation, and ISO 9797 vs AES DUKP...</div>
+            <div class="blog-card-tags"><span class="blog-tag">DUKPT</span><span class="blog-tag">BDK</span><span class="blog-tag">IPEK</span><span class="blog-tag">key derivation</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-28</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="pin-verification-value-pvv.html" class="blog-card">
+            <div class="blog-card-category">PIN Security</div>
+            <div class="blog-card-title">PIN Verification Value (PVV): How Visa PVV Is Generated and Checked</div>
+            <div class="blog-card-desc">Understand PVV algorithms for Visa PIN verification: inputs, keys, generation vs verification, and practical testing pit...</div>
+            <div class="blog-card-tags"><span class="blog-tag">PVV</span><span class="blog-tag">Visa</span><span class="blog-tag">PIN verification</span><span class="blog-tag">HSM</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-25</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="pin-offset-ibm3624-method.html" class="blog-card">
+            <div class="blog-card-category">PIN Security</div>
+            <div class="blog-card-title">IBM 3624 PIN Offset Explained: Natural PIN, Decimalization, and Verification</div>
+            <div class="blog-card-desc">Learn IBM 3624 PIN offset: natural PIN, decimalization table, offset calculation, and how testers validate PIN transform...</div>
+            <div class="blog-card-tags"><span class="blog-tag">IBM 3624</span><span class="blog-tag">PIN offset</span><span class="blog-tag">PIN verification</span><span class="blog-tag">banking</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-22</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="pin-block-calculator-guide.html" class="blog-card">
+            <div class="blog-card-category">PIN Security</div>
+            <div class="blog-card-title">PIN Block Calculator Guide: Generate, Validate, and Debug AES PIN Blocks</div>
+            <div class="blog-card-desc">Step-by-step guide to PIN block calculators: test vectors, validation checks, and AES PIN blocks for modern payment inte...</div>
+            <div class="blog-card-tags"><span class="blog-tag">PIN block</span><span class="blog-tag">AES</span><span class="blog-tag">validation</span><span class="blog-tag">payment testing</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-18</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="pin-block-formats-iso9564.html" class="blog-card">
+            <div class="blog-card-category">PIN Security</div>
+            <div class="blog-card-title">ISO 9564 PIN Block Formats 0–4: What They Are and How They Differ</div>
+            <div class="blog-card-desc">Understand ISO 9564 PIN block formats 0–4: layout, padding, and when each format is used in payment systems and HSM work...</div>
+            <div class="blog-card-tags"><span class="blog-tag">PIN</span><span class="blog-tag">ISO 9564</span><span class="blog-tag">PIN block</span><span class="blog-tag">payment security</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-15</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="dea-key-management-guide.html" class="blog-card">
+            <div class="blog-card-category">Key Management</div>
+            <div class="blog-card-title">DEA Key Management: Hierarchies, ZMK, ZPK, ZAK, ZEK, and Exchange Protocols</div>
+            <div class="blog-card-desc">Understand DEA-style key hierarchies and roles of ZMK, ZPK, ZAK, and ZEK—plus exchange patterns for payment hosts and HS...</div>
+            <div class="blog-card-tags"><span class="blog-tag">DEA</span><span class="blog-tag">key hierarchy</span><span class="blog-tag">ZMK</span><span class="blog-tag">ZPK</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-12</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="keyshare-generator-guide.html" class="blog-card">
+            <div class="blog-card-category">Key Management</div>
+            <div class="blog-card-title">Keyshare Generator Guide: Splitting Keys, XOR Components, and Verification</div>
+            <div class="blog-card-desc">Run a practical key ceremony: split keys into components, combine with XOR, verify with KCVs, and test safely using ISO8...</div>
+            <div class="blog-card-tags"><span class="blog-tag">keyshare</span><span class="blog-tag">key ceremony</span><span class="blog-tag">XOR</span><span class="blog-tag">dual control</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-08</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="tr31-key-block-guide.html" class="blog-card">
+            <div class="blog-card-category">Key Management</div>
+            <div class="blog-card-title">TR-31 Key Blocks Explained: Header Fields, Key Usage, and Mode of Use</div>
+            <div class="blog-card-desc">Learn TR-31 key block structure: header, key usage, algorithm, and mode of use for interoperable HSM key exchange with I...</div>
+            <div class="blog-card-tags"><span class="blog-tag">TR-31</span><span class="blog-tag">key block</span><span class="blog-tag">HSM</span><span class="blog-tag">key usage</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-05</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="futurex-hsm-key-calculator.html" class="blog-card">
+            <div class="blog-card-category">Key Management</div>
+            <div class="blog-card-title">Futurex HSM Key Calculator: Formats, Derivation, and Import/Export</div>
+            <div class="blog-card-desc">Understand Futurex key formats, derivation paths, and import/export checks for HSM-backed payment testing with ISO8583St...</div>
+            <div class="blog-card-tags"><span class="blog-tag">Futurex</span><span class="blog-tag">HSM</span><span class="blog-tag">key derivation</span><span class="blog-tag">key import</span></div>
+            <div class="blog-card-meta">
+                <span>2025-07-01</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="thales-hsm-key-calculator.html" class="blog-card">
+            <div class="blog-card-category">Key Management</div>
+            <div class="blog-card-title">Thales HSM Key Calculator: ZMK, ZPK, TMK, TPK, and Key Check Values</div>
+            <div class="blog-card-desc">Navigate Thales-style key components: ZMK, ZPK, TMK, TPK, and KCVs for HSM key exchange and payment testing with ISO8583...</div>
+            <div class="blog-card-tags"><span class="blog-tag">Thales</span><span class="blog-tag">HSM</span><span class="blog-tag">ZMK</span><span class="blog-tag">ZPK</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-28</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="hash-functions-md5-sha-guide.html" class="blog-card">
+            <div class="blog-card-category">Cryptography</div>
+            <div class="blog-card-title">Hash Functions for Payment Testing: MD5, SHA-1, SHA-256, and SHA-512</div>
+            <div class="blog-card-desc">Compare MD5, SHA-1, SHA-256, and SHA-512 for integrity checks and legacy systems—and what to use in new payment designs....</div>
+            <div class="blog-card-tags"><span class="blog-tag">hash</span><span class="blog-tag">SHA-256</span><span class="blog-tag">SHA-512</span><span class="blog-tag">MD5</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-25</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="format-preserving-encryption-fpe.html" class="blog-card">
+            <div class="blog-card-category">Cryptography</div>
+            <div class="blog-card-title">Format-Preserving Encryption (FPE): FF1, FF3, and PAN-Friendly Tokenization</div>
+            <div class="blog-card-desc">Learn FPE basics, FF1 and FF3 schemes, PAN encryption patterns, and tokenization testing with ISO8583Studio....</div>
+            <div class="blog-card-tags"><span class="blog-tag">FPE</span><span class="blog-tag">FF1</span><span class="blog-tag">FF3</span><span class="blog-tag">tokenization</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-22</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="rsa-key-generation-testing.html" class="blog-card">
+            <div class="blog-card-category">Cryptography</div>
+            <div class="blog-card-title">RSA Key Generation and Testing: Sizes, Formats, and Sign/Verify Flows</div>
+            <div class="blog-card-desc">Generate and test RSA key pairs: key sizes, DER vs PEM, and signing workflows for payment and HSM integration with ISO85...</div>
+            <div class="blog-card-tags"><span class="blog-tag">RSA</span><span class="blog-tag">public key</span><span class="blog-tag">PEM</span><span class="blog-tag">DER</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-18</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="aes-encryption-decryption-guide.html" class="blog-card">
+            <div class="blog-card-category">Cryptography</div>
+            <div class="blog-card-title">AES Encryption and Decryption: Modes, IVs, and Padding for Testers</div>
+            <div class="blog-card-desc">Practical AES-128/192/256 guide: ECB, CBC, CTR, IV rules, padding, and how to test encryption flows with ISO8583Studio....</div>
+            <div class="blog-card-tags"><span class="blog-tag">AES</span><span class="blog-tag">encryption</span><span class="blog-tag">CBC</span><span class="blog-tag">CTR</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-15</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="des-3des-encryption-testing.html" class="blog-card">
+            <div class="blog-card-category">Cryptography</div>
+            <div class="blog-card-title">DES and Triple DES Encryption: Testing ECB and CBC in Payment Labs</div>
+            <div class="blog-card-desc">Test DES and Triple DES in ECB and CBC modes: key parity, IV handling, and practical encryption checks with ISO8583Studi...</div>
+            <div class="blog-card-tags"><span class="blog-tag">DES</span><span class="blog-tag">3DES</span><span class="blog-tag">TDES</span><span class="blog-tag">encryption</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-10</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="apdu-simulator-smart-card-commands.html" class="blog-card">
+            <div class="blog-card-category">EMV Tools</div>
+            <div class="blog-card-title">APDU Simulator: Smart Card Commands for EMV Testing</div>
+            <div class="blog-card-desc">Understand APDU structure and core EMV commands—SELECT, READ RECORD, GET PROCESSING OPTIONS—and test them with ISO8583St...</div>
+            <div class="blog-card-tags"><span class="blog-tag">APDU</span><span class="blog-tag">EMV</span><span class="blog-tag">smart card</span><span class="blog-tag">ISO7816</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-05</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="emv-atr-parser-smart-card.html" class="blog-card">
+            <div class="blog-card-category">EMV Tools</div>
+            <div class="blog-card-title">EMV ATR Parser: Reading Answer-to-Reset on Smart Cards</div>
+            <div class="blog-card-desc">Decode smart card ATR bytes: TS, T0, T1, historical bytes, and protocol info for EMV and payment testing with ISO8583Stu...</div>
+            <div class="blog-card-tags"><span class="blog-tag">ATR</span><span class="blog-tag">smart card</span><span class="blog-tag">EMV</span><span class="blog-tag">ISO7816</span></div>
+            <div class="blog-card-meta">
+                <span>2025-06-01</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="emv-dda-verification-guide.html" class="blog-card">
+            <div class="blog-card-category">EMV Tools</div>
+            <div class="blog-card-title">EMV DDA Verification: A Practical Guide to Dynamic Data Authentication</div>
+            <div class="blog-card-desc">Learn how EMV Dynamic Data Authentication works, how ICC dynamic signatures are built, and how to verify DDA with ISO858...</div>
+            <div class="blog-card-tags"><span class="blog-tag">EMV</span><span class="blog-tag">DDA</span><span class="blog-tag">smart card</span><span class="blog-tag">payment testing</span></div>
+            <div class="blog-card-meta">
+                <span>2025-05-28</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="emv-sda-verification-guide.html" class="blog-card">
+            <div class="blog-card-category">EMV Tools</div>
+            <div class="blog-card-title">Static Data Authentication (SDA): Certificates, Hashes, and Verification Steps</div>
+            <div class="blog-card-desc">Understand EMV Static Data Authentication: what SDA proves, how issuer PK certificates chain, and how to verify SDA with...</div>
+            <div class="blog-card-tags"><span class="blog-tag">SDA</span><span class="blog-tag">EMV</span><span class="blog-tag">PKI</span><span class="blog-tag">chip-authentication</span></div>
+            <div class="blog-card-meta">
+                <span>2025-05-25</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="emv-cryptogram-validation.html" class="blog-card">
+            <div class="blog-card-category">EMV Tools</div>
+            <div class="blog-card-title">EMV Cryptogram Validation: ARQC, ARPC, and Application Cryptograms Explained</div>
+            <div class="blog-card-desc">Validate EMV cryptograms with confidence: ARQC vs ARPC, Application Cryptogram roles, and EMV 4.1/4.2 crypto concepts fo...</div>
+            <div class="blog-card-tags"><span class="blog-tag">ARQC</span><span class="blog-tag">ARPC</span><span class="blog-tag">EMV-crypto</span><span class="blog-tag">chip</span></div>
+            <div class="blog-card-meta">
+                <span>2025-05-20</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="emv-tag-parser-guide.html" class="blog-card">
+            <div class="blog-card-category">EMV Tools</div>
+            <div class="blog-card-title">EMV Tag Parser Guide: BER-TLV, Nested Objects, and Practical Debugging</div>
+            <div class="blog-card-desc">Parse EMV TLV data with confidence: BER-TLV structure, constructed vs primitive tags, and how to use ISO8583Studio’s EMV...</div>
+            <div class="blog-card-tags"><span class="blog-tag">EMV</span><span class="blog-tag">TLV</span><span class="blog-tag">BER-TLV</span><span class="blog-tag">chip-cards</span></div>
+            <div class="blog-card-meta">
+                <span>2025-05-15</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="testing-without-hardware-hsm.html" class="blog-card">
+            <div class="blog-card-category">HSM Simulator</div>
+            <div class="blog-card-title">Testing Without a Hardware HSM: Speed, Savings, and Safer Dev Workflows</div>
+            <div class="blog-card-desc">Why teams simulate PayShield-style HSMs in software: lower cost, faster iteration, CI-friendly workflows, and clearer ha...</div>
+            <div class="blog-card-tags"><span class="blog-tag">HSM-simulation</span><span class="blog-tag">CI</span><span class="blog-tag">cost-savings</span><span class="blog-tag">payments</span></div>
+            <div class="blog-card-meta">
+                <span>2025-05-10</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="hsm-simulator-pin-operations.html" class="blog-card">
+            <div class="blog-card-category">HSM Simulator</div>
+            <div class="blog-card-title">PIN Translation, Verification, and PIN Block Formats in HSM Workflows</div>
+            <div class="blog-card-desc">Learn how PayShield-style HSMs handle PIN translation and verification, PIN block formats (ISO-0, ISO-1, etc.), and safe...</div>
+            <div class="blog-card-tags"><span class="blog-tag">PIN-block</span><span class="blog-tag">HSM</span><span class="blog-tag">PIN-verification</span><span class="blog-tag">payments</span></div>
+            <div class="blog-card-meta">
+                <span>2025-05-05</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="hsm-simulator-key-management.html" class="blog-card">
+            <div class="blog-card-category">HSM Simulator</div>
+            <div class="blog-card-title">HSM Key Management: LMKs, GK, Import/Export, and Key Types Explained</div>
+            <div class="blog-card-desc">Understand LMK storage, key generation (GK), import/export, and key types in PayShield-style HSM workflows using ISO8583...</div>
+            <div class="blog-card-tags"><span class="blog-tag">LMK</span><span class="blog-tag">key-management</span><span class="blog-tag">TR-31</span><span class="blog-tag">HSM</span></div>
+            <div class="blog-card-meta">
+                <span>2025-05-01</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="hsm-simulator-payshield-commands.html" class="blog-card">
+            <div class="blog-card-category">HSM Simulator</div>
+            <div class="blog-card-title">PayShield 10K Commands in ISO8583Studio: NC, A0/A1, CA/CB, and More</div>
+            <div class="blog-card-desc">A practical tour of PayShield 10K–style host commands supported in ISO8583Studio’s HSM Simulator: NC, A0/A1, CA/CB, and ...</div>
+            <div class="blog-card-tags"><span class="blog-tag">PayShield</span><span class="blog-tag">HSM</span><span class="blog-tag">host-commands</span><span class="blog-tag">ISO8583Studio</span></div>
+            <div class="blog-card-meta">
+                <span>2025-04-25</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="hsm-simulator-introduction.html" class="blog-card">
+            <div class="blog-card-category">HSM Simulator</div>
+            <div class="blog-card-title">HSM Simulator Introduction: Why Payment Teams Simulate PayShield 10K</div>
+            <div class="blog-card-desc">Learn what an HSM does, why software simulation matters, and how ISO8583Studio’s PayShield 10K–compatible HSM Simulator ...</div>
+            <div class="blog-card-tags"><span class="blog-tag">HSM</span><span class="blog-tag">PayShield</span><span class="blog-tag">payment-security</span><span class="blog-tag">simulation</span></div>
+            <div class="blog-card-meta">
+                <span>2025-04-20</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="host-simulator-unsolicited-messages.html" class="blog-card">
+            <div class="blog-card-category">Host Simulator</div>
+            <div class="blog-card-title">Unsolicited Messages, Reversals, and Network Management in Host Simulation</div>
+            <div class="blog-card-desc">Simulate unsolicited messages, reversal flows, and network management traffic with ISO8583Studio’s Host Simulator for re...</div>
+            <div class="blog-card-tags"><span class="blog-tag">unsolicited</span><span class="blog-tag">reversal</span><span class="blog-tag">network-management</span><span class="blog-tag">ISO8583</span></div>
+            <div class="blog-card-meta">
+                <span>2025-04-15</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="host-simulator-transaction-rules.html" class="blog-card">
+            <div class="blog-card-category">Host Simulator</div>
+            <div class="blog-card-title">Transaction Rules: Conditional Responses and Response Code Configuration</div>
+            <div class="blog-card-desc">Model realistic host behavior with ISO8583Studio: transaction rules, conditional responses, and configurable response co...</div>
+            <div class="blog-card-tags"><span class="blog-tag">transaction-rules</span><span class="blog-tag">response-codes</span><span class="blog-tag">host-simulator</span><span class="blog-tag">testing</span></div>
+            <div class="blog-card-meta">
+                <span>2025-04-10</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="host-simulator-rest-api-testing.html" class="blog-card">
+            <div class="blog-card-category">Host Simulator</div>
+            <div class="blog-card-title">REST API Mode: Testing Payment Endpoints with JSON and XML</div>
+            <div class="blog-card-desc">Use ISO8583Studio Host Simulator REST mode to exercise JSON/XML payment APIs, payloads, and realistic HTTP semantics alo...</div>
+            <div class="blog-card-tags"><span class="blog-tag">REST</span><span class="blog-tag">JSON</span><span class="blog-tag">payment-API</span><span class="blog-tag">host-simulator</span></div>
+            <div class="blog-card-meta">
+                <span>2025-04-05</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="host-simulator-tcp-connections.html" class="blog-card">
+            <div class="blog-card-category">Host Simulator</div>
+            <div class="blog-card-title">Host Simulator TCP/IP: Ports, TLS, and Reliable Connection Testing</div>
+            <div class="blog-card-desc">Master TCP/IP testing with ISO8583Studio: ports, listeners, TLS/SSL considerations, and connection lifecycle for payment...</div>
+            <div class="blog-card-tags"><span class="blog-tag">TCP</span><span class="blog-tag">TLS</span><span class="blog-tag">host-simulator</span><span class="blog-tag">ISO8583</span></div>
+            <div class="blog-card-meta">
+                <span>2025-04-01</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="host-simulator-setup-guide.html" class="blog-card">
+            <div class="blog-card-category">Host Simulator</div>
+            <div class="blog-card-title">Host Simulator Setup Guide: Gateways, Modes, and TCP/IP Basics</div>
+            <div class="blog-card-desc">Configure ISO8583Studio’s Host Simulator: Server, Client, and Proxy modes, TCP/IP, and gateway types for realistic payme...</div>
+            <div class="blog-card-tags"><span class="blog-tag">host-simulator</span><span class="blog-tag">ISO8583</span><span class="blog-tag">payment-testing</span><span class="blog-tag">gateway</span></div>
+            <div class="blog-card-meta">
+                <span>2025-03-25</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-message-parser-tutorial.html" class="blog-card">
+            <div class="blog-card-category">ISO8583 Fundamentals</div>
+            <div class="blog-card-title">How to Parse ISO 8583 Messages with ISO8583Studio: A Step-by-Step Tutorial</div>
+            <div class="blog-card-desc">Step-by-step: parse ISO 8583 messages in ISO8583Studio—MTI, bitmaps, fields, EMV checks, and exporting results for QA an...</div>
+            <div class="blog-card-tags"><span class="blog-tag">ISO 8583 parser</span><span class="blog-tag">tutorial</span><span class="blog-tag">ISO8583Studio</span><span class="blog-tag">debugging</span></div>
+            <div class="blog-card-meta">
+                <span>2025-03-20</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-response-codes-reference.html" class="blog-card">
+            <div class="blog-card-category">ISO8583 Fundamentals</div>
+            <div class="blog-card-title">ISO 8583 Response Codes (Field 39): Common Values, Meaning, and Decline Triage</div>
+            <div class="blog-card-desc">A practical guide to ISO 8583 Field 39 response codes—what they mean, how to triage declines, and how to avoid mistaking...</div>
+            <div class="blog-card-tags"><span class="blog-tag">Field 39</span><span class="blog-tag">response code</span><span class="blog-tag">declines</span><span class="blog-tag">ISO 8583</span></div>
+            <div class="blog-card-meta">
+                <span>2025-03-15</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-processing-codes-guide.html" class="blog-card">
+            <div class="blog-card-category">ISO8583 Fundamentals</div>
+            <div class="blog-card-title">ISO 8583 Processing Codes (Field 3): Transaction Types, Account Types, and Safe Parsing</div>
+            <div class="blog-card-desc">Decode ISO 8583 Field 3 processing codes—transaction types, account types, and common pitfalls—so your host logic matche...</div>
+            <div class="blog-card-tags"><span class="blog-tag">Field 3</span><span class="blog-tag">processing code</span><span class="blog-tag">ISO 8583</span><span class="blog-tag">transaction type</span></div>
+            <div class="blog-card-meta">
+                <span>2025-03-10</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-field-types-and-formats.html" class="blog-card">
+            <div class="blog-card-category">ISO8583 Fundamentals</div>
+            <div class="blog-card-title">ISO 8583 Field Types and Formats: AN, N, B, Fixed vs LLVAR, and Parsing Discipline</div>
+            <div class="blog-card-desc">Master ISO 8583 data element types—alphanumeric, numeric, binary—and length conventions like LLVAR/LLLVAR so your parser...</div>
+            <div class="blog-card-tags"><span class="blog-tag">ISO 8583</span><span class="blog-tag">field format</span><span class="blog-tag">LLVAR</span><span class="blog-tag">BCD</span></div>
+            <div class="blog-card-meta">
+                <span>2025-03-05</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-message-type-indicators.html" class="blog-card">
+            <div class="blog-card-category">ISO8583 Fundamentals</div>
+            <div class="blog-card-title">ISO 8583 Message Type Indicators (MTI): Structure, Classes, and Common Values</div>
+            <div class="blog-card-desc">Understand ISO 8583 MTI digits: version, class, function, and origin—how to read MTIs and map them to request/response f...</div>
+            <div class="blog-card-tags"><span class="blog-tag">MTI</span><span class="blog-tag">message type</span><span class="blog-tag">ISO 8583</span><span class="blog-tag">authorization</span></div>
+            <div class="blog-card-meta">
+                <span>2025-03-01</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-bitmap-explained.html" class="blog-card">
+            <div class="blog-card-category">ISO8583 Fundamentals</div>
+            <div class="blog-card-title">ISO 8583 Bitmaps Explained: Primary, Secondary, and How to Read the Flags</div>
+            <div class="blog-card-desc">Learn how ISO 8583 bitmaps declare field presence, how primary vs secondary maps work, and how to verify bits with a bit...</div>
+            <div class="blog-card-tags"><span class="blog-tag">bitmap</span><span class="blog-tag">ISO 8583</span><span class="blog-tag">data elements</span><span class="blog-tag">parsing</span></div>
+            <div class="blog-card-meta">
+                <span>2025-02-25</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="understanding-iso8583-message-format.html" class="blog-card">
+            <div class="blog-card-category">ISO8583 Fundamentals</div>
+            <div class="blog-card-title">Understanding the ISO 8583 Message Format: Structure, Fields, and Real-World Variants</div>
+            <div class="blog-card-desc">Learn ISO 8583 message anatomy: MTI, bitmaps, fixed and variable fields, and how implementations differ—plus how ISO8583...</div>
+            <div class="blog-card-tags"><span class="blog-tag">ISO 8583</span><span class="blog-tag">message format</span><span class="blog-tag">bitmap</span><span class="blog-tag">payment messaging</span></div>
+            <div class="blog-card-meta">
+                <span>2025-02-20</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="cross-platform-payment-testing-tool.html" class="blog-card">
+            <div class="blog-card-category">Getting Started</div>
+            <div class="blog-card-title">Cross-Platform Payment Testing: Why ISO8583Studio Runs on Windows, macOS, and Linux</div>
+            <div class="blog-card-desc">Benefits of a cross-platform payment testing desktop app for ISO 8583, EMV, and HSM workflows—consistent tooling across ...</div>
+            <div class="blog-card-tags"><span class="blog-tag">cross-platform</span><span class="blog-tag">Windows</span><span class="blog-tag">macOS</span><span class="blog-tag">Linux</span></div>
+            <div class="blog-card-meta">
+                <span>2025-02-15</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-studio-vs-manual-testing.html" class="blog-card">
+            <div class="blog-card-category">Getting Started</div>
+            <div class="blog-card-title">ISO8583Studio vs Manual Payment Testing: Speed, Accuracy, and Repeatability</div>
+            <div class="blog-card-desc">Compare manual ISO 8583 and EMV testing with ISO8583Studio—fewer errors, faster cycles, and audit-friendly local workflo...</div>
+            <div class="blog-card-tags"><span class="blog-tag">manual testing</span><span class="blog-tag">automation</span><span class="blog-tag">ISO 8583</span><span class="blog-tag">QA</span></div>
+            <div class="blog-card-meta">
+                <span>2025-02-10</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="why-payment-developers-need-iso8583-studio.html" class="blog-card">
+            <div class="blog-card-category">Getting Started</div>
+            <div class="blog-card-title">Why Payment Developers Need ISO8583Studio: Less Friction, Faster Truth</div>
+            <div class="blog-card-desc">Payment dev pain points—opaque declines, EMV TLV, HSM quirks—and how ISO8583Studio speeds local debugging with 70+ speci...</div>
+            <div class="blog-card-tags"><span class="blog-tag">payment developers</span><span class="blog-tag">debugging</span><span class="blog-tag">EMV</span><span class="blog-tag">HSM</span></div>
+            <div class="blog-card-meta">
+                <span>2025-02-01</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="iso8583-studio-feature-overview.html" class="blog-card">
+            <div class="blog-card-category">Getting Started</div>
+            <div class="blog-card-title">ISO8583Studio Feature Overview: Simulators, EMV, Crypto, Keys, and Converters</div>
+            <div class="blog-card-desc">Tour ISO8583Studio’s 70+ tools: host/HSM/APDU simulators, EMV utilities, cryptography, key management, and payment conve...</div>
+            <div class="blog-card-tags"><span class="blog-tag">feature tour</span><span class="blog-tag">EMV tools</span><span class="blog-tag">HSM simulator</span><span class="blog-tag">cryptography</span></div>
+            <div class="blog-card-meta">
+                <span>2025-01-25</span>
+                <span>9 min read</span>
+            </div>
+        </a>
+        <a href="getting-started-installation-guide.html" class="blog-card">
+            <div class="blog-card-category">Getting Started</div>
+            <div class="blog-card-title">Getting Started: How to Install ISO8583Studio on Windows, macOS, and Linux</div>
+            <div class="blog-card-desc">Step-by-step install for ISO8583Studio on Windows, Mac, and Linux: downloads, first launch, permissions, and a quick UI ...</div>
+            <div class="blog-card-tags"><span class="blog-tag">installation</span><span class="blog-tag">cross-platform</span><span class="blog-tag">desktop app</span><span class="blog-tag">ISO8583Studio</span></div>
+            <div class="blog-card-meta">
+                <span>2025-01-20</span>
+                <span>8 min read</span>
+            </div>
+        </a>
+        <a href="what-is-iso8583-studio.html" class="blog-card">
+            <div class="blog-card-category">Getting Started</div>
+            <div class="blog-card-title">What Is ISO8583Studio? A Free Desktop Toolkit for Payment Developers</div>
+            <div class="blog-card-desc">Discover ISO8583Studio: a free cross-platform app with 70+ tools for ISO 8583, EMV, HSM, and payment crypto testing—buil...</div>
+            <div class="blog-card-tags"><span class="blog-tag">ISO8583Studio</span><span class="blog-tag">payment testing</span><span class="blog-tag">desktop tools</span><span class="blog-tag">EMV</span></div>
+            <div class="blog-card-meta">
+                <span>2025-01-15</span>
+                <span>7 min read</span>
+            </div>
+        </a>
+</div>
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-social">
+            <a href="https://github.com/users/hpkaushik121/projects/1" class="social-link" title="Roadmap"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/></svg></a>
+            <a href="https://www.linkedin.com/in/sourabh-kaushik/" class="social-link" title="LinkedIn"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+            <a href="https://github.com/hpkaushik121" class="social-link" title="GitHub"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
+            <a href="https://medium.com/@iso8583.studio" class="social-link" title="Medium"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/></svg></a>
+        </div>
+        <div class="footer-links">
+            <a href="../docs/" class="footer-link">Documentation</a>
+            <a href="../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../terms-and-conditions.html" class="footer-link">Terms</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+        </div>
+        <div class="footer-copyright">&copy; 2024 AiCortex. All rights reserved.</div>
+    </div>
+</footer>
+<script>
+function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('active'); }
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cat = btn.dataset.cat;
+        document.querySelectorAll('.blog-card').forEach(card => {
+            card.style.display = (cat === 'all' || card.querySelector('.blog-card-category').textContent === cat) ? '' : 'none';
+        });
+    });
+});
+</script>
+</body>
+</html>
