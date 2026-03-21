@@ -201,12 +201,12 @@ fun AboutDialog(
                                     textDecoration = TextDecoration.Underline
                                 )
                             )
-                            append("sk@aicortex.in")
+                            append("sk@iso8583.studio")
                             addStringAnnotation(
                                 tag = "EMAIL",
-                                annotation = "sk@aicortex.in",
+                                annotation = "sk@iso8583.studio",
                                 start = 0,
-                                end = "sk@aicortex.in".length
+                                end = "sk@iso8583.studio".length
                             )
                             pop()
                         }
@@ -238,12 +238,12 @@ fun AboutDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "Developed by AICortex",
+                        "Developed by AiCortex Solutions Pvt. Ltd.",
                         style = MaterialTheme.typography.subtitle2
                     )
 
                     Text(
-                        "© $currentYear AICortex. All rights reserved.",
+                        "© $currentYear AiCortex Solutions Pvt. Ltd. All rights reserved.",
                         style = MaterialTheme.typography.caption,
                         color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f)
                     )
@@ -258,12 +258,12 @@ fun AboutDialog(
                                 textDecoration = TextDecoration.Underline
                             )
                         )
-                        append("www.aicortex.in")
+                        append("www.iso8583.studio")
                         addStringAnnotation(
                             tag = "URL",
-                            annotation = "https://aicortex.in",
+                            annotation = "https://iso8583.studio",
                             start = 0,
-                            end = "www.aicortex.in".length
+                            end = "www.iso8583.studio".length
                         )
                         pop()
                     }

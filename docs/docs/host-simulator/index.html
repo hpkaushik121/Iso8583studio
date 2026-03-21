@@ -6,6 +6,33 @@
     <title>Host Simulator Documentation - ISO8583Studio</title>
     <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
     <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio Host Simulator documentation - Simulate acquirer and issuer host responses for POS terminals and ATMs. Configure Server/Client/Proxy gateways, transaction rules, ISO 8583 templates, and dynamic placeholders.">
+    <meta name="keywords" content="ISO 8583 host simulator, payment host emulator, acquirer simulator, issuer simulator, POS terminal testing, ATM testing tool, ISO8583 message builder, transaction rule engine, payment gateway simulator, TCP/IP payment gateway, REST payment API, RS232 serial payment, dial-up payment connection, ISO 8583 message parser, MTI message type indicator, processing code, ISO 8583 field mapping, ByteArray message format, JSON ISO8583, XML ISO8583, payment proxy server, unsolicited message, host handler, transaction monitoring, payment protocol testing, financial message analysis, payment testing environment, gateway configuration, SSL TLS payment, DES 3DES AES encryption, payment log visualization">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/host-simulator/">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://iso8583.studio/docs/host-simulator/">
+    <meta property="og:title" content="Host Simulator Documentation - ISO8583Studio">
+    <meta property="og:description" content="Complete guide to simulating acquirer and issuer hosts for payment terminal testing. Configure gateways, transaction rules, and ISO 8583 message templates.">
+    <meta property="og:image" content="https://iso8583.studio/images/app.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="ISO8583Studio Host Simulator - Payment Testing Documentation">
+    <meta name="twitter:description" content="Simulate payment hosts for POS and ATM testing. TCP/IP, REST, RS232 gateways with configurable transaction rules.">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": "ISO8583Studio Host Simulator Documentation",
+      "description": "Comprehensive documentation for the ISO8583Studio Host Simulator - simulate acquirer and issuer host responses for payment terminals, ATMs, and client applications.",
+      "url": "https://iso8583.studio/docs/host-simulator/",
+      "author": { "@type": "Organization", "name": "AiCortex Solutions" },
+      "about": [
+        { "@type": "Thing", "name": "ISO 8583" },
+        { "@type": "Thing", "name": "Payment Processing" },
+        { "@type": "Thing", "name": "Host Simulation" }
+      ]
+    }
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -44,7 +71,7 @@
         .header {
             position: fixed;
             top: 0; left: 0; right: 0;
-            height: 70px;
+            height: 80px;
             background: rgba(26, 29, 46, 0.98);
             backdrop-filter: blur(15px);
             z-index: 1000;
@@ -117,8 +144,8 @@
         /* Page Layout */
         .page-wrapper {
             display: flex;
-            margin-top: 70px;
-            min-height: calc(100vh - 70px);
+            margin-top: 80px;
+            min-height: calc(100vh - 80px);
         }
 
         /* Sidebar */
@@ -128,7 +155,7 @@
             border-right: 1px solid var(--border-light);
             padding: 32px 0;
             position: fixed;
-            top: 70px;
+            top: 80px;
             left: 0;
             bottom: 0;
             overflow-y: auto;
@@ -484,6 +511,36 @@
             font-size: 14px;
         }
 
+        .footer-social {
+            display: flex;
+            justify-content: center;
+            gap: clamp(16px, 4vw, 32px);
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: clamp(40px, 8vw, 48px);
+            height: clamp(40px, 8vw, 48px);
+            background: rgba(106, 183, 255, 0.1);
+            border: 1px solid rgba(106, 183, 255, 0.3);
+            border-radius: 12px;
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-size: clamp(16px, 3vw, 20px);
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+
+        .social-link:hover {
+            background: rgba(106, 183, 255, 0.2);
+            border-color: rgba(106, 183, 255, 0.5);
+            transform: translateY(-2px) translateZ(0);
+        }
+
         .footer-links {
             display: flex;
             justify-content: center;
@@ -539,7 +596,7 @@
         .sidebar-overlay {
             display: none;
             position: fixed;
-            top: 70px; left: 0; right: 0; bottom: 0;
+            top: 80px; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.6);
             z-index: 90;
         }
@@ -574,9 +631,9 @@
         }
 
         @media (max-width: 480px) {
-            .header { height: 60px; }
-            .page-wrapper { margin-top: 60px; }
-            .sidebar { top: 60px; }
+            .header { height: 70px; }
+            .page-wrapper { margin-top: 70px; }
+            .sidebar { top: 70px; }
             .feature-grid { grid-template-columns: 1fr; }
         }
     </style>
@@ -1225,16 +1282,33 @@ Response Fields:
 </div>
 
 <footer class="footer">
-    <div class="footer-links">
-        <a href="../../" class="footer-link">Home</a>
-        <a href="../" class="footer-link">Documentation</a>
-        <a href="../host-simulator/" class="footer-link">Host Simulator</a>
-        <a href="../hsm-simulator/" class="footer-link">HSM Simulator</a>
-        <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
-        <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-    </div>
-    <div class="footer-copyright">
-        &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+    <div class="footer-container">
+        <div class="footer-social">
+            <a href="https://github.com/users/hpkaushik121/projects/1" class="social-link" title="Roadmap">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/></svg>
+            </a>
+            <a href="https://www.linkedin.com/in/sourabh-kaushik/" class="social-link" title="LinkedIn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </a>
+            <a href="https://github.com/hpkaushik121" class="social-link" title="GitHub">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            </a>
+            <a href="https://hpkaushik121.medium.com/" class="social-link" title="Medium">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/></svg>
+            </a>
+        </div>
+
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
     </div>
 </footer>
 

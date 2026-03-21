@@ -46,7 +46,7 @@ data class Iso8583Data(
         const val MAX_PACKAGE_SIZE = 10024
         const val MAX_BITS = 128
 
-        val aboutUs: String = "Sourabh Kaushik, sk@aicortex.in"
+        val aboutUs: String = "Sourabh Kaushik, sk@iso8583.studio"
     }
 
     var lengthInAsc: Boolean

@@ -74,7 +74,7 @@ data class TPDU(
         /**
          * About Us information
          */
-        val aboutUs: String = "Sourabh Kaushik, sk@aicortex.in"
+        val aboutUs: String = "Sourabh Kaushik, sk@iso8583.studio"
     }
 
     override fun equals(other: Any?): Boolean {

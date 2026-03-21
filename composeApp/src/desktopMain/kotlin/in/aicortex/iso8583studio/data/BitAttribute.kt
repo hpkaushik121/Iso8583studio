@@ -41,7 +41,7 @@ class BitAttribute {
         set(value) { m_Length = value }
 
     val aboutUs: String
-        get() = "Sourabh Kaushik, sk@aicortex.in"
+        get() = "Sourabh Kaushik, sk@iso8583.studio"
 
     var typeAtribute: BitType
         get() = m_BitType

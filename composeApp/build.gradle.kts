@@ -81,8 +81,8 @@ compose.desktop {
             packageName = "ISO8583Studio"
             packageVersion = "1.0.1"
             description = "ISO8583 Message Processing Studio"
-            copyright = "© 2025 AICortex. All rights reserved."
-            vendor = "AICortex"
+            copyright = "© 2025 AiCortex Solutions Pvt. Ltd. All rights reserved."
+            vendor = "AiCortex Solutions Pvt. Ltd."
 
             // Windows specific configuration
             windows {
@@ -131,7 +131,7 @@ compose.desktop {
                 iconFile.set(project.file("resources/linus/app.png"))
                 // Additional Linux settings
                 shortcut = true
-                debMaintainer = "support@aicortex.in"
+                debMaintainer = "support@iso8583.studio"
                 menuGroup = "Development"
             }
         }
