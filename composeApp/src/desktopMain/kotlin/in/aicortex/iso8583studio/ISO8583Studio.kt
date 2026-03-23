@@ -165,6 +165,10 @@ class ISO8583Studio {
                                     }
                                 }
                                 Separator()
+                                Item(text = "Settings") {
+                                    navigationController.navigateTo(Destination.GlobalSettings)
+                                }
+                                Separator()
                                 Item(text = "Exit") { exitApplication() }
                             }
 

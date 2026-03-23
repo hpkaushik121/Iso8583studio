@@ -83,6 +83,7 @@ import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.RetailMACSc
 import `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms.TDESCBCMACScreen
 import `in`.aicortex.iso8583studio.ui.screens.posTerminal.POSTerminalSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.rsader.RsaDerKeyScreen
+import `in`.aicortex.iso8583studio.ui.screens.settings.GlobalSettingsScreen
 import `in`.aicortex.iso8583studio.ui.screens.thaleskeys.ThalesKeysScreen
 import `in`.aicortex.iso8583studio.ui.screens.tr31keyblock.Tr31KeyBlockScreen
 
@@ -104,6 +105,14 @@ sealed class Destination : Screen {
                 },
                 onGetStarted = { navigationController.navigateTo(HostSimulatorConfig) }
             )
+        }
+    }
+
+    object GlobalSettings : Screen {
+        @Composable
+        override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            GlobalSettingsScreen(onBack = { navigationController.goBack() })
         }
     }
 

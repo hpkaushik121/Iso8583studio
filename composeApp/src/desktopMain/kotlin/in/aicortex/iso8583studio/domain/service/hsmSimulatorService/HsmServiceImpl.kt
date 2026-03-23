@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import `in`.aicortex.iso8583studio.data.HsmClient
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
+import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.Simulator
 import `in`.aicortex.iso8583studio.hsm.HsmClientListener
 import `in`.aicortex.iso8583studio.hsm.HsmConfig
@@ -104,34 +105,30 @@ class HsmServiceImpl(
     }
 
     override fun writeLog(log: LogEntry) {
-        if (configuration.logFileName.isBlank()) {
+        if (!AppSettings.enableGlobalLogging) {
             return
         }
-        // Synchronize log file access
-        try {
-            val timestamp =
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
-            File(configuration.logFileName).appendText(
-                "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"),
-                Charset.forName("UTF-8")
-            )
-            println( "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"))
-        } catch (e: Exception) {
-            // Ignore write errors
+        if (configuration.logFileName.isNotBlank()) {
+            try {
+                val timestamp =
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
+                File(configuration.logFileName).appendText(
+                    "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"),
+                    Charset.forName("UTF-8")
+                )
+            } catch (_: Exception) { }
         }
         _hsmState.value = _hsmState.value.copy(
             rawRequest = _hsmState.value.rawRequest.apply {
                 add(log)
             }
         )
-        // Check log file size and rotate if needed
         val now = LocalDateTime.now()
         if (now.isAfter(checkLogFileSize)) {
             checkLogFileSize = now.plusSeconds(5)
             CoroutineScope(Dispatchers.IO).launch {
                 checkAndRotateLogFile()
             }
-
         }
     }
 

@@ -13,10 +13,12 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.HsmServiceImpl
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
+import kotlinx.coroutines.delay
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.SimulatorHandlerTab
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
@@ -113,6 +115,34 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
         formattedResponse = it + "\n"
     }
 
+
+    // Auto-clear logs at configured interval (global setting)
+    val autoClearEnabled = AppSettings.autoClearLogsEnabled
+    val autoClearInterval = AppSettings.autoClearLogsIntervalMinutes
+    LaunchedEffect(autoClearEnabled, autoClearInterval) {
+        if (autoClearEnabled) {
+            val intervalMs = autoClearInterval * 60 * 1000L
+            while (true) {
+                delay(intervalMs)
+                if (AppSettings.autoClearLogsEnabled) {
+                    hsm.clearLogs()
+                    if (AppSettings.deleteLogFileOnClear) {
+                        try {
+                            val logFile = java.io.File(hsm.configuration.logFileName)
+                            if (logFile.exists()) logFile.delete()
+                            val parent = logFile.parentFile ?: java.io.File(".")
+                            val baseName = logFile.nameWithoutExtension
+                            val ext = logFile.extension
+                            for (i in 1..10) {
+                                val rotated = java.io.File(parent, "$baseName$i.$ext")
+                                if (rotated.exists()) rotated.delete()
+                            }
+                        } catch (_: Exception) { }
+                    }
+                }
+            }
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(

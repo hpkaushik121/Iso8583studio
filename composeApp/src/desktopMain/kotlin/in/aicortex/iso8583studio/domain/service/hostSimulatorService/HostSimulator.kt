@@ -16,6 +16,7 @@ import `in`.aicortex.iso8583studio.data.SSLTcpClient
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.data.SimulatorData
 import `in`.aicortex.iso8583studio.data.model.ActionWhenDisconnect
+import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.data.model.CipherMode
 import `in`.aicortex.iso8583studio.data.model.CipherType
 import `in`.aicortex.iso8583studio.data.model.ConnectionType
@@ -427,10 +428,13 @@ class HostSimulator : Simulator {
      * Write a log message with a prefix
      */
     override fun writeLog(log: LogEntry) {
-        if (configuration.logFileName.isBlank()) {
+        if (!AppSettings.enableGlobalLogging) {
             return
         }
-        // Synchronize log file access
+        if (configuration.logFileName.isBlank()) {
+            beforeWriteLogCallbacks(log)
+            return
+        }
         try {
             val timestamp =
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
@@ -438,23 +442,16 @@ class HostSimulator : Simulator {
                 "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"),
                 Charset.forName(configuration.getEncoding())
             )
-            println( "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"))
-        } catch (e: Exception) {
-            // Ignore write errors
-        }
+        } catch (_: Exception) { }
 
-        // Call before write log callbacks
         beforeWriteLogCallbacks(log)
 
-
-        // Check log file size and rotate if needed
         val now = LocalDateTime.now()
         if (now.isAfter(checkLogFileSize)) {
             checkLogFileSize = now.plusSeconds(5)
             CoroutineScope(Dispatchers.IO).launch {
                 checkAndRotateLogFile()
             }
-
         }
     }
 

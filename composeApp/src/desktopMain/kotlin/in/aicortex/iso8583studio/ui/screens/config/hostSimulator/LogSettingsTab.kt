@@ -289,7 +289,7 @@ fun LogSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
             }
         }
 
-        // Advanced logging options could go here
+        // Advanced logging options
         Panel(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -314,7 +314,6 @@ fun LogSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
                 )
 
-                // Additional advanced options would go here
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }

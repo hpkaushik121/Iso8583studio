@@ -374,7 +374,7 @@
             "name": "PayShield 10K",
             "description": "HSM001234567890",
             "createdDate": 1768383552215,
-            "modifiedDate": 1774038450181,
+            "modifiedDate": 1774267432860,
             "deviceInfo": {
                 "capabilities": [
                     "SYMMETRIC_CRYPTO",
@@ -2193,6 +2193,6 @@
     "switchConfigs": [],
     "acquirerConfigs": [],
     "issuerConfigs": [],
-    "exportedAt": 1774086413322,
+    "exportedAt": 1774267444967,
     "version": "1.0"
 }
