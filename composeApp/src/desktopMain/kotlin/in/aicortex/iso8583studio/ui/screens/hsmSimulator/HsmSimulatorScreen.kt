@@ -97,11 +97,21 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
     var rawResponse by remember { mutableStateOf("") }
     var formattedResponse by remember { mutableStateOf("") }
 
+    var isHoldMessage by remember { mutableStateOf(false) }
+    var holdMessageTime by remember { mutableStateOf("60") }
+    var waitingRemain by remember { mutableStateOf("0") }
+    var sendHoldMessage by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+
     hsm.receivedFromSource = {
         rawResponse = ""
         formattedResponse = ""
         formattedRequest = ""
         rawRequest = it + "\n"
+        if (isHoldMessage) {
+            waitingRemain = "0"
+            sendHoldMessage = false
+        }
     }
 
     hsm.receivedFromSourceFormatted = {
@@ -113,6 +123,24 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
     }
     hsm.sentToSourceFormatted = {
         formattedResponse = it + "\n"
+    }
+
+    LaunchedEffect(key1 = isHoldMessage, key2 = sendHoldMessage) {
+        if (isHoldMessage && !sendHoldMessage) {
+            val holdTimeValue = holdMessageTime.toIntOrNull() ?: 0
+            if (holdTimeValue > 0) {
+                for (i in 1..holdTimeValue) {
+                    waitingRemain = "$i/$holdTimeValue"
+                    delay(1000)
+                    if (sendHoldMessage) break
+                }
+                waitingRemain = "0"
+                if (!sendHoldMessage) {
+                    sendHoldMessage = true
+                    hsm.sendHoldMessageCallback?.invoke()
+                }
+            }
+        }
     }
 
 
@@ -177,8 +205,6 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                 )
             }
         }
-        val scope = rememberCoroutineScope();
-
         // All tabs are kept alive in the composition tree to preserve their state on switch.
         // Only the selected tab is visible; others are collapsed to 0dp and clipped.
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -208,12 +234,21 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                                 formattedResponse = ""
                             },
                             transactionCount = "0",
-                            isHoldMessage = false,
-                            onHoldMessageChange = {},
-                            holdMessageTime = "0",
-                            onHoldMessageTimeChange = {},
-                            waitingRemain = "0",
-                            onSendClick = {},
+                            isHoldMessage = isHoldMessage,
+                            onHoldMessageChange = {
+                                isHoldMessage = it
+                                hsm.holdMessage = it
+                            },
+                            holdMessageTime = holdMessageTime,
+                            onHoldMessageTimeChange = { holdMessageTime = it },
+                            waitingRemain = waitingRemain,
+                            onSendClick = {
+                                sendHoldMessage = true
+                                waitingRemain = "0"
+                                scope.launch {
+                                    hsm.sendHoldMessageCallback?.invoke()
+                                }
+                            },
                             request = formattedRequest,
                             rawRequest = rawRequest,
                             response = formattedResponse,

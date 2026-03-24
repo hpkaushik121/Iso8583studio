@@ -191,6 +191,10 @@ fun HostSimulator(
         request = iso?.logFormat() ?: ""
         response = ""
         rawResponse = ""
+        if (isHoldMessage) {
+            waitingRemain = "0"
+            sendHoldMessage = false
+        }
     }
 
     gw.onReceiveFromDest { iso ->
@@ -208,13 +212,13 @@ fun HostSimulator(
         request = iso?.logFormat() ?: ""
         response = ""
         rawResponse = ""
-    }
-
-    gw.beforeReceive {
         if (isHoldMessage) {
             waitingRemain = "0"
             sendHoldMessage = false
         }
+    }
+
+    gw.beforeReceive {
     }
 
     gw.beforeWriteLog {

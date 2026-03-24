@@ -54,6 +54,8 @@ class HsmServiceImpl(
     var receivedFromSourceFormatted: (String?) -> Unit = {}
     var sentToSource: (String?) -> Unit = {}
     var sentToSourceFormatted: (String?) -> Unit = {}
+    var holdMessage: Boolean = false
+    var sendHoldMessageCallback: (suspend () -> Unit)? = null
 
     private var startTime: LocalDateTime? = null
     private var stopTime: LocalDateTime? = null
@@ -648,7 +650,6 @@ class HsmServiceImpl(
 
     override fun onReceivedFormSource(data: String?, hsmClient: HsmClient?) {
         val raw = data ?: "NULL"
-        // Command code starts at position 4 (after 4-char header)
         val cmdCode = if (raw.length >= 6) raw.substring(4, 6) else "??"
         writeLog(
             createLogEntry(
@@ -659,7 +660,14 @@ class HsmServiceImpl(
         CoroutineScope(Dispatchers.IO).launch {
             receivedFromSource(data)
             val response = activeHsm?.getProcessor()?.processCommand(raw)
-            hsmClient?.send(response)
+            if (!holdMessage) {
+                hsmClient?.send(response)
+            } else {
+                sendHoldMessageCallback = {
+                    hsmClient?.send(response)
+                    sendHoldMessageCallback = null
+                }
+            }
         }
     }
 

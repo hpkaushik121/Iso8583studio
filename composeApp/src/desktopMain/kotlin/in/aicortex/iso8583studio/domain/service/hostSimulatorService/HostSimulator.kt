@@ -376,11 +376,7 @@ class HostSimulator : Simulator {
             }
         }
 
-        client.onReceivedFormSource = {
-            coroutineScope.launchSafely {
-                receivedFromSource(it)
-            }
-        }
+        client.onReceivedFormSource = { data -> receivedFromSource(data) }
 
         client.beforeReceive = {
             coroutineScope.launchSafely {
@@ -388,11 +384,7 @@ class HostSimulator : Simulator {
             }
         }
 
-        client.onReceivedFormDest = { b ->
-            coroutineScope.launchSafely {
-                receivedFromDest( b)
-            }
-        }
+        client.onReceivedFormDest = { data -> receivedFromDest(data) }
 
         client.onAdminResponse = { cl, data ->
             adminResponseCallbacks(cl, data)
