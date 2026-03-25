@@ -13,5 +13,6 @@ enum class LmkPairType(val pairNumber: Int, val description: String) {
     PAIR_14_15(6, "Terminal PIN Encryption Key (TPK)"),
     PAIR_16_17(7, "Data Encryption Key (DEK/TEK/ZEK)"),
     PAIR_18_19(8, "Key Encryption Key (KEK)"),
-    PAIR_26_27(9, "Zone Key Encryption Key (ZEK)")
+    PAIR_26_27(9, "Zone Key Encryption Key (ZEK)"),
+    PAIR_28_29(10, "Base Derivation Key (BDK)")
 }

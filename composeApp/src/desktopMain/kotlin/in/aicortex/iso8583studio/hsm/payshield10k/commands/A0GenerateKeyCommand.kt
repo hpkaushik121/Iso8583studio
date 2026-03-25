@@ -62,29 +62,36 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         const val COMMAND_CODE = "A0"
         const val RESPONSE_CODE = "A1"
 
+        private const val P_ZMK_ZPK = PayShield10KCommandProcessor.LMK_PAIR_ZMK_ZPK
+        private const val P_TPK     = PayShield10KCommandProcessor.LMK_PAIR_TPK
+        private const val P_CVK     = PayShield10KCommandProcessor.LMK_PAIR_CVK
+        private const val P_TAK     = PayShield10KCommandProcessor.LMK_PAIR_TAK
+        private const val P_ZEK     = PayShield10KCommandProcessor.LMK_PAIR_ZEK
+        private const val P_BDK     = PayShield10KCommandProcessor.LMK_PAIR_BDK
+
         val KEY_TYPE_LMK_MAP = mapOf(
-            "000" to KeyTypeLmkInfo(14, 0, "ZMK"),
-            "001" to KeyTypeLmkInfo(14, 0, "ZPK"),
-            "002" to KeyTypeLmkInfo(14, 0, "PVK/TPK/TMK"),
-            "003" to KeyTypeLmkInfo(14, 0, "TAK"),
-            "008" to KeyTypeLmkInfo(14, 0, "ZAK"),
-            "009" to KeyTypeLmkInfo(14, 0, "BDK"),
-            "109" to KeyTypeLmkInfo(14, 1, "MK-AC"),
-            "209" to KeyTypeLmkInfo(14, 2, "MK-SMI"),
-            "309" to KeyTypeLmkInfo(14, 3, "MK-SMC"),
-            "409" to KeyTypeLmkInfo(14, 4, "MK-DAC"),
-            "509" to KeyTypeLmkInfo(14, 5, "MK-DN"),
-            "609" to KeyTypeLmkInfo(14, 6, "BDK-2"),
-            "709" to KeyTypeLmkInfo(14, 7, "MK-CVC3"),
-            "809" to KeyTypeLmkInfo(14, 8, "BDK-3"),
-            "909" to KeyTypeLmkInfo(14, 9, "BDK-4"),
-            "00A" to KeyTypeLmkInfo(14, 0, "ZEK"),
-            "00B" to KeyTypeLmkInfo(14, 0, "DEK"),
-            "402" to KeyTypeLmkInfo(14, 4, "CVK"),
-            "70D" to KeyTypeLmkInfo(14, 0, "TPK-PCI"),
-            "80D" to KeyTypeLmkInfo(14, 0, "TMK-PCI"),
-            "90D" to KeyTypeLmkInfo(14, 0, "TKR"),
-            "302" to KeyTypeLmkInfo(14, 0, "IKEY")
+            "000" to KeyTypeLmkInfo(P_ZMK_ZPK, 0, "ZMK"),
+            "001" to KeyTypeLmkInfo(P_ZMK_ZPK, 0, "ZPK"),
+            "002" to KeyTypeLmkInfo(P_TPK,     0, "PVK/TPK/TMK"),
+            "003" to KeyTypeLmkInfo(P_TAK,     0, "TAK"),
+            "008" to KeyTypeLmkInfo(P_TAK,     0, "ZAK"),
+            "009" to KeyTypeLmkInfo(P_BDK,     0, "BDK"),
+            "109" to KeyTypeLmkInfo(P_BDK,     0, "MK-AC"),
+            "209" to KeyTypeLmkInfo(P_BDK,     0, "MK-SMI"),
+            "309" to KeyTypeLmkInfo(P_BDK,     0, "MK-SMC"),
+            "409" to KeyTypeLmkInfo(P_BDK,     0, "MK-DAC"),
+            "509" to KeyTypeLmkInfo(P_BDK,     0, "MK-DN"),
+            "609" to KeyTypeLmkInfo(P_BDK,     0, "BDK-2"),
+            "709" to KeyTypeLmkInfo(P_BDK,     0, "MK-CVC3"),
+            "809" to KeyTypeLmkInfo(P_BDK,     0, "BDK-3"),
+            "909" to KeyTypeLmkInfo(P_BDK,     0, "BDK-4"),
+            "00A" to KeyTypeLmkInfo(P_ZEK,     0, "ZEK"),
+            "00B" to KeyTypeLmkInfo(P_ZEK,     0, "DEK"),
+            "402" to KeyTypeLmkInfo(P_CVK,     0, "CVK"),
+            "70D" to KeyTypeLmkInfo(P_TPK,     0, "TPK-PCI"),
+            "80D" to KeyTypeLmkInfo(P_TPK,     0, "TMK-PCI"),
+            "90D" to KeyTypeLmkInfo(P_TPK,     0, "TKR"),
+            "302" to KeyTypeLmkInfo(P_TPK,     0, "IKEY")
         )
 
         val LMK_VARIANTS = mapOf(
@@ -461,7 +468,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
 
     private suspend fun decryptZmkFromLmk(encryptedZmk: String, lmkId: String): ByteArray {
         val lmk = hsm.lmkStorage.getLmk(lmkId) ?: throw IllegalStateException("LMK not found")
-        val zmkPair = lmk.getPair(14) ?: throw IllegalStateException("LMK pair 0 not found")
+        val zmkPair = lmk.getPair(P_ZMK_ZPK) ?: throw IllegalStateException("LMK pair $P_ZMK_ZPK not found")
         val zmkHex = if (encryptedZmk[0].uppercaseChar() in "UXTYSR") {
             encryptedZmk.substring(1)
         } else {
@@ -557,7 +564,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         // Determine LMK variant for BDK decryption based on DUKPT Master Key Type
         val dukptType = request.dukptMasterKeyType ?: "00"
         val bdkVariant = DUKPT_KEY_TYPE_VARIANT[dukptType] ?: 0
-        val bdkLmkPair = lmk.getPair(14)
+        val bdkLmkPair = lmk.getPair(P_BDK)
             ?: return HsmCommandResult.Error(HsmErrorCodes.LMK_NOT_LOADED, "LMK pair 28-29 not available")
 
         // Step 1: Decrypt BDK under LMK pair 28-29 with appropriate variant

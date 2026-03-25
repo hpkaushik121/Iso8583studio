@@ -282,12 +282,12 @@ class PayShield10KCommandProcessor(
      */
     private fun KeyType.getLmkPairNumber(): Int {
         return when (this) {
-            KeyType.TYPE_000, KeyType.TYPE_001 -> 0  // ZMK/ZPK use pair 00-01
-            KeyType.TYPE_002 -> 6                     // TPK uses pair 14-15
-            KeyType.TYPE_003 -> 2                     // CVK uses pair 04-05
-            KeyType.TYPE_008, KeyType.TYPE_009 -> 4   // TAK/ZAK use pair 08-09
-            KeyType.TYPE_109 -> 9                     // ZEK uses pair 26-27
-            KeyType.TYPE_209 -> 0                     // BDK uses pair 00-01
+            KeyType.TYPE_000, KeyType.TYPE_001 -> LMK_PAIR_ZMK_ZPK  // ZMK/ZPK → pair 00-01
+            KeyType.TYPE_002 -> LMK_PAIR_TPK                         // TPK/PVK → pair 14-15
+            KeyType.TYPE_003 -> LMK_PAIR_CVK                         // CVK     → pair 04-05
+            KeyType.TYPE_008, KeyType.TYPE_009 -> LMK_PAIR_TAK       // TAK/ZAK → pair 08-09
+            KeyType.TYPE_109 -> LMK_PAIR_ZEK                         // ZEK     → pair 26-27
+            KeyType.TYPE_209 -> LMK_PAIR_BDK                         // BDK     → pair 28-29
         }
     }
 
@@ -451,27 +451,22 @@ class PayShield10KCommandProcessor(
     // ====================================================================================================
 
     /**
-     * M0 - Generate MAC (ISO 9797-1 Algorithm 3)
+     * M6 - Generate MAC (clear key variant)
      */
     fun executeGenerateMac(
         data: ByteArray,
         tak: ByteArray,
-        algorithm: String = "ISO9797_ALG3"
+        algorithm: String = "ISO9797_ALG3",
+        paddingMethod: Int = 1,
+        macSizeBytes: Int = 4
     ): HsmCommandResult {
         try {
-            val mac = when (algorithm) {
-                "ISO9797_ALG3" -> generateMacIso9797Alg3(data, tak)
-                "ANSI_X919" -> generateMacAnsiX919(data, tak)
-                else -> return HsmCommandResult.Error(
-                    HsmErrorCodes.ALGORITHM_NOT_SUPPORTED,
-                    "Unsupported MAC algorithm"
-                )
-            }
+            val mac = generateMac(data, tak, algorithm, paddingMethod, macSizeBytes)
 
             return HsmCommandResult.Success(
-                response = "MAC: ${simulator.bytesToHex(mac)}",
+                response = bytesToHex(mac),
                 data = mapOf(
-                    "mac" to simulator.bytesToHex(mac),
+                    "mac" to bytesToHex(mac),
                     "algorithm" to algorithm
                 )
             )
@@ -484,29 +479,32 @@ class PayShield10KCommandProcessor(
     }
 
     /**
-     * M2 - Verify MAC
+     * M8 - Verify MAC (clear key variant)
      */
     fun executeVerifyMac(
         data: ByteArray,
         providedMac: ByteArray,
         tak: ByteArray,
-        algorithm: String = "ISO9797_ALG3"
+        algorithm: String = "ISO9797_ALG3",
+        paddingMethod: Int = 1,
+        macSizeBytes: Int = 4
     ): HsmCommandResult {
-        val calculatedMac = when (algorithm) {
-            "ISO9797_ALG3" -> generateMacIso9797Alg3(data, tak)
-            "ANSI_X919" -> generateMacAnsiX919(data, tak)
-            else -> return HsmCommandResult.Error(
-                HsmErrorCodes.ALGORITHM_NOT_SUPPORTED,
-                "Unsupported MAC algorithm"
-            )
-        }
+        return try {
+            val calculatedMac = generateMac(data, tak, algorithm, paddingMethod, macSizeBytes)
+            val compareLen = minOf(calculatedMac.size, providedMac.size)
 
-        return if (calculatedMac.contentEquals(providedMac)) {
-            HsmCommandResult.Success("MAC verified successfully")
-        } else {
+            if (calculatedMac.copyOf(compareLen).contentEquals(providedMac.copyOf(compareLen))) {
+                HsmCommandResult.Success("")
+            } else {
+                HsmCommandResult.Error(
+                    HsmErrorCodes.VERIFICATION_FAILURE,
+                    "MAC verification failed"
+                )
+            }
+        } catch (e: Exception) {
             HsmCommandResult.Error(
-                HsmErrorCodes.VERIFICATION_FAILURE,
-                "MAC verification failed"
+                HsmErrorCodes.INVALID_INPUT_DATA,
+                "MAC verification failed: ${e.message}"
             )
         }
     }
@@ -516,6 +514,16 @@ class PayShield10KCommandProcessor(
     // ====================================================================================================
 
     companion object {
+        // TODO: assign correct per-type pairs once LMK slot testing is stable
+        //   ZMK/ZPK → 0, PVK → 1, CVK → 2, TAK → 4, TPK → 6, ZEK → 9, BDK → 10
+        const val LMK_PAIR_ZMK_ZPK = 14
+        const val LMK_PAIR_PVK     = 14
+        const val LMK_PAIR_CVK     = 14
+        const val LMK_PAIR_TAK     = 14
+        const val LMK_PAIR_TPK     = 14
+        const val LMK_PAIR_ZEK     = 14
+        const val LMK_PAIR_BDK     = 14
+
         /**
          * Parse KSN descriptor (e.g., "609") to determine counter bit width.
          *
@@ -925,7 +933,7 @@ class PayShield10KCommandProcessor(
         val clearTpk = simulator.decryptUnderLmk(
             data = encryptedTpk,
             lmkId = lmkId,
-            pairNumber = 14  // TPK uses LMK pair 14-15 (key type 002)
+            pairNumber = LMK_PAIR_TPK
         )
 
         // STEP 2: Format PIN block
@@ -944,6 +952,8 @@ class PayShield10KCommandProcessor(
             )
         )
     }
+
+
 
     /**
      * ================================================================================================
@@ -968,21 +978,21 @@ class PayShield10KCommandProcessor(
         destPinBlockFormat: PinBlockFormat
     ): HsmCommandResult {
         try {
-            // STEP 1: Decrypt TPK under LMK pair 14-15
+            // STEP 1: Decrypt source TPK under LMK pair 14-15
             hsmLongListener.log("     [crypto 1/5]  TPK encrypted  : ${IsoUtil.bytesToHex(encryptedSourceTpk)}")
             val clearTpk = simulator.decryptUnderLmk(
                 data = encryptedSourceTpk,
                 lmkId = lmkId,
-                pairNumber = 14
+                pairNumber = LMK_PAIR_TPK
             )
             hsmLongListener.log("     [crypto 1/5]  TPK clear      : ${IsoUtil.bytesToHex(clearTpk)}")
 
-            // STEP 2: Decrypt ZPK under LMK pair 06-07
+            // STEP 2: Decrypt destination ZPK under LMK pair 00-01
             hsmLongListener.log("     [crypto 2/5]  ZPK encrypted  : ${IsoUtil.bytesToHex(encryptedDestZpk)}")
             val clearZpk = simulator.decryptUnderLmk(
                 data = encryptedDestZpk,
                 lmkId = lmkId,
-                pairNumber = 14
+                pairNumber = LMK_PAIR_ZMK_ZPK
             )
             hsmLongListener.log("     [crypto 2/5]  ZPK clear      : ${IsoUtil.bytesToHex(clearZpk)}")
 
@@ -1018,6 +1028,9 @@ class PayShield10KCommandProcessor(
         }
     }
 
+
+
+
     /**
      * ================================================================================================
      * CI - Translate PIN from DUKPT to ZPK (CORRECTED)
@@ -1047,16 +1060,16 @@ class PayShield10KCommandProcessor(
             val clearBdk = simulator.decryptUnderLmk(
                 data = encryptedBdk,
                 lmkId = lmkId,
-                pairNumber = 14
+                pairNumber = LMK_PAIR_BDK
             )
             hsmLongListener.log("     [crypto 1/7]  BDK (clr): ${bytesToHex(clearBdk)}")
 
-            // STEP 2: Decrypt destination ZPK from LMK encryption (pair 06-07)
-            hsmLongListener.log("     [crypto 2/7]  Decrypting ZPK under LMK pair 06-07")
+            // STEP 2: Decrypt destination ZPK from LMK encryption (pair 00-01)
+            hsmLongListener.log("     [crypto 2/7]  Decrypting ZPK under LMK pair 00-01")
             val clearZpk = simulator.decryptUnderLmk(
                 data = encryptedDestZpk,
                 lmkId = lmkId,
-                pairNumber = 14
+                pairNumber = LMK_PAIR_ZMK_ZPK
             )
             hsmLongListener.log("     [crypto 2/7]  ZPK (clr): ${bytesToHex(clearZpk)}")
 
@@ -1111,6 +1124,158 @@ class PayShield10KCommandProcessor(
 
     /**
      * ================================================================================================
+     * G0 - Translate PIN from BDK to ZPK or BDK (3DES DUKPT)
+     * ================================================================================================
+     *
+     * Source side always uses BDK + KSN DUKPT derivation to decrypt the PIN block.
+     *
+     * Destination side depends on [destKeyType]:
+     *   '0' (ZPK)       → decrypt dest key as ZPK (LMK 06-07), encrypt PIN directly
+     *   '*' (BDK-1)     → decrypt dest key as BDK (LMK 28-29), derive session key via dest KSN
+     *   '~' (BDK-2)     → same as BDK-1
+     *   '!' (BDK-4)     → same as BDK-1
+     *
+     * @param lmkId               LMK slot identifier
+     * @param encryptedSrcBdk     Source BDK encrypted under LMK pair 28-29
+     * @param destKeyType         Destination key type: '0'=ZPK, '*'=BDK-1, '~'=BDK-2, '!'=BDK-4
+     * @param encryptedDestKey    Destination key encrypted under LMK (ZPK or BDK depending on type)
+     * @param srcKsnDescriptor    Source KSN descriptor (3H, e.g. "906")
+     * @param srcKsn              Source Key Serial Number (20 hex chars)
+     * @param destKsnDescriptor   Destination KSN descriptor (3H) — null when destKeyType is ZPK
+     * @param destKsn             Destination KSN (20 hex chars) — null when destKeyType is ZPK
+     * @param encryptedPinBlock   PIN block encrypted under source DUKPT 3DES session key
+     * @param sourcePinBlockFormat  Source PIN block format
+     * @param destPinBlockFormat    Destination PIN block format
+     * @param accountNumber       12-digit account number (rightmost 12 of PAN excl. check digit)
+     */
+    suspend fun executeG0TranslatePinBdkToZpk(
+        lmkId: String,
+        encryptedSrcBdk: ByteArray,
+        destKeyType: Char,
+        encryptedDestKey: ByteArray,
+        srcKsnDescriptor: String,
+        srcKsn: String,
+        destKsnDescriptor: String?,
+        destKsn: String?,
+        encryptedPinBlock: ByteArray,
+        sourcePinBlockFormat: PinBlockFormat,
+        destPinBlockFormat: PinBlockFormat,
+        accountNumber: String
+    ): HsmCommandResult {
+        try {
+            val destIsBdk = destKeyType != '0'
+            val totalSteps = if (destIsBdk) 10 else 7
+            val srcCounterBits = parseKsnDescriptorCounterBits(srcKsnDescriptor)
+            var step = 1
+
+            // ── STEP 1: Decrypt source BDK from LMK (pair 28-29) ────────────
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Decrypting source BDK under LMK pair 28-29")
+            val clearSrcBdk = simulator.decryptUnderLmk(
+                data = encryptedSrcBdk,
+                lmkId = lmkId,
+                pairNumber = LMK_PAIR_BDK
+            )
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Source BDK (clr): ${bytesToHex(clearSrcBdk)}")
+            step++
+
+            // ── STEP 2: Decrypt destination key from LMK ─────────────────────
+            val clearDestKey: ByteArray
+            if (destIsBdk) {
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Decrypting dest BDK under LMK pair 28-29  (key type: '$destKeyType')")
+                clearDestKey = simulator.decryptUnderLmk(
+                    data = encryptedDestKey,
+                    lmkId = lmkId,
+                    pairNumber = LMK_PAIR_BDK
+                )
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest BDK (clr): ${bytesToHex(clearDestKey)}")
+            } else {
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Decrypting dest ZPK under LMK pair 06-07  (key type: '0')")
+                clearDestKey = simulator.decryptUnderLmk(
+                    data = encryptedDestKey,
+                    lmkId = lmkId,
+                    pairNumber = LMK_PAIR_ZMK_ZPK
+                )
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest ZPK (clr): ${bytesToHex(clearDestKey)}")
+            }
+            step++
+
+            // ── Source-side DUKPT derivation (using SOURCE BDK) ─────────────
+
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Deriving source IPEK from SOURCE BDK (${bytesToHex(clearSrcBdk)}) + KSN=$srcKsn  counterBits=$srcCounterBits")
+            val srcIpek = deriveInitialKey(clearSrcBdk, srcKsn, srcCounterBits)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Source IPEK (clr): ${bytesToHex(srcIpek)}")
+            step++
+
+            val srcKsnBytes = hexToBytes(srcKsn)
+            val srcCounter = extractDukptCounter(srcKsnBytes, srcCounterBits)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Source DUKPT counter : $srcCounter  (0x${srcCounter.toString(16).uppercase()})")
+            step++
+
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Deriving source 3DES session key from source IPEK  counter=$srcCounter")
+            val srcSessionKey = deriveDukptSessionKey(srcIpek, srcKsn, srcCounter, srcCounterBits)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Source session key (clr): ${bytesToHex(srcSessionKey)}")
+            step++
+
+            // ── Decrypt PIN block using SOURCE session key; extract clear PIN ─
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Decrypting PIN block with SOURCE session key (${bytesToHex(srcSessionKey)})")
+            val pinBlock = decryptPinBlock(encryptedPinBlock, srcSessionKey)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  PIN block (clr) hex: ${bytesToHex(pinBlock)}")
+            val panPart = "0000" + pan12(accountNumber)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  PAN part for XOR: $panPart")
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Extracting PIN  format=${sourcePinBlockFormat.code} (${sourcePinBlockFormat.description})  account=$accountNumber")
+            val pin = extractPinFromBlock(pinBlock, accountNumber, sourcePinBlockFormat)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Extracted PIN length: ${pin.length}  clear PIN: $pin")
+            step++
+
+            // ── Destination-side encryption (using DEST key) ─────────────────
+            val encryptionKey: ByteArray
+            if (destIsBdk && destKsnDescriptor != null && destKsn != null) {
+                val destCounterBits = parseKsnDescriptorCounterBits(destKsnDescriptor)
+
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Deriving dest IPEK from DEST BDK (${bytesToHex(clearDestKey)}) + KSN=$destKsn  counterBits=$destCounterBits")
+                val destIpek = deriveInitialKey(clearDestKey, destKsn, destCounterBits)
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest IPEK (clr): ${bytesToHex(destIpek)}")
+                step++
+
+                val destKsnBytes = hexToBytes(destKsn)
+                val destCounter = extractDukptCounter(destKsnBytes, destCounterBits)
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest DUKPT counter : $destCounter  (0x${destCounter.toString(16).uppercase()})")
+                step++
+
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Deriving dest 3DES session key  counter=$destCounter")
+                encryptionKey = deriveDukptSessionKey(destIpek, destKsn, destCounter, destCounterBits)
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest session key (clr): ${bytesToHex(encryptionKey)}")
+                step++
+            } else {
+                encryptionKey = clearDestKey
+            }
+
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Building new PIN block  format=${destPinBlockFormat.code} (${destPinBlockFormat.description})")
+            val newPinBlock = formatPinBlock(pin, accountNumber, destPinBlockFormat)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  New PIN block (clr): ${bytesToHex(newPinBlock)}")
+            val encryptedNewPinBlock = encryptPinBlock(newPinBlock, encryptionKey)
+            val destLabel = if (destIsBdk) "dest DUKPT session key" else "ZPK"
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  New PIN block (enc/$destLabel): ${bytesToHex(encryptedNewPinBlock)}")
+
+            return HsmCommandResult.Success(
+                response = "PIN translated from BDK (3DES DUKPT) to ${if (destIsBdk) "BDK" else "ZPK"}",
+                data = mapOf(
+                    "encryptedPinBlock" to bytesToHex(encryptedNewPinBlock),
+                    "pinLength"         to pin.length.toString(),
+                    "srcKsn"            to srcKsn,
+                    "destKeyType"       to destKeyType.toString()
+                ) + if (destKsn != null) mapOf("destKsn" to destKsn) else emptyMap()
+            )
+        } catch (e: Exception) {
+            return HsmCommandResult.Error(
+                HsmErrorCodes.INVALID_INPUT_DATA,
+                "G0 PIN translation failed: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * ================================================================================================
      * M0 - Generate MAC (CORRECTED)
      * ================================================================================================
      *
@@ -1122,31 +1287,21 @@ class PayShield10KCommandProcessor(
     suspend fun executeGenerateMac(
         lmkId: String,
         data: ByteArray,
-        encryptedTak: ByteArray,  // ← ENCRYPTED under LMK
-        algorithm: String = "ISO9797_ALG3"
+        encryptedTak: ByteArray,
+        algorithm: String = "ISO9797_ALG3",
+        paddingMethod: Int = 1,
+        macSizeBytes: Int = 4
     ): HsmCommandResult {
         try {
-            // STEP 1: Decrypt TAK from LMK encryption
             val clearTak = simulator.decryptUnderLmk(
                 data = encryptedTak,
                 lmkId = lmkId,
-                pairNumber = 14  // TAK uses pair 16-17 (key type 003)
+                pairNumber = LMK_PAIR_TAK
             )
-
-            // STEP 2: Generate MAC with clear TAK
-            val mac = when (algorithm) {
-                "ISO9797_ALG3" -> generateMacIso9797Alg3(data, clearTak)
-                "ANSI_X919" -> generateMacAnsiX919(data, clearTak)
-                else -> return HsmCommandResult.Error(
-                    HsmErrorCodes.ALGORITHM_NOT_SUPPORTED,
-                    "Unsupported MAC algorithm"
-                )
-            }
-
-            // STEP 3: Clear TAK is discarded
+            val mac = generateMac(data, clearTak, algorithm, paddingMethod, macSizeBytes)
 
             return HsmCommandResult.Success(
-                response = "MAC: ${bytesToHex(mac)}",
+                response = bytesToHex(mac),
                 data = mapOf(
                     "mac" to bytesToHex(mac),
                     "algorithm" to algorithm
@@ -1156,6 +1311,45 @@ class PayShield10KCommandProcessor(
             return HsmCommandResult.Error(
                 HsmErrorCodes.INVALID_INPUT_DATA,
                 "MAC generation failed: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * M8 - Verify MAC (LMK-encrypted TAK variant)
+     */
+    suspend fun executeVerifyMac(
+        lmkId: String,
+        data: ByteArray,
+        providedMac: ByteArray,
+        encryptedTak: ByteArray,
+        algorithm: String = "ISO9797_ALG3",
+        paddingMethod: Int = 1,
+        macSizeBytes: Int = 4
+    ): HsmCommandResult {
+        return try {
+            val clearTak = simulator.decryptUnderLmk(
+                data = encryptedTak,
+                lmkId = lmkId,
+                pairNumber = LMK_PAIR_TAK
+            )
+            val calculatedMac = generateMac(data, clearTak, algorithm, paddingMethod, macSizeBytes)
+            val compareLen = minOf(calculatedMac.size, providedMac.size)
+
+            hsmLongListener.log("[M8] Calculated MAC = ${bytesToHex(calculatedMac)}, Provided MAC = ${bytesToHex(providedMac)}")
+
+            if (calculatedMac.copyOf(compareLen).contentEquals(providedMac.copyOf(compareLen))) {
+                HsmCommandResult.Success("")
+            } else {
+                HsmCommandResult.Error(
+                    HsmErrorCodes.VERIFICATION_FAILURE,
+                    "MAC verification failed"
+                )
+            }
+        } catch (e: Exception) {
+            HsmCommandResult.Error(
+                HsmErrorCodes.INVALID_INPUT_DATA,
+                "MAC verification failed: ${e.message}"
             )
         }
     }
@@ -1178,7 +1372,7 @@ class PayShield10KCommandProcessor(
             val clearTpk = simulator.decryptUnderLmk(
                 data = encryptedTpk,
                 lmkId = lmkId,
-                pairNumber = 14
+                pairNumber = LMK_PAIR_TPK
             )
 
             // Decrypt PIN block
@@ -1325,33 +1519,60 @@ class PayShield10KCommandProcessor(
         return expanded
     }
 
-    private fun generateMacIso9797Alg3(data: ByteArray, key: ByteArray): ByteArray {
-        val paddedData = padData(data, 8)
+    /**
+     * ISO 9797-1 Algorithm 3 (= ANSI X9.19 with double-length key).
+     * 1. CBC-MAC all blocks with single DES using K1
+     * 2. Decrypt the result with K2
+     * 3. Re-encrypt with K1
+     * Final MAC = E_K1(D_K2(CBC-MAC_K1(data)))
+     */
+    private fun generateMacIso9797Alg3(
+        data: ByteArray,
+        key: ByteArray,
+        paddingMethod: Int = 1,
+        macSizeBytes: Int = 4
+    ): ByteArray {
+        val paddedData = when (paddingMethod) {
+            2 -> padDataMethod2(data, 8)
+            else -> padData(data, 8)
+        }
         var block = ByteArray(8)
-        val cipher = Cipher.getInstance("DES/ECB/NoPadding")
-        val keySpecLeft = SecretKeySpec(key.copyOf(8), "DES")
-        cipher.init(Cipher.ENCRYPT_MODE, keySpecLeft)
+
+        val cipherK1 = Cipher.getInstance("DES/ECB/NoPadding")
+        cipherK1.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key.copyOf(8), "DES"))
 
         for (i in paddedData.indices step 8) {
             val chunk = paddedData.copyOfRange(i, i + 8)
             val xored =
                 block.zip(chunk) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
-            block = cipher.doFinal(xored)
+            block = cipherK1.doFinal(xored)
         }
 
-        val cipher3Des = Cipher.getInstance("DESede/ECB/NoPadding")
-        val keySpec3Des = SecretKeySpec(key.copyOf(16), "DESede")
-        cipher3Des.init(Cipher.ENCRYPT_MODE, keySpec3Des)
+        val cipherK2Dec = Cipher.getInstance("DES/ECB/NoPadding")
+        cipherK2Dec.init(Cipher.DECRYPT_MODE, SecretKeySpec(key.copyOfRange(8, 16), "DES"))
+        block = cipherK2Dec.doFinal(block)
 
-        return cipher3Des.doFinal(block).copyOf(4)
+        block = cipherK1.doFinal(block)
+
+        return block.copyOf(macSizeBytes)
     }
 
-    private fun generateMacAnsiX919(data: ByteArray, key: ByteArray): ByteArray {
-        val paddedData = padData(data, 8)
+    /**
+     * ISO 9797-1 Algorithm 1 with 3DES: CBC-MAC using triple DES for every block.
+     */
+    private fun generateMacIso9797Alg1(
+        data: ByteArray,
+        key: ByteArray,
+        paddingMethod: Int = 1,
+        macSizeBytes: Int = 4
+    ): ByteArray {
+        val paddedData = when (paddingMethod) {
+            2 -> padDataMethod2(data, 8)
+            else -> padData(data, 8)
+        }
         var block = ByteArray(8)
         val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        val keySpec = SecretKeySpec(key.copyOf(16), "DESede")
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec)
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expandKeyTo24(key), "DESede"))
 
         for (i in paddedData.indices step 8) {
             val chunk = paddedData.copyOfRange(i, i + 8)
@@ -1360,12 +1581,36 @@ class PayShield10KCommandProcessor(
             block = cipher.doFinal(xored)
         }
 
-        return block.copyOf(4)
+        return block.copyOf(macSizeBytes)
     }
 
+    @Deprecated("Use generateMacIso9797Alg1 instead", ReplaceWith("generateMacIso9797Alg1(data, key)"))
+    private fun generateMacAnsiX919(data: ByteArray, key: ByteArray): ByteArray =
+        generateMacIso9797Alg1(data, key)
+
+    private fun generateMac(
+        data: ByteArray,
+        key: ByteArray,
+        algorithm: String,
+        paddingMethod: Int = 1,
+        macSizeBytes: Int = 4
+    ): ByteArray = when (algorithm) {
+        "ISO9797_ALG1" -> generateMacIso9797Alg1(data, key, paddingMethod, macSizeBytes)
+        "ISO9797_ALG3" -> generateMacIso9797Alg3(data, key, paddingMethod, macSizeBytes)
+        else -> throw IllegalArgumentException("Unsupported MAC algorithm: $algorithm")
+    }
+
+    /** ISO 9797 Padding Method 1: pad with 0x00 bytes to fill block. */
     private fun padData(data: ByteArray, blockSize: Int): ByteArray {
         val padding = blockSize - (data.size % blockSize)
         return if (padding == blockSize) data else data + ByteArray(padding)
+    }
+
+    /** ISO 9797 Padding Method 2: append 0x80 then pad with 0x00. */
+    private fun padDataMethod2(data: ByteArray, blockSize: Int): ByteArray {
+        val padded = data + byteArrayOf(0x80.toByte())
+        val remaining = blockSize - (padded.size % blockSize)
+        return if (remaining == blockSize) padded else padded + ByteArray(remaining)
     }
 
     // ====================================================================================================
@@ -1380,7 +1625,7 @@ class PayShield10KCommandProcessor(
         pinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0
     ): HsmCommandResult {
         return try {
-            val clearTpk = simulator.decryptUnderLmk(encryptedTpk, lmkId, 14)
+            val clearTpk = simulator.decryptUnderLmk(encryptedTpk, lmkId, LMK_PAIR_TPK)
             val pinBlock = decryptPinBlock(encryptedPinBlock, clearTpk)
             val pin = extractPinFromBlock(pinBlock, accountNumber, pinBlockFormat)
             // Encrypt PIN under LMK pair 02-03 (LMK-encrypted PIN format)
@@ -1405,7 +1650,7 @@ class PayShield10KCommandProcessor(
         pinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0
     ): HsmCommandResult {
         return try {
-            val clearZpk = simulator.decryptUnderLmk(encryptedZpk, lmkId, 6)
+            val clearZpk = simulator.decryptUnderLmk(encryptedZpk, lmkId, LMK_PAIR_ZMK_ZPK)
             val pinBlock = decryptPinBlock(encryptedPinBlock, clearZpk)
             val pin = extractPinFromBlock(pinBlock, accountNumber, pinBlockFormat)
             val lmkPin = encryptPinUnderLmk(pin, accountNumber, lmkId)
@@ -1429,7 +1674,7 @@ class PayShield10KCommandProcessor(
         pinBlockFormat: PinBlockFormat = PinBlockFormat.ISO_FORMAT_0
     ): HsmCommandResult {
         return try {
-            val clearZpk = simulator.decryptUnderLmk(encryptedZpk, lmkId, 6)
+            val clearZpk = simulator.decryptUnderLmk(encryptedZpk, lmkId, LMK_PAIR_ZMK_ZPK)
             val pin = decryptLmkPin(lmkEncryptedPin, accountNumber, lmkId)
             val pinBlock = formatPinBlock(pin, accountNumber, pinBlockFormat)
             val zpkPinBlock = encryptPinBlock(pinBlock, clearZpk)
@@ -1456,7 +1701,7 @@ class PayShield10KCommandProcessor(
         counterBits: Int = 21
     ): HsmCommandResult {
         return try {
-            val clearBdk = simulator.decryptUnderLmk(sourceKey, lmkId, 28)
+            val clearBdk = simulator.decryptUnderLmk(sourceKey, lmkId, LMK_PAIR_BDK)
             val initialKey = deriveInitialKey(clearBdk, ksn, counterBits)
             val ksnBytes = hexToBytes(ksn)
             val counter = extractDukptCounter(ksnBytes, counterBits)
@@ -1466,7 +1711,7 @@ class PayShield10KCommandProcessor(
             val clearData = decryptPinBlock(encryptedData, sessionKey)
 
             // Re-encrypt under destination key (ZPK)
-            val clearDestKey = simulator.decryptUnderLmk(destKey, lmkId, 6)
+            val clearDestKey = simulator.decryptUnderLmk(destKey, lmkId, LMK_PAIR_ZMK_ZPK)
             val translatedData = encryptPinBlock(clearData, clearDestKey)
             val translatedHex = bytesToHex(translatedData)
 
@@ -1491,7 +1736,7 @@ class PayShield10KCommandProcessor(
         minPinLength: Int = 4
     ): HsmCommandResult {
         return try {
-            val clearPvk = simulator.decryptUnderLmk(pvk, lmkId, 14)
+            val clearPvk = simulator.decryptUnderLmk(pvk, lmkId, LMK_PAIR_PVK)
             val naturalPin = generateNaturalPin(accountNumber, clearPvk, decimalizationTable)
 
             // Apply offset to get customer PIN
