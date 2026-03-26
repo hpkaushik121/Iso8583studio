@@ -19,7 +19,7 @@ class MasterCardCalculator() : BaseCalculator<MasterCardCalculatorInput, MasterC
     override val id = "mastercard-calculator"
     override val name = "MasterCard M/Chip Calculator"
     override val category = CalculatorCategory.EMV_PAYMENT
-    override val version = "1.0.1"
+    override val version = "1.0.2"
 
     override suspend fun executeOperation(input: MasterCardCalculatorInput): MasterCardCalculatorCalculatorResult {
         return when (input.operation) {
