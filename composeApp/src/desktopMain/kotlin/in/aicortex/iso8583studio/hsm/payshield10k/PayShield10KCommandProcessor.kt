@@ -32,6 +32,7 @@ import ai.cortex.core.types.CryptoAlgorithm
 import `in`.aicortex.iso8583studio.hsm.payshield10k.*
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
 import io.cryptocalc.crypto.engines.DukptEngine
+import io.cryptocalc.crypto.engines.DukptEngine.DEFAULT_COUNTER_BITS
 import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import io.cryptocalc.crypto.engines.encryption.EMVEngines
 import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
@@ -534,7 +535,8 @@ class PayShield10KCommandProcessor(
          * For standard BDK key type "009", caller should use counterBits=21 directly.
          */
         fun parseKsnDescriptorCounterBits(ksnDescriptor: String): Int {
-            return DukptEngine.parseKsnDescriptorCounterBits(ksnDescriptor)
+//            return DukptEngine.parseKsnDescriptorCounterBits(ksnDescriptor)
+            return 21
         }
 
         /**
@@ -583,7 +585,7 @@ class PayShield10KCommandProcessor(
          *                     or parsed from KSN descriptor for others)
          * @return 16-byte IPEK/IKEY
          */
-        fun deriveInitialKey(clearBdk: ByteArray, ksnHex: String, counterBits: Int): ByteArray {
+        fun deriveInitialKey(clearBdk: ByteArray, ksnHex: String, counterBits: Int= DEFAULT_COUNTER_BITS): ByteArray {
             return DukptEngine.deriveIpek(clearBdk, ksnHex, counterBits)
         }
     }

@@ -577,11 +577,11 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         hsm.hsmLogsListener.log("  Clear BDK: ${IsoUtil.bytesToHex(clearBdk)}")
 
         // Step 2: Derive IKEY/IPEK from BDK + KSN
-        val normalizedKsn = if (ksnStr.length % 2 != 0) "0$ksnStr" else ksnStr
-        hsm.hsmLogsListener.log("  Normalized KSN: $normalizedKsn")
         val counterBits = if (request.keyType == "009") 21
             else PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(request.keyType)
-        val clearIkey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, normalizedKsn, counterBits)
+
+        hsm.hsmLogsListener.log("[A0 Mode ${request.mode}] Step 2:   KSN: $ksnStr , KSN Descriptor:${request.keyType}, counterBits ${counterBits}")
+        val clearIkey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnStr, counterBits)
 
         hsm.hsmLogsListener.log("[A0 Mode ${request.mode}] Step 2: Derived IKEY from BDK + KSN")
         hsm.hsmLogsListener.log("  KSN: $ksnStr")
