@@ -17,7 +17,7 @@ class Emv41CryptoCalculator() : BaseCalculator<EMVCalculatorInput, EMVCalculator
     override val id = "emv-4.1-calculator"
     override val name = "EMV 4.1 Calculator"
     override val category = CalculatorCategory.EMV_PAYMENT
-    override val version = "1.0.3"
+    override val version = "1.0.4"
 
     override suspend fun executeOperation(input: EMVCalculatorInput): EMVCalculatorResult {
         return try {

@@ -366,8 +366,8 @@ class PayShieldStringCommandProcessor(
      */
     private fun executeVR(cmd: ParsedCommand): HsmCommandResult {
         return HsmCommandResult.Success(
-            response = "PayShield 10K Simulator v1.0.3",
-            data = mapOf("version" to "1.0.3")
+            response = "PayShield 10K Simulator v1.0.4",
+            data = mapOf("version" to "1.0.4")
         )
     }
 
@@ -1120,14 +1120,7 @@ class PayShieldStringCommandProcessor(
                 val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
                 hsmLogsListener.log("[M0] Step 9: DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
 
-                val dataVariant = byteArrayOf(
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00
-                )
-                clearKey = ByteArray(sessionKey.size) { i ->
-                    (sessionKey[i].toInt() xor dataVariant[i].toInt()).toByte()
-                }
-                hsmLogsListener.log("[M0] Step 10: Data encryption key (session XOR variant) = ${IsoUtil.bytesToHexString(clearKey)}")
+                clearKey = sessionKey
             } else {
                 val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
                 val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
@@ -1149,8 +1142,8 @@ class PayShieldStringCommandProcessor(
                 hsmLogsListener.log("[M0] Step 5: Decrypted clear key = ${IsoUtil.bytesToHexString(clearKey)}")
             }
 
-            hsmLogsListener.log("[M0] Step 11: Encrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${plainData.size} bytes")
-            hsmLogsListener.log("[M0] Step 11: Plain data = $plainDataHex")
+            hsmLogsListener.log("[M0] Step 10: Encrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${plainData.size} bytes")
+            hsmLogsListener.log("[M0] Step 10: Plain data = $plainDataHex")
 
             val cipherMode = if (mode == "01") CipherMode.CBC else CipherMode.ECB
             val encData = engine().encryptionEngine.encrypt(

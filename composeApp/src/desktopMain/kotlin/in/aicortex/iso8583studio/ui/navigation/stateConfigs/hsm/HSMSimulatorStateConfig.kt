@@ -1045,7 +1045,7 @@ data class HSMDeviceInfo(
     val manufacturerName: String = "Aicortex",
     val modelName: String = "HSM-SIM-v1",
     val serialNumber: String = "HSM001234567890",
-    val firmwareVersion: String = "1.0.3",
+    val firmwareVersion: String = "1.0.4",
     val hardwareVersion: String = "1.0",
     val deviceDescription: String = "Simulated Hardware Security Module for development and testing"
 )
