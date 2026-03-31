@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -293,14 +294,14 @@ fun POSSettingsTab(posService: POSSimulatorService, onSaveClick: () -> Unit) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Host Connection Settings", style = MaterialTheme.typography.h6)
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
                     label = { Text("Host IP Address") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !posService.isConnected
                 )
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = port,
                     onValueChange = { port = it.filter { c -> c.isDigit() }.take(5) },
                     label = { Text("Host Port") },

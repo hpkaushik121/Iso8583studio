@@ -136,7 +136,6 @@ fun PosTerminalConfigScreen(
                 SimulatorSessionManager.launchSimulator(it)
                 navigationController.navigateTo(Destination.Home)
             }
-
         )
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -46,6 +47,7 @@ enum class ToolSuite(
         tools = listOf(
             StudioTool.HOST_SIMULATOR,
             StudioTool.HSM_SIMULATOR,
+            StudioTool.HSM_COMMAND,
             StudioTool.POS_TERMINAL,
             StudioTool.ATM_SIMULATOR,
             StudioTool.PAYMENT_SWITCH,
@@ -482,7 +484,7 @@ private fun FloatingSearchBar(
         shape = RoundedCornerShape(32.dp),
         backgroundColor = MaterialTheme.colors.surface
     ) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth(),

@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.filled.*
@@ -637,7 +638,7 @@ private fun ParamField(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
             ) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = selectedLabel,
                     onValueChange = {},
                     readOnly = true,
@@ -669,7 +670,7 @@ private fun ParamField(
                 }
             }
         } else {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier.fillMaxWidth(),

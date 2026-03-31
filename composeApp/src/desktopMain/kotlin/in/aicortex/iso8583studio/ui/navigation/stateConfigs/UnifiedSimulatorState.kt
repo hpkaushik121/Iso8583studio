@@ -12,6 +12,7 @@ import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.domain.ImportResult
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.APDUSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmCommandConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorConfig
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -41,6 +42,7 @@ enum class SimulatorType(val displayName: String, val description: String) {
     SWITCH("Switch Simulator", "Payment Network Switch Simulator"),
     ACQUIRER("Acquirer Simulator", "Acquiring Bank Simulator"),
     ISSUER("Issuer Simulator", "Card Issuing Bank Simulator"),
+    HSM_COMMAND("HSM Commander", "HSM Commander Client"),
     /** Lightweight tab for any non-simulator studio tool (converters, parsers, etc.) */
     TOOL("Tool", "Studio Tool")
 }
@@ -55,6 +57,7 @@ data class UnifiedSimulatorState(
     val hsmConfigs: MutableState<List<HSMSimulatorConfig>> = mutableStateOf(emptyList()),
     val apduConfigs: MutableState<List<APDUSimulatorConfig>> = mutableStateOf(emptyList()),
     val posConfigs: MutableState<List<POSSimulatorConfig>> = mutableStateOf(emptyList()),
+    val hsmCommandConfigs: MutableState<List<HsmCommandConfig>> = mutableStateOf(emptyList()),
     val ecrConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
     val atmConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
     val cardConfigs: MutableState<List<String>> = mutableStateOf(emptyList()),
@@ -81,6 +84,7 @@ data class UnifiedSimulatorState(
                 subclass(HSMSimulatorConfig::class)
                 subclass(APDUSimulatorConfig::class)
                 subclass(POSSimulatorConfig::class)
+                subclass(HsmCommandConfig::class)
             }
         }
     }
@@ -99,7 +103,7 @@ data class UnifiedSimulatorState(
      * Get all configurations as a unified list
      */
     fun getAllConfigs(): List<SimulatorConfig> {
-        return hostConfigs.value + hsmConfigs.value + apduConfigs.value + posConfigs.value
+        return hostConfigs.value + hsmConfigs.value + apduConfigs.value + posConfigs.value + hsmCommandConfigs.value
     }
 
     /**
@@ -111,7 +115,8 @@ data class UnifiedSimulatorState(
             SimulatorType.HSM -> hsmConfigs.value
             SimulatorType.APDU -> apduConfigs.value
             SimulatorType.POS -> posConfigs.value
-            else -> emptyList() // For future simulator types
+            SimulatorType.HSM_COMMAND -> hsmCommandConfigs.value
+            else -> emptyList()
         }
     }
     
@@ -155,6 +160,11 @@ data class UnifiedSimulatorState(
                 posConfigs.value = posConfigs.value + config
                 selectedConfigIndex.value[config.simulatorType] = posConfigs.value.size - 1
             }
+
+            is HsmCommandConfig -> {
+                hsmCommandConfigs.value = hsmCommandConfigs.value + config
+                selectedConfigIndex.value[config.simulatorType] = hsmCommandConfigs.value.size - 1
+            }
         }
         save()
     }
@@ -197,6 +207,15 @@ data class UnifiedSimulatorState(
                     val newList = posConfigs.value.toMutableList()
                     newList[index] = config.copy(modifiedDate = System.currentTimeMillis())
                     posConfigs.value = newList
+                }
+            }
+
+            is HsmCommandConfig -> {
+                val index = hsmCommandConfigs.value.indexOfFirst { it.id == config.id }
+                if (index >= 0) {
+                    val newList = hsmCommandConfigs.value.toMutableList()
+                    newList[index] = config.copy(modifiedDate = System.currentTimeMillis())
+                    hsmCommandConfigs.value = newList
                 }
             }
         }
@@ -256,6 +275,16 @@ data class UnifiedSimulatorState(
                     found = true
                 }
 
+            }
+            SimulatorType.HSM_COMMAND -> {
+                val idx = hsmCommandConfigs.value.indexOfFirst { it.id == configId }
+                if (idx >= 0) {
+                    hsmCommandConfigs.value = hsmCommandConfigs.value.filter { it.id != configId }
+                    selectedConfigIndex.value[type] = if (hsmCommandConfigs.value.isNotEmpty()) {
+                        minOf(selectedConfigIndex.value[type]!!, hsmCommandConfigs.value.size - 1)
+                    } else -1
+                    found = true
+                }
             }
             SimulatorType.ECR -> TODO()
             SimulatorType.ATM -> TODO()
@@ -332,6 +361,11 @@ data class UnifiedSimulatorState(
                 modifiedDate = System.currentTimeMillis()
             )
 
+            is HsmCommandConfig -> config.copy(
+                enabled = enabled,
+                modifiedDate = System.currentTimeMillis()
+            )
+
             else -> null
         }
 
@@ -370,6 +404,13 @@ data class UnifiedSimulatorState(
             )
 
             is POSSimulatorConfig -> originalConfig.copy(
+                id = generateConfigId(),
+                name = duplicatedName,
+                createdDate = timestamp,
+                modifiedDate = timestamp
+            )
+
+            is HsmCommandConfig -> originalConfig.copy(
                 id = generateConfigId(),
                 name = duplicatedName,
                 createdDate = timestamp,
@@ -487,6 +528,7 @@ data class UnifiedSimulatorState(
                 hsmConfigs = hsmConfigs.value,
                 apduConfigs = apduConfigs.value,
                 posConfigs = posConfigs.value,
+                hsmCommandConfigs = hsmCommandConfigs.value,
                 ecrConfigs = ecrConfigs.value,
                 atmConfigs = atmConfigs.value,
                 cardConfigs = cardConfigs.value,
@@ -533,6 +575,7 @@ data class UnifiedSimulatorState(
                 hsmConfigs = hsmConfigs.value,
                 apduConfigs = apduConfigs.value,
                 posConfigs = posConfigs.value,
+                hsmCommandConfigs = hsmCommandConfigs.value,
                 ecrConfigs = ecrConfigs.value,
                 atmConfigs = atmConfigs.value,
                 cardConfigs = cardConfigs.value,
@@ -583,6 +626,9 @@ data class UnifiedSimulatorState(
                     }
                     SimulatorType.POS -> {
                         posConfigs.value = configCollection.posConfigs
+                    }
+                    SimulatorType.HSM_COMMAND -> {
+                        hsmCommandConfigs.value = configCollection.hsmCommandConfigs
                     }
 
                     SimulatorType.ECR -> {
@@ -706,6 +752,7 @@ data class SimulatorConfigCollection(
     val hsmConfigs: List<HSMSimulatorConfig>,
     val apduConfigs: List<APDUSimulatorConfig>,
     val posConfigs: List<POSSimulatorConfig>,
+    val hsmCommandConfigs: List<HsmCommandConfig> = emptyList(),
     val ecrConfigs: List<String>,
     val atmConfigs: List<String>,
     val cardConfigs: List<String>,

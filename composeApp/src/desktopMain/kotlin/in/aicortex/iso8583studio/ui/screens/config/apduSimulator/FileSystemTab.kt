@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -630,7 +631,7 @@ fun MaterialSearchBar(
     onQueryChange: (String) -> Unit,
     placeholder: String
 ) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
         placeholder = {
@@ -1254,7 +1255,7 @@ fun MaterialFormField(
     readOnly: Boolean = false,
     fontFamily: FontFamily? = null
 ) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -1282,7 +1283,7 @@ fun MaterialDropdownField(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedValue,
             onValueChange = { },
             label = { Text(label) },
@@ -1330,7 +1331,7 @@ fun MaterialAccessDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedValue.displayName,
             onValueChange = { },
             label = { Text(label) },
@@ -1651,7 +1652,7 @@ fun MaterialHexEditor(
             border = BorderStroke(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.2f))
         ) {
             SelectionContainer {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = editableData,
                     onValueChange = { newValue ->
                         val filteredValue = newValue.filter {

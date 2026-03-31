@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DataObject
@@ -94,7 +95,7 @@ fun BitmapScreen(
         ) {
             // --- Output Card ---
             SectionHeader(title = "Calculated Bitmap", icon = Icons.Default.DataObject)
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = hexBitmap,
                 onValueChange = {},
                 modifier = Modifier.fillMaxWidth(),

@@ -120,7 +120,7 @@ fun ModernDropdownField(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value,
             onValueChange = {},
             label = { Text(label) },
@@ -182,7 +182,7 @@ fun EnhancedTextField(
     validation: ValidationResult
 ) {
     Column(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
@@ -463,7 +463,7 @@ fun StyledTextField(
     singleLine: Boolean = true,
     maxLines: Int = 1
 ) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,

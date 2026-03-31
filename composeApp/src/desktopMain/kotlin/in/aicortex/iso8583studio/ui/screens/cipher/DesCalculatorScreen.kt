@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -614,7 +615,7 @@ private fun EnhancedTextField(
     placeholder: String = ""
 ) {
     Column(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
@@ -709,7 +710,7 @@ private fun ModernDropdownField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value,
             onValueChange = {},
             label = { Text(label) },

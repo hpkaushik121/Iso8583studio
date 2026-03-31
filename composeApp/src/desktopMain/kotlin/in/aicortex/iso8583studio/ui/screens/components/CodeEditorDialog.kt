@@ -657,7 +657,7 @@ private fun MethodEditorPanel(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Method name editor
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = methodTemplate.methodName,
             onValueChange = {
                 onMethodChange(methodTemplate.copy(methodName = it))
@@ -688,7 +688,7 @@ private fun MethodEditorPanel(
                     .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.3f)),
                 color = Color(0xFF1E1E1E)
             ) {
-                BasicTextField(
+                FixedBasicTextField(
                     value = methodTemplate.methodBody,
                     onValueChange = {
                         if (executionState == ExecutionState.IDLE) {

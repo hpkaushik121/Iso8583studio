@@ -24,7 +24,6 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
@@ -67,6 +66,7 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorCo
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMVendor
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.OperatingMode
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.TamperResistanceLevel
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 
 
 
@@ -93,7 +93,7 @@ fun HSMProfileTab(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // HSM Name
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.name,
                     onValueChange = { currentConfig = currentConfig.copy(name = it) },
                     label = { Text("HSM Name") },
@@ -113,7 +113,7 @@ fun HSMProfileTab(
                 )
 
                 // Description
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.description,
                     onValueChange = { currentConfig = currentConfig.copy(description = it) },
                     label = { Text("Description") },
@@ -134,7 +134,7 @@ fun HSMProfileTab(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Serial Number
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = currentConfig.deviceInfo.serialNumber,
                         onValueChange = { currentConfig = currentConfig.copy(deviceInfo = config.deviceInfo.copy(serialNumber = it)) },
                         label = { Text("Serial Number") },
@@ -181,7 +181,7 @@ fun HSMProfileTab(
                 }
 
                 // Firmware Version
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = currentConfig.deviceInfo.firmwareVersion,
                     onValueChange = { currentConfig = currentConfig.copy(deviceInfo = currentConfig.deviceInfo.copy(firmwareVersion = it)) },
                     label = { Text("Firmware Version") },
@@ -229,7 +229,7 @@ fun HSMProfileTab(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Max Sessions
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = currentConfig.maxSessions.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { sessions ->
@@ -251,7 +251,7 @@ fun HSMProfileTab(
                     )
 
                     // Key Storage Slots
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = currentConfig.slotConfiguration.totalSlots.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { slots ->
@@ -431,7 +431,7 @@ private fun ModelSelectionDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedModel,
             onValueChange = { },
             label = { Text("${vendor.displayName} Model") },
@@ -485,7 +485,7 @@ private fun <T> DropdownSelector(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = displayName(selectedOption),
             onValueChange = { },
             label = { Text(label) },

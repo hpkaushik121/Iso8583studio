@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -669,7 +670,7 @@ fun HsmHostCommandsTab(hsm: HsmServiceImpl) {
 
                 // Search bar
                 Box(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -1015,7 +1016,7 @@ private fun HostParamField(
         when (param.type) {
             HostParamType.DROPDOWN -> HostDropdownField(param, value, onValueChange)
 
-            HostParamType.NUMBER -> OutlinedTextField(
+            HostParamType.NUMBER -> FixedOutlinedTextField(
                 value = value,
                 onValueChange = { if (it.all { c -> c.isDigit() }) onValueChange(it) },
                 modifier = Modifier.fillMaxWidth(),
@@ -1024,7 +1025,7 @@ private fun HostParamField(
                 textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = 12.sp)
             )
 
-            else -> OutlinedTextField(
+            else -> FixedOutlinedTextField(
                 value = value,
                 onValueChange = { v ->
                     val filtered = if (param.type == HostParamType.HEX)
@@ -1050,7 +1051,7 @@ private fun HostDropdownField(
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = param.options.find { it.value == value }?.label ?: value
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedLabel,
             onValueChange = {},
             modifier = Modifier.fillMaxWidth(),

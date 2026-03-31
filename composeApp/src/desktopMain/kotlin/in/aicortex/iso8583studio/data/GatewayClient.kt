@@ -337,6 +337,10 @@ class GatewayClient {
                         try {
                             processSynchronous()
                         } catch (ex: VerificationException) {
+                            if (ex.error == VerificationError.TIMEOUT &&
+                                gatewayHandler?.configuration?.gatewayType == GatewayType.SERVER) {
+                                continue
+                            }
                             if (ex.error != VerificationError.EXCEPTION_HANDLED) {
                                 throw ex
                             }

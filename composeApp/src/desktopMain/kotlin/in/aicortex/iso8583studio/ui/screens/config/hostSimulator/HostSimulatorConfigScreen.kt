@@ -98,7 +98,6 @@ fun HostSimulatorConfigScreen(
                 )
                 appState.save()
             }
-
         )
 
     }

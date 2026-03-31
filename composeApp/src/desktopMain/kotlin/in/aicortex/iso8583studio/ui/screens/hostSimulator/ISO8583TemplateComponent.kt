@@ -29,6 +29,8 @@ import `in`.aicortex.iso8583studio.ui.screens.components.PreviewSection
 import kotlinx.serialization.json.Json
 
 import kotlin.math.absoluteValue
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedTextField
 
 /**
  * Main composable for ISO8583 Template tab with format support
@@ -1092,7 +1094,7 @@ fun BitEditDialog(
                 // Max Length field
                 Text("Max Length", fontWeight = FontWeight.Medium)
                 var maxLength by remember { mutableStateOf(editedBit.maxLength.toString()) }
-                TextField(
+                FixedTextField(
                     value = maxLength,
                     onValueChange = {
                         maxLength = it
@@ -1273,7 +1275,7 @@ fun CustomizedMessageCard(
                     modifier = Modifier.width(150.dp)
                 )
 
-                TextField(
+                FixedTextField(
                     value = ignoreHeaderLength,
                     onValueChange = onIgnoreHeaderLengthChange,
                     modifier = Modifier.width(60.dp),
@@ -1296,7 +1298,7 @@ fun CustomizedMessageCard(
                     modifier = Modifier.width(150.dp)
                 )
                 var fixedResponseHeaderText by remember { mutableStateOf(IsoUtil.bcdToString(fixedResponseHeader)) }
-                TextField(
+                FixedTextField(
                     value = fixedResponseHeaderText,
                     onValueChange = {
                         fixedResponseHeaderText = it
@@ -1638,7 +1640,7 @@ fun BitManipulationControls(
                     modifier = Modifier.padding(end = 8.dp)
                 )
 
-                TextField(
+                FixedTextField(
                     value = bitNumberToAdd,
                     onValueChange = { bitNumberToAdd = it },
                     modifier = Modifier.width(80.dp),

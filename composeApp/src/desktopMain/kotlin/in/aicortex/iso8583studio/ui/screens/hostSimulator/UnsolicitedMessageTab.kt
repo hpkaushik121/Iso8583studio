@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -517,7 +518,7 @@ fun SearchAndFilterBar(
         Row(
             modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchChange,
                 placeholder = { Text("Search fields...") },
@@ -729,7 +730,7 @@ fun EnhancedMessageParserCard(
                 shape = RoundedCornerShape(12.dp),
                 elevation = 2.dp
             ) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = rawMessage,
                     onValueChange = onMessageChange,
                     label = {

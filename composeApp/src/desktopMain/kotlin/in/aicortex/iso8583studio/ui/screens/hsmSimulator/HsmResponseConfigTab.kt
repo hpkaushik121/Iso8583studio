@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -1365,7 +1366,7 @@ private fun EnhancedHsmParameterRow(
                                 }
 
                                 // Enhanced text field with proper focus handling
-                                OutlinedTextField(
+                                FixedOutlinedTextField(
                                     value = value,
                                     onValueChange = { newValue ->
                                         value = newValue
@@ -1890,7 +1891,7 @@ private fun HsmKeyIdMatchingSection(
             }
 
             // Key ID Input
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = keyIdMatching.keyId,
                 onValueChange = {
                     onKeyIdMatchingChange(keyIdMatching.copy(keyId = it))
@@ -2032,7 +2033,7 @@ private fun HsmSessionMatcherRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Attribute input
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = matcher.attribute,
                     onValueChange = { onMatcherChange(matcher.copy(attribute = it)) },
                     label = { Text("Attribute") },
@@ -2081,7 +2082,7 @@ private fun HsmSessionMatcherRow(
                 }
 
                 // Value input
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = matcher.value,
                     onValueChange = { onMatcherChange(matcher.copy(value = it)) },
                     label = { Text("Value") },
@@ -2191,7 +2192,7 @@ private fun HsmResponseFieldRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Target parameter
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = responseField.targetParameter ?: "",
                     onValueChange = { onResponseFieldChange(responseField.copy(targetParameter = it.takeIf { it.isNotBlank() })) },
                     label = { Text("Parameter Path") },
@@ -2201,7 +2202,7 @@ private fun HsmResponseFieldRow(
                 )
 
                 // Value
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = responseField.value,
                     onValueChange = { onResponseFieldChange(responseField.copy(value = it)) },
                     label = { Text("Value") },
@@ -2422,7 +2423,7 @@ private fun HsmCommandBasicInformationCard(
                 color = MaterialTheme.colors.primary
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = description,
                 onValueChange = onDescriptionChange,
                 label = { Text("Description *") },
@@ -2437,7 +2438,7 @@ private fun HsmCommandBasicInformationCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = commandCode,
                     onValueChange = onCommandCodeChange,
                     label = { Text("Command Code *") },
@@ -2448,7 +2449,7 @@ private fun HsmCommandBasicInformationCard(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = commandName,
                     onValueChange = onCommandNameChange,
                     label = { Text("Command Name") },

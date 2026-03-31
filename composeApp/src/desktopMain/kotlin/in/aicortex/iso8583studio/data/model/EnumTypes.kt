@@ -38,6 +38,14 @@ enum class StudioTool(
         status = DevelopmentStatus.BETA,
         screen = Destination.HSMSimulatorConfig
     ),
+
+    HSM_COMMAND(
+        "HSM Commander",
+        "Connect and send commands to real HSMs",
+        Icons.Default.Terminal,
+        isNew = true,
+        screen = Destination.HsmCommandConfig
+    ),
     ECR_SIMULATOR(
         "ECR Simulstor",
         "Electronic Cash Register simulation",

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -280,7 +281,7 @@ private fun ResponseDelaySection(
             // Delay Configuration based on type
             when (config.delayType) {
                 ResponseDelayType.FIXED -> {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.fixedDelayMs.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { delay ->
@@ -303,7 +304,7 @@ private fun ResponseDelaySection(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.minDelayMs.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { delay ->
@@ -320,7 +321,7 @@ private fun ResponseDelaySection(
                             }
                         )
 
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.maxDelayMs.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { delay ->
@@ -344,7 +345,7 @@ private fun ResponseDelaySection(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.networkLatencyMs.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { latency ->
@@ -361,7 +362,7 @@ private fun ResponseDelaySection(
                             }
                         )
 
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.processingDelayMs.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { delay ->
@@ -437,7 +438,7 @@ private fun JitterConfiguration(
         }
 
         if (config.enableJitter) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.jitterPercentage.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { percentage ->
@@ -512,7 +513,7 @@ private fun ErrorInjectionSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = (config.errorRate * 100).toString(),
                         onValueChange = {
                             it.toDoubleOrNull()?.let { rate ->
@@ -553,7 +554,7 @@ private fun ErrorInjectionSection(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.errorBurstDuration.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { duration ->
@@ -570,7 +571,7 @@ private fun ErrorInjectionSection(
                             }
                         )
 
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = (config.errorBurstRate * 100).toString(),
                             onValueChange = {
                                 it.toDoubleOrNull()?.let { rate ->
@@ -766,7 +767,7 @@ private fun LoadTestingSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.baseTransactionRate.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { rate ->
@@ -783,7 +784,7 @@ private fun LoadTestingSection(
                         }
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.maxTransactionRate.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { rate ->
@@ -805,7 +806,7 @@ private fun LoadTestingSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.concurrentUsers.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { users ->
@@ -822,7 +823,7 @@ private fun LoadTestingSection(
                         }
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.testDuration.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { duration ->
@@ -841,7 +842,7 @@ private fun LoadTestingSection(
                 }
 
                 if (config.testingPattern == LoadTestingPattern.RAMP_UP) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.rampUpDuration.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { duration ->
@@ -931,7 +932,7 @@ private fun FailureSimulationSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = (config.failureRate * 100).toString(),
                         onValueChange = {
                             it.toDoubleOrNull()?.let { rate ->
@@ -948,7 +949,7 @@ private fun FailureSimulationSection(
                         }
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.meanTimeToFailure.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { time ->
@@ -966,7 +967,7 @@ private fun FailureSimulationSection(
                     )
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.meanTimeToRepair.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { time ->
@@ -1140,7 +1141,7 @@ private fun PluginConfigurationSection(
             }
 
             if (config.enablePlugins) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.pluginDirectory,
                     onValueChange = { onConfigChanged(config.copy(pluginDirectory = it)) },
                     label = { Text("Plugin Directory") },
@@ -1160,7 +1161,7 @@ private fun PluginConfigurationSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.maxPluginMemory.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { memory ->
@@ -1177,7 +1178,7 @@ private fun PluginConfigurationSection(
                         }
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.pluginTimeout.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { timeout ->
@@ -1404,7 +1405,7 @@ private fun EventHooksSection(
             }
 
             if (config.enableEventHooks) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.hookScriptDirectory,
                     onValueChange = { onConfigChanged(config.copy(hookScriptDirectory = it)) },
                     label = { Text("Hook Script Directory") },
@@ -1415,7 +1416,7 @@ private fun EventHooksSection(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.hookTimeout.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { timeout ->
@@ -1664,7 +1665,7 @@ private fun RestApiIntegrationConfig(
                 fontWeight = FontWeight.Medium
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.baseUrl,
                 onValueChange = { onConfigChanged(config.copy(baseUrl = it)) },
                 label = { Text("Base URL") },
@@ -1698,7 +1699,7 @@ private fun DatabaseIntegrationConfig(
                 fontWeight = FontWeight.Medium
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.connectionString,
                 onValueChange = { onConfigChanged(config.copy(connectionString = it)) },
                 label = { Text("Connection String") },
@@ -1732,7 +1733,7 @@ private fun WebhookIntegrationConfig(
                 fontWeight = FontWeight.Medium
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.webhookUrl,
                 onValueChange = { onConfigChanged(config.copy(webhookUrl = it)) },
                 label = { Text("Webhook URL") },
@@ -1839,7 +1840,7 @@ private fun DebugModeSection(
                         modifier = Modifier.weight(1f)
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.debugPort.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { port ->
@@ -1857,7 +1858,7 @@ private fun DebugModeSection(
                     )
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.logFilePath,
                     onValueChange = { onConfigChanged(config.copy(logFilePath = it)) },
                     label = { Text("Log File Path") },
@@ -1867,7 +1868,7 @@ private fun DebugModeSection(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.maxLogFileSize.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { size ->
@@ -1992,7 +1993,7 @@ private fun TestDataGenerationSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.dataSetSize.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { size ->
@@ -2009,7 +2010,7 @@ private fun TestDataGenerationSection(
                         }
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.seedValue.toString(),
                         onValueChange = {
                             it.toLongOrNull()?.let { seed ->
@@ -2025,7 +2026,7 @@ private fun TestDataGenerationSection(
                     )
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.outputDirectory,
                     onValueChange = { onConfigChanged(config.copy(outputDirectory = it)) },
                     label = { Text("Output Directory") },
@@ -2285,7 +2286,7 @@ private fun <T> DropdownSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = displayName(selectedOption),
         onValueChange = { /* Read-only */ },
         label = { Text(label) },

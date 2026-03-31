@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedBasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -65,6 +66,12 @@ private fun getSimulatorVisual(type: SimulatorType): SimulatorVisualConfig {
             activeColor = Color(0xFFFF7043),
             pulseColor = Color(0xFFFFAB91),
             shortLabel = "APDU"
+        )
+        SimulatorType.HSM_COMMAND -> SimulatorVisualConfig(
+            icon = Icons.Default.Terminal,
+            activeColor = Color(0xFFFF7043),
+            pulseColor = Color(0xFFFFAB91),
+            shortLabel = "CMDR"
         )
         SimulatorType.TOOL -> SimulatorVisualConfig(
             icon = Icons.Default.Build,
@@ -448,7 +455,7 @@ private fun TabBarSearch(onToolSelected: (StudioTool) -> Unit) {
                     modifier = Modifier.size(13.dp),
                     tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
                 )
-                BasicTextField(
+                FixedBasicTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier

@@ -33,7 +33,6 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
@@ -90,6 +89,8 @@ import java.io.File
 import java.util.UUID
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedTextField
 
 /**
  * Enhanced Unsolicited Message Tab with animated log panel transition
@@ -218,7 +219,7 @@ internal fun SendMessageTab(
                             }
                         }
 
-                        TextField(
+                        FixedTextField(
                             value = rawMessageString,
                             onValueChange = { rawMessageString = it },
                             modifier = Modifier
@@ -713,7 +714,7 @@ private fun SaveMessageDialog(
                     fontWeight = FontWeight.Bold
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = messageName,
                     onValueChange = { messageName = it },
                     label = { Text("Message Name *") },
@@ -722,7 +723,7 @@ private fun SaveMessageDialog(
                 )
 
                 Row {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = mti,
                         onValueChange = { mti = it },
                         label = { Text("MTI") },
@@ -730,7 +731,7 @@ private fun SaveMessageDialog(
                         singleLine = true
                     )
                     Spacer(modifier = Modifier.width(5.dp))
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = procCode,
                         onValueChange = { procCode = it },
                         label = { Text("Processing Code") },
@@ -858,7 +859,7 @@ private fun ImportMessagesDialog(
                     )
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = importedContent,
                     onValueChange = { importedContent = it },
                     label = { Text("Json Content") },
@@ -987,7 +988,7 @@ private fun ExportMessagesDialog(
                     )
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = exportContent,
                     onValueChange = { },
                     label = { Text("Export Content (${messages.size} messages)") },

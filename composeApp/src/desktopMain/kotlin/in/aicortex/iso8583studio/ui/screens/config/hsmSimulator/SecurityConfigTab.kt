@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Alarm
@@ -324,7 +325,7 @@ private fun PasswordPolicySection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = policy.minLength.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { length ->
@@ -341,7 +342,7 @@ private fun PasswordPolicySection(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = policy.maxLength.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { length ->
@@ -363,7 +364,7 @@ private fun PasswordPolicySection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = policy.historySize.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { size ->
@@ -380,7 +381,7 @@ private fun PasswordPolicySection(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = policy.maxAge.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { age ->
@@ -540,7 +541,7 @@ private fun AccountSecuritySettings(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.sessionTimeout.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { timeout ->
@@ -557,7 +558,7 @@ private fun AccountSecuritySettings(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.maxConcurrentSessions.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { sessions ->
@@ -625,7 +626,7 @@ private fun AccountSecuritySettings(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.maxFailedAttempts.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { attempts ->
@@ -642,7 +643,7 @@ private fun AccountSecuritySettings(
                             }
                         )
 
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.lockoutDuration.toString(),
                             onValueChange = {
                                 it.toIntOrNull()?.let { duration ->
@@ -847,7 +848,7 @@ private fun SessionManagementSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.sessionTimeout.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { timeout ->
@@ -864,7 +865,7 @@ private fun SessionManagementSection(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.idleTimeout.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { timeout ->
@@ -886,7 +887,7 @@ private fun SessionManagementSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.maxConcurrentSessions.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { sessions ->
@@ -903,7 +904,7 @@ private fun SessionManagementSection(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.sessionTokenExpiry.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { expiry ->
@@ -1550,7 +1551,7 @@ private fun LogFileConfiguration(
                 )
             }
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.logPath,
                 onValueChange = { onConfigChanged(config.copy(logPath = it)) },
                 label = { Text("Log File Path") },
@@ -1566,7 +1567,7 @@ private fun LogFileConfiguration(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = (config.maxLogSize / 1024 / 1024).toString(), // Convert bytes to MB
                 onValueChange = {
                     it.toLongOrNull()?.let { sizeMB ->
@@ -1644,7 +1645,7 @@ private fun <T> DropdownSelector(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = displayName(selectedOption),
             onValueChange = { },
             label = { Text(label) },

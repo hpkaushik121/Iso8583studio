@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -331,7 +332,7 @@ fun EnhancedTextField(
     validation: ValidationResult
 ) {
     Column(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },

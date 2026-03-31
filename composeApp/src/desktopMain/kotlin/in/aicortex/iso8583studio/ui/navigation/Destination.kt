@@ -38,6 +38,7 @@ import `in`.aicortex.iso8583studio.ui.screens.config.apduSimulator.ApduSimulator
 import `in`.aicortex.iso8583studio.ui.screens.config.atmSimulator.AtmSimulatorConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.ecrSimulator.EcrSimulatorConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.hostSimulator.HostSimulatorConfigScreen
+import `in`.aicortex.iso8583studio.ui.screens.config.hsmCommand.HsmCommandConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.hsmSimulator.HsmSimulatorConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.issuerSystem.IssuerSystemConfigScreen
 import `in`.aicortex.iso8583studio.ui.screens.config.paymentSwitch.PaymentSwitchConfigScreen
@@ -54,6 +55,7 @@ import `in`.aicortex.iso8583studio.ui.screens.generic.HashCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.MessageParserScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.PinBlockGeneralScreen
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.HsmCommandScreen
 import `in`.aicortex.iso8583studio.ui.screens.hsmSimulator.HsmSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.keys.DeaKeysScreen
 import `in`.aicortex.iso8583studio.ui.screens.keys.KeyshareGeneratorScreen
@@ -142,6 +144,28 @@ sealed class Destination : Screen {
             HsmSimulatorConfigScreen(
                 navigationController = navigationController,
                 appState = appState.value
+            )
+        }
+    }
+
+    object HsmCommandConfig : Screen {
+        @Composable
+        override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            HsmCommandConfigScreen(
+                navigationController = navigationController,
+                appState = appState.value
+            )
+        }
+    }
+
+    object HsmCommandTool : Screen {
+        @Composable
+        override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            HsmCommandScreen(
+                config = appState.value.currentConfig(SimulatorType.HSM_COMMAND) as `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmCommandConfig,
+                onBack = { navigationController.goBack() }
             )
         }
     }

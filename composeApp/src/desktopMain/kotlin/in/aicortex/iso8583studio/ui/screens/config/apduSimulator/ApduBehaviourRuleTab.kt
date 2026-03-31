@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -906,7 +907,7 @@ fun ConditionTypeDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedType.displayName,
             onValueChange = { },
             label = { Text("Condition Type") },
@@ -1171,7 +1172,7 @@ fun ActionTypeDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedType.displayName,
             onValueChange = { },
             label = { Text("Action Type") },
@@ -1375,7 +1376,7 @@ fun LogLevelDropdown(
     val levels = listOf("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedLevel,
             onValueChange = { },
             label = { Text("Log Level") },
@@ -1420,7 +1421,7 @@ fun AlertTypeDropdown(
     val types = listOf("INFO", "WARNING", "SECURITY", "FRAUD", "PERFORMANCE", "COMPLIANCE")
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedType,
             onValueChange = { },
             label = { Text("Alert Type") },
@@ -1465,7 +1466,7 @@ fun AlertPriorityDropdown(
     val priorities = listOf("LOW", "MEDIUM", "HIGH", "CRITICAL")
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedPriority,
             onValueChange = { },
             label = { Text("Priority") },
@@ -1796,7 +1797,7 @@ fun RuleTestDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = testData,
                     onValueChange = { testData = it },
                     label = { Text("ISO8583 Message (Hex)") },
@@ -2082,7 +2083,7 @@ fun RuleCategoryFilterDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedCategory?.displayName ?: "All Categories",
             onValueChange = { },
             label = { Text("Category") },
@@ -2164,7 +2165,7 @@ fun RuleSortDropdown(
     )
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = "Sort by ${sortOptions[sortBy]}",
             onValueChange = { },
             label = { Text("Sort") },
@@ -2919,7 +2920,7 @@ fun RuleTextField(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -2942,7 +2943,7 @@ fun RuleCategoryDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedCategory.displayName,
             onValueChange = { },
             label = { Text("Category") },
@@ -3012,7 +3013,7 @@ fun RuleSearchAndFilters(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
         // Search Bar
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             placeholder = { Text("Search rules by name or description...") },

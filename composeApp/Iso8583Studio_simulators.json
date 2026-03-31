@@ -374,7 +374,7 @@
             "name": "PayShield 10K",
             "description": "HSM001234567890",
             "createdDate": 1768383552215,
-            "modifiedDate": 1774267432860,
+            "modifiedDate": 1774984915217,
             "deviceInfo": {
                 "capabilities": [
                     "SYMMETRIC_CRYPTO",
@@ -2186,13 +2186,46 @@
         }
     ],
     "apduConfigs": [],
-    "posConfigs": [],
+    "posConfigs": [
+        {
+            "id": "39c4d6fe-6e1c-49f5-a966-1198fb390b2e",
+            "name": "POS - 2",
+            "description": "",
+            "createdDate": 1774985056481,
+            "modifiedDate": 1774985056481,
+            "terminalid": 0,
+            "merchantid": 0,
+            "acquirerid": 0
+        }
+    ],
+    "hsmCommandConfigs": [
+        {
+            "id": "1bf370ae-083c-4337-a47d-40a9af518047",
+            "name": "HSM Commander",
+            "description": "Description",
+            "createdDate": 1774984281098,
+            "modifiedDate": 1774985784367,
+            "ipAddress": "122.185.14.36",
+            "port": 4600,
+            "sslConfig": {
+                "certificateVerification": "TRUST_ALL"
+            }
+        },
+        {
+            "id": "5ec9f5e2-ae81-441c-bfa8-9ea8389320aa",
+            "name": "HSM Commander - 2",
+            "createdDate": 1774986613806,
+            "modifiedDate": 1774986619575,
+            "port": 2000,
+            "hsmVendor": "FUTUREX"
+        }
+    ],
     "ecrConfigs": [],
     "atmConfigs": [],
     "cardConfigs": [],
     "switchConfigs": [],
     "acquirerConfigs": [],
     "issuerConfigs": [],
-    "exportedAt": 1774267444967,
+    "exportedAt": 1774986690235,
     "version": "1.0"
 }

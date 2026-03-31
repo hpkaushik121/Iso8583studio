@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.HorizontalDivider
@@ -341,7 +342,7 @@ private fun AdditionalSettingsSection(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = config.transactionTimeOut.toString(),
                             onValueChange = {
                                 val timeout = it.toIntOrNull() ?: config.transactionTimeOut
@@ -364,7 +365,7 @@ private fun AdditionalSettingsSection(
                     label = "Max Concurrent Connections",
                     description = "Maximum number of simultaneous connections"
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.maxConcurrentConnection.toString(),
                         onValueChange = {
                             val connections = it.toIntOrNull() ?: config.maxConcurrentConnection
@@ -557,7 +558,7 @@ private fun TcpIpSettingsCard(
                         style = MaterialTheme.typography.caption,
                         fontWeight = FontWeight.Medium
                     )
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = address,
                         onValueChange = onAddressChange,
                         modifier = Modifier.fillMaxWidth(),
@@ -578,7 +579,7 @@ private fun TcpIpSettingsCard(
                         style = MaterialTheme.typography.caption,
                         fontWeight = FontWeight.Medium
                     )
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = port,
                         onValueChange = onPortChange,
                         modifier = Modifier.fillMaxWidth(),
@@ -689,7 +690,7 @@ private fun DialUpSettingsCard(
                     style = MaterialTheme.typography.caption,
                     fontWeight = FontWeight.Medium
                 )
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = phoneNumber,
                     onValueChange = onPhoneNumberChange,
                     modifier = Modifier.fillMaxWidth(),
@@ -742,7 +743,7 @@ private fun DropdownSelector(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedValue,
             onValueChange = { },
             readOnly = true,
@@ -897,7 +898,7 @@ private fun BasicRestConfiguration(
                 style = MaterialTheme.typography.caption,
                 fontWeight = FontWeight.Medium
             )
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = restConfig.url,
                 onValueChange = { onRestConfigChange(restConfig.copy(url = it)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -932,7 +933,7 @@ private fun BasicRestConfiguration(
                     expanded = methodExpanded,
                     onExpandedChange = { methodExpanded = it }
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = restConfig.method.name,
                         onValueChange = { },
                         readOnly = true,
@@ -988,7 +989,7 @@ private fun BasicRestConfiguration(
                     expanded = formatExpanded,
                     onExpandedChange = { formatExpanded = it }
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = restConfig.messageFormat.name,
                         onValueChange = { },
                         readOnly = true,

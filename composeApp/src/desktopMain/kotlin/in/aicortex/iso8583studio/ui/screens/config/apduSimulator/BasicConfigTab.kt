@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -1211,7 +1212,7 @@ fun ResponseTimingSection(
                         fontWeight = FontWeight.Medium
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = timing.processingDelay.toString(),
                         onValueChange = { value ->
                             val delay = value.toIntOrNull()
@@ -1309,7 +1310,7 @@ fun ResponseTimingSection(
                                 fontWeight = FontWeight.Bold
                             )
 
-                            OutlinedTextField(
+                            FixedOutlinedTextField(
                                 value = timing.varianceRange.first.toString(),
                                 onValueChange = { value ->
                                     val min = value.toIntOrNull()
@@ -1329,7 +1330,7 @@ fun ResponseTimingSection(
 
                             Text("-", style = MaterialTheme.typography.body2)
 
-                            OutlinedTextField(
+                            FixedOutlinedTextField(
                                 value = timing.varianceRange.last.toString(),
                                 onValueChange = { value ->
                                     val max = value.toIntOrNull()
@@ -1406,7 +1407,7 @@ fun ResponseTimingSection(
                 CommandType.values().forEach { commandType ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(modifier = Modifier.weight(1f)) {
-                            OutlinedTextField(
+                            FixedOutlinedTextField(
                                 value = timing.commandTimeouts[commandType]?.toString()
                                     ?: commandType.defaultTimeout.toString(),
                                 onValueChange = { value ->
@@ -1893,7 +1894,7 @@ fun ConfigTextField(
     leadingIcon: ImageVector? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
 ) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -1929,7 +1930,7 @@ fun ConfigDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedValue,
             onValueChange = { },
             label = { Text(label) },
@@ -1976,7 +1977,7 @@ fun CardTypeDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedType.displayName,
             onValueChange = { },
             label = { Text("Card Type") },
@@ -2058,7 +2059,7 @@ fun CardStateDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedState.displayName,
             onValueChange = { },
             label = { Text("Initial Card State") },
@@ -2139,7 +2140,7 @@ fun PinAttemptsSpinner(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value.toString(),
             onValueChange = { newValue ->
                 val attempts = newValue.toIntOrNull()
@@ -2197,7 +2198,7 @@ fun ExpiryDatePicker(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = selectedDate.format(DateTimeFormatter.ofPattern("MM/yy")),
         onValueChange = { },
         label = { Text("Expiry Date") },

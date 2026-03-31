@@ -1033,7 +1033,8 @@ class HostSimulator : Simulator {
 
                     // Special handling for some error types in synchronous mode
                     if ((verification.error == VerificationError.NOT_SEND_LOGON_BEFORE ||
-                                verification.error == VerificationError.WRONG_MAC) &&
+                                verification.error == VerificationError.WRONG_MAC ||
+                                verification.error == VerificationError.TIMEOUT) &&
                         configuration.transmissionType == TransmissionType.SYNCHRONOUS
                     ) {
                         client.processGateway()

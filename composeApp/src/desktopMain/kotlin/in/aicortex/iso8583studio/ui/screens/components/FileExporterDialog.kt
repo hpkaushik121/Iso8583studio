@@ -261,7 +261,7 @@ fun ExportSettingsPanel(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("File Name", fontWeight = FontWeight.Medium, fontSize = 16.sp)
-            TextField(
+            FixedTextField(
                 value = exportConfig.fileName,
                 onValueChange = { onConfigChange(exportConfig.copy(fileName = it)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -283,7 +283,7 @@ fun ExportSettingsPanel(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TextField(
+                FixedTextField(
                     value = exportConfig.exportPath,
                     onValueChange = { onConfigChange(exportConfig.copy(exportPath = it)) },
                     modifier = Modifier.weight(1f),

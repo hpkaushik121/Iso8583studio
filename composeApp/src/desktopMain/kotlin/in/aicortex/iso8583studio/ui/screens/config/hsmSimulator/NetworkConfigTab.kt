@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -275,7 +276,7 @@ private fun TCPIPConfiguration(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.ipAddress,
                 onValueChange = { onConfigChanged(config.copy(ipAddress = it)) },
                 label = { Text("IP Address") },
@@ -286,7 +287,7 @@ private fun TCPIPConfiguration(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.port.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { port ->
@@ -305,7 +306,7 @@ private fun TCPIPConfiguration(
             )
         }
 
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = config.bindAddress,
             onValueChange = { onConfigChanged(config.copy(bindAddress = it)) },
             label = { Text("Bind Address") },
@@ -364,7 +365,7 @@ private fun TCPIPConfiguration(
             )
         }
 
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = hsmConfig.messageHeaderLength.toString(),
             onValueChange = {
                 it.toIntOrNull()?.let { len ->
@@ -394,7 +395,7 @@ private fun SerialConfiguration(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.portName,
                 onValueChange = { onConfigChanged(config.copy(portName = it)) },
                 label = { Text("Port Name") },
@@ -459,7 +460,7 @@ private fun RestApiConfiguration(
     onConfigChanged: (RestApiConfig) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = config.baseUrl,
             onValueChange = { onConfigChanged(config.copy(baseUrl = it)) },
             label = { Text("Base URL") },
@@ -474,7 +475,7 @@ private fun RestApiConfiguration(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.apiVersion,
                 onValueChange = { onConfigChanged(config.copy(apiVersion = it)) },
                 label = { Text("API Version") },
@@ -496,7 +497,7 @@ private fun RestApiConfiguration(
             )
         }
 
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = config.apiKey,
             onValueChange = { onConfigChanged(config.copy(apiKey = it)) },
             label = { Text("API Key / Token") },
@@ -519,7 +520,7 @@ private fun WebSocketConfiguration(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.maxFrameSize.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { size ->
@@ -537,7 +538,7 @@ private fun WebSocketConfiguration(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.pingIntervalMs.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { interval ->
@@ -622,7 +623,7 @@ private fun SSLTLSConfiguration(
                     )
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.certificatePath,
                     onValueChange = { onConfigChanged(config.copy(certificatePath = it)) },
                     label = { Text("Certificate Path") },
@@ -638,7 +639,7 @@ private fun SSLTLSConfiguration(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.privateKeyPath,
                     onValueChange = { onConfigChanged(config.copy(privateKeyPath = it)) },
                     label = { Text("Private Key Path") },
@@ -684,7 +685,7 @@ private fun PerformanceConfiguration(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.maxOperationsPerSecond.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { connections ->
@@ -701,7 +702,7 @@ private fun PerformanceConfiguration(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.operationTimeout.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { timeout ->
@@ -761,7 +762,7 @@ private fun ProtocolConfiguration(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.lengthFieldSize.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { size ->
@@ -778,7 +779,7 @@ private fun ProtocolConfiguration(
                         }
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.lengthFieldOffset.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { offset ->
@@ -798,7 +799,7 @@ private fun ProtocolConfiguration(
             }
 
             MessageFraming.DELIMITER_BASED -> {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.messageDelimiter,
                     onValueChange = { onConfigChanged(config.copy(messageDelimiter = it)) },
                     label = { Text("Message Delimiter") },
@@ -811,7 +812,7 @@ private fun ProtocolConfiguration(
             }
 
             MessageFraming.FIXED_LENGTH -> {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.fixedMessageLength.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { length ->
@@ -905,7 +906,7 @@ private fun CompressionSettings(
             )
 
             if (compressionType != CompressionType.NONE) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = compressionLevel.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { level ->
@@ -1017,14 +1018,14 @@ private fun CustomHeadersSection(
             title = { Text("Add Custom Header") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = newHeaderKey,
                         onValueChange = { newHeaderKey = it },
                         label = { Text("Header Name") },
                         placeholder = { Text("Content-Type") },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = newHeaderValue,
                         onValueChange = { newHeaderValue = it },
                         label = { Text("Header Value") },
@@ -1120,7 +1121,7 @@ private fun <T> DropdownSelector(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = displayName(selectedOption),
             onValueChange = { },
             label = { Text(label) },

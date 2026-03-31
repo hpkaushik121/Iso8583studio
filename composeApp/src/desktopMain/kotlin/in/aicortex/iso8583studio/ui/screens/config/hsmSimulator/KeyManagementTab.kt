@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -173,7 +174,7 @@ private fun KeyStoreConfigSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.maxKeys.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { max ->
@@ -190,7 +191,7 @@ private fun KeyStoreConfigSection(
                 }
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = config.keySlots.toString(),
                 onValueChange = {
                     it.toIntOrNull()?.let { slots ->
@@ -511,7 +512,7 @@ private fun SplitKnowledgeSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.requiredShares.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { shares ->
@@ -528,7 +529,7 @@ private fun SplitKnowledgeSection(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = config.totalShares.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { shares ->
@@ -695,7 +696,7 @@ private fun KeyBackupSettingsSection(
 
             if (backupSettings.enableBackup) {
                 // Backup Location
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = backupSettings.backupLocation,
                     onValueChange = { onConfigChanged(backupSettings.copy(backupLocation = it)) },
                     label = { Text("Backup Location") },
@@ -726,7 +727,7 @@ private fun KeyBackupSettingsSection(
                         modifier = Modifier.weight(1f)
                     )
 
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = backupSettings.retainBackups.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { days ->
@@ -744,7 +745,7 @@ private fun KeyBackupSettingsSection(
                     )
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = backupSettings.redundantBackups.toString(),
                     onValueChange = {
                         it.toIntOrNull()?.let { copies ->
@@ -798,7 +799,7 @@ private fun KeyStorePathConfiguration(
     onConfigChanged: (KeyStoreConfig) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = config.keyStorePath,
             onValueChange = { onConfigChanged(config.copy(keyStorePath = it)) },
             label = { Text("Key Store Path") },
@@ -814,7 +815,7 @@ private fun KeyStorePathConfiguration(
             }
         )
 
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = config.keyStorePassword,
             onValueChange = { onConfigChanged(config.copy(keyStorePassword = it)) },
             label = { Text("Key Store Password") },
@@ -1282,7 +1283,7 @@ private fun KeyRotationConfiguration(
                 )
 
                 if (config.rotationSchedule == KeyRotationSchedule.CUSTOM) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.customRotationDays.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { days ->
@@ -1363,7 +1364,7 @@ private fun KeyArchivalConfiguration(
                         KeyArchivalPolicy.CONDITIONAL
                     )
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.archivalGracePeriod.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { days ->
@@ -1436,7 +1437,7 @@ private fun KeyDestructionConfiguration(
                         KeyDestructionPolicy.COMPLIANCE_BASED
                     )
                 ) {
-                    OutlinedTextField(
+                    FixedOutlinedTextField(
                         value = config.destructionGracePeriod.toString(),
                         onValueChange = {
                             it.toIntOrNull()?.let { days ->
@@ -1585,7 +1586,7 @@ private fun <T> DropdownSelector(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = displayName(selectedOption),
             onValueChange = { },
             label = { Text(label) },

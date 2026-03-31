@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -742,7 +743,7 @@ fun KeySearchAndFilters(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
         // Search Bar
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             placeholder = { Text("Search keys by name or type...") },
@@ -827,7 +828,7 @@ fun KeyTypeFilterDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedKeyType?.displayName ?: "All Key Types",
             onValueChange = { },
             label = { Text("Key Type") },
@@ -902,7 +903,7 @@ fun StatusFilterDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedStatus?.displayName ?: "All Statuses",
             onValueChange = { },
             label = { Text("Status") },
@@ -1309,7 +1310,7 @@ fun CertificateManagementSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("Search certificates...") },
@@ -1838,7 +1839,7 @@ fun CryptoTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
@@ -1865,7 +1866,7 @@ fun CryptoDropdownField(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedValue,
             onValueChange = { },
             label = { Text(label) },
@@ -2474,7 +2475,7 @@ fun CertificateImportDialog(
                         }
                     }
                     "paste" -> {
-                        OutlinedTextField(
+                        FixedOutlinedTextField(
                             value = certificateData,
                             onValueChange = { certificateData = it },
                             label = { Text("Certificate Data (PEM/DER)") },

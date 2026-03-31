@@ -6,9 +6,11 @@ import cafe.adriel.voyager.core.screen.Screen
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.StudioTool
+import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.HsmCommandClientService
 import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.HsmServiceImpl
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmCommandConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorConfig
 import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +46,7 @@ data class SimulatorSession(
     val displayName: String,
     val launchedAt: LocalDateTime = LocalDateTime.now(),
     val hsmService: HsmServiceImpl? = null,
+    val hsmCommandService: HsmCommandClientService? = null,
     /** Non-null for TOOL-type sessions — the Voyager Screen to render inside this tab. */
     val toolScreen: Screen? = null,
     /** The StudioTool this tab represents (for TOOL sessions). */
@@ -55,6 +58,7 @@ data class SimulatorSession(
             SimulatorType.HSM -> "HSM"
             SimulatorType.POS -> "POS"
             SimulatorType.APDU -> "APDU"
+            SimulatorType.HSM_COMMAND -> "CMDR"
             SimulatorType.TOOL -> studioTool?.label?.take(6) ?: "TOOL"
             else -> simulatorType.name.take(4)
         }
@@ -146,6 +150,14 @@ object SimulatorSessionManager {
                 displayName = displayName
             )
 
+            is HsmCommandConfig -> SimulatorSession(
+                id = sessionId,
+                config = config,
+                simulatorType = SimulatorType.HSM_COMMAND,
+                displayName = displayName,
+                hsmCommandService = HsmCommandClientService(config)
+            )
+
             else -> SimulatorSession(
                 id = sessionId,
                 config = config,
@@ -176,6 +188,9 @@ object SimulatorSessionManager {
         // Stop the stored service reference on an IO coroutine
         session.hsmService?.let { svc ->
             CoroutineScope(Dispatchers.IO).launch { svc.stop() }
+        }
+        session.hsmCommandService?.let { svc ->
+            CoroutineScope(Dispatchers.IO).launch { svc.disconnect() }
         }
 
         poppedOutSessionIds.remove(sessionId)

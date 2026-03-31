@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -373,7 +374,7 @@ private fun TlvControlPanel(
             }
 
             // Input field
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = inputData,
                 onValueChange = onInputDataChange,
                 label = { Text("TLV Data (Hex)") },
@@ -914,7 +915,7 @@ private fun TagDictionaryHeader(
 
             // Search field (only when browsing dictionary)
             if (selectedTag == null) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
                     label = { Text("Search tags") },
@@ -1609,7 +1610,7 @@ private fun TlvEditDialog(
                 }
 
                 // Value input
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = editValue,
                     onValueChange = { editValue = it },
                     label = { Text("Value (${editMode.displayName})") },

@@ -38,6 +38,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedTextField
 
 /**
  * Main composable for ISO8583 message editor dialog
@@ -194,7 +196,7 @@ private fun Iso8583Header(
             LaunchedEffect(Unit) {
                 tpdu = IsoUtil.bcdToString(message.tpduHeader.rawTPDU)
             }
-            TextField(
+            FixedTextField(
                 value = tpdu,
                 onValueChange = {
                     if (it.length <= 10){
@@ -217,7 +219,7 @@ private fun Iso8583Header(
         // Message Type Field
         Text("Message Type")
         Spacer(modifier = Modifier.width(8.dp))
-        TextField(
+        FixedTextField(
             value = messageType,
             onValueChange = {
                 if (it.length <= 4){
@@ -323,7 +325,7 @@ private fun Iso8583FieldsEditor(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TextField(
+                    FixedTextField(
                         value = newFieldNumber,
                         onValueChange = { newFieldNumber = it },
                         label = { Text("Field Number") },
@@ -331,7 +333,7 @@ private fun Iso8583FieldsEditor(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    TextField(
+                    FixedTextField(
                         value = newFieldValue,
                         onValueChange = { newFieldValue = it },
                         label = { Text("Value") },
@@ -388,7 +390,7 @@ private fun Iso8583FieldRow(
         )
 
         // Field value
-        TextField(
+        FixedTextField(
             value = value,
             onValueChange = onValueChanged,
             modifier = Modifier.weight(1f),

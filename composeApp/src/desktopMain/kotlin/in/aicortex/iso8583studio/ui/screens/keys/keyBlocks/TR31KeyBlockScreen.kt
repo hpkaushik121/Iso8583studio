@@ -17,6 +17,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -277,7 +278,7 @@ private fun FormRow(label: String, content: @Composable RowScope.() -> Unit) {
 
 @Composable
 private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String? = null, modifier: Modifier = Modifier, maxLines: Int = 1) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = label?.let { {Text(it)} },
@@ -309,7 +310,7 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 private fun ModernDropdownField(label:String? = null, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value, onValueChange = {}, label = label?.let{{Text(label)}}, modifier = Modifier.fillMaxWidth(), readOnly = true,
             trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = !expanded }) },
         )

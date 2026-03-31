@@ -23,7 +23,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.screens.components.themedScrollbarStyle
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -97,7 +97,7 @@ fun ConfigDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = currentValue,
             onValueChange = {},
             label = { Text(label) },

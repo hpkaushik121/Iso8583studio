@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -309,8 +310,8 @@ private fun KeyPartRow(label: String, value: String, onValueChange: (String) -> 
 @Composable
 private fun KeyResultRow(label: String, combinedValue: String, kcvValue: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(value = combinedValue, onValueChange = {}, label = { Text(label) }, readOnly = true, modifier = Modifier.weight(2f))
-        OutlinedTextField(value = kcvValue, onValueChange = {}, label = { Text("KCV") }, readOnly = true, modifier = Modifier.weight(1f))
+        FixedOutlinedTextField(value = combinedValue, onValueChange = {}, label = { Text(label) }, readOnly = true, modifier = Modifier.weight(2f))
+        FixedOutlinedTextField(value = kcvValue, onValueChange = {}, label = { Text("KCV") }, readOnly = true, modifier = Modifier.weight(1f))
     }
 }
 
@@ -319,7 +320,7 @@ private fun KeyResultRow(label: String, combinedValue: String, kcvValue: String)
 
 @Composable
 private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) {
-    OutlinedTextField(value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = modifier)
+    FixedOutlinedTextField(value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = modifier)
 }
 
 @Composable
@@ -344,7 +345,7 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
             trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = !expanded }) },
         )

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -723,7 +724,7 @@ fun ApplicationFilters(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Search Bar
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
             placeholder = { Text("Search applications...") },
@@ -805,7 +806,7 @@ fun CompactFilterDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedValue,
             onValueChange = { },
             label = { Text(label, fontSize = 12.sp) },
@@ -2039,7 +2040,7 @@ fun AidTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     fontFamily: FontFamily? = null
 ) {
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, fontSize = 12.sp) },
@@ -2068,7 +2069,7 @@ fun ApplicationTypeDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedType.displayName,
             onValueChange = { },
             label = { Text("Application Type", fontSize = 12.sp) },
@@ -2137,7 +2138,7 @@ fun ApplicationStatusDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        OutlinedTextField(
+        FixedOutlinedTextField(
             value = selectedStatus.displayName,
             onValueChange = { },
             label = { Text("Status", fontSize = 12.sp) },
@@ -2467,7 +2468,7 @@ fun SaveTemplateDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = templateName,
                     onValueChange = { templateName = it },
                     label = { Text("Template Name") },

@@ -430,6 +430,15 @@ private fun SessionContent(
             )
         }
 
+        SimulatorType.HSM_COMMAND -> {
+            val config = session.config as `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmCommandConfig
+            `in`.aicortex.iso8583studio.ui.screens.hsmCommand.HsmCommandScreen(
+                config = config,
+                onBack = onBack,
+                service = session.hsmCommandService
+            )
+        }
+
         SimulatorType.TOOL -> {
             val screen = session.toolScreen
             if (screen != null) {

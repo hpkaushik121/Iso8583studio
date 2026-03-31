@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
@@ -1430,7 +1431,7 @@ private fun EnhancedFieldRow(
                                 }
 
                                 // Enhanced text field with proper focus handling
-                                OutlinedTextField(
+                                FixedOutlinedTextField(
                                     value = value,
                                     onValueChange = { newValue ->
                                         value = newValue
@@ -2022,7 +2023,7 @@ fun PathTextFieldWithDebounce(
         }
     }
 
-    OutlinedTextField(
+    FixedOutlinedTextField(
         value = textFieldValue,
         onValueChange = { newValue ->
             textFieldValue = newValue
@@ -2173,7 +2174,7 @@ private fun KeyValueMatcherRow(
             ) {
                 // Operator selection
                 var operatorExpanded by remember { mutableStateOf(false) }
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = matcher.key,
                     onValueChange = { onMatcherChange(matcher.copy(key = it)) },
                     label = { Text("Key Path") },
@@ -2220,7 +2221,7 @@ private fun KeyValueMatcherRow(
                 }
 
                 // Value input
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = matcher.value,
                     onValueChange = { onMatcherChange(matcher.copy(value = it)) },
                     label = { Text("Value") },
@@ -2332,7 +2333,7 @@ private fun ResponseFieldRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Target key
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = responseField.targetKey ?: "",
                     onValueChange = { onResponseFieldChange(responseField.copy(targetKey = it.takeIf { it.isNotBlank() })) },
                     label = { Text("Key Path") },
@@ -2342,7 +2343,7 @@ private fun ResponseFieldRow(
                 )
 
                 // Target nested key
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = responseField.value,
                     onValueChange = { onResponseFieldChange(responseField.copy(value = it)) },
                     label = { Text("Value") },
@@ -2628,7 +2629,7 @@ private fun BasicInformationCard(
                 color = MaterialTheme.colors.primary
             )
 
-            OutlinedTextField(
+            FixedOutlinedTextField(
                 value = description,
                 onValueChange = onDescriptionChange,
                 label = { Text("Description *") },
@@ -2643,7 +2644,7 @@ private fun BasicInformationCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = mti,
                     onValueChange = onMtiChange,
                     label = { if (!isAdvancedMode) Text("MTI *") else Text("MTI") },
@@ -2654,7 +2655,7 @@ private fun BasicInformationCard(
                     }
                 )
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = proCode,
                     onValueChange = onProCodeChange,
                     label = { if (!isAdvancedMode) Text("Processing Code *") else Text("Processing Code ") },
@@ -2937,7 +2938,7 @@ private fun EnhancedAddFieldDialog(
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.animateContentSize()
                         ) {
-                            OutlinedTextField(
+                            FixedOutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
                                 modifier = Modifier

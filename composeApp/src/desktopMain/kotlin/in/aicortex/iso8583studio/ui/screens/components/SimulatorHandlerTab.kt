@@ -488,7 +488,7 @@ private fun CompactControlPanel(
                     }
                 }
 
-                OutlinedTextField(
+                FixedOutlinedTextField(
                     value = holdMessageTime,
                     onValueChange = onHoldMessageTimeChange,
                     modifier = Modifier.width(70.dp),

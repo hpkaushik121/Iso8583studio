@@ -98,7 +98,6 @@ fun ApduSimulatorConfigScreen(
                 SimulatorSessionManager.launchSimulator(it)
                 navigationController.navigateTo(Destination.Home)
             }
-
         )
     }
 }
