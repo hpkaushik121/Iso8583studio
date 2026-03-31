@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
-import `in`.aicortex.iso8583studio.data.model.TransmissionType
+
 import `in`.aicortex.iso8583studio.domain.utils.Utils
 import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
@@ -88,10 +88,7 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                         selected = config.gatewayType == GatewayType.SERVER,
                         onSelect = {
                             onConfigChange(
-                                config.copy(
-                                    gatewayType = GatewayType.SERVER,
-                                    transmissionType = TransmissionType.SYNCHRONOUS
-                                )
+                                config.copy(gatewayType = GatewayType.SERVER)
                             )
                         },
                         title = "Server",
@@ -104,10 +101,7 @@ fun GatewayTypeTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
                         selected = config.gatewayType == GatewayType.CLIENT,
                         onSelect = {
                             onConfigChange(
-                                config.copy(
-                                    gatewayType = GatewayType.CLIENT,
-                                    transmissionType = TransmissionType.SYNCHRONOUS
-                                )
+                                config.copy(gatewayType = GatewayType.CLIENT)
                             )
                         },
                         title = "Client",

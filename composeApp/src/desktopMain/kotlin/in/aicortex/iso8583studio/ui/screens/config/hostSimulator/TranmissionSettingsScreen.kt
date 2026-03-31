@@ -53,15 +53,13 @@ fun TransmissionSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfi
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Transmission Type Section (for PROXY)
-        if (config.gatewayType == GatewayType.PROXY) {
-            TransmissionTypeSection(
-                transmissionType = config.transmissionType,
-                onTransmissionTypeChange = {
-                    onConfigChange(config.copy(transmissionType = it))
-                }
-            )
-        }
+        // Transmission Type Section
+        TransmissionTypeSection(
+            transmissionType = config.transmissionType,
+            onTransmissionTypeChange = {
+                onConfigChange(config.copy(transmissionType = it))
+            }
+        )
 
         // Incoming Connection Section (SERVER and PROXY)
         if (config.gatewayType == GatewayType.SERVER || config.gatewayType == GatewayType.PROXY) {
