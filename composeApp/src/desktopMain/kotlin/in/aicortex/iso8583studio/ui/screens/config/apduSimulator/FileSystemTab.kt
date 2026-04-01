@@ -1306,7 +1306,8 @@ fun MaterialDropdownField(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -1362,7 +1363,8 @@ fun MaterialAccessDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             AccessCondition.values().forEach { condition ->
                 DropdownMenuItem(

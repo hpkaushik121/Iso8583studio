@@ -241,7 +241,8 @@ fun ExportSettingsPanel(
                 )
                 ExposedDropdownMenu(
                     expanded = formatExpanded,
-                    onDismissRequest = { formatExpanded = false }
+                    onDismissRequest = { formatExpanded = false },
+                    modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     CodeFormat.values().forEach { format ->
                         DropdownMenuItem(

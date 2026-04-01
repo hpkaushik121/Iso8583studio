@@ -304,7 +304,7 @@ internal fun LogPanelWithAutoScroll(
                 DropdownMenu(
                     expanded = showFilterMenu,
                     onDismissRequest = { showFilterMenu = false },
-                    modifier = Modifier.width(200.dp).heightIn(max = 250.dp)
+                    modifier = Modifier.width(200.dp).heightIn(max = 300.dp)
                 ) {
                     LogType.values().forEach { logType ->
                         DropdownMenuItem(

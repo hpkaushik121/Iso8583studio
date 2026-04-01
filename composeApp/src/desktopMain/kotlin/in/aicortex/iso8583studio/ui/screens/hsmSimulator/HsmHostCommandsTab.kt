@@ -16,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -1049,8 +1051,14 @@ private fun HostDropdownField(
     onValueChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var fieldWidthPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
     val selectedLabel = param.options.find { it.value == value }?.label ?: value
-    Box {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { fieldWidthPx = it.size.width }
+    ) {
         FixedOutlinedTextField(
             value = selectedLabel,
             onValueChange = {},
@@ -1060,12 +1068,23 @@ private fun HostDropdownField(
             trailingIcon = {
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null,
-                    modifier = Modifier.size(20.dp).clickable { expanded = !expanded }
+                    modifier = Modifier.size(20.dp)
                 )
             },
             textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable { expanded = !expanded }
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .width(with(density) { fieldWidthPx.toDp() })
+                .heightIn(max = 300.dp)
+        ) {
             param.options.forEach { opt ->
                 DropdownMenuItem(onClick = { onValueChange(opt.value); expanded = false }) {
                     Text(opt.label, style = MaterialTheme.typography.caption)

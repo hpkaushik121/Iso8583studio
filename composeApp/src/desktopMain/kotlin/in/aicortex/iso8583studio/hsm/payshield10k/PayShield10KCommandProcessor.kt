@@ -1090,8 +1090,9 @@ class PayShield10KCommandProcessor(
             val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter, counterBits)
             hsmLongListener.log("     [crypto 5/7]  Session key (clr): ${bytesToHex(sessionKey)}")
 
-            // STEP 6: Decrypt PIN block with DUKPT session key; extract plain PIN
-            val pinBlock = decryptPinBlock(encryptedPinBlock, sessionKey)
+            // STEP 6: Decrypt PIN block with DUKPT session key (PEK variant applied); extract plain PIN
+            val srcPekKey = DukptEngine.xorBytes(sessionKey, DukptEngine.PEK_VARIANT)
+            val pinBlock = decryptPinBlock(encryptedPinBlock, srcPekKey)
             hsmLongListener.log("     [crypto 6/7]  PIN block (clr) hex: ${bytesToHex(pinBlock)}")
             hsmLongListener.log("     [crypto 6/7]  PIN block (clr) bytes as ASCII decimal: ${pinBlock.joinToString(", ") { (it.toInt() and 0xFF).toString() }}")
             val panPart = "0000" + pan12(accountNumber)
@@ -1218,9 +1219,10 @@ class PayShield10KCommandProcessor(
             hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Source session key (clr): ${bytesToHex(srcSessionKey)}")
             step++
 
-            // ── Decrypt PIN block using SOURCE session key; extract clear PIN ─
-            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Decrypting PIN block with SOURCE session key (${bytesToHex(srcSessionKey)})")
-            val pinBlock = decryptPinBlock(encryptedPinBlock, srcSessionKey)
+            // ── Decrypt PIN block using SOURCE session key (PEK variant applied); extract clear PIN ─
+            val srcPekKey = DukptEngine.xorBytes(srcSessionKey, DukptEngine.PEK_VARIANT)
+            hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Decrypting PIN block with SOURCE PEK (${bytesToHex(srcPekKey)})")
+            val pinBlock = decryptPinBlock(encryptedPinBlock, srcPekKey)
             hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  PIN block (clr) hex: ${bytesToHex(pinBlock)}")
             val panPart = "0000" + pan12(accountNumber)
             hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  PAN part for XOR: $panPart")
@@ -1245,8 +1247,10 @@ class PayShield10KCommandProcessor(
                 step++
 
                 hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Deriving dest 3DES session key  counter=$destCounter")
-                encryptionKey = deriveDukptSessionKey(destIpek, destKsn, destCounter, destCounterBits)
-                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest session key (clr): ${bytesToHex(encryptionKey)}")
+                val destSessionKey = deriveDukptSessionKey(destIpek, destKsn, destCounter, destCounterBits)
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest session key (clr): ${bytesToHex(destSessionKey)}")
+                encryptionKey = DukptEngine.xorBytes(destSessionKey, DukptEngine.PEK_VARIANT)
+                hsmLongListener.log("     [G0 crypto  ${step}/$totalSteps]  Dest PEK (w/ variant): ${bytesToHex(encryptionKey)}")
                 step++
             } else {
                 encryptionKey = clearDestKey

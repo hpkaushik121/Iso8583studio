@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.config.hsmCommand
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
@@ -8,6 +9,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -66,19 +69,34 @@ fun SslConfigurationTab(
                         // TLS Version
                         Box(modifier = Modifier.weight(1f)) {
                             var tlsExpanded by remember { mutableStateOf(false) }
+                            var tlsFieldWidth by remember { mutableStateOf(0.dp) }
+                            val density = LocalDensity.current
                             FixedOutlinedTextField(
                                 value = ssl.tlsVersion.displayName,
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("TLS/SSL Version") },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { tlsFieldWidth = with(density) { it.size.width.toDp() } },
                                 trailingIcon = {
-                                    IconButton(onClick = { tlsExpanded = true }) {
+                                    IconButton(onClick = { tlsExpanded = !tlsExpanded }) {
                                         Icon(Icons.Default.ArrowDropDown, null)
                                     }
                                 }
                             )
-                            DropdownMenu(expanded = tlsExpanded, onDismissRequest = { tlsExpanded = false }) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { tlsExpanded = !tlsExpanded }
+                            )
+                            DropdownMenu(
+                                expanded = tlsExpanded,
+                                onDismissRequest = { tlsExpanded = false },
+                                modifier = Modifier
+                                    .then(if (tlsFieldWidth > 0.dp) Modifier.width(tlsFieldWidth) else Modifier.fillMaxWidth())
+                                    .heightIn(max = 300.dp)
+                            ) {
                                 SSLTLSVersion.entries.forEach { v ->
                                     DropdownMenuItem(onClick = {
                                         onConfigChange(config.copy(sslConfig = ssl.copy(tlsVersion = v)))
@@ -91,19 +109,34 @@ fun SslConfigurationTab(
                         // Certificate Type
                         Box(modifier = Modifier.weight(1f)) {
                             var certTypeExpanded by remember { mutableStateOf(false) }
+                            var certFieldWidth by remember { mutableStateOf(0.dp) }
+                            val certDensity = LocalDensity.current
                             FixedOutlinedTextField(
                                 value = ssl.certificateType.displayName,
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("Certificate Type") },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { certFieldWidth = with(certDensity) { it.size.width.toDp() } },
                                 trailingIcon = {
-                                    IconButton(onClick = { certTypeExpanded = true }) {
+                                    IconButton(onClick = { certTypeExpanded = !certTypeExpanded }) {
                                         Icon(Icons.Default.ArrowDropDown, null)
                                     }
                                 }
                             )
-                            DropdownMenu(expanded = certTypeExpanded, onDismissRequest = { certTypeExpanded = false }) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { certTypeExpanded = !certTypeExpanded }
+                            )
+                            DropdownMenu(
+                                expanded = certTypeExpanded,
+                                onDismissRequest = { certTypeExpanded = false },
+                                modifier = Modifier
+                                    .then(if (certFieldWidth > 0.dp) Modifier.width(certFieldWidth) else Modifier.fillMaxWidth())
+                                    .heightIn(max = 300.dp)
+                            ) {
                                 CertificateType.entries.forEach { ct ->
                                     DropdownMenuItem(onClick = {
                                         onConfigChange(config.copy(sslConfig = ssl.copy(certificateType = ct)))
@@ -125,20 +158,35 @@ fun SslConfigurationTab(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     var verifyExpanded by remember { mutableStateOf(false) }
-                    Box {
+                    var verifyFieldWidth by remember { mutableStateOf(0.dp) }
+                    val verifyDensity = LocalDensity.current
+                    Box(modifier = Modifier.fillMaxWidth()) {
                         FixedOutlinedTextField(
                             value = ssl.certificateVerification.displayName,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Verification Method") },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onGloballyPositioned { verifyFieldWidth = with(verifyDensity) { it.size.width.toDp() } },
                             trailingIcon = {
-                                IconButton(onClick = { verifyExpanded = true }) {
+                                IconButton(onClick = { verifyExpanded = !verifyExpanded }) {
                                     Icon(Icons.Default.ArrowDropDown, null)
                                 }
                             }
                         )
-                        DropdownMenu(expanded = verifyExpanded, onDismissRequest = { verifyExpanded = false }) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { verifyExpanded = !verifyExpanded }
+                        )
+                        DropdownMenu(
+                            expanded = verifyExpanded,
+                            onDismissRequest = { verifyExpanded = false },
+                            modifier = Modifier
+                                .then(if (verifyFieldWidth > 0.dp) Modifier.width(verifyFieldWidth) else Modifier.fillMaxWidth())
+                                .heightIn(max = 300.dp)
+                        ) {
                             CertVerificationMethod.entries.forEach { m ->
                                 DropdownMenuItem(onClick = {
                                     onConfigChange(config.copy(sslConfig = ssl.copy(certificateVerification = m)))

@@ -64,10 +64,13 @@ object DukptEngine {
     // ─── Variant masks for working key derivation ────────────────────
 
     /**
-     * PEK: NO variant. Per ANSI X9.24-2004, the session key derived via
-     * NRKGP IS the PIN Encryption Key directly. No XOR is applied.
+     * PIN Encryption Key variant mask.
+     * Applied: PEK = session_key XOR PEK_VARIANT
      */
-    // (intentionally no PEK_VARIANT constant — to prevent accidental use)
+    val PEK_VARIANT = byteArrayOf(
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(),
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte()
+    )
 
     /**
      * MAC working key variant mask.
@@ -199,11 +202,12 @@ object DukptEngine {
     }
 
     /**
-     * Derive PIN Encryption Key from BDK and KSN.
+     * Derive the DUKPT session key (current key) from BDK and KSN.
      *
-     * Per ANSI X9.24-2004: PEK = session key directly (NO variant XOR).
+     * Returns the raw session key. Callers must apply the appropriate
+     * variant mask before use (PEK_VARIANT for PIN, MAC_VARIANT for MAC, etc.).
      *
-     * @return PEK (16 bytes) = session key
+     * @return 16-byte session key
      */
     fun derivePek(
         bdk: ByteArray,
@@ -211,20 +215,20 @@ object DukptEngine {
         counterBits: Int = DEFAULT_COUNTER_BITS
     ): ByteArray {
         val ipek = deriveIpek(bdk, ksn, counterBits)
-        // PEK = session key, NO variant XOR per ANSI X9.24-2004
         return deriveSessionKey(ipek, ksn, counterBits)
     }
 
     /**
-     * Derive PIN Encryption Key when IPEK is already known.
+     * Derive the DUKPT session key when IPEK is already known.
      * Skips IPEK derivation — useful when input is IPEK, not BDK.
+     *
+     * @return 16-byte session key
      */
     fun derivePekFromIpek(
         ipek: ByteArray,
         ksn: ByteArray,
         counterBits: Int = DEFAULT_COUNTER_BITS
     ): ByteArray {
-        // PEK = session key, NO variant XOR
         return deriveSessionKey(ipek, ksn, counterBits)
     }
 
@@ -417,7 +421,7 @@ object DukptEngine {
      * Expand 16-byte double-length 3DES key to 24-byte Java DESede key.
      * K1-K2 → K1-K2-K1
      */
-    internal fun expandTo24(key: ByteArray): ByteArray {
+    fun expandTo24(key: ByteArray): ByteArray {
         return if (key.size == 16) {
             ByteArray(24).apply {
                 key.copyInto(this, 0, 0, 16)

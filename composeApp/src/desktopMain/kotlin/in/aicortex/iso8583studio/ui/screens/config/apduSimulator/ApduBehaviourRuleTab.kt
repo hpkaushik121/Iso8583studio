@@ -926,7 +926,8 @@ fun ConditionTypeDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             ConditionType.values().forEach { conditionType ->
                 DropdownMenuItem(
@@ -1191,7 +1192,8 @@ fun ActionTypeDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             ActionType.values().forEach { actionType ->
                 DropdownMenuItem(
@@ -1395,7 +1397,8 @@ fun LogLevelDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             levels.forEach { level ->
                 DropdownMenuItem(
@@ -1440,7 +1443,8 @@ fun AlertTypeDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             types.forEach { type ->
                 DropdownMenuItem(
@@ -1485,7 +1489,8 @@ fun AlertPriorityDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             priorities.forEach { priority ->
                 DropdownMenuItem(
@@ -2112,7 +2117,8 @@ fun RuleCategoryFilterDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             DropdownMenuItem(
                 onClick = {
@@ -2191,7 +2197,8 @@ fun RuleSortDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             sortOptions.forEach { (key, displayName) ->
                 DropdownMenuItem(
@@ -2974,7 +2981,8 @@ fun RuleCategoryDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             RuleCategory.values().forEach { category ->
                 DropdownMenuItem(

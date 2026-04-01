@@ -17,6 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -1928,16 +1930,16 @@ fun ConfigDropdown(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var fieldWidthPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.onGloballyPositioned { fieldWidthPx = it.size.width }) {
         FixedOutlinedTextField(
             value = selectedValue,
             onValueChange = { },
             label = { Text(label) },
             readOnly = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
             trailingIcon = {
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -1951,9 +1953,18 @@ fun ConfigDropdown(
             )
         )
 
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable { expanded = !expanded }
+        )
+
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .width(with(density) { fieldWidthPx.toDp() })
+                .heightIn(max = 300.dp)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

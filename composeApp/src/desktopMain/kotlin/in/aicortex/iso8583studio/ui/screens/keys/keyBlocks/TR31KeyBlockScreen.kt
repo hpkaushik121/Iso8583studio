@@ -24,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
@@ -34,6 +36,7 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
+import `in`.aicortex.iso8583studio.ui.screens.components.PersistentTabContent
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -107,7 +110,6 @@ private object Tr31CryptoService {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun Tr31KeyBlockScreen( onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -141,14 +143,9 @@ fun Tr31KeyBlockScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
-                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                        },
-                        label = "tr31_tab_transition"
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
                     ) { tab ->
                         when (tab) {
                             Tr31KeyBlockTabs.ENCODE -> EncodeTab()
@@ -204,12 +201,12 @@ private fun EncodeTab() {
 
                 FormRow("Plain Key:") { EnhancedTextField(value = plainKey, onValueChange = { plainKey = it.uppercase() }) }
                 FormRow("Header:") { EnhancedTextField(value = header, onValueChange = { header = it.uppercase() }) }
-                FormRow("Version Id:") { ModernDropdownField(value = versionId, options = listOf("A - Key Variant Binding Method", "B - Another method"), onSelectionChanged = { versionId = if(it==0) "A - Key Variant Binding Method" else "B - Another method" }) }
-                FormRow("Key Usage:") { ModernDropdownField(value = keyUsage, options = listOf("B0 - BDK Base Derivation Key", "P0 - PIN Encryption Key"), onSelectionChanged = { keyUsage = if(it==0) "B0 - BDK Base Derivation Key" else "P0 - PIN Encryption Key" }) }
-                FormRow("Algorithm:") { ModernDropdownField(value = algorithm, options = listOf("A - AES", "T - Triple DES"), onSelectionChanged = { algorithm = if(it==0) "A - AES" else "T - Triple DES" }) }
-                FormRow("Mode of Use:") { ModernDropdownField(value = modeOfUse, options = listOf("B - Both Encrypt & Decrypt / Wrap & Unwrap", "E - Encrypt Only"), onSelectionChanged = { modeOfUse = if(it==0) "B - Both Encrypt & Decrypt / Wrap & Unwrap" else "E - Encrypt Only" }) }
+                FormRow("Version Id:") { ModernDropdownField(label = "", value = versionId, options = listOf("A - Key Variant Binding Method", "B - Another method"), onSelectionChanged = { versionId = if(it==0) "A - Key Variant Binding Method" else "B - Another method" }) }
+                FormRow("Key Usage:") { ModernDropdownField(label = "", value = keyUsage, options = listOf("B0 - BDK Base Derivation Key", "P0 - PIN Encryption Key"), onSelectionChanged = { keyUsage = if(it==0) "B0 - BDK Base Derivation Key" else "P0 - PIN Encryption Key" }) }
+                FormRow("Algorithm:") { ModernDropdownField(label = "", value = algorithm, options = listOf("A - AES", "T - Triple DES"), onSelectionChanged = { algorithm = if(it==0) "A - AES" else "T - Triple DES" }) }
+                FormRow("Mode of Use:") { ModernDropdownField(label = "", value = modeOfUse, options = listOf("B - Both Encrypt & Decrypt / Wrap & Unwrap", "E - Encrypt Only"), onSelectionChanged = { modeOfUse = if(it==0) "B - Both Encrypt & Decrypt / Wrap & Unwrap" else "E - Encrypt Only" }) }
                 FormRow("Key version#:") { EnhancedTextField(value = keyVersion, onValueChange = { keyVersion = it }) }
-                FormRow("Exportability:") { ModernDropdownField(value = exportability, options = listOf("E - Exportable u. a KEK (meeting req. of X9.24 Pt. 1 or 2)", "N - Not Exportable"), onSelectionChanged = { exportability = if(it==0) "E - Exportable u. a KEK (meeting req. of X9.24 Pt. 1 or 2)" else "N - Not Exportable" }) }
+                FormRow("Exportability:") { ModernDropdownField(label = "", value = exportability, options = listOf("E - Exportable u. a KEK (meeting req. of X9.24 Pt. 1 or 2)", "N - Not Exportable"), onSelectionChanged = { exportability = if(it==0) "E - Exportable u. a KEK (meeting req. of X9.24 Pt. 1 or 2)" else "N - Not Exportable" }) }
                 FormRow("# Opt. KeyBlocks:") { EnhancedTextField(value = optKeyBlocks, onValueChange = { optKeyBlocks = it }) }
                 FormRow("Reserved:") { EnhancedTextField(value = reserved, onValueChange = { reserved = it }) }
                 FormRow("Optional Headers:") { EnhancedTextField(value = optionalHeaders, onValueChange = { optionalHeaders = it }, maxLines = 3) }
@@ -307,19 +304,19 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 }
 
 @Composable
-private fun ModernDropdownField(label:String? = null, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
         FixedOutlinedTextField(
-            value = value, onValueChange = {}, label = label?.let{{Text(label)}}, modifier = Modifier.fillMaxWidth(), readOnly = true,
-            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = !expanded }) },
+            value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.wrapContentWidth()) {
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
             options.forEachIndexed { index, option ->
-                DropdownMenuItem(onClick = {
-                    onSelectionChanged(index)
-                    expanded = false
-                }) {
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
                     Text(text = option, style = MaterialTheme.typography.body2)
                 }
             }

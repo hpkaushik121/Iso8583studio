@@ -25,13 +25,17 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,6 +43,35 @@ import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.ui.BorderLight
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
+
+/**
+ * Renders all [tabs] persistently in the composition tree so that `remember` state
+ * inside each tab's content is preserved across tab switches. Only the [selectedTab]
+ * is visible; the others are collapsed to zero height and fully transparent.
+ */
+@Composable
+fun <T> PersistentTabContent(
+    selectedTab: T,
+    tabs: List<T>,
+    modifier: Modifier = Modifier,
+    content: @Composable (T) -> Unit
+) {
+    Box(modifier) {
+        tabs.forEach { tab ->
+            key(tab) {
+                val isVisible = tab == selectedTab
+                Box(
+                    modifier = Modifier.then(
+                        if (isVisible) Modifier
+                        else Modifier.heightIn(max = 0.dp).alpha(0f)
+                    )
+                ) {
+                    content(tab)
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -118,8 +151,12 @@ fun ModernDropdownField(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.onGloballyPositioned { coordinates ->
+        textFieldWidth = coordinates.size.width
+    }) {
         FixedOutlinedTextField(
             value = value,
             onValueChange = {},
@@ -141,7 +178,6 @@ fun ModernDropdownField(
             )
         )
 
-        // Invisible clickable overlay to expand the dropdown
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -152,7 +188,9 @@ fun ModernDropdownField(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.wrapContentWidth()
+            modifier = Modifier
+                .width(with(density) { textFieldWidth.toDp() })
+                .heightIn(max = 300.dp)
         ) {
             options.forEachIndexed { index, option ->
                 DropdownMenuItem(

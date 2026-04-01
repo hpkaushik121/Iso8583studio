@@ -900,7 +900,8 @@ fun FormatSelector(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             CodeFormat.values().forEach { format ->
                 DropdownMenuItem(onClick = {

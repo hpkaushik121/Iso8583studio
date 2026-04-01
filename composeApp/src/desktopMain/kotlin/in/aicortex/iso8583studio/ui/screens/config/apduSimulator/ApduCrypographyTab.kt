@@ -857,7 +857,8 @@ fun KeyTypeFilterDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             DropdownMenuItem(
                 onClick = {
@@ -932,7 +933,8 @@ fun StatusFilterDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             DropdownMenuItem(
                 onClick = {
@@ -1889,7 +1891,8 @@ fun CryptoDropdownField(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

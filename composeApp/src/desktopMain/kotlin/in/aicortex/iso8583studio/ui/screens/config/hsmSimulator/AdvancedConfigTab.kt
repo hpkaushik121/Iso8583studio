@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.config.hsmSimulator
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,6 +14,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -2271,9 +2274,6 @@ private fun AdvancedOption(
     }
 }
 
-// NOTE: The DropdownSelector composable was missing from your provided jumbled code
-// I'm adding a minimal version here so the rest of the code can compile.
-// You might need to replace this with your actual DropdownSelector implementation.
 @Composable
 private fun <T> DropdownSelector(
     label: String,
@@ -2285,32 +2285,46 @@ private fun <T> DropdownSelector(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var textFieldWidth by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
 
-    FixedOutlinedTextField(
-        value = displayName(selectedOption),
-        onValueChange = { /* Read-only */ },
-        label = { Text(label) },
-        readOnly = true,
-        modifier = modifier.fillMaxWidth(),
-        leadingIcon = {
-            Icon(icon, null, modifier = Modifier.size(20.dp))
-        },
-        trailingIcon = {
-            IconButton(onClick = { expanded = true }) {
-                Icon(Icons.Default.ArrowDropDown, null)
+    Box(modifier = modifier.fillMaxWidth()) {
+        FixedOutlinedTextField(
+            value = displayName(selectedOption),
+            onValueChange = { /* Read-only */ },
+            label = { Text(label) },
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { textFieldWidth = with(density) { it.size.width.toDp() } },
+            leadingIcon = {
+                Icon(icon, null, modifier = Modifier.size(20.dp))
+            },
+            trailingIcon = {
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(Icons.Default.ArrowDropDown, null)
+                }
             }
-        }
-    )
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false }
-    ) {
-        options.forEach { option ->
-            DropdownMenuItem(onClick = {
-                onOptionSelected(option)
-                expanded = false
-            }) {
-                Text(displayName(option))
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { expanded = !expanded }
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .then(if (textFieldWidth > 0.dp) Modifier.width(textFieldWidth) else Modifier.fillMaxWidth())
+                .heightIn(max = 300.dp)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(onClick = {
+                    onOptionSelected(option)
+                    expanded = false
+                }) {
+                    Text(displayName(option))
+                }
             }
         }
     }

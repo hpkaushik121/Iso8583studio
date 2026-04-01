@@ -24,6 +24,8 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.logging.LogEntry
@@ -36,6 +38,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
 
@@ -106,8 +110,8 @@ object DUKPTAESLogManager {
 }
 
 object DUKPTAESService {
-    // NOTE: This is a placeholder for actual DUKPT AES cryptographic logic.
-    // The results are for demonstration and are not cryptographically secure.
+    // NOTE: Key derivation is a placeholder — full ANSI X9.24-3 CMAC-based derivation is not yet implemented.
+    // PIN/MAC/Data operations use real AES cryptography.
 
     private fun mockDerive(baseKey: String, ksn: String, keyType: String): String {
         val keyLength = DUKPTAESValidationUtils.getExpectedLength(keyType) / 2
@@ -131,25 +135,70 @@ object DUKPTAESService {
         )
     }
 
-    fun processPinBlock(pek: String, pinBlock: String): String {
-        // Mock symmetrical XOR logic
-        return mockDerive(pek, pinBlock, "AES-128") // Using pin block as KSN for mock
+    fun encryptPinBlock(pek: String, pinBlock: String): String {
+        val pekBytes = pek.decodeHex()
+        val pinBlockBytes = pinBlock.decodeHex()
+        val padded = if (pinBlockBytes.size % 16 != 0) {
+            pinBlockBytes + ByteArray(16 - pinBlockBytes.size % 16)
+        } else {
+            pinBlockBytes
+        }
+        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(pekBytes, "AES"))
+        return cipher.doFinal(padded).toHex().uppercase()
+    }
+
+    fun decryptPinBlock(pek: String, encryptedPinBlock: String): String {
+        val pekBytes = pek.decodeHex()
+        val encBytes = encryptedPinBlock.decodeHex()
+        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(pekBytes, "AES"))
+        return cipher.doFinal(encBytes).toHex().uppercase()
     }
 
     fun generateMac(macKey: String, data: String): String {
-        val combined = "$macKey|$data"
-        return combined.hashCode().toString(16).take(16).uppercase() // 16 hex char MAC
-    }
-
-    fun processData(dek: String, data: String, inputType: String): String {
-        val dataBytes = if (inputType == "ASCII") data.toByteArray() else data.decodeHex()
-        val dekBytes = dek.decodeHex()
-
-        val result = ByteArray(dataBytes.size)
-        for(i in result.indices){
-            result[i] = (dataBytes[i].toInt() xor dekBytes[i % dekBytes.size].toInt()).toByte()
+        val keyBytes = macKey.decodeHex()
+        val dataBytes = data.decodeHex()
+        val padded = if (dataBytes.isEmpty()) {
+            ByteArray(16)
+        } else if (dataBytes.size % 16 != 0) {
+            dataBytes + ByteArray(16 - dataBytes.size % 16)
+        } else {
+            dataBytes
+        }
+        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"))
+        var result = ByteArray(16)
+        for (i in padded.indices step 16) {
+            result = xorBytes16(result, padded.copyOfRange(i, i + 16))
+            result = cipher.doFinal(result)
         }
         return result.toHex().uppercase()
+    }
+
+    fun encryptData(dek: String, data: String, inputType: String): String {
+        val dataBytes = if (inputType == "ASCII") data.toByteArray() else data.decodeHex()
+        val dekBytes = dek.decodeHex()
+        val padded = if (dataBytes.size % 16 != 0) {
+            dataBytes + ByteArray(16 - dataBytes.size % 16)
+        } else {
+            dataBytes
+        }
+        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(dekBytes, "AES"))
+        return cipher.doFinal(padded).toHex().uppercase()
+    }
+
+    fun decryptData(dek: String, data: String): String {
+        val dataBytes = data.decodeHex()
+        val dekBytes = dek.decodeHex()
+        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(dekBytes, "AES"))
+        return cipher.doFinal(dataBytes).toHex().uppercase()
+    }
+
+    private fun xorBytes16(a: ByteArray, b: ByteArray): ByteArray {
+        return ByteArray(a.size) { i -> (a[i].toInt() xor b[i].toInt()).toByte() }
     }
 
     // Helper extensions
@@ -168,12 +217,44 @@ enum class DUKPTAESTabs(val title: String, val icon: ImageVector) {
     DUKPT_DATA("DUKPT Data", Icons.Default.SyncAlt)
 }
 
+private class AesKeyDerivationState {
+    var selectedInputKeyDesignation by mutableStateOf("BDK")
+    var selectedInitialKeyType by mutableStateOf("AES-128")
+    var selectedWorkingKeyType by mutableStateOf("AES-128")
+    var bdk by mutableStateOf("")
+    var ksn by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
+private class AesPinState {
+    var pek by mutableStateOf("")
+    var pinBlock by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
+private class AesMacState {
+    var macKey by mutableStateOf("")
+    var data by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
+private class AesDataState {
+    var dek by mutableStateOf("")
+    var selectedDataType by mutableStateOf("ASCII")
+    var data by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DUKPTAESScreen(onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = DUKPTAESTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
+    val keyDerivState = remember { AesKeyDerivationState() }
+    val pinState = remember { AesPinState() }
+    val macState = remember { AesMacState() }
+    val dataState = remember { AesDataState() }
 
     Scaffold(
         topBar = { AppBarWithBack(title = "DUKPT AES Utilities", onBackClick = onBack) },
@@ -214,10 +295,10 @@ fun DUKPTAESScreen(onBack: () -> Unit) {
                         label = "dukpt_aes_tab_transition"
                     ) { tab ->
                         when (tab) {
-                            DUKPTAESTabs.KEY_DERIVATION -> KeyDerivationCard()
-                            DUKPTAESTabs.DUKPT_PIN -> DukptPinCard()
-                            DUKPTAESTabs.DUKPT_MAC -> DukptMacCard()
-                            DUKPTAESTabs.DUKPT_DATA -> DukptDataCard()
+                            DUKPTAESTabs.KEY_DERIVATION -> KeyDerivationCard(keyDerivState)
+                            DUKPTAESTabs.DUKPT_PIN -> DukptPinCard(pinState)
+                            DUKPTAESTabs.DUKPT_MAC -> DukptMacCard(macState)
+                            DUKPTAESTabs.DUKPT_DATA -> DukptDataCard(dataState)
                         }
                     }
                 }
@@ -235,19 +316,12 @@ fun DUKPTAESScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun KeyDerivationCard() {
+private fun KeyDerivationCard(state: AesKeyDerivationState) { with(state) {
     val inputKeyDesignations = remember { listOf("BDK", "IK") }
-    var selectedInputKeyDesignation by remember { mutableStateOf(inputKeyDesignations.first()) }
 
     val initialKeyTypes = remember { listOf("AES-128", "AES-192", "AES-256") }
-    var selectedInitialKeyType by remember { mutableStateOf(initialKeyTypes.first()) }
 
     val workingKeyTypes = remember { listOf("2TDEA", "3TDEA", "AES-128", "AES-192", "AES-256") }
-    var selectedWorkingKeyType by remember { mutableStateOf(workingKeyTypes[2]) }
-
-    var bdk by remember { mutableStateOf("") }
-    var ksn by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     val bdkValidation = DUKPTAESValidationUtils.validate(bdk, "BDK", selectedInitialKeyType)
     val ksnValidation = DUKPTAESValidationUtils.validate(ksn, "KSN")
@@ -292,13 +366,10 @@ private fun KeyDerivationCard() {
             isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.ArrowForward, modifier = Modifier.fillMaxWidth()
         )
     }
-}
+}}
 
 @Composable
-private fun DukptPinCard() {
-    var pek by remember { mutableStateOf("") }
-    var pinBlock by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+private fun DukptPinCard(state: AesPinState) { with(state) {
 
     val pekValidation = DUKPTAESValidationUtils.validate(pek, "PEK")
     val pinBlockValidation = DUKPTAESValidationUtils.validate(pinBlock, "PIN Block")
@@ -320,7 +391,7 @@ private fun DukptPinCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTAESService.processPinBlock(pek, pinBlock)
+                            val result = DUKPTAESService.encryptPinBlock(pek, pinBlock)
                             DUKPTAESLogManager.logOperation("PIN Encryption", inputs, result = "  Encrypted PIN Block: $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTAESLogManager.logOperation("PIN Encryption", inputs, error = e.message, executionTime = 155)
@@ -337,7 +408,7 @@ private fun DukptPinCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTAESService.processPinBlock(pek, pinBlock)
+                            val result = DUKPTAESService.decryptPinBlock(pek, pinBlock)
                             DUKPTAESLogManager.logOperation("PIN Decryption", inputs, result = "  Decrypted PIN Block: $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTAESLogManager.logOperation("PIN Decryption", inputs, error = e.message, executionTime = 155)
@@ -349,13 +420,10 @@ private fun DukptPinCard() {
             )
         }
     }
-}
+}}
 
 @Composable
-private fun DukptMacCard() {
-    var macKey by remember { mutableStateOf("") }
-    var data by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+private fun DukptMacCard(state: AesMacState) { with(state) {
 
     val macKeyValidation = DUKPTAESValidationUtils.validate(macKey, "Mac Gen Key")
     val dataValidation = DUKPTAESValidationUtils.validate(data, "Data")
@@ -386,15 +454,11 @@ private fun DukptMacCard() {
             isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.CheckCircle, modifier = Modifier.fillMaxWidth()
         )
     }
-}
+}}
 
 @Composable
-private fun DukptDataCard() {
-    var dek by remember { mutableStateOf("") }
+private fun DukptDataCard(state: AesDataState) { with(state) {
     val dataTypes = remember { listOf("ASCII", "Hexadecimal") }
-    var selectedDataType by remember { mutableStateOf(dataTypes.first()) }
-    var data by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     val dekValidation = DUKPTAESValidationUtils.validate(dek, "DEK")
     val dataValidation = DUKPTAESValidationUtils.validate(data, "Data")
@@ -418,7 +482,7 @@ private fun DukptDataCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTAESService.processData(dek, data, selectedDataType)
+                            val result = DUKPTAESService.encryptData(dek, data, selectedDataType)
                             DUKPTAESLogManager.logOperation("Data Encryption", inputs, result = "  Encrypted Data (Hex): $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTAESLogManager.logOperation("Data Encryption", inputs, error = e.message, executionTime = 155)
@@ -436,7 +500,7 @@ private fun DukptDataCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTAESService.processData(dek, data, "Hexadecimal")
+                            val result = DUKPTAESService.decryptData(dek, data)
                             DUKPTAESLogManager.logOperation("Data Decryption", inputs, result = "  Decrypted Data (Hex): $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTAESLogManager.logOperation("Data Decryption", inputs, error = e.message, executionTime = 155)
@@ -448,7 +512,7 @@ private fun DukptDataCard() {
             )
         }
     }
-}
+}}
 
 
 // --- SHARED UI COMPONENTS ---
@@ -504,18 +568,18 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 @Composable
 private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
         FixedOutlinedTextField(
             value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
-            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = !expanded }) },
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
             options.forEachIndexed { index, option ->
-                DropdownMenuItem(onClick = {
-                    onSelectionChanged(index)
-                    expanded = false
-                }) {
-                    Text(text = option)
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
+                    Text(text = option, style = MaterialTheme.typography.body2)
                 }
             }
         }

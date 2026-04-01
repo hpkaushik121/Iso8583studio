@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.PersistentTabContent
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
 import kotlinx.coroutines.GlobalScope
@@ -112,7 +113,6 @@ enum class PinOffsetTabs(val title: String, val icon: ImageVector) {
     PIN("PIN", Icons.Default.Pin),
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun PinOffsetScreen(onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -151,14 +151,9 @@ fun PinOffsetScreen(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
-                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                        },
-                        label = "pinoffset_tab_transition"
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
                     ) { tab ->
                         when (tab) {
                             PinOffsetTabs.OFFSET -> OffsetCard()

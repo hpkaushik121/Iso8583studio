@@ -33,6 +33,7 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.PersistentTabContent
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
 import kotlinx.coroutines.GlobalScope
@@ -134,7 +135,6 @@ object DdaLogManager {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DdaScreen(
     
@@ -180,14 +180,9 @@ fun DdaScreen(
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
-                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                        },
-                        label = "dda_tab_transition"
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
                     ) { tab ->
                         when (tab) {
                             DdaTabs.RETRIEVE_ISSUER_PK -> RetrieveIssuerPkTabDda()

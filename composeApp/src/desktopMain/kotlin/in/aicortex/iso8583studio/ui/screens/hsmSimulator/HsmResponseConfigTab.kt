@@ -2066,7 +2066,8 @@ private fun HsmSessionMatcherRow(
                     }
                     DropdownMenu(
                         expanded = operatorExpanded,
-                        onDismissRequest = { operatorExpanded = false }
+                        onDismissRequest = { operatorExpanded = false },
+                        modifier = Modifier.heightIn(max = 300.dp)
                     ) {
                         HsmMatchOperator.values().forEach { operator ->
                             DropdownMenuItem(

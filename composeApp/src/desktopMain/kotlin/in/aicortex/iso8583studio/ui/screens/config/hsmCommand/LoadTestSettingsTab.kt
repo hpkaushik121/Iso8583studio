@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.config.hsmCommand
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -8,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,20 +41,35 @@ fun LoadTestSettingsTab(
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Pattern
                 var patternExpanded by remember { mutableStateOf(false) }
-                Box {
+                var patternFieldWidth by remember { mutableStateOf(0.dp) }
+                val patternDensity = LocalDensity.current
+                Box(modifier = Modifier.fillMaxWidth()) {
                     FixedOutlinedTextField(
                         value = config.loadTestPattern.displayName,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Load Pattern") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { patternFieldWidth = with(patternDensity) { it.size.width.toDp() } },
                         trailingIcon = {
-                            IconButton(onClick = { patternExpanded = true }) {
+                            IconButton(onClick = { patternExpanded = !patternExpanded }) {
                                 Icon(Icons.Default.ArrowDropDown, null)
                             }
                         }
                     )
-                    DropdownMenu(expanded = patternExpanded, onDismissRequest = { patternExpanded = false }) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { patternExpanded = !patternExpanded }
+                    )
+                    DropdownMenu(
+                        expanded = patternExpanded,
+                        onDismissRequest = { patternExpanded = false },
+                        modifier = Modifier
+                            .then(if (patternFieldWidth > 0.dp) Modifier.width(patternFieldWidth) else Modifier.fillMaxWidth())
+                            .heightIn(max = 300.dp)
+                    ) {
                         LoadTestPattern.entries.forEach { p ->
                             DropdownMenuItem(onClick = {
                                 onConfigChange(config.copy(loadTestPattern = p))

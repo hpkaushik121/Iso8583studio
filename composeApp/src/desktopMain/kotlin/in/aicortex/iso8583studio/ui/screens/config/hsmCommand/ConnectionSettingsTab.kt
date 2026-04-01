@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.config.hsmCommand
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -9,6 +10,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -62,20 +65,35 @@ fun ConnectionSettingsTab(
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 var vendorExpanded by remember { mutableStateOf(false) }
-                Box {
+                var vendorFieldWidth by remember { mutableStateOf(0.dp) }
+                val vendorDensity = LocalDensity.current
+                Box(modifier = Modifier.fillMaxWidth()) {
                     FixedOutlinedTextField(
                         value = config.hsmVendor.displayName,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("HSM Type") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { vendorFieldWidth = with(vendorDensity) { it.size.width.toDp() } },
                         trailingIcon = {
-                            IconButton(onClick = { vendorExpanded = true }) {
+                            IconButton(onClick = { vendorExpanded = !vendorExpanded }) {
                                 Icon(Icons.Default.ArrowDropDown, "Select vendor")
                             }
                         }
                     )
-                    DropdownMenu(expanded = vendorExpanded, onDismissRequest = { vendorExpanded = false }) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { vendorExpanded = !vendorExpanded }
+                    )
+                    DropdownMenu(
+                        expanded = vendorExpanded,
+                        onDismissRequest = { vendorExpanded = false },
+                        modifier = Modifier
+                            .then(if (vendorFieldWidth > 0.dp) Modifier.width(vendorFieldWidth) else Modifier.fillMaxWidth())
+                            .heightIn(max = 300.dp)
+                    ) {
                         HsmVendorType.entries.forEach { vendor ->
                             DropdownMenuItem(onClick = {
                                 onConfigChange(config.copy(
@@ -155,20 +173,35 @@ fun ConnectionSettingsTab(
                 }
 
                 var headerFormatExpanded by remember { mutableStateOf(false) }
-                Box {
+                var headerFormatFieldWidth by remember { mutableStateOf(0.dp) }
+                val headerFormatDensity = LocalDensity.current
+                Box(modifier = Modifier.fillMaxWidth()) {
                     FixedOutlinedTextField(
                         value = config.hsmVendor.headerFormat.displayName,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Header Format") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { headerFormatFieldWidth = with(headerFormatDensity) { it.size.width.toDp() } },
                         trailingIcon = {
-                            IconButton(onClick = { headerFormatExpanded = true }) {
+                            IconButton(onClick = { headerFormatExpanded = !headerFormatExpanded }) {
                                 Icon(Icons.Default.ArrowDropDown, null)
                             }
                         }
                     )
-                    DropdownMenu(expanded = headerFormatExpanded, onDismissRequest = { headerFormatExpanded = false }) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { headerFormatExpanded = !headerFormatExpanded }
+                    )
+                    DropdownMenu(
+                        expanded = headerFormatExpanded,
+                        onDismissRequest = { headerFormatExpanded = false },
+                        modifier = Modifier
+                            .then(if (headerFormatFieldWidth > 0.dp) Modifier.width(headerFormatFieldWidth) else Modifier.fillMaxWidth())
+                            .heightIn(max = 300.dp)
+                    ) {
                         HeaderFormat.entries.forEach { fmt ->
                             DropdownMenuItem(onClick = {
                                 onConfigChange(config.copy(

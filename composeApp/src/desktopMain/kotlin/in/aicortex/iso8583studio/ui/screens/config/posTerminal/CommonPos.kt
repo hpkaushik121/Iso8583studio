@@ -4,14 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.HorizontalScrollbar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.ui.BorderLight
@@ -96,12 +91,18 @@ fun ConfigDropdown(
     onValueChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
+    var fieldWidthPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { fieldWidthPx = it.size.width }
+    ) {
         FixedOutlinedTextField(
             value = currentValue,
             onValueChange = {},
             label = { Text(label) },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
             readOnly = true,
             trailingIcon = {
                 Icon(
@@ -110,10 +111,17 @@ fun ConfigDropdown(
                 )
             },
         )
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable { expanded = !expanded }
+        )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .width(with(density) { fieldWidthPx.toDp() })
+                .heightIn(max = 300.dp)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(onClick = { onValueChange(option); expanded = false }) {

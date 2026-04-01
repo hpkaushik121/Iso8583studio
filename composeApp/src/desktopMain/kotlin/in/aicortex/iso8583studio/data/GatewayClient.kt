@@ -341,7 +341,9 @@ class GatewayClient {
                                 gatewayHandler?.configuration?.gatewayType == GatewayType.SERVER) {
                                 continue
                             }
-                            if (ex.error != VerificationError.EXCEPTION_HANDLED) {
+                            if (ex.error != VerificationError.EXCEPTION_HANDLED &&
+                                ex.error != VerificationError.TIMEOUT
+                            ) {
                                 throw ex
                             }
                         }

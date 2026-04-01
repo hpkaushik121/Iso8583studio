@@ -364,7 +364,8 @@ private fun FlowAnalysisControlPanel(
 
                         DropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.heightIn(max = 300.dp)
                         ) {
                             EmvFlowTemplate.values().forEach { template ->
                                 DropdownMenuItem(

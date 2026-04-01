@@ -2205,7 +2205,8 @@ private fun KeyValueMatcherRow(
                     }
                     DropdownMenu(
                         expanded = operatorExpanded,
-                        onDismissRequest = { operatorExpanded = false }
+                        onDismissRequest = { operatorExpanded = false },
+                        modifier = Modifier.heightIn(max = 300.dp)
                     ) {
                         MatchOperator.values().forEach { operator ->
                             DropdownMenuItem(

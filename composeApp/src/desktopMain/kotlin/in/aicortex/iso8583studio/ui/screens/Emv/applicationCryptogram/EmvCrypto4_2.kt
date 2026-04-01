@@ -23,6 +23,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,6 +37,7 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.PersistentTabContent
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
 import ai.cortex.core.types.PaddingMethods
@@ -146,7 +149,6 @@ object Emv42LogManager {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun EmvCrypto4_2(
     
@@ -192,14 +194,9 @@ fun EmvCrypto4_2(
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
-                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                        },
-                        label = "emv42_tab_transition"
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
                     ) { tab ->
                         when (tab) {
                             Emv42CryptoTabs.UDK_DERIVATION -> UdkDerivationTab42()
@@ -548,25 +545,19 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 }
 
 @Composable
-private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
         FixedOutlinedTextField(
-            value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true, enabled = false,
-            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colors.onSurface) },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                disabledBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
-                disabledTextColor = MaterialTheme.colors.onSurface,
-                disabledLabelColor = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-            )
+            value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
         )
-        Box(modifier = Modifier.matchParentSize().background(Color.Transparent).clickable { expanded = !expanded })
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.wrapContentWidth()) {
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
             options.forEachIndexed { index, option ->
-                DropdownMenuItem(onClick = {
-                    onSelectionChanged(index)
-                    expanded = false
-                }) {
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
                     Text(text = option, style = MaterialTheme.typography.body2)
                 }
             }

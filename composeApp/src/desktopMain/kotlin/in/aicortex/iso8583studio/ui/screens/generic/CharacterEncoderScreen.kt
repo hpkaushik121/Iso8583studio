@@ -21,6 +21,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -264,19 +266,19 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 }
 
 @Composable
-private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
         FixedOutlinedTextField(
             value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
-            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = !expanded }) },
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.wrapContentWidth()) {
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(kotlin.with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
             options.forEachIndexed { index, option ->
-                DropdownMenuItem(onClick = {
-                    onSelectionChanged(index)
-                    expanded = false
-                }) {
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
                     Text(text = option, style = MaterialTheme.typography.body2)
                 }
             }

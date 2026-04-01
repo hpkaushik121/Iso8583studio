@@ -22,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -701,39 +703,20 @@ private fun ModernCryptoCard(
 }
 
 @Composable
-private fun ModernDropdownField(
-    label: String,
-    value: String,
-    options: List<String>,
-    onSelectionChanged: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
         FixedOutlinedTextField(
-            value = value,
-            onValueChange = {},
-            label = { Text(label) },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
-            readOnly = true,
-            trailingIcon = {
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                    contentDescription = null,
-                    modifier = Modifier.clickable { expanded = !expanded }
-                )
-            }
+            value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
         )
-        Box(modifier = Modifier.matchParentSize().clickable { expanded = true })
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
             options.forEachIndexed { index, option ->
                 DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (option == value) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(16.dp))
-                        }
-                        Text(text = option, style = MaterialTheme.typography.body2)
-                    }
+                    Text(text = option, style = MaterialTheme.typography.body2)
                 }
             }
         }

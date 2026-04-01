@@ -946,7 +946,8 @@ private fun BasicRestConfiguration(
 
                     ExposedDropdownMenu(
                         expanded = methodExpanded,
-                        onDismissRequest = { methodExpanded = false }
+                        onDismissRequest = { methodExpanded = false },
+                        modifier = Modifier.heightIn(max = 300.dp)
                     ) {
                         HttpMethod.values().forEach { method ->
                             DropdownMenuItem(
@@ -1002,7 +1003,8 @@ private fun BasicRestConfiguration(
 
                     ExposedDropdownMenu(
                         expanded = formatExpanded,
-                        onDismissRequest = { formatExpanded = false }
+                        onDismissRequest = { formatExpanded = false },
+                        modifier = Modifier.heightIn(max = 300.dp)
                     ) {
                         RestMessageFormat.values().forEach { format ->
                             DropdownMenuItem(

@@ -24,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -121,7 +123,7 @@ data class DukptPekResult(
  *
  * Changes from previous version:
  *   FIX #1: IPEK derivation now uses LEFTMOST 8 bytes of IKSN (via DukptEngine)
- *   FIX #2: PEK = session key directly, NO PEK_VARIANT XOR
+ *   FIX #2: PEK derivation returns session key; PEK_VARIANT applied at encrypt/decrypt time
  *   REFACTOR: All crypto delegated to DukptEngine for consistency with HSM commands
  */
 object DUKPTService {
@@ -159,39 +161,103 @@ object DUKPTService {
     }
 
     /**
-     * Decrypt PIN block using PEK via XOR (for display/testing).
+     * Encrypt PIN block using PEK via 3DES ECB per ANSI X9.24.
      */
-    fun processPinBlock(pek: String, pinBlock: String): String {
+    fun encryptPinBlock(pek: String, pinBlock: String): String {
         val pekBytes = pek.decodeHex()
         val pinBlockBytes = pinBlock.decodeHex()
-        val result = ByteArray(pinBlockBytes.size)
-        for (i in result.indices) {
-            result[i] = (pekBytes[i % pekBytes.size].toInt() xor pinBlockBytes[i].toInt()).toByte()
-        }
-        return result.toHex().uppercase()
+        val pinKey = DukptEngine.xorBytes(pekBytes, DukptEngine.PEK_VARIANT)
+        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(pinKey), "DESede"))
+        return cipher.doFinal(pinBlockBytes).toHex().uppercase()
     }
 
     /**
-     * Generate MAC using PEK (mock — for UI testing).
+     * Decrypt PIN block using PEK via 3DES ECB per ANSI X9.24.
      */
-    fun generateMac(pek: String, algorithm: String, data: String): String {
-        val combined = "$pek|$algorithm|$data"
-        return combined.hashCode().toString(16).uppercase().take(8)
-    }
-
-    /**
-     * Process data encryption/decryption using PEK.
-     */
-    fun processData(pek: String, isDataVariant: Boolean, dataInputType: String, data: String): String {
-        val dataBytes = if (dataInputType == "ASCII") data.toByteArray() else data.decodeHex()
+    fun decryptPinBlock(pek: String, encryptedPinBlock: String): String {
         val pekBytes = pek.decodeHex()
-        val keyModifier = if (isDataVariant) "FFFFFFFFFFFFFFFF".decodeHex() else "0000000000000000".decodeHex()
+        val encBytes = encryptedPinBlock.decodeHex()
+        val pinKey = DukptEngine.xorBytes(pekBytes, DukptEngine.PEK_VARIANT)
+        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(pinKey), "DESede"))
+        return cipher.doFinal(encBytes).toHex().uppercase()
+    }
 
-        val result = ByteArray(dataBytes.size)
-        for (i in result.indices) {
-            result[i] = (dataBytes[i].toInt() xor pekBytes[i % pekBytes.size].toInt() xor keyModifier[i % keyModifier.size].toInt()).toByte()
+    /**
+     * Generate MAC per ISO 9797-1.
+     * DES  → Algorithm 1 (single DES CBC-MAC)
+     * 3DES → Algorithm 3 (Retail MAC: DES CBC then final 3DES round)
+     */
+    fun generateMac(key: String, algorithm: String, data: String): String {
+        val keyBytes = key.decodeHex()
+        val dataBytes = data.decodeHex()
+        val padded = if (dataBytes.isEmpty()) {
+            ByteArray(8)
+        } else if (dataBytes.size % 8 != 0) {
+            dataBytes + ByteArray(8 - dataBytes.size % 8)
+        } else {
+            dataBytes
         }
-        return result.toHex().uppercase()
+        val k1 = keyBytes.copyOfRange(0, 8)
+        val desCipher = Cipher.getInstance("DES/ECB/NoPadding")
+
+        return when (algorithm) {
+            "DES" -> {
+                desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(k1, "DES"))
+                var result = ByteArray(8)
+                for (i in padded.indices step 8) {
+                    result = DukptEngine.xorBytes(result, padded.copyOfRange(i, i + 8))
+                    result = desCipher.doFinal(result)
+                }
+                result.toHex().uppercase()
+            }
+            else -> {
+                val k2 = keyBytes.copyOfRange(8, 16)
+                desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(k1, "DES"))
+                var result = ByteArray(8)
+                for (i in padded.indices step 8) {
+                    result = DukptEngine.xorBytes(result, padded.copyOfRange(i, i + 8))
+                    result = desCipher.doFinal(result)
+                }
+                desCipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(k2, "DES"))
+                result = desCipher.doFinal(result)
+                desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(k1, "DES"))
+                result = desCipher.doFinal(result)
+                result.toHex().uppercase()
+            }
+        }
+    }
+
+    /**
+     * Encrypt data using 3DES ECB. When isDataVariant is true,
+     * the key is XORed with DATA_VARIANT to derive the Data Encryption Key.
+     */
+    fun encryptData(key: String, isDataVariant: Boolean, dataInputType: String, data: String): String {
+        val dataBytes = if (dataInputType == "ASCII") data.toByteArray() else data.decodeHex()
+        val keyBytes = key.decodeHex()
+        val actualKey = if (isDataVariant) DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT) else keyBytes
+        val padded = if (dataBytes.size % 8 != 0) {
+            dataBytes + ByteArray(8 - dataBytes.size % 8)
+        } else {
+            dataBytes
+        }
+        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"))
+        return cipher.doFinal(padded).toHex().uppercase()
+    }
+
+    /**
+     * Decrypt data using 3DES ECB. When isDataVariant is true,
+     * the key is XORed with DATA_VARIANT to derive the Data Encryption Key.
+     */
+    fun decryptData(key: String, isDataVariant: Boolean, data: String): String {
+        val dataBytes = data.decodeHex()
+        val keyBytes = key.decodeHex()
+        val actualKey = if (isDataVariant) DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT) else keyBytes
+        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"))
+        return cipher.doFinal(dataBytes).toHex().uppercase()
     }
 
     // ─── Helper extensions ───────────────────────────────────────────
@@ -214,12 +280,44 @@ enum class DUKPTTabs(val title: String, val icon: ImageVector) {
     DUKPT_DATA("DUKPT Data", Icons.Default.SyncAlt)
 }
 
+private class PekDerivationState {
+    var selectedKeyType by mutableStateOf("BDK")
+    var bdk by mutableStateOf("")
+    var ksn by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
+private class DukptPinState {
+    var pek by mutableStateOf("")
+    var pinBlock by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
+private class DukptMacState {
+    var pek by mutableStateOf("")
+    var selectedAlgorithm by mutableStateOf("DES")
+    var data by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
+private class DukptDataState {
+    var pek by mutableStateOf("")
+    var isDataVariant by mutableStateOf(false)
+    var selectedDataType by mutableStateOf("ASCII")
+    var data by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DukptIso9797Screen(onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = DUKPTTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
+    val pekDerivState = remember { PekDerivationState() }
+    val pinState = remember { DukptPinState() }
+    val macState = remember { DukptMacState() }
+    val dataState = remember { DukptDataState() }
 
     Scaffold(
         topBar = { AppBarWithBack(title = "DUKPT Utilities", onBackClick = onBack) },
@@ -263,10 +361,10 @@ fun DukptIso9797Screen(onBack: () -> Unit) {
                         label = "dukpt_tab_transition"
                     ) { tab ->
                         when (tab) {
-                            DUKPTTabs.PEK_DERIVATION -> PekDerivationCard()
-                            DUKPTTabs.DUKPT_PIN -> DukptPinCard()
-                            DUKPTTabs.DUKPT_MAC -> DukptMacCard()
-                            DUKPTTabs.DUKPT_DATA -> DukptDataCard()
+                            DUKPTTabs.PEK_DERIVATION -> PekDerivationCard(pekDerivState)
+                            DUKPTTabs.DUKPT_PIN -> DukptPinCard(pinState)
+                            DUKPTTabs.DUKPT_MAC -> DukptMacCard(macState)
+                            DUKPTTabs.DUKPT_DATA -> DukptDataCard(dataState)
                         }
                     }
                 }
@@ -284,12 +382,8 @@ fun DukptIso9797Screen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun PekDerivationCard() {
+private fun PekDerivationCard(state: PekDerivationState) { with(state) {
     val keyTypes = remember { listOf("BDK", "IPEK") }
-    var selectedKeyType by remember { mutableStateOf(keyTypes.first()) }
-    var bdk by remember { mutableStateOf("") }
-    var ksn by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     val bdkValidation = DUKPTValidationUtils.validate(bdk, "BDK", length = 32)
     val ksnValidation = DUKPTValidationUtils.validate(ksn, "KSN", length = 20)
@@ -340,13 +434,10 @@ private fun PekDerivationCard() {
             isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.ArrowForward, modifier = Modifier.fillMaxWidth()
         )
     }
-}
+}}
 
 @Composable
-private fun DukptPinCard() {
-    var pek by remember { mutableStateOf("") }
-    var pinBlock by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+private fun DukptPinCard(state: DukptPinState) { with(state) {
 
     val pekValidation = DUKPTValidationUtils.validate(pek, "PEK", length = 32)
     val pinBlockValidation = DUKPTValidationUtils.validate(pinBlock, "PIN Block", length = 16)
@@ -355,7 +446,7 @@ private fun DukptPinCard() {
             pekValidation.state != ValidationState.ERROR && pinBlockValidation.state != ValidationState.ERROR
 
     ModernCryptoCard(title = "DUKPT PIN", subtitle = "Encrypt or Decrypt a PIN block using a PEK", icon = DUKPTTabs.DUKPT_PIN.icon) {
-        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (16 Hex Chars)", validation = pekValidation)
+        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 Hex Chars)", validation = pekValidation)
         Spacer(Modifier.height(12.dp))
         EnhancedTextField(value = pinBlock, onValueChange = { pinBlock = it }, label = "PIN Block (16 Hex Chars)", validation = pinBlockValidation)
         Spacer(Modifier.height(16.dp))
@@ -368,7 +459,7 @@ private fun DukptPinCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTService.processPinBlock(pek, pinBlock)
+                            val result = DUKPTService.encryptPinBlock(pek, pinBlock)
                             DUKPTLogManager.logOperation("PIN Encryption", inputs, result = "Encrypted PIN Block: $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTLogManager.logOperation("PIN Encryption", inputs, error = e.message, executionTime = 155)
@@ -385,7 +476,7 @@ private fun DukptPinCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTService.processPinBlock(pek, pinBlock)
+                            val result = DUKPTService.decryptPinBlock(pek, pinBlock)
                             DUKPTLogManager.logOperation("PIN Decryption", inputs, result = "Decrypted PIN Block: $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTLogManager.logOperation("PIN Decryption", inputs, error = e.message, executionTime = 155)
@@ -397,15 +488,11 @@ private fun DukptPinCard() {
             )
         }
     }
-}
+}}
 
 @Composable
-private fun DukptMacCard() {
-    var pek by remember { mutableStateOf("") }
+private fun DukptMacCard(state: DukptMacState) { with(state) {
     val algorithms = remember { listOf("DES", "3DES") }
-    var selectedAlgorithm by remember { mutableStateOf(algorithms.first()) }
-    var data by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     val pekValidation = DUKPTValidationUtils.validate(pek, "PEK", length = 32)
     val dataValidation = DUKPTValidationUtils.validate(data, "Data", isHex = true)
@@ -414,7 +501,7 @@ private fun DukptMacCard() {
             pekValidation.state != ValidationState.ERROR && dataValidation.state != ValidationState.ERROR
 
     ModernCryptoCard(title = "DUKPT MAC Generation", subtitle = "Generate a MAC for data using a PEK", icon = DUKPTTabs.DUKPT_MAC.icon) {
-        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (16 Hex Chars)", validation = pekValidation)
+        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 Hex Chars)", validation = pekValidation)
         Spacer(Modifier.height(12.dp))
         Text("Algorithm", style = MaterialTheme.typography.body2, fontWeight = FontWeight.Medium)
         Row {
@@ -449,16 +536,11 @@ private fun DukptMacCard() {
             isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.CheckCircle, modifier = Modifier.fillMaxWidth()
         )
     }
-}
+}}
 
 @Composable
-private fun DukptDataCard() {
-    var pek by remember { mutableStateOf("") }
-    var isDataVariant by remember { mutableStateOf(false) }
+private fun DukptDataCard(state: DukptDataState) { with(state) {
     val dataTypes = remember { listOf("ASCII", "Hexadecimal") }
-    var selectedDataType by remember { mutableStateOf(dataTypes.first()) }
-    var data by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     val pekValidation = DUKPTValidationUtils.validate(pek, "PEK", length = 32)
     val dataValidation = DUKPTValidationUtils.validate(data, "Data", isHex = selectedDataType == "Hexadecimal")
@@ -467,7 +549,7 @@ private fun DukptDataCard() {
             pekValidation.state != ValidationState.ERROR && dataValidation.state != ValidationState.ERROR
 
     ModernCryptoCard(title = "DUKPT Data", subtitle = "Encrypt or Decrypt data using a PEK", icon = DUKPTTabs.DUKPT_DATA.icon) {
-        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (16 Hex Chars)", validation = pekValidation)
+        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 Hex Chars)", validation = pekValidation)
         Spacer(Modifier.height(12.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { isDataVariant = !isDataVariant }) {
@@ -496,7 +578,7 @@ private fun DukptDataCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTService.processData(pek, isDataVariant, selectedDataType, data)
+                            val result = DUKPTService.encryptData(pek, isDataVariant, selectedDataType, data)
                             DUKPTLogManager.logOperation("Data Encryption", inputs, result = "Encrypted Data (Hex): $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTLogManager.logOperation("Data Encryption", inputs, error = e.message, executionTime = 155)
@@ -514,7 +596,7 @@ private fun DukptDataCard() {
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTService.processData(pek, isDataVariant, "Hexadecimal", data)
+                            val result = DUKPTService.decryptData(pek, isDataVariant, data)
                             DUKPTLogManager.logOperation("Data Decryption", inputs, result = "Decrypted Data (Hex): $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTLogManager.logOperation("Data Decryption", inputs, error = e.message, executionTime = 155)
@@ -526,7 +608,7 @@ private fun DukptDataCard() {
             )
         }
     }
-}
+}}
 
 
 // --- SHARED UI COMPONENTS (from original file) ---
@@ -585,19 +667,19 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 }
 
 @Composable
-private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
         FixedOutlinedTextField(
             value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
-            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = !expanded }) },
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
             options.forEachIndexed { index, option ->
-                DropdownMenuItem(onClick = {
-                    onSelectionChanged(index)
-                    expanded = false
-                }) {
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
                     Text(text = option, style = MaterialTheme.typography.body2)
                 }
             }

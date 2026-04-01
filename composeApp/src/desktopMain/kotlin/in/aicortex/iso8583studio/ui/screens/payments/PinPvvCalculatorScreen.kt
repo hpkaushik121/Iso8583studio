@@ -16,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.PersistentTabContent
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll
 import kotlinx.coroutines.GlobalScope
@@ -111,7 +114,6 @@ enum class PinPvvTabs(val title: String, val icon: ImageVector) {
     DECODE("Decode", Icons.Default.LockOpen),
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun PinPvvScreen(onBack: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -148,14 +150,9 @@ fun PinPvvScreen(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
-                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                        },
-                        label = "pin_pvv_tab_transition"
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
                     ) { tab ->
                         when (tab) {
                             PinPvvTabs.ENCODE -> EncodeCard()
@@ -319,13 +316,20 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 @Composable
 private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
         FixedOutlinedTextField(
             value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
-            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = !expanded }) },
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.fillMaxWidth()) {
-            options.forEachIndexed { index, option -> DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) { Text(text = option) } }
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
+            options.forEachIndexed { index, option ->
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
+                    Text(text = option, style = MaterialTheme.typography.body2)
+                }
+            }
         }
     }
 }

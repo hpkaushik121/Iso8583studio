@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.config.hsmSimulator
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,6 +11,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -1584,13 +1587,17 @@ private fun <T> DropdownSelector(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var textFieldWidth by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
 
     Box(modifier = modifier) {
         FixedOutlinedTextField(
             value = displayName(selectedOption),
             onValueChange = { },
             label = { Text(label) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { textFieldWidth = with(density) { it.size.width.toDp() } },
             readOnly = true,
             trailingIcon = {
                 IconButton(onClick = { expanded = !expanded }) {
@@ -1613,10 +1620,18 @@ private fun <T> DropdownSelector(
             )
         )
 
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { expanded = !expanded }
+        )
+
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .then(if (textFieldWidth > 0.dp) Modifier.width(textFieldWidth) else Modifier.fillMaxWidth())
+                .heightIn(max = 300.dp)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

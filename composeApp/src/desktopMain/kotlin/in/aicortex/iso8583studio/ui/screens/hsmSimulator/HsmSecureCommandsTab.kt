@@ -652,7 +652,8 @@ private fun ParamField(
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     param.options.forEach { (code, label) ->
                         DropdownMenuItem(onClick = {

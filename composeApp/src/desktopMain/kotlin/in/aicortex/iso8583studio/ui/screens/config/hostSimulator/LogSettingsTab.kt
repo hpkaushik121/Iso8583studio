@@ -187,7 +187,8 @@ fun LogSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
 
                                 DropdownMenu(
                                     expanded = expanded,
-                                    onDismissRequest = { expanded = false }
+                                    onDismissRequest = { expanded = false },
+                                    modifier = Modifier.heightIn(max = 300.dp)
                                 ) {
                                     config.getEncodingList().forEachIndexed { index, encoding ->
                                         DropdownMenuItem(onClick = {
@@ -252,7 +253,8 @@ fun LogSettingsTab(config: GatewayConfig, onConfigChange: (GatewayConfig) -> Uni
 
                                 DropdownMenu(
                                     expanded = expanded,
-                                    onDismissRequest = { expanded = false }
+                                    onDismissRequest = { expanded = false },
+                                    modifier = Modifier.heightIn(max = 300.dp)
                                 ) {
                                     protocols.forEach { protocol ->
                                         DropdownMenuItem(onClick = { expanded = false }) {

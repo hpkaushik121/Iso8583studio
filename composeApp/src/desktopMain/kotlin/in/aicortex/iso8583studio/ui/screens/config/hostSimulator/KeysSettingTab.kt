@@ -51,7 +51,8 @@ fun KeysSettingTab(keysList: List<SecurityKey>, onKeysListChange: (List<Security
                         }
                         DropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.heightIn(max = 300.dp)
                         ) {
                             keysList.forEach { key ->
                                 DropdownMenuItem(onClick = {

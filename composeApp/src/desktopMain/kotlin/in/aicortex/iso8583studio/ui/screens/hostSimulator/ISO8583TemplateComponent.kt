@@ -435,7 +435,8 @@ fun MessageFormatCard(
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.heightIn(max = 300.dp)
                     ) {
                         CodeFormat.values().forEach { format ->
                             DropdownMenuItem(
@@ -1043,7 +1044,8 @@ fun BitEditDialog(
                     )
                     ExposedDropdownMenu(
                         expanded = bitLengthExpanded,
-                        onDismissRequest = { bitLengthExpanded = false }
+                        onDismissRequest = { bitLengthExpanded = false },
+                        modifier = Modifier.heightIn(max = 300.dp)
                     ) {
                         BitLength.values().forEach { option ->
                             DropdownMenuItem(
@@ -1075,7 +1077,8 @@ fun BitEditDialog(
                     )
                     ExposedDropdownMenu(
                         expanded = bitTypeExpanded,
-                        onDismissRequest = { bitTypeExpanded = false }
+                        onDismissRequest = { bitTypeExpanded = false },
+                        modifier = Modifier.heightIn(max = 300.dp)
                     ) {
                         BitType.values().forEach { option ->
                             DropdownMenuItem(

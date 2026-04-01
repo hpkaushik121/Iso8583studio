@@ -191,7 +191,8 @@ fun MonitorScreen(
 
                         DropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.heightIn(max = 300.dp)
                         ) {
                             listOf("All", "Info", "Transaction", "Warning", "Error").forEach { level ->
                                 DropdownMenuItem(onClick = {

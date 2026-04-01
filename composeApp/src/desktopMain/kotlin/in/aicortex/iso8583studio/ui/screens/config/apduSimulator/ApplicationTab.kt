@@ -828,7 +828,8 @@ fun CompactFilterDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -2102,7 +2103,8 @@ fun ApplicationTypeDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             ApplicationType.values().forEach { type ->
                 DropdownMenuItem(
@@ -2171,7 +2173,8 @@ fun ApplicationStatusDropdown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.heightIn(max = 300.dp)
         ) {
             ApplicationStatus.values().forEach { status ->
                 DropdownMenuItem(
