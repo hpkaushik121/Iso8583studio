@@ -250,7 +250,11 @@ object DukptEngine {
     /**
      * Derive Data Encryption working key from BDK and KSN.
      *
-     * DEK = session key XOR DATA_VARIANT
+     * Per ANSI X9.24-2004:
+     *   1. variant_key = session_key XOR DATA_VARIANT
+     *   2. DEK_left  = 3DES_Encrypt(variant_key, variant_key[0..8])
+     *   3. DEK_right = 3DES_Encrypt(variant_key, variant_key[8..16])
+     *   4. DEK = DEK_left || DEK_right
      */
     fun deriveDataKey(
         bdk: ByteArray,
@@ -259,7 +263,24 @@ object DukptEngine {
     ): ByteArray {
         val ipek = deriveIpek(bdk, ksn, counterBits)
         val sessionKey = deriveSessionKey(ipek, ksn, counterBits)
-        return xorBytes(sessionKey, DATA_VARIANT)
+        val variantKey = xorBytes(sessionKey, DATA_VARIANT)
+        return applyVariantEncryption(variantKey)
+    }
+
+    /**
+     * Apply the ANSI X9.24 "one-way function" for data variant key derivation.
+     *
+     * 3DES-encrypts each 8-byte half of the 16-byte variant key using the full
+     * variant key itself, producing a new 16-byte key that cannot be reversed
+     * back to the session key.
+     */
+    fun applyVariantEncryption(variantKey: ByteArray): ByteArray {
+        require(variantKey.size == 16) { "Variant key must be 16 bytes, got ${variantKey.size}" }
+        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expandTo24(variantKey), "DESede"))
+        val left = cipher.doFinal(variantKey.copyOfRange(0, 8))
+        val right = cipher.doFinal(variantKey.copyOfRange(8, 16))
+        return left + right
     }
 
 
