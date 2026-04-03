@@ -1713,8 +1713,10 @@ class PayShield10KCommandProcessor(
             val counter = extractDukptCounter(ksnBytes, counterBits)
             val sessionKey = deriveDukptSessionKey(initialKey, ksn, counter, counterBits)
 
-            // Decrypt data under DUKPT session key
-            val clearData = decryptPinBlock(encryptedData, sessionKey)
+            val variantKey = DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
+            val dataKey = DukptEngine.applyVariantEncryption(variantKey)
+
+            val clearData = decryptPinBlock(encryptedData, dataKey)
 
             // Re-encrypt under destination key (ZPK)
             val clearDestKey = simulator.decryptUnderLmk(destKey, lmkId, LMK_PAIR_ZMK_ZPK)

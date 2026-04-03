@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
@@ -230,33 +231,39 @@ object DUKPTService {
     }
 
     /**
-     * Encrypt data using 3DES ECB. When isDataVariant is true,
-     * the key is XORed with DATA_VARIANT to derive the Data Encryption Key.
+     * Encrypt data using 3DES-CBC with zero IV. When isDataVariant is true,
+     * the ANSI X9.24 data variant key derivation is applied (XOR + one-way function).
      */
     fun encryptData(key: String, isDataVariant: Boolean, dataInputType: String, data: String): String {
         val dataBytes = if (dataInputType == "ASCII") data.toByteArray() else data.decodeHex()
         val keyBytes = key.decodeHex()
-        val actualKey = if (isDataVariant) DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT) else keyBytes
+        val actualKey = if (isDataVariant) {
+            val variantKey = DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT)
+            DukptEngine.applyVariantEncryption(variantKey)
+        } else keyBytes
         val padded = if (dataBytes.size % 8 != 0) {
             dataBytes + ByteArray(8 - dataBytes.size % 8)
         } else {
             dataBytes
         }
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"))
+        val cipher = Cipher.getInstance("DESede/CBC/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"), IvParameterSpec(ByteArray(8)))
         return cipher.doFinal(padded).toHex().uppercase()
     }
 
     /**
-     * Decrypt data using 3DES ECB. When isDataVariant is true,
-     * the key is XORed with DATA_VARIANT to derive the Data Encryption Key.
+     * Decrypt data using 3DES-CBC with zero IV. When isDataVariant is true,
+     * the ANSI X9.24 data variant key derivation is applied (XOR + one-way function).
      */
     fun decryptData(key: String, isDataVariant: Boolean, data: String): String {
         val dataBytes = data.decodeHex()
         val keyBytes = key.decodeHex()
-        val actualKey = if (isDataVariant) DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT) else keyBytes
-        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"))
+        val actualKey = if (isDataVariant) {
+            val variantKey = DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT)
+            DukptEngine.applyVariantEncryption(variantKey)
+        } else keyBytes
+        val cipher = Cipher.getInstance("DESede/CBC/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"), IvParameterSpec(ByteArray(8)))
         return cipher.doFinal(dataBytes).toHex().uppercase()
     }
 
@@ -597,7 +604,13 @@ private fun DukptDataCard(state: DukptDataState) { with(state) {
                         delay(150)
                         try {
                             val result = DUKPTService.decryptData(pek, isDataVariant, data)
-                            DUKPTLogManager.logOperation("Data Decryption", inputs, result = "Decrypted Data (Hex): $result", executionTime = 155)
+                            val ascii = result.chunked(2).map { it.toInt(16).toChar() }.joinToString("")
+                            val displayAscii = ascii.filter { it in ' '..'~' }
+                            val resultStr = buildString {
+                                append("Decrypted Data (Hex): $result")
+                                if (displayAscii.isNotEmpty()) append("\nDecrypted Data (ASCII): $displayAscii")
+                            }
+                            DUKPTLogManager.logOperation("Data Decryption", inputs, result = resultStr, executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTLogManager.logOperation("Data Decryption", inputs, error = e.message, executionTime = 155)
                         }

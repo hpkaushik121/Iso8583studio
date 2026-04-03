@@ -25,6 +25,7 @@ import ai.cortex.core.IsoUtil
 import ai.cortex.core.types.CipherMode
 import ai.cortex.core.types.CryptoAlgorithm
 import ai.cortex.core.types.PaddingMethods
+import io.cryptocalc.crypto.engines.DukptEngine
 import io.cryptocalc.crypto.engines.encryption.CryptoLogger
 import `in`.aicortex.iso8583studio.hsm.HsmConfig
 import `in`.aicortex.iso8583studio.hsm.payshield10k.commands.A0GenerateKeyCommand
@@ -2110,14 +2111,10 @@ class PayShieldStringCommandProcessor(
             val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
             hsmLogsListener.log("[$tag] DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
 
-            val dataVariant = byteArrayOf(
-                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF.toByte(), 0x00, 0x00
-            )
-            val clearKey = ByteArray(sessionKey.size) { i ->
-                (sessionKey[i].toInt() xor dataVariant[i].toInt()).toByte()
-            }
-            hsmLogsListener.log("[$tag] Data encryption key (session XOR variant) = ${IsoUtil.bytesToHexString(clearKey)}")
+            val variantKey = DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
+            hsmLogsListener.log("[$tag] Data variant key (session XOR variant) = ${IsoUtil.bytesToHexString(variantKey)}")
+            val clearKey = DukptEngine.applyVariantEncryption(variantKey)
+            hsmLogsListener.log("[$tag] Data encryption key (after ANSI X9.24 one-way function) = ${IsoUtil.bytesToHexString(clearKey)}")
             return clearKey
         } else {
             val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
