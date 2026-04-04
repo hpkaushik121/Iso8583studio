@@ -97,6 +97,7 @@ private fun HsmCommandContent(
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = HsmCommandTabs.entries.toList()
     val vendorCommands = remember(service.config.hsmVendor) { getVendorCommands(service.config.hsmVendor) }
+    val commandConsoleSession = remember { CommandConsoleSessionState() }
 
     Row(modifier = modifier.fillMaxSize()) {
         NavigationRail(
@@ -134,6 +135,9 @@ private fun HsmCommandContent(
                     HsmCommandTabs.COMMAND_CONSOLE -> CommandConsoleTab(
                         service = service,
                         vendorCommands = vendorCommands,
+                        session = commandConsoleSession,
+                        exchangeLog = logText,
+                        logFileSessionName = service.config.name,
                     )
                     HsmCommandTabs.LOAD_TESTER -> HsmLoadTesterTab(service = service)
                     HsmCommandTabs.LOGS -> LogTab(

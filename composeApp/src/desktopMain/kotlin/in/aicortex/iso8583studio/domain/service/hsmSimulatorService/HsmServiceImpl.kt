@@ -612,6 +612,82 @@ class HsmServiceImpl(
         activities: List<AuthActivity> = AuthActivity.values().toList()
     ): Long? = payShieldFeatures()?.getAuthorizationExpiry(lmkId(), activities)
 
+    // ── LMK Slot Management (Key Management Tab) ─────────────────────────
+
+    /**
+     * Generate a random LMK and load it into the specified slot.
+     * @return result map with lmkId, checkValue, scheme, pairCount — or error key
+     */
+    fun generateLmkForSlot(
+        slotId: String,
+        scheme: String = "VARIANT",
+        isDefault: Boolean = false,
+        algorithm: String = "TDES_2KEY"
+    ): Map<String, String> {
+        val features = payShieldFeatures()
+            ?: return mapOf("error" to "HSM not initialized")
+        return when (val r = features.generateRandomLmkForSlot(slotId, scheme, isDefault, algorithm)) {
+            is HsmCommandResult.Success -> r.data.mapValues { it.value.toString() }
+            is HsmCommandResult.Error   -> mapOf("error" to "${r.errorCode}: ${r.message}")
+        }
+    }
+
+    /**
+     * Delete an LMK from the specified slot.
+     */
+    fun deleteLmkSlot(slotId: String): Map<String, String> {
+        val features = payShieldFeatures()
+            ?: return mapOf("error" to "HSM not initialized")
+        return when (val r = features.deleteLmkFromSlot(slotId)) {
+            is HsmCommandResult.Success -> r.data.mapValues { it.value.toString() }
+            is HsmCommandResult.Error   -> mapOf("error" to "${r.errorCode}: ${r.message}")
+        }
+    }
+
+    /**
+     * Regenerate: delete existing slot then generate a new random LMK.
+     */
+    fun regenerateLmkForSlot(
+        slotId: String,
+        scheme: String = "VARIANT",
+        algorithm: String = "TDES_2KEY"
+    ): Map<String, String> {
+        val features = payShieldFeatures()
+            ?: return mapOf("error" to "HSM not initialized")
+        // Check if this was the default slot
+        val wasDefault = features.getSlotManager().lmkLiveSlots[slotId]?.isDefault == true
+        features.deleteLmkFromSlot(slotId)
+        return when (val r = features.generateRandomLmkForSlot(slotId, scheme, wasDefault, algorithm)) {
+            is HsmCommandResult.Success -> r.data.mapValues { it.value.toString() }
+            is HsmCommandResult.Error   -> mapOf("error" to "${r.errorCode}: ${r.message}")
+        }
+    }
+
+    fun updateLmkAlgorithm(slotId: String, algorithm: String): Map<String, String> {
+        val features = payShieldFeatures()
+            ?: return mapOf("error" to "HSM not initialized")
+        return when (val r = features.getSlotManager().updateLmkAlgorithm(slotId, algorithm)) {
+            is HsmCommandResult.Success -> {
+                // Persist updated LmkSet to storage
+                features.getSlotManager().lmkLiveSlots[slotId]?.lmkSet?.let { features.lmkStorage.addLmk(it) }
+                r.data.mapValues { it.value.toString() }
+            }
+            is HsmCommandResult.Error   -> mapOf("error" to "${r.errorCode}: ${r.message}")
+        }
+    }
+
+    fun updateLmkScheme(slotId: String, scheme: String): Map<String, String> {
+        val features = payShieldFeatures()
+            ?: return mapOf("error" to "HSM not initialized")
+        return when (val r = features.getSlotManager().updateLmkScheme(slotId, scheme)) {
+            is HsmCommandResult.Success -> {
+                features.getSlotManager().lmkLiveSlots[slotId]?.lmkSet?.let { features.lmkStorage.addLmk(it) }
+                r.data.mapValues { it.value.toString() }
+            }
+            is HsmCommandResult.Error   -> mapOf("error" to "${r.errorCode}: ${r.message}")
+        }
+    }
+
     fun clearLogs() {
         _hsmState.value = _hsmState.value.copy(rawRequest = mutableStateListOf(),
             formattedRequest = mutableStateListOf(),

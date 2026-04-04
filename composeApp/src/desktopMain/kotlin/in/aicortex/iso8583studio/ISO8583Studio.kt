@@ -316,12 +316,16 @@ class ISO8583Studio {
                                                     window = window,
                                                     onBack = {
                                                         val configDest = when (session.simulatorType) {
-                                                            SimulatorType.HOST -> Destination.HostSimulatorConfig
-                                                            SimulatorType.HSM  -> Destination.HSMSimulatorConfig
-                                                            SimulatorType.POS  -> Destination.POSTerminalConfig
-                                                            SimulatorType.APDU -> Destination.ApduSimulatorConfig
-                                                            SimulatorType.ECR  -> Destination.EcrSimulatorConfigScreen
-                                                            SimulatorType.ATM  -> Destination.ATMSimulatorConfig
+                                                            SimulatorType.HOST        -> Destination.HostSimulatorConfig
+                                                            SimulatorType.HSM         -> Destination.HSMSimulatorConfig
+                                                            SimulatorType.POS         -> Destination.POSTerminalConfig
+                                                            SimulatorType.APDU        -> Destination.ApduSimulatorConfig
+                                                            SimulatorType.ECR         -> Destination.EcrSimulatorConfigScreen
+                                                            SimulatorType.ATM         -> Destination.ATMSimulatorConfig
+                                                            SimulatorType.HSM_COMMAND -> Destination.HsmCommandConfig
+                                                            SimulatorType.SWITCH      -> Destination.PaymentSwitchConfig
+                                                            SimulatorType.ACQUIRER    -> Destination.AcquirerGatewayConfig
+                                                            SimulatorType.ISSUER      -> Destination.IssuerSystemConfig
                                                             else -> Destination.Home
                                                         }
                                                         navigationController.navigateTo(configDest)

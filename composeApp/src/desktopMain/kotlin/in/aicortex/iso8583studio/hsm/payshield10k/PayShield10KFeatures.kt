@@ -12,6 +12,7 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuthorizationRecord
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmCommandResult
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmErrorCodes
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmState
+import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkAlgorithm
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkPair
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkSet
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkStorage
@@ -298,6 +299,91 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     }
 
     /**
+     * Generate a random LMK and load it into the specified slot.
+     * This is a simulator management operation — no state check is enforced.
+     *
+     * @param slotId  LMK slot identifier (00-99)
+     * @param scheme  "VARIANT" or "KEY_BLOCK"
+     * @param isDefault whether this should become the default LMK
+     * @param algorithm LmkAlgorithm name — determines how keys are encrypted under this LMK
+     */
+    fun generateRandomLmkForSlot(
+        slotId: String,
+        scheme: String = "VARIANT",
+        isDefault: Boolean = false,
+        algorithm: String = LmkAlgorithm.TDES_2KEY.name
+    ): HsmCommandResult {
+        // Generate 3 random 16-byte components and XOR them
+        val components = List(3) { ByteArray(16).also { secureRandom.nextBytes(it) } }
+        val lmkKey = components.reduce { acc, c ->
+            acc.zip(c) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
+        }
+
+        // Create LMK set with derived pairs
+        val lmkSet = LmkSet(identifier = slotId, scheme = scheme, algorithm = algorithm)
+        for (pairNum in 0 until 40) {
+            val derivedLeft = deriveKeyComponent(lmkKey, pairNum * 2)
+            val derivedRight = deriveKeyComponent(lmkKey, pairNum * 2 + 1)
+            lmkSet.pairs[pairNum] = LmkPair(derivedLeft, derivedRight)
+        }
+
+        lmkStorage.addLmk(lmkSet)
+        val result = slotManager.allocateLmkSlot(slotId, lmkSet, isDefault = isDefault)
+        if (result is HsmCommandResult.Error) {
+            lmkStorage.deleteLmk(slotId)
+            auditLog.addEntry(AuditEntry(
+                entryType = AuditType.KEY_OPERATION,
+                command = "GEN-LMK",
+                lmkId = slotId,
+                result = "FAILED",
+                details = "Slot allocation failed: ${result.message}"
+            ))
+            return result
+        }
+
+        if (currentState == HsmState.OFFLINE) {
+            currentState = HsmState.ONLINE
+        }
+
+        val algo = LmkAlgorithm.fromName(algorithm)
+        auditLog.addEntry(AuditEntry(
+            entryType = AuditType.KEY_OPERATION,
+            command = "GEN-LMK",
+            lmkId = slotId,
+            result = "SUCCESS",
+            details = "Random LMK generated for slot $slotId (scheme=$scheme, algorithm=${algo.display})"
+        ))
+
+        return HsmCommandResult.Success(
+            response = "LMK generated for slot $slotId\nCheck Value: ${lmkSet.checkValue}",
+            data = mapOf(
+                "lmkId" to slotId,
+                "checkValue" to lmkSet.checkValue,
+                "scheme" to scheme,
+                "algorithm" to algorithm,
+                "pairCount" to lmkSet.pairs.size.toString()
+            )
+        )
+    }
+
+    /**
+     * Delete an LMK from a slot and from storage.
+     * Simulator management operation — no state check.
+     */
+    fun deleteLmkFromSlot(slotId: String): HsmCommandResult {
+        lmkStorage.deleteLmk(slotId)
+        val result = slotManager.deleteLmkSlot(slotId)
+        auditLog.addEntry(AuditEntry(
+            entryType = AuditType.KEY_OPERATION,
+            command = "DEL-LMK",
+            lmkId = slotId,
+            result = if (result is HsmCommandResult.Success) "SUCCESS" else "FAILED",
+            details = "LMK slot $slotId deleted"
+        ))
+        return result
+    }
+
+    /**
      * VT - View LMK Table
      */
     fun executeViewLmkTable(): HsmCommandResult {
@@ -435,18 +521,43 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     }
 
     /**
-     * Encrypt data under LMK
+     * Resolve the [CryptoAlgorithm] and key bytes for the given LMK.
+     * For AES algorithms the LMK pair key is expanded/trimmed to the required AES key size.
+     * For TDES algorithms the combined 16-byte pair key is used as-is (2-key) or the first
+     * 24 bytes of the pair key are used (3-key).
+     */
+    /**
+     * Pad data to the algorithm's block size (8 for TDES, 16 for AES).
+     */
+    private fun padToBlock(data: ByteArray, blockSize: Int): ByteArray {
+        if (data.size % blockSize == 0) return data
+        return data.copyOf(((data.size + blockSize - 1) / blockSize) * blockSize)
+    }
+
+    /**
+     * Encrypt data under LMK — algorithm is determined by the LmkSet's algorithm field.
      */
     suspend fun encryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
         val lmk = lmkStorage.getLmk(lmkId) ?: return data
         val pair = lmk.getPair(pairNumber) ?: return data
+        val combined = pair.getCombinedKey()
+        val lmkAlgo = lmk.lmkAlgorithm
+
+        val (cryptoAlgo, key) = if (lmkAlgo.isAes) {
+            CryptoAlgorithm.AES to if (combined.size >= lmkAlgo.keyBytes) combined.copyOf(lmkAlgo.keyBytes) else (combined + combined).copyOf(lmkAlgo.keyBytes)
+        } else {
+            CryptoAlgorithm.TDES to if (lmkAlgo == LmkAlgorithm.TDES_3KEY) {
+                if (combined.size >= 24) combined.copyOf(24) else (combined + combined).copyOf(24)
+            } else combined.copyOf(16)
+        }
 
         return try {
+            val padded = padToBlock(data, lmkAlgo.blockSize)
             engine().encryptionEngine.encrypt(
-                algorithm = CryptoAlgorithm.TDES,
+                algorithm = cryptoAlgo,
                 encryptionEngineParameters = SymmetricEncryptionEngineParameters(
-                    key = pair.getCombinedKey(),
-                    data = data,
+                    key = key,
+                    data = padded,
                     mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
@@ -456,24 +567,546 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     }
 
     /**
-     * Decrypt data under LMK
+     * Decrypt data under LMK — algorithm is determined by the LmkSet's algorithm field.
      */
     suspend fun decryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
         val lmk = lmkStorage.getLmk(lmkId) ?: return data
         val pair = lmk.getPair(pairNumber) ?: return data
+        val combined = pair.getCombinedKey()
+        val lmkAlgo = lmk.lmkAlgorithm
+
+        val (cryptoAlgo, key) = if (lmkAlgo.isAes) {
+            CryptoAlgorithm.AES to if (combined.size >= lmkAlgo.keyBytes) combined.copyOf(lmkAlgo.keyBytes) else (combined + combined).copyOf(lmkAlgo.keyBytes)
+        } else {
+            CryptoAlgorithm.TDES to if (lmkAlgo == LmkAlgorithm.TDES_3KEY) {
+                if (combined.size >= 24) combined.copyOf(24) else (combined + combined).copyOf(24)
+            } else combined.copyOf(16)
+        }
 
         return try {
+            val padded = padToBlock(data, lmkAlgo.blockSize)
             engine().encryptionEngine.decrypt(
-                algorithm = CryptoAlgorithm.TDES,
+                algorithm = cryptoAlgo,
                 decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                    key = pair.getCombinedKey(),
-                    data = data,
+                    key = key,
+                    data = padded,
                     mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
         } catch (e: Exception) {
             data
         }
+    }
+
+    /**
+     * Encrypt [data] using the algorithm configured for the given LMK, with the provided
+     * [key] bytes (which may already have a variant applied). This is useful for callers
+     * that have the raw key bytes but need to respect the LMK's algorithm setting.
+     */
+    suspend fun encryptWithLmkAlgorithm(data: ByteArray, key: ByteArray, lmkId: String): ByteArray {
+        val lmk = lmkStorage.getLmk(lmkId) ?: return data
+        val algo = lmk.lmkAlgorithm
+        val (cryptoAlgo, effectiveKey) = if (algo.isAes) {
+            CryptoAlgorithm.AES to key.copyOf(algo.keyBytes)
+        } else {
+            CryptoAlgorithm.TDES to key.copyOf(minOf(key.size, algo.keyBytes))
+        }
+        return try {
+            val padded = padToBlock(data, algo.blockSize)
+            engine().encryptionEngine.encrypt(
+                algorithm = cryptoAlgo,
+                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+                    key = effectiveKey, data = padded, mode = ai.cortex.core.types.CipherMode.ECB
+                )
+            )
+        } catch (e: Exception) { data }
+    }
+
+    /**
+     * Decrypt [data] using the algorithm configured for the given LMK, with the provided
+     * [key] bytes (which may already have a variant applied).
+     */
+    suspend fun decryptWithLmkAlgorithm(data: ByteArray, key: ByteArray, lmkId: String): ByteArray {
+        val lmk = lmkStorage.getLmk(lmkId) ?: return data
+        val algo = lmk.lmkAlgorithm
+        val (cryptoAlgo, effectiveKey) = if (algo.isAes) {
+            CryptoAlgorithm.AES to key.copyOf(algo.keyBytes)
+        } else {
+            CryptoAlgorithm.TDES to key.copyOf(minOf(key.size, algo.keyBytes))
+        }
+        return try {
+            val padded = padToBlock(data, algo.blockSize)
+            engine().encryptionEngine.decrypt(
+                algorithm = cryptoAlgo,
+                decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                    key = effectiveKey, data = padded, mode = ai.cortex.core.types.CipherMode.ECB
+                )
+            )
+        } catch (e: Exception) { data }
+    }
+
+    // ====================================================================================================
+    // THALES PAYSHIELD KEYBLOCK SUPPORT (LMK SCHEME "S")
+    // ====================================================================================================
+
+    /**
+     * Build a PayShield-compliant Thales KeyBlock string (Scheme "S").
+     *
+     * Wire format: S + version(1) + blockLen(4) + keyUsage(2) + algorithm(1) + modeOfUse(1)
+     *              + keyVersionNumber(2) + exportability(1) + numOptBlocks(2) + reserved(2)
+     *              + encryptedKey(hex) + mac(hex)
+     *
+     * Version 0 (DES Keyblock LMK):
+     *   - KBEK = KBPK XOR 0x45, expanded to triple-TDES (24 bytes)
+     *   - KBAK = KBPK XOR 0x4D, expanded to triple-TDES (24 bytes)
+     *   - Plaintext: [key_len_bits_2B_BE] + [key] + [zero_pad to 8B blocks]
+     *   - Encrypt: TDES-ECB(KBEK, plaintext)
+     *   - MAC: TDES-CBC-MAC(KBAK, header + encKeyHex), truncated to 4 bytes (8 hex)
+     *
+     * Version 1 (AES Keyblock LMK):
+     *   - KBEK and KBMK cryptographically derived from LMK via NIST SP 800-108 CMAC-KDF
+     *   - Encrypt: AES-CBC + PKCS#7 padding
+     *   - IV: bytes 0-15 of header (ASCII)
+     *   - MAC: AES-CMAC(KBMK, header + clearKeyPadded) truncated to 8 bytes
+     */
+    suspend fun buildKeyBlock(
+        clearKey: ByteArray,
+        lmkPairKey: ByteArray,
+        keyUsage: String = "K0",
+        modeOfUse: Char = 'N',
+        exportability: Char = 'E',
+        lmkId: String = "00",
+        keyVersionNumber: String = "00"
+    ): String {
+        val lmk = lmkStorage.getLmk(lmkId)
+        val lmkAlgo = lmk?.lmkAlgorithm ?: LmkAlgorithm.TDES_2KEY
+
+        val algo = when (clearKey.size) {
+            8 -> 'D'
+            16, 24 -> 'T'
+            else -> 'A'
+        }
+
+        val keyVersionNum = keyVersionNumber.take(2).padStart(2, '0')
+        val numOptBlocks = "00"
+        val reserved = lmkId.padStart(2, '0').take(2)
+
+        if (lmkAlgo.isAes) {
+            return buildKeyBlockVersion1(
+                clearKey, lmkPairKey, lmkAlgo, algo,
+                keyUsage, modeOfUse, keyVersionNum, exportability, numOptBlocks, reserved
+            )
+        } else {
+            return buildKeyBlockVersion0(
+                clearKey, lmkPairKey, lmkAlgo, algo,
+                keyUsage, modeOfUse, keyVersionNum, exportability, numOptBlocks, reserved
+            )
+        }
+    }
+
+    /**
+     * Version 0 (DES Keyblock LMK): TDES-ECB encryption, TDES-CBC-MAC authentication.
+     *
+     * Key derivation:
+     *   KBEK = expandToTripleTdes(KBPK XOR 0x45)  — encryption key
+     *   KBAK = expandToTripleTdes(KBPK XOR 0x4D)  — authentication key
+     *
+     * Plaintext: [key_length_bits_2B_BE] + [key_bytes] + [zero_padding to 8B blocks]
+     * Encryption: TDES-ECB(KBEK, plaintext)
+     * MAC: TDES-CBC-MAC(KBAK, header + encrypted_key_hex), truncated to 4 bytes (8 hex)
+     */
+    private suspend fun buildKeyBlockVersion0(
+        clearKey: ByteArray, lmkPairKey: ByteArray, lmkAlgo: LmkAlgorithm, algo: Char,
+        keyUsage: String, modeOfUse: Char, keyVersionNum: String,
+        exportability: Char, numOptBlocks: String, reserved: String
+    ): String {
+        val effectiveKey = lmkPairKey.copyOf(minOf(lmkPairKey.size, lmkAlgo.keyBytes))
+
+        // Derive KBEK (encryption) and KBAK (authentication) from KBPK
+        val kbek = deriveVersion0Key(effectiveKey, 0x45)
+        val kbak = deriveVersion0Key(effectiveKey, 0x4D)
+
+        // Plaintext: 2-byte key length in bits (BE) + clear key + zero-pad to 8-byte blocks
+        val keyLenBits = clearKey.size * 8
+        val lenPrefix = byteArrayOf((keyLenBits shr 8).toByte(), (keyLenBits and 0xFF).toByte())
+        val plaintext = padToBlock(lenPrefix + clearKey, 8)
+
+        // Build header first to derive IV for CBC encryption
+        val encKeyHex0 = bytesToHex(plaintext) // placeholder for block length calc
+        val macHexLen = 8  // 4 bytes = 8 hex chars for version 0
+        val blockLen = 16 + encKeyHex0.length + macHexLen
+        val blockLenStr = blockLen.toString().padStart(4, '0')
+        val header = "0$blockLenStr$keyUsage$algo$modeOfUse${keyVersionNum}$exportability$numOptBlocks$reserved"
+
+        // Encrypt: TDES-CBC(KBEK, plaintext), IV = first 8 bytes of header ASCII
+        val iv = header.toByteArray(Charsets.US_ASCII).copyOf(8)
+        val encryptedKey = try {
+            engine().encryptionEngine.encrypt(
+                algorithm = CryptoAlgorithm.TDES,
+                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+                    data = plaintext, key = kbek,
+                    mode = ai.cortex.core.types.CipherMode.CBC, iv = iv
+                )
+            )
+        } catch (e: Exception) { clearKey }
+
+        val encKeyHex = bytesToHex(encryptedKey)
+
+        // MAC: TDES-CBC-MAC(KBAK, header_ASCII_bytes || encrypted_key_BINARY_bytes), truncated to 4 bytes
+        val macInput = header.toByteArray(Charsets.US_ASCII) + encryptedKey
+        val fullMac = computeCbcMac(macInput, kbak, LmkAlgorithm.TDES_2KEY)
+        val macHex = bytesToHex(fullMac).take(8)
+
+        return "S$header$encKeyHex$macHex"
+    }
+
+    /**
+     * Derive a Version 0 key block key by XORing KBPK with a constant and expanding to triple-TDES (24 bytes).
+     * KBEK uses xorByte=0x45, KBAK uses xorByte=0x4D.
+     */
+    private fun deriveVersion0Key(kbpk: ByteArray, xorByte: Int): ByteArray {
+        val xored = ByteArray(kbpk.size) { i -> (kbpk[i].toInt() xor xorByte).toByte() }
+        // Expand to 24-byte triple-TDES: K1|K2|K1
+        return when {
+            xored.size >= 24 -> xored.copyOf(24)
+            xored.size == 16 -> xored + xored.copyOf(8)  // K1|K2|K1
+            else -> (xored + xored + xored).copyOf(24)
+        }
+    }
+
+    /**
+     * Version 1 (AES Keyblock LMK): AES-CBC encryption, AES-CMAC authentication.
+     * KBEK and KBMK are derived from LMK using NIST SP 800-108 Counter Mode KDF with AES-CMAC as PRF.
+     */
+    private fun buildKeyBlockVersion1(
+        clearKey: ByteArray, lmkPairKey: ByteArray, lmkAlgo: LmkAlgorithm, algo: Char,
+        keyUsage: String, modeOfUse: Char, keyVersionNum: String,
+        exportability: Char, numOptBlocks: String, reserved: String
+    ): String {
+        // KBPK = LMK pair key expanded to AES key size
+        val kbpk = lmkPairKey.copyOf(lmkAlgo.keyBytes)
+
+        // Derive KBEK (encryption key) and KBMK (MAC key) via NIST SP 800-108 CMAC-KDF
+        val kbek = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_ENCRYPTION)
+        val kbmk = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_MAC)
+
+        // Build the clear payload: clear key + PKCS#7 padding
+        val clearPayload = applyPkcs7Padding(clearKey, 16)
+
+        // Build header (need encrypted key length first to compute block length)
+        val encKeyHexLen = clearPayload.size * 2
+        val macHexLen = 16  // 8 bytes = 16 hex
+        val blockLen = 16 + encKeyHexLen + macHexLen
+        val blockLenStr = blockLen.toString().padStart(4, '0')
+        val header = "1$blockLenStr$keyUsage$algo$modeOfUse${keyVersionNum}$exportability$numOptBlocks$reserved"
+        val headerBytes = header.toByteArray(Charsets.US_ASCII)
+
+        // MAC: AES-CMAC(KBMK, header + clear payload) → truncated to 8 bytes
+        val macInput = headerBytes + clearPayload
+        val fullCmac = computeAesCmac(macInput, kbmk)
+        val mac = fullCmac.copyOf(8)
+        val macHex = bytesToHex(mac)
+
+        // IV = bytes 0-15 of header (ASCII)
+        val iv = headerBytes.copyOf(16)
+
+        // Encrypt: AES-CBC(KBEK, IV=headerBytes, clearPayload)
+        val encryptedKey = try {
+            io.cryptocalc.crypto.engines.encryption.AesCalculatorEngine.encryptCBC(clearPayload, kbek, iv)
+        } catch (e: Exception) { clearKey }
+
+        val encKeyHex = bytesToHex(encryptedKey)
+
+        return "S$header$encKeyHex$macHex"
+    }
+
+    /**
+     * NIST SP 800-108 Counter Mode KDF using AES-CMAC as PRF.
+     * Derivation data format (8 bytes):
+     *   counter(1) | key_usage(2, BE) | separator(1=0x00) | algorithm(2, BE) | length(2, BE)
+     */
+    private fun deriveKeyBlockKey(kbpk: ByteArray, lmkAlgo: LmkAlgorithm, keyUsageCode: Int): ByteArray {
+        val keyBits = lmkAlgo.keyBytes * 8
+        val (algoCode, lengthBits) = when (lmkAlgo) {
+            LmkAlgorithm.AES_128 -> 0x0002 to 0x0080
+            LmkAlgorithm.AES_192 -> 0x0003 to 0x00C0
+            LmkAlgorithm.AES_256 -> 0x0004 to 0x0100
+            else -> 0x0000 to 0x0080
+        }
+
+        val blocksNeeded = (lmkAlgo.keyBytes + 15) / 16  // AES-CMAC produces 16 bytes per block
+        val derivedBytes = ByteArray(blocksNeeded * 16)
+
+        for (counter in 1..blocksNeeded) {
+            val derivationData = byteArrayOf(
+                counter.toByte(),
+                (keyUsageCode shr 8).toByte(), (keyUsageCode and 0xFF).toByte(),
+                0x00,
+                (algoCode shr 8).toByte(), (algoCode and 0xFF).toByte(),
+                (lengthBits shr 8).toByte(), (lengthBits and 0xFF).toByte()
+            )
+            val block = computeAesCmac(derivationData, kbpk)
+            block.copyInto(derivedBytes, (counter - 1) * 16)
+        }
+
+        return derivedBytes.copyOf(lmkAlgo.keyBytes)
+    }
+
+    companion object {
+        private const val KEY_USAGE_ENCRYPTION = 0x0000
+        private const val KEY_USAGE_MAC = 0x0001
+    }
+
+    /**
+     * Decrypt a Thales KeyBlock (Scheme "S") and return the clear key bytes.
+     *
+     * Version 0 (TDES):
+     *   - MAC = 4 bytes (8 hex), KBEK = KBPK XOR 0x45 (triple-TDES), TDES-ECB
+     *   - Plaintext = [key_len_bits_2B] + [key] + [zero_pad]
+     *
+     * Version 1 (AES):
+     *   - MAC = 8 bytes (16 hex), KBEK derived via CMAC-KDF, AES-CBC + PKCS#7
+     */
+    suspend fun decryptKeyBlock(keyBlock: String, lmkPairKey: ByteArray, lmkId: String): ByteArray {
+        require(keyBlock.isNotEmpty() && keyBlock[0] == 'S') { "Not an S-block key" }
+
+        val version = keyBlock[1].digitToInt()
+        val blockLen = keyBlock.substring(2, 6).toInt()
+        val baseHeaderLen = 17  // 'S' + 16 chars header
+        val totalBlockChars = 1 + blockLen  // 'S' prefix + block content
+        val baseHeader = keyBlock.substring(1, baseHeaderLen)  // header without 'S' prefix
+
+        // Parse header fields for logging
+        val keyUsage = baseHeader.substring(5, 7)
+        val algorithm = baseHeader.substring(7, 8)
+        val modeOfUse = baseHeader.substring(8, 9)
+        val keyVersionNum = baseHeader.substring(9, 11)
+        val exportability = baseHeader.substring(11, 12)
+        val numOptBlocks = baseHeader.substring(12, 14)
+        val lmkIdField = baseHeader.substring(14, 16)
+
+        // Account for optional blocks
+        val numOpt = numOptBlocks.toIntOrNull() ?: 0
+        var headerLen = baseHeaderLen
+        var optPos = baseHeaderLen
+        for (i in 0 until numOpt) {
+            if (optPos + 4 > keyBlock.length) break
+            val optBlockDataLen = keyBlock.substring(optPos + 2, optPos + 4).toIntOrNull() ?: 0
+            optPos += 4 + optBlockDataLen
+        }
+        headerLen = optPos
+        val header = keyBlock.substring(1, headerLen)
+
+        val lmk = lmkStorage.getLmk(lmkId)
+        val lmkAlgo = lmk?.lmkAlgorithm ?: LmkAlgorithm.TDES_2KEY
+
+        return if (version == 1 && lmkAlgo.isAes) {
+            // Version 1: MAC = 8 bytes (16 hex), AES-CBC + PKCS#7
+            val macHexLen = 16
+            val encKeyHex = keyBlock.substring(headerLen, totalBlockChars - macHexLen)
+            val macHex = keyBlock.substring(totalBlockChars - macHexLen, totalBlockChars)
+            val encryptedKey = hexToBytes(encKeyHex)
+
+            val kbpk = lmkPairKey.copyOf(lmkAlgo.keyBytes)
+            val kbek = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_ENCRYPTION)
+            val kbmk = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_MAC)
+            val iv = header.toByteArray(Charsets.US_ASCII).copyOf(16)
+            val decrypted = io.cryptocalc.crypto.engines.encryption.AesCalculatorEngine.decryptCBC(encryptedKey, kbek, iv)
+            val clearKey = removePkcs7Padding(decrypted)
+            val kcv = calculateKeyCheckValue(clearKey)
+
+            hsmLogsListener.log(buildString {
+                appendLine("Thales Key Block: Key block decode operation finished")
+                appendLine("****************************************")
+                appendLine("KBPK:\t\t\t${bytesToHex(kbpk)}")
+                appendLine("KCV:\t\t\t$kcv")
+                appendLine("Thales Key block:\t$keyBlock")
+                appendLine("----------------------------------------")
+                appendLine("Thales Header:\t\t$header")
+                appendLine("----------------------------------------")
+                appendLine("  Version Id:\t\t$version - AES KBPK")
+                appendLine("  Block Length:\t\t${header.substring(1, 5)}")
+                appendLine("  Key Usage:\t\t$keyUsage")
+                appendLine("  Algorithm:\t\t$algorithm")
+                appendLine("  Mode of Use:\t\t$modeOfUse")
+                appendLine("  Key Version No.:\t$keyVersionNum")
+                appendLine("  Exportability:\t$exportability")
+                appendLine("  Num. of Opt. blocks:\t$numOptBlocks")
+                appendLine("  LMK ID:\t\t$lmkIdField")
+                appendLine("Thales Encrypted key:\t$encKeyHex")
+                appendLine("Thales MAC:\t\t$macHex")
+                appendLine("----------------------------------------")
+                appendLine("KBEK:\t\t\t${bytesToHex(kbek)}")
+                appendLine("KBAK:\t\t\t${bytesToHex(kbmk)}")
+                appendLine("----------------------------------------")
+                appendLine("Plain Key Block:\t${bytesToHex(decrypted)}")
+                appendLine("Plain Key:\t\t${bytesToHex(clearKey)}")
+                appendLine("KCV:\t\t\t$kcv")
+            })
+
+            clearKey
+        } else {
+            // Version 0: MAC = 4 bytes (8 hex), TDES-ECB
+            val macHexLen = 8
+            val encKeyHex = keyBlock.substring(headerLen, totalBlockChars - macHexLen)
+            val macHex = keyBlock.substring(totalBlockChars - macHexLen, totalBlockChars)
+            val encryptedKey = hexToBytes(encKeyHex)
+
+            val effectiveKey = lmkPairKey.copyOf(minOf(lmkPairKey.size, lmkAlgo.keyBytes))
+            val kbek = deriveVersion0Key(effectiveKey, 0x45)
+            val kbak = deriveVersion0Key(effectiveKey, 0x4D)
+
+            try {
+                // V0 uses TDES-CBC with IV = first 8 bytes of header ASCII
+                val iv = header.toByteArray(Charsets.US_ASCII).copyOf(8)
+                val decrypted = engine().encryptionEngine.decrypt(
+                    algorithm = CryptoAlgorithm.TDES,
+                    decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                        key = kbek, data = encryptedKey,
+                        mode = ai.cortex.core.types.CipherMode.CBC, iv = iv
+                    )
+                )
+                // Plaintext = [key_len_bits_2B] + [key] + [zero_pad]
+                val keyLenBits = ((decrypted[0].toInt() and 0xFF) shl 8) or (decrypted[1].toInt() and 0xFF)
+                val keyLenBytes = keyLenBits / 8
+                require(keyLenBytes in 1..(decrypted.size - 2)) {
+                    "Key block decryption produced invalid key length ($keyLenBits bits). Check KBPK."
+                }
+                val clearKey = decrypted.copyOfRange(2, 2 + keyLenBytes)
+                val kcv = calculateKeyCheckValue(clearKey)
+
+                hsmLogsListener.log(buildString {
+                    appendLine("Thales Key Block: Key block decode operation finished")
+                    appendLine("****************************************")
+                    appendLine("KBPK:\t\t\t${bytesToHex(effectiveKey)}")
+                    appendLine("KCV:\t\t\t$kcv")
+                    appendLine("Thales Key block:\t$keyBlock")
+                    appendLine("----------------------------------------")
+                    appendLine("Thales Header:\t\t$header")
+                    appendLine("----------------------------------------")
+                    appendLine("  Version Id:\t\t$version - 3DES KBPK")
+                    appendLine("  Block Length:\t\t${header.substring(1, 5)}")
+                    appendLine("  Key Usage:\t\t$keyUsage")
+                    appendLine("  Algorithm:\t\t$algorithm")
+                    appendLine("  Mode of Use:\t\t$modeOfUse")
+                    appendLine("  Key Version No.:\t$keyVersionNum")
+                    appendLine("  Exportability:\t$exportability")
+                    appendLine("  Num. of Opt. blocks:\t$numOptBlocks")
+                    appendLine("  LMK ID:\t\t$lmkIdField")
+                    appendLine("Thales Encrypted key:\t$encKeyHex")
+                    appendLine("Thales MAC:\t\t$macHex")
+                    appendLine("----------------------------------------")
+                    appendLine("KBEK:\t\t\t${bytesToHex(kbek)}")
+                    appendLine("KBAK:\t\t\t${bytesToHex(kbak)}")
+                    appendLine("----------------------------------------")
+                    appendLine("Plain Key Block:\t${bytesToHex(decrypted)}")
+                    appendLine("Plain Key:\t\t${bytesToHex(clearKey)}")
+                    appendLine("KCV:\t\t\t$kcv")
+                })
+
+                clearKey
+            } catch (e: Exception) { encryptedKey }
+        }
+    }
+
+    private fun removePkcs7Padding(data: ByteArray): ByteArray {
+        if (data.isEmpty()) return data
+        val padLen = data.last().toInt() and 0xFF
+        if (padLen < 1 || padLen > data.size || padLen > 16) return data
+        for (i in data.size - padLen until data.size) {
+            if ((data[i].toInt() and 0xFF) != padLen) return data
+        }
+        return data.copyOf(data.size - padLen)
+    }
+
+    private fun applyPkcs7Padding(data: ByteArray, blockSize: Int): ByteArray {
+        val padLen = blockSize - (data.size % blockSize)
+        val padded = ByteArray(data.size + padLen)
+        data.copyInto(padded)
+        for (i in data.size until padded.size) {
+            padded[i] = padLen.toByte()
+        }
+        return padded
+    }
+
+    /**
+     * Build a KeyBlock for a given key type, looking up usage/mode/exportability automatically.
+     * The LMK pair for [pairNumber] is used to encrypt.
+     */
+    suspend fun buildKeyBlockForKeyType(
+        clearKey: ByteArray,
+        lmkId: String,
+        pairNumber: Int,
+        keyTypeCode: String
+    ): String {
+        val lmk = lmkStorage.getLmk(lmkId) ?: return bytesToHex(clearKey)
+        val pair = lmk.getPair(pairNumber) ?: return bytesToHex(clearKey)
+        val (usage, mode, export) = keyTypeToBlockAttributes(keyTypeCode)
+        return buildKeyBlock(clearKey, pair.getCombinedKey(), usage, mode, export, lmkId)
+    }
+
+    /** Map key type code → (keyUsage, modeOfUse, exportability) for KeyBlock header. */
+    fun keyTypeToBlockAttributes(keyTypeCode: String): Triple<String, Char, Char> = when (keyTypeCode.uppercase()) {
+        "000"       -> Triple("K0", 'N', 'E')   // ZMK
+        "001"       -> Triple("P0", 'N', 'E')   // ZPK
+        "002"       -> Triple("V0", 'V', 'N')   // PVK
+        "003"       -> Triple("M0", 'G', 'N')   // TAK
+        "006"       -> Triple("K0", 'N', 'N')   // Watchword
+        "008"       -> Triple("M0", 'G', 'N')   // ZAK
+        "009"       -> Triple("B0", 'X', 'N')   // BDK
+        "109"       -> Triple("E0", 'N', 'N')   // MK-AC
+        "209"       -> Triple("E1", 'N', 'N')   // MK-SMI
+        "309"       -> Triple("E2", 'N', 'N')   // MK-SMC
+        "409"       -> Triple("E2", 'V', 'N')   // MK-DAC
+        "509"       -> Triple("E2", 'N', 'N')   // MK-DN
+        "609"       -> Triple("B0", 'X', 'N')   // BDK-2
+        "709"       -> Triple("C0", 'G', 'N')   // dCVV
+        "809"       -> Triple("B0", 'X', 'N')   // BDK-3
+        "909"       -> Triple("B0", 'X', 'N')   // BDK-4
+        "00A"       -> Triple("D0", 'B', 'S')   // ZEK
+        "00B"       -> Triple("D0", 'B', 'S')   // DEK
+        "402"       -> Triple("C0", 'G', 'N')   // CVK
+        "70D"       -> Triple("P0", 'N', 'E')   // TPK-PCI
+        "80D"       -> Triple("K0", 'N', 'E')   // TMK-PCI
+        "90D"       -> Triple("K0", 'N', 'E')   // TKR
+        "302"       -> Triple("B1", 'X', 'N')   // IKEY
+        "FFF"       -> Triple("K0", 'N', 'E')   // Generic / KeyBlock only
+        else        -> Triple("K0", 'N', 'E')
+    }
+
+    /**
+     * CBC-MAC over [data] using [key].
+     * For TDES: 8-byte blocks, returns 8 bytes.
+     * For AES: 16-byte blocks, returns 16 bytes.
+     */
+    private suspend fun computeCbcMac(data: ByteArray, key: ByteArray, lmkAlgo: LmkAlgorithm): ByteArray {
+        val blockSize = lmkAlgo.blockSize
+        val paddedLen = ((data.size + blockSize - 1) / blockSize) * blockSize
+        val padded = data.copyOf(paddedLen)
+        var mac = ByteArray(blockSize)
+        for (i in 0 until padded.size step blockSize) {
+            val block = padded.sliceArray(i until i + blockSize)
+            val xored = ByteArray(blockSize) { j -> (mac[j].toInt() xor block[j].toInt()).toByte() }
+            val params = SymmetricEncryptionEngineParameters(
+                data = xored, key = key, mode = ai.cortex.core.types.CipherMode.ECB
+            )
+            mac = try {
+                if (lmkAlgo.isAes) {
+                    engine().encryptionEngine.encrypt(algorithm = CryptoAlgorithm.AES, encryptionEngineParameters = params)
+                } else {
+                    engine().encryptionEngine.encrypt(algorithm = CryptoAlgorithm.TDES, encryptionEngineParameters = params)
+                }
+            } catch (e: Exception) { xored }
+        }
+        return mac
+    }
+
+    /**
+     * Compute AES-CMAC (RFC 4493) over [data] using [key].
+     * Returns the full 16-byte CMAC. Caller can truncate as needed.
+     */
+    private fun computeAesCmac(data: ByteArray, key: ByteArray): ByteArray {
+        return io.cryptocalc.crypto.engines.encryption.AesCalculatorEngine.computeCmac(data, key)
     }
 
     /**

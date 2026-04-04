@@ -84,7 +84,7 @@ object TagDictionaryLogManager {
 
     fun logMessage(message: String, type: LogType = LogType.INFO) {
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-        _logEntries.add(0, LogEntry(timestamp = timestamp, type = type, message = message, details = ""))
+        _logEntries.add(LogEntry(timestamp = timestamp, type = type, message = message, details = ""))
     }
 
     fun logTag(tag: EmvTag) {
@@ -97,7 +97,7 @@ object TagDictionaryLogManager {
             Length: ${tag.length}
             Description: ${tag.description}
         """.trimIndent()
-        _logEntries.add(0, LogEntry(timestamp = timestamp, type = LogType.TRANSACTION, message =  "${tag.name} (${tag.tag})",details =  details))
+        _logEntries.add(LogEntry(timestamp = timestamp, type = LogType.TRANSACTION, message =  "${tag.name} (${tag.tag})",details =  details))
     }
 }
 

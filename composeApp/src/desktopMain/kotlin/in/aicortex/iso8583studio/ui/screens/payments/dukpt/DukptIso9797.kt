@@ -82,7 +82,7 @@ object DUKPTLogManager {
     }
 
     private fun addLog(entry: LogEntry) {
-        _logEntries.add(0, entry)
+        _logEntries.add(entry)
         if (_logEntries.size > 500) _logEntries.removeRange(400, _logEntries.size)
     }
 
@@ -116,9 +116,9 @@ data class DukptPekResult(
     val pekKcv: String
 )
 /**
- * ════════════════════════════════════════════════════════════════════════
+ * ═════════════════════════════════════════
  * DUKPTService — DUKPT Tool UI Service
- * ════════════════════════════════════════════════════════════════════════
+ * ═════════════════════════════════════════
  *
  * Delegates all cryptographic operations to DukptEngine (single source of truth).
  *
@@ -189,9 +189,13 @@ object DUKPTService {
      * Generate MAC per ISO 9797-1.
      * DES  → Algorithm 1 (single DES CBC-MAC)
      * 3DES → Algorithm 3 (Retail MAC: DES CBC then final 3DES round)
+     *
+     * [key] is the DUKPT **session key** (the same 16-byte value shown as derived PEK on the PEK tab).
+     * Per ANSI X9.24-2004 the MAC working key is `session_key XOR MAC_VARIANT`; PIN uses `PEK_VARIANT` instead.
      */
     fun generateMac(key: String, algorithm: String, data: String): String {
-        val keyBytes = key.decodeHex()
+        val sessionKeyBytes = key.decodeHex()
+        val keyBytes = DukptEngine.xorBytes(sessionKeyBytes, DukptEngine.MAC_VARIANT)
         val dataBytes = data.decodeHex()
         val padded = if (dataBytes.isEmpty()) {
             ByteArray(8)

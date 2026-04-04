@@ -36,10 +36,10 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontFamily
 import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.HsmServiceImpl
-import `in`.aicortex.iso8583studio.hsm.HsmSimulator
 import `in`.aicortex.iso8583studio.hsm.payshield10k.HsmSlotManager
 import `in`.aicortex.iso8583studio.hsm.payshield10k.LmkSlot
 import `in`.aicortex.iso8583studio.hsm.payshield10k.SlotStatus
+import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkAlgorithm
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.LmkSet
 
 // Data Models
@@ -139,16 +139,61 @@ fun KeyManagementOverviewTab(
     var selectedSection by remember { mutableStateOf(KeySection.OVERVIEW) }
     var selectedLmkSlot by remember { mutableStateOf<String?>(null) }
     var showRegenerateDialog by remember { mutableStateOf(false) }
+    var showGenerateDialog by remember { mutableStateOf(false) }
+    var generateTargetSlot by remember { mutableStateOf("00") }
 
-    // Load LMK data from storage
-    val loadedLmks by remember {
-        mutableStateOf(hsm.configuration.hsmConfig.lmkStorage)
+    // Revision counter — incremented after every generate/regenerate/delete so the
+    // UI recomposes with fresh slot data.
+    var revision by remember { mutableStateOf(0) }
+
+    // Re-read storage and slot manager on every revision bump
+    val loadedLmks = remember(revision) { hsm.configuration.hsmConfig.lmkStorage }
+    val slotManager = remember(revision) { hsm.getHsm()?.getFeatures()?.getSlotManager() }
+
+    // Result feedback
+    var operationResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+
+    // Auto-clear result feedback
+    LaunchedEffect(operationResult) {
+        if (operationResult != null) {
+            kotlinx.coroutines.delay(4000)
+            operationResult = null
+        }
     }
 
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Operation result banner
+        operationResult?.let { (success, message) ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = if (success) HsmKeyTheme.SuccessGreen.copy(alpha = 0.15f)
+                                  else HsmKeyTheme.ErrorRed.copy(alpha = 0.15f),
+                elevation = 0.dp,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (success) Icons.Default.CheckCircle else Icons.Default.Error,
+                        contentDescription = null,
+                        tint = if (success) HsmKeyTheme.SuccessGreen else HsmKeyTheme.ErrorRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.body2,
+                        color = if (success) HsmKeyTheme.SuccessGreen else HsmKeyTheme.ErrorRed
+                    )
+                }
+            }
+        }
+
         // Section Selector
         SectionSelector(
             selectedSection = selectedSection,
@@ -159,11 +204,17 @@ fun KeyManagementOverviewTab(
         when (selectedSection) {
             KeySection.OVERVIEW -> {
                 OverviewSection(
-                    hsm = hsm.getHsm(),
+                    slotManager = slotManager,
                     loadedLmks = loadedLmks.liveLmks,
                     onSlotClick = { slotId ->
-                        selectedLmkSlot = slotId
-                        selectedSection = KeySection.LMK_DETAILS
+                        val isOccupied = slotManager?.lmkLiveSlots?.containsKey(slotId) == true
+                        if (isOccupied) {
+                            selectedLmkSlot = slotId
+                            selectedSection = KeySection.LMK_DETAILS
+                        } else {
+                            generateTargetSlot = slotId
+                            showGenerateDialog = true
+                        }
                     }
                 )
             }
@@ -172,7 +223,15 @@ fun KeyManagementOverviewTab(
                     loadedLmks = loadedLmks.liveLmks,
                     selectedSlot = selectedLmkSlot,
                     onBackClick = { selectedSection = KeySection.OVERVIEW },
-                    onRegenerateClick = { showRegenerateDialog = true }
+                    onRegenerateClick = { showRegenerateDialog = true },
+                    onAlgorithmChange = { slotId, algorithm ->
+                        hsm.updateLmkAlgorithm(slotId, algorithm)
+                        revision++
+                    },
+                    onSchemeChange = { slotId, scheme ->
+                        hsm.updateLmkScheme(slotId, scheme)
+                        revision++
+                    }
                 )
             }
             KeySection.USER_STORAGE -> {
@@ -184,13 +243,39 @@ fun KeyManagementOverviewTab(
         }
     }
 
-    // Regenerate Dialog
+    // Generate LMK Dialog (for empty slots)
+    if (showGenerateDialog) {
+        GenerateLmkDialog(
+            slotId = generateTargetSlot,
+            onDismiss = { showGenerateDialog = false },
+            onConfirm = { slotId, scheme, algorithm ->
+                val result = hsm.generateLmkForSlot(slotId, scheme, algorithm = algorithm)
+                if (result.containsKey("error")) {
+                    operationResult = false to "Failed: ${result["error"]}"
+                } else {
+                    operationResult = true to "LMK generated for slot $slotId (KCV: ${result["checkValue"]})"
+                }
+                revision++
+                showGenerateDialog = false
+            }
+        )
+    }
+
+    // Regenerate Dialog (for occupied slots)
     if (showRegenerateDialog) {
         RegenerateLmkDialog(
             slotId = selectedLmkSlot ?: "00",
             onDismiss = { showRegenerateDialog = false },
             onConfirm = { slotId, params ->
-                // TODO: Implement regeneration
+                val scheme = params["scheme"]?.toString() ?: "VARIANT"
+                val algorithm = params["algorithm"]?.toString() ?: "TDES_2KEY"
+                val result = hsm.regenerateLmkForSlot(slotId, scheme, algorithm)
+                if (result.containsKey("error")) {
+                    operationResult = false to "Regeneration failed: ${result["error"]}"
+                } else {
+                    operationResult = true to "LMK regenerated for slot $slotId (KCV: ${result["checkValue"]})"
+                }
+                revision++
                 showRegenerateDialog = false
             }
         )
@@ -286,7 +371,7 @@ private fun SectionButton(
 
 @Composable
 private fun OverviewSection(
-    hsm: HsmSimulator?,
+    slotManager: HsmSlotManager?,
     loadedLmks: Map<String, LmkSet>,
     onSlotClick: (String) -> Unit
 ) {
@@ -298,20 +383,16 @@ private fun OverviewSection(
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        hsm?.let {
+        slotManager?.let {
             // Statistics Cards
-            StatisticsRow(slotManager = hsm!!.getFeatures().getSlotManager())
+            StatisticsRow(slotManager = it)
 
-            // LMK Slots Grid
+            // LMK Slots Grid (all 100 slots)
             LmkSlotsGrid(
-                slotManager = hsm!!.getFeatures().getSlotManager(),
+                slotManager = it,
                 onSlotClick = onSlotClick
             )
-
         }
-//
-//        // Quick Actions
-//        QuickActionsCard()
     }
 }
 
@@ -411,6 +492,9 @@ private fun LmkSlotsGrid(
     slotManager: HsmSlotManager,
     onSlotClick: (String) -> Unit
 ) {
+    // Build the full list of 100 slot IDs (00-99)
+    val allSlotIds = remember { (0 until slotManager.maxLmkSlots).map { "%02d".format(it) } }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = 2.dp,
@@ -445,21 +529,105 @@ private fun LmkSlotsGrid(
                 )
             }
 
+            // Legend
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LegendDot(color = HsmKeyTheme.KeySlotDefault, label = "Default")
+                LegendDot(color = HsmKeyTheme.KeySlotManagement, label = "Management")
+                LegendDot(color = HsmKeyTheme.KeySlotActive, label = "Loaded")
+                LegendDot(color = HsmKeyTheme.KeySlotEmpty, label = "Empty (click to generate)")
+            }
+
             Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f))
 
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 80.dp),
-                modifier = Modifier.height(400.dp),
+                modifier = Modifier.height(500.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(slotManager.lmkLiveSlots.entries.sortedBy { it.key }.toList()) { (slotId, slotData) ->
-                    LmkSlotItem(
-                        slotId = slotId,
-                        slotData = slotData,
-                        onClick = { onSlotClick(slotId) }
-                    )
+                items(allSlotIds) { slotId ->
+                    val slotData = slotManager.lmkLiveSlots[slotId]
+                    if (slotData != null) {
+                        LmkSlotItem(
+                            slotId = slotId,
+                            slotData = slotData,
+                            onClick = { onSlotClick(slotId) }
+                        )
+                    } else {
+                        EmptySlotItem(
+                            slotId = slotId,
+                            onClick = { onSlotClick(slotId) }
+                        )
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegendDot(color: Color, label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(color, CircleShape)
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.caption,
+            fontSize = 10.sp,
+            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+private fun EmptySlotItem(
+    slotId: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .size(72.dp)
+            .clickable(onClick = onClick),
+        elevation = 1.dp,
+        backgroundColor = HsmKeyTheme.KeySlotEmpty.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AddCircleOutline,
+                    contentDescription = "Generate LMK",
+                    tint = HsmKeyTheme.KeySlotEmpty.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    slotId,
+                    style = MaterialTheme.typography.caption,
+                    fontWeight = FontWeight.Medium,
+                    color = HsmKeyTheme.KeySlotEmpty.copy(alpha = 0.6f)
+                )
+                Text(
+                    "Empty",
+                    style = MaterialTheme.typography.caption,
+                    fontSize = 9.sp,
+                    color = HsmKeyTheme.KeySlotEmpty.copy(alpha = 0.4f)
+                )
             }
         }
     }
@@ -631,7 +799,9 @@ private fun LmkDetailsSection(
     loadedLmks: Map<String, LmkSet>,
     selectedSlot: String?,
     onBackClick: () -> Unit,
-    onRegenerateClick: () -> Unit
+    onRegenerateClick: () -> Unit,
+    onAlgorithmChange: (String, String) -> Unit = { _, _ -> },
+    onSchemeChange: (String, String) -> Unit = { _, _ -> }
 ) {
     val slotData = selectedSlot?.let { loadedLmks[it] }
 
@@ -657,7 +827,11 @@ private fun LmkDetailsSection(
         )
 
         // Slot Information Card
-        SlotInformationCard(slotData = slotData)
+        SlotInformationCard(
+            slotData = slotData,
+            onAlgorithmChange = { algorithm -> onAlgorithmChange(slotData.identifier, algorithm) },
+            onSchemeChange = { scheme -> onSchemeChange(slotData.identifier, scheme) }
+        )
 
         // LMK Pairs Display
         LmkPairsCard(slotData = slotData)
@@ -788,9 +962,12 @@ private fun Chip(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun SlotInformationCard(
-    slotData: LmkSet
+    slotData: LmkSet,
+    onAlgorithmChange: (String) -> Unit = {},
+    onSchemeChange: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -812,7 +989,51 @@ private fun SlotInformationCard(
 
             InfoRow("Slot ID", slotData.identifier)
             InfoRow("Status", "Loaded")
-            InfoRow("Scheme", slotData.scheme)
+
+            // Editable Scheme selector
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Scheme",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("VARIANT", "KEY_BLOCK").forEach { scheme ->
+                        FilterChip(
+                            selected = slotData.scheme == scheme,
+                            onClick = { onSchemeChange(scheme) },
+                            content = { Text(scheme, fontSize = 11.sp) }
+                        )
+                    }
+                }
+            }
+
+            // Editable Algorithm selector
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Algorithm",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LmkAlgorithm.entries.forEach { algo ->
+                        FilterChip(
+                            selected = slotData.algorithm == algo.name,
+                            onClick = { onAlgorithmChange(algo.name) },
+                            content = { Text(algo.display, fontSize = 10.sp) }
+                        )
+                    }
+                }
+            }
+
             InfoRow("Pair Count", "${slotData.pairs.size} pairs")
 
             if (slotData.checkValue.isNotEmpty()) {
@@ -1554,7 +1775,7 @@ private fun RegenerateLmkDialog(
     onConfirm: (String, Map<String, Any>) -> Unit
 ) {
     var selectedScheme by remember { mutableStateOf("VARIANT") }
-    var selectedAlgorithm by remember { mutableStateOf("3DES(2key)") }
+    var selectedAlgorithm by remember { mutableStateOf("TDES_2KEY") }
     var selectedStatus by remember { mutableStateOf("Test") }
 
     AlertDialog(
@@ -1598,11 +1819,13 @@ private fun RegenerateLmkDialog(
                 // Algorithm selector
                 Text("Algorithm:", style = MaterialTheme.typography.subtitle2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("3DES(2key)", "3DES(3key)", "AES-256").forEach { algo ->
+                    listOf("TDES_2KEY" to "3DES(2key)", "TDES_3KEY" to "3DES(3key)",
+                           "AES_128" to "AES-128", "AES_192" to "AES-192", "AES_256" to "AES-256"
+                    ).forEach { (value, label) ->
                         FilterChip(
-                            selected = selectedAlgorithm == algo,
-                            onClick = { selectedAlgorithm = algo },
-                            content = { Text(algo) }
+                            selected = selectedAlgorithm == value,
+                            onClick = { selectedAlgorithm = value },
+                            content = { Text(label, fontSize = 11.sp) }
                         )
                     }
                 }
@@ -1635,6 +1858,122 @@ private fun RegenerateLmkDialog(
                 )
             ) {
                 Text("Regenerate")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// GENERATE LMK DIALOG (empty slots)
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun GenerateLmkDialog(
+    slotId: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, String) -> Unit  // slotId, scheme, algorithm
+) {
+    var selectedScheme by remember { mutableStateOf("VARIANT") }
+    var selectedAlgorithm by remember { mutableStateOf("TDES_2KEY") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = HsmKeyTheme.SuccessGreen
+                )
+                Text("Generate LMK - Slot $slotId")
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "This will generate a new random LMK and load it into slot $slotId. " +
+                    "The LMK consists of 40 key pairs derived from a random master key.",
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                )
+
+                // Scheme selector
+                Text("Scheme:", style = MaterialTheme.typography.subtitle2)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("VARIANT", "KEY_BLOCK").forEach { scheme ->
+                        FilterChip(
+                            selected = selectedScheme == scheme,
+                            onClick = { selectedScheme = scheme },
+                            content = { Text(scheme) }
+                        )
+                    }
+                }
+
+                // Algorithm selector
+                Text("Algorithm:", style = MaterialTheme.typography.subtitle2)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("TDES_2KEY" to "3DES(2key)", "TDES_3KEY" to "3DES(3key)",
+                           "AES_128" to "AES-128", "AES_192" to "AES-192", "AES_256" to "AES-256"
+                    ).forEach { (value, label) ->
+                        FilterChip(
+                            selected = selectedAlgorithm == value,
+                            onClick = { selectedAlgorithm = value },
+                            content = { Text(label, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                Card(
+                    backgroundColor = HsmKeyTheme.InfoCyan.copy(alpha = 0.1f),
+                    elevation = 0.dp,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = HsmKeyTheme.InfoCyan,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            "The algorithm determines how the HSM encrypts/decrypts keys under this LMK. " +
+                            "TDES uses 8-byte blocks; AES uses 16-byte blocks.",
+                            style = MaterialTheme.typography.caption,
+                            color = HsmKeyTheme.InfoCyan
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(slotId, selectedScheme, selectedAlgorithm) },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = HsmKeyTheme.SuccessGreen
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.VpnKey,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Generate")
             }
         },
         dismissButton = {

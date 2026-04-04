@@ -39,7 +39,7 @@ fun HsmLoadTesterTab(service: HsmCommandClientService) {
     val connectionState by service.connectionState.collectAsState()
     val stats by service.loadTestStats.collectAsState()
 
-    var commandToSend by remember { mutableStateOf("4E43") }
+    var commandToSend by remember { mutableStateOf("NC") }
     var concurrency by remember { mutableStateOf(service.config.loadTestConcurrentConnections.toString()) }
     var tps by remember { mutableStateOf(service.config.loadTestCommandsPerSecond.toString()) }
     var duration by remember { mutableStateOf(service.config.loadTestDurationSeconds.toString()) }
@@ -85,7 +85,7 @@ fun HsmLoadTesterTab(service: HsmCommandClientService) {
                     FixedOutlinedTextField(
                         value = commandToSend,
                         onValueChange = { commandToSend = it },
-                        label = { Text("Command (Hex)") },
+                        label = { Text("Command") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         enabled = !stats.running,

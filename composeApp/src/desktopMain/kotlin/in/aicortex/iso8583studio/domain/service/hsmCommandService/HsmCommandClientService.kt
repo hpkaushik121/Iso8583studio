@@ -4,6 +4,7 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.*
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.SSLTLSVersion
+import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.ThalesErrorCodes
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,11 +138,11 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         inputStream = null
     }
 
-    suspend fun sendCommand(commandHex: String): HsmCommandResult {
+    suspend fun sendCommand(commandText: String): HsmCommandResult {
         val os = outputStream ?: throw IllegalStateException("Not connected")
         val iStream = inputStream ?: throw IllegalStateException("Not connected")
 
-        val commandBytes = hexToBytes(commandHex)
+        val commandBytes = commandText.toByteArray(Charsets.US_ASCII)
         val frame = buildFrame(commandBytes)
 
         val start = System.currentTimeMillis()
@@ -157,13 +158,25 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
                 val responsePayload = extractPayload(responseBytes)
                 writeLog(createLogEntry(LogType.MESSAGE, "RECV ${responseBytes.size} bytes in ${elapsed}ms"))
 
+                val headerLen = config.headerValue.length
+                val bodyForCheck = if (headerLen > 0 && responsePayload.size > headerLen)
+                    responsePayload.copyOfRange(headerLen, responsePayload.size)
+                else responsePayload
+
+                val hsmErrorCode = if (bodyForCheck.size >= 4)
+                    String(bodyForCheck, 2, 2, Charsets.US_ASCII) else null
+                val hsmSuccess = hsmErrorCode == null || ThalesErrorCodes.isSuccess(hsmErrorCode)
+                val hsmErrorMsg = if (!hsmSuccess && hsmErrorCode != null)
+                    "HSM Error $hsmErrorCode: ${ThalesErrorCodes.getDescription(hsmErrorCode)}" else null
+
                 HsmCommandResult(
-                    success = true,
+                    success = hsmSuccess,
                     rawRequest = frame,
                     rawResponse = responseBytes,
                     formattedRequest = formatCommand(commandBytes),
                     formattedResponse = formatResponse(responsePayload),
                     elapsedMs = elapsed,
+                    errorMessage = hsmErrorMsg,
                 )
             } catch (e: Exception) {
                 val elapsed = System.currentTimeMillis() - start
@@ -186,7 +199,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         }
     }
 
-    fun startLoadTest(commandHex: String, scope: CoroutineScope) {
+    fun startLoadTest(commandText: String, scope: CoroutineScope) {
         if (loadTestJob?.isActive == true) return
         _loadTestStats.value = LoadTestStats(running = true)
 
@@ -212,7 +225,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
 
                             try {
                                 totalSent.incrementAndGet()
-                                val result = sendCommand(commandHex)
+                                val result = sendCommand(commandText)
                                 totalRecv.incrementAndGet()
                                 if (result.success) successCnt.incrementAndGet() else failureCnt.incrementAndGet()
                                 totalTime.addAndGet(result.elapsedMs)
@@ -256,8 +269,8 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
     // --- Frame building ---
 
     private fun buildFrame(payload: ByteArray): ByteArray {
-        val header = if (config.headerValue.isNotBlank()) hexToBytes(config.headerValue) else ByteArray(0)
-        val trailer = if (config.trailerValue.isNotBlank()) hexToBytes(config.trailerValue) else ByteArray(0)
+        val header = if (config.headerValue.isNotBlank()) config.headerValue.toByteArray(Charsets.US_ASCII) else ByteArray(0)
+        val trailer = if (config.trailerValue.isNotBlank()) config.trailerValue.toByteArray(Charsets.US_ASCII) else ByteArray(0)
         val body = header + payload + trailer
 
         return when (config.hsmVendor.headerFormat) {
@@ -337,59 +350,106 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
 
     // --- Formatting ---
 
+    /**
+     * Recovers the ASCII command bytes from the outbound wire [frame] (inverse of [buildFrame]).
+     * Used so the Console "REQUEST" view only ever reflects what was sent, never the response.
+     */
+    fun extractOutboundCommandBytes(frame: ByteArray): ByteArray {
+        if (frame.isEmpty()) return frame
+        var rest = frame
+        when (config.hsmVendor.headerFormat) {
+            HeaderFormat.TWO_BYTE_LENGTH -> {
+                if (config.tcpLengthHeaderEnabled && rest.size >= 2) {
+                    rest = rest.copyOfRange(2, rest.size)
+                }
+            }
+            HeaderFormat.FOUR_BYTE_ASCII_LENGTH -> {
+                if (rest.size >= 4) rest = rest.copyOfRange(4, rest.size)
+            }
+            HeaderFormat.STX_ETX -> {
+                if (rest.size >= 2 && rest[0] == 0x02.toByte() && rest[rest.lastIndex] == 0x03.toByte()) {
+                    rest = rest.copyOfRange(1, rest.lastIndex)
+                }
+            }
+            HeaderFormat.NONE, HeaderFormat.CUSTOM -> { }
+        }
+        val header = if (config.headerValue.isNotBlank()) config.headerValue.toByteArray(Charsets.US_ASCII) else ByteArray(0)
+        val trailer = if (config.trailerValue.isNotBlank()) config.trailerValue.toByteArray(Charsets.US_ASCII) else ByteArray(0)
+        var payload = rest
+        if (header.isNotEmpty() && payload.size >= header.size) {
+            val head = payload.copyOfRange(0, header.size)
+            if (head.contentEquals(header)) {
+                payload = payload.copyOfRange(header.size, payload.size)
+            }
+        }
+        if (trailer.isNotEmpty() && payload.size >= trailer.size) {
+            val tail = payload.copyOfRange(payload.size - trailer.size, payload.size)
+            if (tail.contentEquals(trailer)) {
+                payload = payload.copyOfRange(0, payload.size - trailer.size)
+            }
+        }
+        return payload
+    }
+
+    fun formatOutboundCommandForDisplay(frame: ByteArray): String {
+        if (frame.isEmpty()) return ""
+        return formatCommand(extractOutboundCommandBytes(frame))
+    }
+
     fun formatCommand(payload: ByteArray): String {
         if (payload.isEmpty()) return "(empty)"
-        val headerLen = if (config.headerValue.isNotBlank()) hexToBytes(config.headerValue).size else 0
+        val headerLen = config.headerValue.length
         val sb = StringBuilder()
 
         if (headerLen > 0 && payload.size > headerLen) {
-            sb.appendLine("Header: ${bytesToHex(payload.copyOfRange(0, headerLen))}")
+            sb.appendLine("Header: ${String(payload, 0, headerLen, Charsets.US_ASCII)}")
             val cmdBody = payload.copyOfRange(headerLen, payload.size)
             if (cmdBody.size >= 2) {
-                val cmdCode = String(cmdBody, 0, 2, Charsets.ISO_8859_1)
+                val cmdCode = String(cmdBody, 0, 2, Charsets.US_ASCII)
                 sb.appendLine("Command Code: $cmdCode")
                 if (cmdBody.size > 2) {
-                    sb.appendLine("Data: ${bytesToHex(cmdBody.copyOfRange(2, cmdBody.size))}")
+                    sb.appendLine("Data: ${String(cmdBody, 2, cmdBody.size - 2, Charsets.US_ASCII)}")
                 }
             } else {
-                sb.appendLine("Data: ${bytesToHex(cmdBody)}")
+                sb.appendLine("Data: ${String(cmdBody, Charsets.US_ASCII)}")
             }
         } else if (payload.size >= 2) {
-            val cmdCode = String(payload, 0, 2, Charsets.ISO_8859_1)
+            val cmdCode = String(payload, 0, 2, Charsets.US_ASCII)
             sb.appendLine("Command Code: $cmdCode")
             if (payload.size > 2) {
-                sb.appendLine("Data: ${bytesToHex(payload.copyOfRange(2, payload.size))}")
+                sb.appendLine("Data: ${String(payload, 2, payload.size - 2, Charsets.US_ASCII)}")
             }
         } else {
-            sb.appendLine("Data: ${bytesToHex(payload)}")
+            sb.appendLine("Data: ${String(payload, Charsets.US_ASCII)}")
         }
         return sb.toString().trimEnd()
     }
 
     fun formatResponse(payload: ByteArray): String {
         if (payload.isEmpty()) return "(empty)"
-        val headerLen = if (config.headerValue.isNotBlank()) hexToBytes(config.headerValue).size else 0
+        val headerLen = config.headerValue.length
         val sb = StringBuilder()
 
         val body = if (headerLen > 0 && payload.size > headerLen) {
-            sb.appendLine("Header: ${bytesToHex(payload.copyOfRange(0, headerLen))}")
+            sb.appendLine("Header: ${String(payload, 0, headerLen, Charsets.US_ASCII)}")
             payload.copyOfRange(headerLen, payload.size)
         } else payload
 
         if (body.size >= 2) {
-            val respCode = String(body, 0, 2, Charsets.ISO_8859_1)
+            val respCode = String(body, 0, 2, Charsets.US_ASCII)
             sb.appendLine("Response Code: $respCode")
             if (body.size >= 4) {
-                val errorCode = String(body, 2, 2, Charsets.ISO_8859_1)
-                sb.appendLine("Error Code: $errorCode")
+                val errorCode = String(body, 2, 2, Charsets.US_ASCII)
+                val errorDesc = ThalesErrorCodes.getDescription(errorCode)
+                sb.appendLine("Error Code: $errorCode ($errorDesc)")
                 if (body.size > 4) {
-                    sb.appendLine("Data: ${bytesToHex(body.copyOfRange(4, body.size))}")
+                    sb.appendLine("Data: ${String(body, 4, body.size - 4, Charsets.US_ASCII)}")
                 }
             } else if (body.size > 2) {
-                sb.appendLine("Data: ${bytesToHex(body.copyOfRange(2, body.size))}")
+                sb.appendLine("Data: ${String(body, 2, body.size - 2, Charsets.US_ASCII)}")
             }
         } else {
-            sb.appendLine("Data: ${bytesToHex(body)}")
+            sb.appendLine("Data: ${String(body, Charsets.US_ASCII)}")
         }
         return sb.toString().trimEnd()
     }

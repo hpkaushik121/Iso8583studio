@@ -134,13 +134,20 @@ class PayShieldStringCommandProcessor(
             else -> command.length
         }
 
-        val data = if (pos < dataEnd) command.substring(pos, dataEnd) else ""
+        var data = if (pos < dataEnd) command.substring(pos, dataEnd) else ""
 
         var lmkId: String? = null
         var trailer: String? = null
 
         if (delimiterIndex > 0 && delimiterIndex + 2 < command.length) {
             lmkId = command.substring(delimiterIndex + 1, minOf(delimiterIndex + 3, command.length))
+
+            // Carry any content after %XX (e.g. #KeyBlock attrs) into the data field
+            val afterLmk = minOf(delimiterIndex + 3, command.length)
+            val extraEnd = if (trailerIndex > afterLmk) trailerIndex else command.length
+            if (afterLmk < extraEnd) {
+                data += command.substring(afterLmk, extraEnd)
+            }
         }
 
         if (trailerIndex > 0 && trailerIndex + 1 < command.length) {
@@ -174,7 +181,7 @@ class PayShieldStringCommandProcessor(
             "GK" -> executeGK(cmd)
             "GC" -> executeGC(cmd)
             "FK" -> executeFK(cmd)
-            "A0" -> A0GenerateKeyCommand(simulator).execute(cmd.data)
+            "A0" -> A0GenerateKeyCommand(simulator).execute(cmd.data, cmd.lmkId)
             "A6" -> executeA6(cmd)
             "A8" -> executeA8(cmd)
             "BU" -> executeBU(cmd)
@@ -1105,7 +1112,7 @@ class PayShieldStringCommandProcessor(
                 val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
                 hsmLogsListener.log("[M0] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
 
-                val clearBdk = performTdesDecryptForM2(encKey, variantLmk)
+                val clearBdk = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
                 hsmLogsListener.log("[M0] Step 5: Decrypted clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
 
                 val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
@@ -1139,7 +1146,7 @@ class PayShieldStringCommandProcessor(
                 val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
                 hsmLogsListener.log("[M0] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
 
-                clearKey = performTdesDecryptForM2(encKey, variantLmk)
+                clearKey = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
                 hsmLogsListener.log("[M0] Step 5: Decrypted clear key = ${IsoUtil.bytesToHexString(clearKey)}")
             }
 
@@ -1279,7 +1286,7 @@ class PayShieldStringCommandProcessor(
                 val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
                 hsmLogsListener.log("[M2] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
 
-                val clearBdk = performTdesDecryptForM2(encKey, variantLmk)
+                val clearBdk = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
                 hsmLogsListener.log("[M2] Step 5: Decrypted clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
 
                 val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
@@ -1314,7 +1321,7 @@ class PayShieldStringCommandProcessor(
                 val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
                 hsmLogsListener.log("[M2] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
 
-                clearKey = performTdesDecryptForM2(encKey, variantLmk)
+                clearKey = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
                 hsmLogsListener.log("[M2] Step 5: Decrypted clear key = ${IsoUtil.bytesToHexString(clearKey)}")
             }
 
@@ -1388,15 +1395,8 @@ class PayShieldStringCommandProcessor(
         return variantedKey
     }
 
-    private suspend fun performTdesDecryptForM2(data: ByteArray, key: ByteArray): ByteArray {
-        return engine().encryptionEngine.decrypt(
-            algorithm = CryptoAlgorithm.TDES,
-            decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                data = data,
-                key = key,
-                mode = CipherMode.ECB
-            )
-        )
+    private suspend fun performTdesDecryptForM2(data: ByteArray, key: ByteArray, lmkId: String = "00"): ByteArray {
+        return simulator.decryptWithLmkAlgorithm(data, key, lmkId)
     }
 
     /**
@@ -1451,39 +1451,44 @@ class PayShieldStringCommandProcessor(
 
     /**
      * BW - Translate Key from One LMK Pair to Another
-     * Command: 0000BW[KeyType_3H][Scheme_1A][Key_32H][NewKeyType_3H][NewScheme_1A]%[LMK_ID]
-     * Response: 0000BX00[NewKey_1A+32H][KCV_6H]
-     * Useful when migrating keys to a new LMK pair (e.g. 001 ZPK → 008 ZAK).
+     * Command: 0000BW[KeyType_3H][Key(scheme+variable)][NewKeyType_3H][NewScheme_1A]%[LMK_ID]
+     * Handles variant scheme (U/T/X/Y) and KeyBlock ('S') source keys.
+     * Response: 0000BX00[NewKey(scheme+variable)][KCV_6H]
      */
     private suspend fun executeBW(cmd: ParsedCommand): HsmCommandResult {
         return try {
             var pos = 0
             val data = cmd.data
 
-            // Source key type (3H) + scheme (1A) + key (32H)
+            // Source key type (3H) + key (scheme-prefixed, variable)
             val srcTypeCode = data.substring(pos, pos + 3); pos += 3
-            pos++ // scheme char
-            val srcKeyHex = data.substring(pos, pos + 32); pos += 32
-            val srcKey = IsoUtil.hexToBytes(srcKeyHex)
+            val (srcKeyWithScheme, srcKeyLen) = extractSchemeKey(data, pos); pos += srcKeyLen
 
             // Destination key type (3H) + scheme (1A)
-            val dstTypeCode = data.substring(pos, pos + 3); pos += 3
-            val dstScheme   = data[pos].toString(); pos++
+            val dstTypeCode = if (pos + 3 <= data.length) data.substring(pos, pos + 3) else srcTypeCode; pos += 3
+            val dstSchemeChar = if (pos < data.length) data[pos].uppercaseChar() else 'U'
 
             val srcType = KeyType.values().find { it.code == srcTypeCode } ?: KeyType.TYPE_001
             val dstType = KeyType.values().find { it.code == dstTypeCode } ?: srcType
 
             // Decrypt under source LMK pair
-            val clearKey = simulator.decryptUnderLmk(srcKey, cmd.lmkId, srcType.getLmkPairNumber())
+            val clearKey = decryptSchemeKeyUnderLmk(srcKeyWithScheme, cmd.lmkId, srcType.getLmkPairNumber())
 
             // Re-encrypt under destination LMK pair
-            val newKey = simulator.encryptUnderLmk(clearKey, cmd.lmkId, dstType.getLmkPairNumber())
-            val newKeyHex = IsoUtil.bytesToHexString(newKey)
+            val lmkSet = simulator.getSlotManager().getLmkFromSlot(cmd.lmkId)
+            val useKeyBlock = lmkSet?.scheme == "KEY_BLOCK" || dstSchemeChar == 'S'
             val kcv = simulator.calculateKeyCheckValue(clearKey)
 
+            val newKey = if (useKeyBlock) {
+                simulator.buildKeyBlockForKeyType(clearKey, cmd.lmkId, dstType.getLmkPairNumber(), dstTypeCode)
+            } else {
+                val encBytes = simulator.encryptUnderLmk(clearKey, cmd.lmkId, dstType.getLmkPairNumber())
+                "$dstSchemeChar${IsoUtil.bytesToHexString(encBytes)}"
+            }
+
             HsmCommandResult.Success(
-                response = "$dstScheme$newKeyHex$kcv",
-                data = mapOf("translatedKey" to "$dstScheme$newKeyHex", "kcv" to kcv)
+                response = "$newKey$kcv",
+                data = mapOf("translatedKey" to newKey, "kcv" to kcv)
             )
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "BW failed: ${e.message}")
@@ -2099,7 +2104,7 @@ class PayShieldStringCommandProcessor(
             val combinedLmk = lmkPair.getCombinedKey()
             val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
 
-            val clearBdk = performTdesDecryptForM2(encKey, variantLmk)
+            val clearBdk = performTdesDecryptForM2(encKey, variantLmk, lmkId)
             hsmLogsListener.log("[$tag] Clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
 
             val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
@@ -2126,7 +2131,7 @@ class PayShieldStringCommandProcessor(
             val combinedLmk = lmkPair.getCombinedKey()
             val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
 
-            val clearKey = performTdesDecryptForM2(encKey, variantLmk)
+            val clearKey = performTdesDecryptForM2(encKey, variantLmk, lmkId)
             hsmLogsListener.log("[$tag] Clear key = ${IsoUtil.bytesToHexString(clearKey)}")
             return clearKey
         }
@@ -2710,7 +2715,9 @@ class PayShieldStringCommandProcessor(
 
     // ====================================================================================================
     // A6 — Import Key (ZMK-encrypted → LMK)
-    // Command: A6[KeyType_3H][ZMKScheme_1A][ZMK_32H][LMKScheme_1A][Key_32H]
+    // Command: A6[KeyType_3H][ZMKScheme(1A)+ZMK(variable)][LMKScheme_1A][Key(variable)]
+    // KeyBlock variant: ZMK and/or import key may be in 'S' scheme (full KeyBlock string).
+    // When the LMK slot scheme is KEY_BLOCK, the response key is returned in KeyBlock format.
     // Response: A7 00 [Key_under_LMK][KCV_6H]
     // ====================================================================================================
     private suspend fun executeA6(cmd: ParsedCommand): HsmCommandResult {
@@ -2718,33 +2725,44 @@ class PayShieldStringCommandProcessor(
             var pos = 0
             val data = cmd.data
 
+            // 1. Key type (3H)
             val keyTypeCode = data.substring(pos, pos + 3); pos += 3
-            pos++ // ZMK scheme
-            val zmkHex = data.substring(pos, pos + 32); pos += 32
-            val zmk = IsoUtil.hexToBytes(zmkHex)
-            val lmkScheme = data[pos].toString(); pos++
-            val keyToImportHex = data.substring(pos, pos + 32)
-            val keyToImport = IsoUtil.hexToBytes(keyToImportHex)
+
+            // 2. ZMK with scheme prefix (variable length)
+            val (zmkWithScheme, zmkLen) = extractSchemeKey(data, pos); pos += zmkLen
+
+            // 3. LMK output scheme character (1 char)
+            val lmkSchemeChar = if (pos < data.length) data[pos].uppercaseChar() else 'U'; pos++
+
+            // 4. Key to import with scheme prefix (variable length)
+            val (keyWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
 
             val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
 
-            // Decrypt ZMK under LMK (ZMK uses pair 00-01)
-            val clearZmk = simulator.decryptUnderLmk(zmk, cmd.lmkId, 0)
+            // 5. Decrypt ZMK under LMK pair 00-01 (ZMK/ZPK pair)
+            val clearZmk = decryptSchemeKeyUnderLmk(zmkWithScheme, cmd.lmkId, 0)
 
-            // Decrypt key under ZMK (3DES ECB)
-            val zmkCipher = Cipher.getInstance("DESede/ECB/NoPadding")
-            zmkCipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(clearZmk.copyOf(16), "DESede"))
-            val clearKey = zmkCipher.doFinal(keyToImport)
+            // 6. Decrypt the import key under the clear ZMK
+            val clearKey = decryptSchemeKeyUnderClearKey(keyWithScheme, clearZmk)
 
-            // Apply odd parity then encrypt under LMK
+            // 7. Apply odd parity
             val parityKey = simulator.applyOddParity(clearKey)
-            val lmkKey = simulator.encryptUnderLmk(parityKey, cmd.lmkId, keyType.getLmkPairNumber())
-            val lmkKeyHex = IsoUtil.bytesToHexString(lmkKey)
+
+            // 8. Encrypt under LMK — use KeyBlock format when LMK scheme is KEY_BLOCK or lmkScheme is 'S'
+            val lmkSet = simulator.getSlotManager().getLmkFromSlot(cmd.lmkId)
+            val useKeyBlock = lmkSet?.scheme == "KEY_BLOCK" || lmkSchemeChar == 'S'
             val kcv = simulator.calculateKeyCheckValue(parityKey)
 
+            val keyUnderLmk = if (useKeyBlock) {
+                simulator.buildKeyBlockForKeyType(parityKey, cmd.lmkId, keyType.getLmkPairNumber(), keyTypeCode)
+            } else {
+                val encBytes = simulator.encryptUnderLmk(parityKey, cmd.lmkId, keyType.getLmkPairNumber())
+                "$lmkSchemeChar${IsoUtil.bytesToHexString(encBytes)}"
+            }
+
             HsmCommandResult.Success(
-                response = "$lmkScheme$lmkKeyHex$kcv",
-                data = mapOf("lmkKey" to lmkKeyHex, "kcv" to kcv)
+                response = "$keyUnderLmk$kcv",
+                data = mapOf("lmkKey" to keyUnderLmk, "kcv" to kcv)
             )
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "A6 failed: ${e.message}")
@@ -2752,8 +2770,24 @@ class PayShieldStringCommandProcessor(
     }
 
     // ====================================================================================================
-    // A8 — Export Key (LMK → ZMK-encrypted)
-    // Command: A8[KeyType_3H][ZMK_1A+32H][Key_1A+32H][ExportScheme_1A]
+    // A8 — Export Key (LMK → ZMK/TMK-encrypted)
+    //
+    // Command format:
+    //   A8 + KeyType(3H) + [;] + ZMK/TMK Flag(1N) + ZMK/TMK(scheme+variable)
+    //      + Key_under_LMK(scheme+variable) + KeyScheme_ZMK(1A)
+    //      + [Atalla variant(nA)] + [%LMK_ID(2H)]
+    //
+    // Where:
+    //   KeyType        : 3H key type code (e.g. "001"=ZPK, "002"=TPK, "FFF"=KeyBlock)
+    //   ';'            : Optional delimiter (present when Delimiter checkbox is set)
+    //   ZMK/TMK Flag   : '0' = ZMK, '1' = TMK
+    //   ZMK/TMK        : Zone/Terminal Master Key encrypted under LMK (scheme prefix + hex)
+    //   Key_under_LMK  : The key to export, encrypted under LMK (scheme prefix + hex)
+    //   KeyScheme_ZMK   : Export scheme under ZMK ('U', 'T', 'X', 'Y', 'S')
+    //   Atalla variant  : Optional Atalla variant string
+    //   '%'             : Optional second delimiter for LMK Identifier
+    //   LMK_ID         : 2H LMK slot identifier (e.g. "03")
+    //
     // Response: A9 00 [ExportedKey][KCV_6H]
     // ====================================================================================================
     private suspend fun executeA8(cmd: ParsedCommand): HsmCommandResult {
@@ -2761,33 +2795,90 @@ class PayShieldStringCommandProcessor(
             var pos = 0
             val data = cmd.data
 
+            // 1. Key type (3H)
             val keyTypeCode = data.substring(pos, pos + 3); pos += 3
-            pos++ // ZMK scheme
-            val zmkHex = data.substring(pos, pos + 32); pos += 32
-            val zmk = IsoUtil.hexToBytes(zmkHex)
-            pos++ // key scheme
-            val keyToExportHex = data.substring(pos, pos + 32); pos += 32
-            val keyToExport = IsoUtil.hexToBytes(keyToExportHex)
-            val exportScheme = data.getOrElse(pos) { 'U' }.toString()
+
+            // 2. Skip ';' delimiter if present
+            if (pos < data.length && data[pos] == ';') {
+                pos += 1
+            }
+
+            // 3. ZMK/TMK flag: '0' = ZMK, '1' = TMK (consume but not used for logic)
+            var zmkTmkFlag = '0'
+            if (pos < data.length && (data[pos] == '0' || data[pos] == '1')) {
+                zmkTmkFlag = data[pos]
+                pos += 1
+            }
+
+            // 4. ZMK/TMK with scheme prefix (variable length)
+            val (zmkWithScheme, zmkLen) = extractSchemeKey(data, pos); pos += zmkLen
+
+            // 5. Key under LMK with scheme prefix (variable length)
+            val (keyUnderLmkWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
+
+            // 6. Export key scheme (1 char, e.g. 'U', 'T', 'S')
+            var exportScheme = 'U'
+            if (pos < data.length && data[pos] != '%' && data[pos] != ';') {
+                exportScheme = data[pos].uppercaseChar()
+                pos += 1
+            }
+
+            // 7. Atalla variant (optional, skip characters until '%' or end)
+            // The Atalla variant field is optional free-text; skip it.
+            while (pos < data.length && data[pos] != '%') {
+                pos++
+            }
+
+            // 8. '%' delimiter + LMK ID (2H) — handled by outer parser via cmd.lmkId
 
             val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
 
-            // Decrypt key under LMK
-            val clearKey = simulator.decryptUnderLmk(keyToExport, cmd.lmkId, keyType.getLmkPairNumber())
+            simulator.hsmLogsListener.log(
+                """A8 Export Key:
+                |  Key Type: $keyTypeCode (${keyType.name})
+                |  ZMK/TMK Flag: $zmkTmkFlag (${if (zmkTmkFlag == '0') "ZMK" else "TMK"})
+                |  ZMK/TMK: $zmkWithScheme
+                |  Key under LMK: $keyUnderLmkWithScheme
+                |  Export Scheme: $exportScheme
+                |  LMK ID: ${cmd.lmkId}""".trimMargin()
+            )
 
-            // Decrypt ZMK under LMK
-            val clearZmk = simulator.decryptUnderLmk(zmk, cmd.lmkId, 0)
+            // 9. Decrypt key-under-LMK using the appropriate LMK pair
+            val clearKey = decryptSchemeKeyUnderLmk(keyUnderLmkWithScheme, cmd.lmkId, keyType.getLmkPairNumber())
 
-            // Re-encrypt key under ZMK
-            val zmkCipher = Cipher.getInstance("DESede/ECB/NoPadding")
-            zmkCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(clearZmk.copyOf(16), "DESede"))
-            val exportedKey = zmkCipher.doFinal(clearKey)
-            val exportedKeyHex = IsoUtil.bytesToHexString(exportedKey)
+            // 10. Decrypt ZMK under LMK pair 00-01 (ZMK/ZPK pair)
+            val clearZmk = decryptSchemeKeyUnderLmk(zmkWithScheme, cmd.lmkId, 0)
+
+            // 11. Re-encrypt the clear key under ZMK/TMK
             val kcv = simulator.calculateKeyCheckValue(clearKey)
+            val exportedKey = if (exportScheme == 'S') {
+                // KeyBlock output — use the ZMK key itself as the wrapping key
+                val (usage, mode, export) = simulator.keyTypeToBlockAttributes(keyTypeCode)
+                simulator.buildKeyBlock(clearKey, clearZmk, usage, mode, export, cmd.lmkId)
+            } else {
+                val expandedZmk = when (clearZmk.size) {
+                    8  -> ByteArray(24).also {
+                        System.arraycopy(clearZmk, 0, it, 0, 8)
+                        System.arraycopy(clearZmk, 0, it, 8, 8)
+                        System.arraycopy(clearZmk, 0, it, 16, 8)
+                    }
+                    16 -> ByteArray(24).also {
+                        System.arraycopy(clearZmk, 0, it, 0, 16)
+                        System.arraycopy(clearZmk, 0, it, 16, 8)
+                    }
+                    else -> clearZmk
+                }
+                val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+                cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expandedZmk, "DESede"))
+                val encBytes = cipher.doFinal(clearKey)
+                "$exportScheme${IsoUtil.bytesToHexString(encBytes)}"
+            }
+
+            simulator.hsmLogsListener.log("A8 Export Key completed: KCV=$kcv")
 
             HsmCommandResult.Success(
-                response = "$exportScheme$exportedKeyHex$kcv",
-                data = mapOf("exportedKey" to exportedKeyHex, "kcv" to kcv)
+                response = "$exportedKey$kcv",
+                data = mapOf("exportedKey" to exportedKey, "kcv" to kcv)
             )
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "A8 failed: ${e.message}")
@@ -2796,7 +2887,8 @@ class PayShieldStringCommandProcessor(
 
     // ====================================================================================================
     // BU — Generate Key Check Value
-    // Command: BU[KeyType_3H][Scheme_1A][Key_32H]
+    // Command: BU[KeyType_3H][Key(scheme+variable)]
+    // Handles variant scheme (U/T/X/Y) and KeyBlock ('S') keys.
     // Response: BV 00 [KCV_6H]
     // ====================================================================================================
     private suspend fun executeBU(cmd: ParsedCommand): HsmCommandResult {
@@ -2805,14 +2897,11 @@ class PayShieldStringCommandProcessor(
             val data = cmd.data
 
             val keyTypeCode = data.substring(pos, pos + 3); pos += 3
-            pos++ // scheme
-            val keyHex = data.substring(pos, pos + 32)
-            val key = IsoUtil.hexToBytes(keyHex)
+            val (keyWithScheme, _) = extractSchemeKey(data, pos)
 
             val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
 
-            // Decrypt under LMK to get clear key
-            val clearKey = simulator.decryptUnderLmk(key, cmd.lmkId, keyType.getLmkPairNumber())
+            val clearKey = decryptSchemeKeyUnderLmk(keyWithScheme, cmd.lmkId, keyType.getLmkPairNumber())
             val kcv = simulator.calculateKeyCheckValue(clearKey)
 
             HsmCommandResult.Success(
@@ -3074,6 +3163,113 @@ class PayShieldStringCommandProcessor(
         "07" -> "SHA-384"
         "08" -> "SHA-512"
         else -> "SHA-256"
+    }
+
+    // ====================================================================================================
+    // KEYBLOCK SCHEME HELPERS
+    // ====================================================================================================
+
+    /**
+     * Extract a scheme-prefixed key from [data] starting at [pos].
+     * Returns (keyWithPrefix, charsConsumed).
+     *
+     * Scheme lengths:
+     *  U / X  → prefix(1) + 32H  = 33 chars
+     *  T / Y  → prefix(1) + 48H  = 49 chars
+     *  S / R  → prefix(1) + blockLen  (block length read from the keyblock header)
+     *  (bare) → 32H (double-length TDES without a prefix char)
+     */
+    private fun extractSchemeKey(data: String, pos: Int): Pair<String, Int> {
+        if (pos >= data.length) return "" to 0
+        return when (data[pos].uppercaseChar()) {
+            'U', 'X' -> {
+                val end = minOf(pos + 33, data.length)
+                data.substring(pos, end) to (end - pos)
+            }
+            'T', 'Y' -> {
+                val end = minOf(pos + 49, data.length)
+                data.substring(pos, end) to (end - pos)
+            }
+            'S', 'R' -> {
+                // S + version(1) + blockLen(4 decimal) = 6 chars needed to know total length
+                if (pos + 6 > data.length) return data.substring(pos) to (data.length - pos)
+                val blockLen = data.substring(pos + 2, pos + 6).toIntOrNull()
+                    ?: return data.substring(pos) to (data.length - pos)
+                val end = minOf(pos + 1 + blockLen, data.length)
+                data.substring(pos, end) to (end - pos)
+            }
+            else -> {
+                // Bare hex — assume double-length (32 chars)
+                val end = minOf(pos + 32, data.length)
+                data.substring(pos, end) to (end - pos)
+            }
+        }
+    }
+
+    /**
+     * Extract the raw encrypted-key hex from a scheme-prefixed key string.
+     *  U/X/T/Y → strip the 1-char prefix.
+     *  S/R     → skip the 17-char header (S + 16 header chars), strip the trailing 16H MAC.
+     *  (bare)  → return as-is.
+     */
+    private fun getEncryptedKeyHex(keyWithScheme: String): String {
+        if (keyWithScheme.isEmpty()) return ""
+        return when (keyWithScheme[0].uppercaseChar()) {
+            'U', 'X', 'T', 'Y' -> keyWithScheme.substring(1)
+            'S', 'R' -> {
+                // Header: S(1) + version(1) + blockLen(4) + usage(2) + algo(1) + mode(1)
+                //         + keyVer(2) + export(1) + numOpt(2) + reserved(2) = 17 chars
+                // Version 0: MAC = 4 bytes (8H); Version 1: MAC = 8 bytes (16H)
+                val headerLen = 17
+                val version = if (keyWithScheme.length > 1) keyWithScheme[1] else '1'
+                val macLen = if (version == '0') 8 else 16
+                if (keyWithScheme.length <= headerLen + macLen) return ""
+                keyWithScheme.substring(headerLen, keyWithScheme.length - macLen)
+            }
+            else -> keyWithScheme
+        }
+    }
+
+    /**
+     * Decrypt a scheme-prefixed key under the given LMK pair.
+     * Handles variant schemes (U/T/X/Y) and KeyBlock (S/R).
+     */
+    private suspend fun decryptSchemeKeyUnderLmk(
+        keyWithScheme: String,
+        lmkId: String,
+        pairNumber: Int
+    ): ByteArray {
+        val encHex = getEncryptedKeyHex(keyWithScheme)
+        val encBytes = IsoUtil.hexToBytes(encHex)
+        return simulator.decryptUnderLmk(encBytes, lmkId, pairNumber)
+    }
+
+    /**
+     * Decrypt a scheme-prefixed key that is encrypted under [decryptionKey] (clear bytes).
+     * Handles variant schemes (U/T/X/Y) and KeyBlock (S/R).
+     */
+    private fun decryptSchemeKeyUnderClearKey(keyWithScheme: String, decryptionKey: ByteArray): ByteArray {
+        val encHex = getEncryptedKeyHex(keyWithScheme)
+        val encBytes = IsoUtil.hexToBytes(encHex)
+        return try {
+            val expandedKey = when (decryptionKey.size) {
+                8  -> ByteArray(24).also {
+                    System.arraycopy(decryptionKey, 0, it, 0, 8)
+                    System.arraycopy(decryptionKey, 0, it, 8, 8)
+                    System.arraycopy(decryptionKey, 0, it, 16, 8)
+                }
+                16 -> ByteArray(24).also {
+                    System.arraycopy(decryptionKey, 0, it, 0, 16)
+                    System.arraycopy(decryptionKey, 0, it, 16, 8)
+                }
+                else -> decryptionKey.copyOf(decryptionKey.size.coerceIn(16, 24))
+            }
+            val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(expandedKey, "DESede"))
+            cipher.doFinal(encBytes)
+        } catch (e: Exception) {
+            encBytes
+        }
     }
 
     /** LMK pair index for each key type — mirrors the mapping in PayShield10KCommandProcessor. */

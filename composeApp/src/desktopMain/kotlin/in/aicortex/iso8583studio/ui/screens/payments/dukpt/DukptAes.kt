@@ -38,7 +38,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import io.cryptocalc.crypto.engines.encryption.AesCalculatorEngine
 import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 // --- COMMON UI & VALIDATION FOR THIS SCREEN ---
@@ -86,7 +88,7 @@ object DUKPTAESLogManager {
     }
 
     private fun addLog(entry: LogEntry) {
-        _logEntries.add(0, entry)
+        _logEntries.add(entry)
         if (_logEntries.size > 500) _logEntries.removeRange(400, _logEntries.size)
     }
 
@@ -109,40 +111,191 @@ object DUKPTAESLogManager {
     }
 }
 
+/**
+ * AES DUKPT Service — ANSI X9.24-3:2017
+ *
+ * Key derivation hierarchy:
+ *   BDK → IK (Initial Key) via NIST SP 800-108 CMAC-KDF
+ *   IK  → Transaction Key via DUKPT tree (CMAC-based NRKGP)
+ *   TK  → Working Keys via key usage derivation:
+ *         PIN Encryption  (keyUsage = 0x1000)
+ *         MAC Generation  (keyUsage = 0x2000)
+ *         Data Encryption (keyUsage = 0x3000)
+ */
 object DUKPTAESService {
-    // NOTE: Key derivation is a placeholder — full ANSI X9.24-3 CMAC-based derivation is not yet implemented.
-    // PIN/MAC/Data operations use real AES cryptography.
 
-    private fun mockDerive(baseKey: String, ksn: String, keyType: String): String {
-        val keyLength = DUKPTAESValidationUtils.getExpectedLength(keyType) / 2
+    // ── Key Usage constants per ANSI X9.24-3 Table 3 ──
+    private const val KEY_DERIVATION: Int = 0x0000   // intermediate derivation
+    private const val PIN_ENCRYPTION: Int = 0x1000
+    private const val MAC_GENERATION: Int = 0x2000
+    private const val DATA_ENCRYPTION_ENCRYPT: Int = 0x3000
+    private const val DATA_ENCRYPTION_DECRYPT: Int = 0x3001
+    private const val DATA_ENCRYPTION_BOTH: Int = 0x3002
+
+    // ── NIST SP 800-108 CMAC-KDF (counter mode) ──
+    // derivation_data = [01] || key_usage(2) || separator(1) || key_derivation_key_length(2)
+    private fun deriveKeyFromKdk(kdk: ByteArray, keyUsage: Int, derivedKeyLen: Int = kdk.size): ByteArray {
+        val L = derivedKeyLen * 8 // length in bits
+        val blocksNeeded = (derivedKeyLen + 15) / 16
+        val derived = ByteArray(blocksNeeded * 16)
+        for (counter in 1..blocksNeeded) {
+            val derivationData = byteArrayOf(
+                counter.toByte(),                            // counter [1]
+                (keyUsage shr 8).toByte(),                   // key usage high byte
+                (keyUsage and 0xFF).toByte(),                // key usage low byte
+                0x00,                                        // separator
+                (L shr 8).toByte(),                          // derived key length (bits) high
+                (L and 0xFF).toByte()                        // derived key length (bits) low
+            )
+            val block = AesCalculatorEngine.computeCmac(derivationData, kdk)
+            block.copyInto(derived, (counter - 1) * 16)
+        }
+        return derived.copyOf(derivedKeyLen)
+    }
+
+    // ── BDK → Initial Key (IK) ──
+    // IK = KDF(BDK, derivation_data) where derivation_data includes the Initial Key ID (IKSN)
+    private fun deriveInitialKey(bdk: ByteArray, ksn: ByteArray, ikLen: Int = bdk.size): ByteArray {
+        // IKSN = KSN with counter bits zeroed (last 4 bytes, low 32 bits of counter)
+        val iksn = ksn.copyOf()
+        // For AES DUKPT: 32-bit counter in the rightmost 4 bytes
+        // Zero out the counter: last 4 bytes
+        val ksnLen = iksn.size
+        iksn[ksnLen - 4] = 0
+        iksn[ksnLen - 3] = 0
+        iksn[ksnLen - 2] = 0
+        iksn[ksnLen - 1] = 0
+
+        // Derivation data for IK: [01] || IKSN(8) || KEY_DERIVATION(2) || separator(1) || L(2)
+        val L = ikLen * 8
+        val blocksNeeded = (ikLen + 15) / 16
+        val derived = ByteArray(blocksNeeded * 16)
+        for (counter in 1..blocksNeeded) {
+            val derivationData = byteArrayOf(counter.toByte()) + iksn +
+                byteArrayOf(
+                    (KEY_DERIVATION shr 8).toByte(), (KEY_DERIVATION and 0xFF).toByte(),
+                    0x00,
+                    (L shr 8).toByte(), (L and 0xFF).toByte()
+                )
+            val block = AesCalculatorEngine.computeCmac(derivationData, bdk)
+            block.copyInto(derived, (counter - 1) * 16)
+        }
+        return derived.copyOf(ikLen)
+    }
+
+    // ── IK → Transaction Key via DUKPT tree ──
+    // Walk the counter bits from MSB to LSB, deriving intermediate keys
+    private fun deriveTransactionKey(ik: ByteArray, ksn: ByteArray): ByteArray {
+        val ksnLen = ksn.size
+        // Extract the 32-bit counter from the last 4 bytes
+        val counter = ((ksn[ksnLen - 4].toInt() and 0xFF) shl 24) or
+                ((ksn[ksnLen - 3].toInt() and 0xFF) shl 16) or
+                ((ksn[ksnLen - 2].toInt() and 0xFF) shl 8) or
+                (ksn[ksnLen - 1].toInt() and 0xFF)
+
+        // Build KSN with counter zeroed for tree walking
+        val baseKsn = ksn.copyOf()
+        baseKsn[ksnLen - 4] = 0
+        baseKsn[ksnLen - 3] = 0
+        baseKsn[ksnLen - 2] = 0
+        baseKsn[ksnLen - 1] = 0
+
+        var currentKey = ik.copyOf()
+
+        // Walk each set bit from MSB to LSB (32-bit counter)
+        for (shiftReg in 31 downTo 0) {
+            val bit = 1 shl shiftReg
+            if (counter and bit != 0) {
+                // Set this bit in baseKsn counter
+                val currentCounter = ((baseKsn[ksnLen - 4].toInt() and 0xFF) shl 24) or
+                        ((baseKsn[ksnLen - 3].toInt() and 0xFF) shl 16) or
+                        ((baseKsn[ksnLen - 2].toInt() and 0xFF) shl 8) or
+                        (baseKsn[ksnLen - 1].toInt() and 0xFF)
+                val newCounter = currentCounter or bit
+                baseKsn[ksnLen - 4] = (newCounter shr 24).toByte()
+                baseKsn[ksnLen - 3] = (newCounter shr 16).toByte()
+                baseKsn[ksnLen - 2] = (newCounter shr 8).toByte()
+                baseKsn[ksnLen - 1] = newCounter.toByte()
+
+                // Derive next level key: KDF(currentKey, baseKsn)
+                currentKey = deriveIntermediateKey(currentKey, baseKsn)
+            }
+        }
+        return currentKey
+    }
+
+    // Derive intermediate/leaf key using CMAC-KDF with KSN as derivation context
+    private fun deriveIntermediateKey(parentKey: ByteArray, ksn: ByteArray): ByteArray {
+        val keyLen = parentKey.size
+        val L = keyLen * 8
+        val blocksNeeded = (keyLen + 15) / 16
+        val derived = ByteArray(blocksNeeded * 16)
+        for (counter in 1..blocksNeeded) {
+            val derivationData = byteArrayOf(counter.toByte()) + ksn +
+                byteArrayOf(
+                    (KEY_DERIVATION shr 8).toByte(), (KEY_DERIVATION and 0xFF).toByte(),
+                    0x00,
+                    (L shr 8).toByte(), (L and 0xFF).toByte()
+                )
+            val block = AesCalculatorEngine.computeCmac(derivationData, parentKey)
+            block.copyInto(derived, (counter - 1) * 16)
+        }
+        return derived.copyOf(keyLen)
+    }
+
+    // ── Public API ──
+
+    fun deriveKeys(
+        baseKey: String, ksn: String, inputKeyDesignation: String,
+        initialKeyType: String, workingKeyType: String
+    ): Map<String, String> {
         val baseKeyBytes = baseKey.decodeHex()
         val ksnBytes = ksn.decodeHex()
-        val result = ByteArray(keyLength)
-        for (i in result.indices) {
-            result[i] = (baseKeyBytes[i % baseKeyBytes.size].toInt() xor ksnBytes[i % ksnBytes.size].toInt()).toByte()
-        }
-        return result.toHex().uppercase()
-    }
 
-    fun deriveKeys(bdk: String, ksn: String, workingKeyType: String): Map<String, String> {
-        val pek = mockDerive(bdk, ksn, workingKeyType)
-        val macKey = mockDerive(pek, ksn, workingKeyType) // Deriving from PEK for variety
-        val dek = mockDerive(macKey, ksn, workingKeyType) // Deriving from MAC key
+        // Step 1: Get Initial Key
+        val ik = if (inputKeyDesignation == "IK") {
+            baseKeyBytes
+        } else {
+            deriveInitialKey(baseKeyBytes, ksnBytes, baseKeyBytes.size)
+        }
+
+        // Step 2: Derive Transaction Key from IK via tree
+        val txKey = deriveTransactionKey(ik, ksnBytes)
+
+        // Step 3: Derive working keys from Transaction Key
+        val workingKeyLen = DUKPTAESValidationUtils.getExpectedLength(workingKeyType) / 2
+        val pek = deriveKeyFromKdk(txKey, PIN_ENCRYPTION, workingKeyLen)
+        val macKey = deriveKeyFromKdk(txKey, MAC_GENERATION, workingKeyLen)
+        val dek = deriveKeyFromKdk(txKey, DATA_ENCRYPTION_BOTH, workingKeyLen)
+
         return mapOf(
-            "PEK" to pek,
-            "MAC Key" to macKey,
-            "DEK" to dek
+            "Initial Key (IK)" to ik.toHex().uppercase(),
+            "IK KCV" to computeKcv(ik),
+            "Transaction Key" to txKey.toHex().uppercase(),
+            "TK KCV" to computeKcv(txKey),
+            "PIN Encryption Key (PEK)" to pek.toHex().uppercase(),
+            "PEK KCV" to computeKcv(pek),
+            "MAC Key" to macKey.toHex().uppercase(),
+            "MAC KCV" to computeKcv(macKey),
+            "Data Encryption Key (DEK)" to dek.toHex().uppercase(),
+            "DEK KCV" to computeKcv(dek)
         )
     }
+
+    private fun computeKcv(key: ByteArray): String {
+        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"))
+        return cipher.doFinal(ByteArray(16)).toHex().uppercase().take(6)
+    }
+
+    // ── PIN: AES ECB ──
 
     fun encryptPinBlock(pek: String, pinBlock: String): String {
         val pekBytes = pek.decodeHex()
         val pinBlockBytes = pinBlock.decodeHex()
         val padded = if (pinBlockBytes.size % 16 != 0) {
             pinBlockBytes + ByteArray(16 - pinBlockBytes.size % 16)
-        } else {
-            pinBlockBytes
-        }
+        } else pinBlockBytes
         val cipher = Cipher.getInstance("AES/ECB/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(pekBytes, "AES"))
         return cipher.doFinal(padded).toHex().uppercase()
@@ -156,58 +309,44 @@ object DUKPTAESService {
         return cipher.doFinal(encBytes).toHex().uppercase()
     }
 
+    // ── MAC: AES-CMAC (RFC 4493) ──
+
     fun generateMac(macKey: String, data: String): String {
         val keyBytes = macKey.decodeHex()
         val dataBytes = data.decodeHex()
-        val padded = if (dataBytes.isEmpty()) {
-            ByteArray(16)
-        } else if (dataBytes.size % 16 != 0) {
-            dataBytes + ByteArray(16 - dataBytes.size % 16)
-        } else {
-            dataBytes
-        }
-        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keyBytes, "AES"))
-        var result = ByteArray(16)
-        for (i in padded.indices step 16) {
-            result = xorBytes16(result, padded.copyOfRange(i, i + 16))
-            result = cipher.doFinal(result)
-        }
-        return result.toHex().uppercase()
+        val cmac = AesCalculatorEngine.computeCmac(dataBytes, keyBytes)
+        return cmac.toHex().uppercase()
     }
+
+    // ── Data: AES-CBC with zero IV ──
 
     fun encryptData(dek: String, data: String, inputType: String): String {
         val dataBytes = if (inputType == "ASCII") data.toByteArray() else data.decodeHex()
         val dekBytes = dek.decodeHex()
         val padded = if (dataBytes.size % 16 != 0) {
             dataBytes + ByteArray(16 - dataBytes.size % 16)
-        } else {
-            dataBytes
-        }
-        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(dekBytes, "AES"))
+        } else dataBytes
+        val cipher = Cipher.getInstance("AES/CBC/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(dekBytes, "AES"), IvParameterSpec(ByteArray(16)))
         return cipher.doFinal(padded).toHex().uppercase()
     }
 
     fun decryptData(dek: String, data: String): String {
         val dataBytes = data.decodeHex()
         val dekBytes = dek.decodeHex()
-        val cipher = Cipher.getInstance("AES/ECB/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(dekBytes, "AES"))
+        val cipher = Cipher.getInstance("AES/CBC/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(dekBytes, "AES"), IvParameterSpec(ByteArray(16)))
         return cipher.doFinal(dataBytes).toHex().uppercase()
     }
 
-    private fun xorBytes16(a: ByteArray, b: ByteArray): ByteArray {
-        return ByteArray(a.size) { i -> (a[i].toInt() xor b[i].toInt()).toByte() }
-    }
+    // ── Helpers ──
 
-    // Helper extensions
     private fun String.decodeHex(): ByteArray {
         check(length % 2 == 0) { "Must have an even length" }
         return chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     }
 
-    private fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
+    private fun ByteArray.toHex(): String = joinToString(separator = "") { "%02x".format(it) }
 }
 
 enum class DUKPTAESTabs(val title: String, val icon: ImageVector) {
@@ -354,7 +493,7 @@ private fun KeyDerivationCard(state: AesKeyDerivationState) { with(state) {
                 GlobalScope.launch {
                     delay(200)
                     try {
-                        val derivedKeys = DUKPTAESService.deriveKeys(bdk, ksn, selectedWorkingKeyType)
+                        val derivedKeys = DUKPTAESService.deriveKeys(bdk, ksn, selectedInputKeyDesignation, selectedInitialKeyType, selectedWorkingKeyType)
                         val resultString = derivedKeys.entries.joinToString(separator = "\n") { "  ${it.key}: ${it.value}" }
                         DUKPTAESLogManager.logOperation("Key Derivation", inputs, result = resultString, executionTime = 205)
                     } catch (e: Exception) {

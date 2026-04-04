@@ -5,7 +5,6 @@ import `in`.aicortex.iso8583studio.data.model.CipherMode
 import `in`.aicortex.iso8583studio.data.model.CipherType
 import ai.cortex.core.IsoUtil.bytesToHexString
 import ai.cortex.core.IsoUtil.hexStringToBytes
-import ai.cortex.core.types.CryptoAlgorithm
 import ai.cortex.core.types.OperationType
 import `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KCommandProcessor
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.A0Request
@@ -16,11 +15,6 @@ import java.security.SecureRandom
 
 import `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.*
-import io.cryptocalc.crypto.engines.encryption.CryptoLogger
-import io.cryptocalc.crypto.engines.encryption.EMVEngines
-import io.cryptocalc.crypto.engines.encryption.models.EncryptionEngineParameters
-import io.cryptocalc.crypto.engines.encryption.models.SymmetricDecryptionEngineParameters
-import io.cryptocalc.crypto.engines.encryption.models.SymmetricEncryptionEngineParameters
 import io.cryptocalc.emv.calculators.emv41.EMVCalculatorInput
 import io.cryptocalc.emv.calculators.emv41.Emv41CryptoCalculator
 
@@ -91,8 +85,34 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
             "70D" to KeyTypeLmkInfo(P_TPK,     0, "TPK-PCI"),
             "80D" to KeyTypeLmkInfo(P_TPK,     0, "TMK-PCI"),
             "90D" to KeyTypeLmkInfo(P_TPK,     0, "TKR"),
-            "302" to KeyTypeLmkInfo(P_TPK,     0, "IKEY")
+            "302" to KeyTypeLmkInfo(P_TPK,     0, "IKEY"),
+            "FFF" to KeyTypeLmkInfo(P_ZMK_ZPK, 0, "KeyBlock")
         )
+
+        /** Resolve LMK pair number from a KeyBlock key usage code (for key type FFF). */
+        fun lmkPairFromKeyUsage(keyUsage: String): Int = when (keyUsage.uppercase()) {
+            "P0"                         -> P_ZMK_ZPK  // PIN Encryption
+            "K0", "K1"                   -> P_ZMK_ZPK  // Key Encryption
+            "D0", "D1"                   -> P_ZEK      // Data Encryption
+            "M0", "M1", "M3", "M6", "M7"-> P_TAK      // MAC
+            "C0"                         -> P_CVK      // CVV
+            "B0", "B1"                   -> P_BDK      // BDK / DUKPT
+            "V0", "V1", "V2"            -> P_TPK      // PIN Verification
+            "E0", "E1", "E2", "E4"      -> P_BDK      // EMV
+            "51"                         -> P_TPK      // Terminal Key Encryption (TMK)
+            else                         -> P_ZMK_ZPK
+        }
+
+        /** Determine clear key byte length from a KeyBlock algorithm field (e.g. "T2" → 16). */
+        fun keyLengthFromKeyBlockAlgorithm(algo: String): Int? = when (algo.uppercase()) {
+            "D1" -> 8
+            "T2" -> 16
+            "T3" -> 24
+            "A1" -> 16
+            "A2" -> 24
+            "A3" -> 32
+            else -> null
+        }
 
         val LMK_VARIANTS = mapOf(
             0 to 0x00,
@@ -132,13 +152,23 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         return try {
             val request = parseRequest(commandData, parentLmkId)
 
-            val keyTypeInfo = KEY_TYPE_LMK_MAP[request.keyType]
+            var keyTypeInfo = KEY_TYPE_LMK_MAP[request.keyType]
                 ?: return HsmCommandResult.Error(
                     HsmErrorCodes.INVALID_KEY_TYPE_CODE,
                     "Invalid key type code: ${request.keyType}"
                 )
 
-            val keyLength = getKeyLengthFromScheme(request.keyScheme)
+            // For key type FFF, override LMK pair based on the KeyBlock key usage
+            if (request.keyType == "FFF" && request.keyBlockUsage != null) {
+                val pairNum = lmkPairFromKeyUsage(request.keyBlockUsage)
+                keyTypeInfo = KeyTypeLmkInfo(pairNum, 0, "KeyBlock (${request.keyBlockUsage})")
+            }
+
+            // Determine key length — override from KeyBlock algorithm field when present
+            var keyLength = getKeyLengthFromScheme(request.keyScheme)
+            if (request.keyBlockAlgorithm != null) {
+                keyLength = keyLengthFromKeyBlockAlgorithm(request.keyBlockAlgorithm) ?: keyLength
+            }
             if (keyLength == 0) {
                 return HsmCommandResult.Error(
                     HsmErrorCodes.INVALID_KEY_SCHEME,
@@ -185,22 +215,34 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                 """.trimIndent()
             )
 
+            // When the LMK is in KEY_BLOCK scheme, force scheme 'S' regardless of request
+            val effectiveScheme = if (lmk.scheme == "KEY_BLOCK") 'S' else request.keyScheme
+
+            // Build KeyBlock attribute override from # fields if present
+            val kbOverride = if (request.keyBlockUsage != null) {
+                Triple(
+                    request.keyBlockUsage,
+                    request.keyBlockModeOfUse ?: 'N',
+                    request.keyBlockExportability ?: 'E'
+                )
+            } else null
+
             val result = when (request.mode) {
                 '0' -> {
                     val clearKey = generateRandomKey(keyLength)
                     val variantLmk = applyLmkVariant(lmkPair.getCombinedKey(), keyTypeInfo.variant)
-                    val keyUnderLmk = encryptKey(clearKey, variantLmk, request.keyScheme)
+                    val keyUnderLmk = encryptKey(clearKey, variantLmk, effectiveScheme, request.keyType, request.lmkId, kbOverride)
                     val kcv = hsm.calculateKeyCheckValue(clearKey)
                     buildMode0Response(keyUnderLmk, kcv, request, keyTypeInfo)
                 }
                 '1' -> {
                     val clearKey = generateRandomKey(keyLength)
                     val variantLmk = applyLmkVariant(lmkPair.getCombinedKey(), keyTypeInfo.variant)
-                    val keyUnderLmk = encryptKey(clearKey, variantLmk, request.keyScheme)
+                    val keyUnderLmk = encryptKey(clearKey, variantLmk, effectiveScheme, request.keyType, request.lmkId, kbOverride)
                     val kcv = hsm.calculateKeyCheckValue(clearKey)
                     buildMode1Response(clearKey, keyUnderLmk, kcv, request, keyTypeInfo)
                 }
-                'A', 'B' -> buildDeriveIkeyResponse(request, keyTypeInfo, lmk)
+                'A', 'B' -> buildDeriveIkeyResponse(request, keyTypeInfo, lmk, effectiveScheme)
                 else -> return HsmCommandResult.Error(
                     HsmErrorCodes.FUNCTION_NOT_PERMITTED,
                     "Invalid mode: ${request.mode}"
@@ -222,9 +264,9 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
      * Parse the A0 command request.
      *
      * Format (Mode 0): Mode(1) + KeyType(3) + KeyScheme(1)
-     * Format (Mode 1): Mode(1) + KeyType(3) + KeyScheme(1) + KeySchemeZmk(1) + ZMK(variable)
-     * Format (Mode A): Mode(1) + KeyType(3) + KeyScheme(1) + DeriveKeyMode(1) + DukptKeyType(2) + BDK(variable) + KSN(variable)
-     * Format (Mode B): Mode(1) + KeyType(3) + KeyScheme(1) + DeriveKeyMode(1) + DukptKeyType(2) + BDK(variable) + KSN(variable) + KeySchemeZmk(1) + ZMK(variable)
+     * Format (Mode 1): Mode(1) + KeyType(3) + KeyScheme(1) + ';' + ZmkTmkFlag(1) + ZMK(variable) + KeySchemeZmk(1)
+     * Format (Mode A): Mode(1) + KeyType(3) + KeyScheme(1) + DeriveKeyMode(1) + DukptKeyType(1) + BDK(variable) + KSN(variable)
+     * Format (Mode B): Mode(1) + KeyType(3) + KeyScheme(1) + DeriveKeyMode(1) + DukptKeyType(1) + BDK(variable) + KSN(variable) + ';' + ZmkTmkFlag(1) + ZMK(variable) + KeySchemeZmk(1)
      */
     private fun parseRequest(data: String, parentLmkId: String): A0Request {
         var offset = 0
@@ -247,13 +289,28 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
 
         when (mode) {
             '1' -> {
-                if (offset < data.length) {
-                    keySchemeZmk = data[offset].uppercaseChar()
+                // Wire format: ';' delimiter + ZMK/TMK flag (1) + ZMK key (variable) + key scheme ZMK (1)
+                // Skip ';' delimiter if present
+                if (offset < data.length && data[offset] == ';') {
                     offset += 1
+                }
 
+                // ZMK/TMK flag: '0' = ZMK, '1' = TMK (skip it, not needed for key processing)
+                if (offset < data.length && (data[offset] == '0' || data[offset] == '1')) {
+                    offset += 1
+                }
+
+                // ZMK/TMK key (variable length)
+                if (offset < data.length) {
                     val (zmkValue, zmkLen) = extractKey(data, offset)
                     zmk = zmkValue
                     offset += zmkLen
+                }
+
+                // Key scheme for output under ZMK/TMK (1 char)
+                if (offset < data.length && data[offset] != '%' && data[offset] != '#') {
+                    keySchemeZmk = data[offset].uppercaseChar()
+                    offset += 1
                 }
             }
             'A', 'B' -> {
@@ -263,10 +320,10 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                     offset += 1
                 }
 
-                // DUKPT Master Key Type (2 chars): 00=Type 1 BDK, 02=Type 2 BDK
-                if (offset + 2 <= data.length) {
-                    dukptMasterKeyType = data.substring(offset, offset + 2)
-                    offset += 2
+                // DUKPT Master Key Type (1 char): 1=BDK-1, 2=BDK-2, 3=BDK-3, 4=BDK-4
+                if (offset < data.length) {
+                    dukptMasterKeyType = data[offset].toString()
+                    offset += 1
                 }
 
                 // BDK encrypted under LMK pair 28-29 (variable length based on scheme prefix)
@@ -276,15 +333,12 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                     offset += bdkLen
                 }
 
-                // KSN — read remaining data up to any delimiter (% or ;) as KSN
+                // KSN — read remaining data up to any delimiter (%, ;, or #) as KSN
                 val semiIdx = data.indexOf(';', offset)
                 val pctIdx = data.indexOf('%', offset)
-                val delimIdx = when {
-                    semiIdx in offset..data.lastIndex && pctIdx in offset..data.lastIndex -> minOf(semiIdx, pctIdx)
-                    semiIdx in offset..data.lastIndex -> semiIdx
-                    pctIdx in offset..data.lastIndex -> pctIdx
-                    else -> -1
-                }
+                val hashIdx = data.indexOf('#', offset)
+                val candidates = listOf(semiIdx, pctIdx, hashIdx).filter { it in offset..data.lastIndex }
+                val delimIdx = if (candidates.isNotEmpty()) candidates.min() else -1
                 val ksnEnd = if (delimIdx >= offset) delimIdx else data.length
                 if (offset < ksnEnd) {
                     ksn = data.substring(offset, ksnEnd)
@@ -297,13 +351,25 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                 }
 
                 // Mode B also exports under ZMK/TMK
-                if (mode == 'B' && offset < data.length && data[offset] != '%') {
-                    keySchemeZmk = data[offset].uppercaseChar()
-                    offset += 1
+                // Wire format: ZMK/TMK flag (1) + ZMK key (variable) + key scheme ZMK (1)
+                if (mode == 'B' && offset < data.length && data[offset] != '%' && data[offset] != '#') {
+                    // ZMK/TMK flag: '0' = ZMK, '1' = TMK
+                    if (data[offset] == '0' || data[offset] == '1') {
+                        offset += 1
+                    }
 
-                    val (zmkValue, zmkLen) = extractKey(data, offset)
-                    zmk = zmkValue
-                    offset += zmkLen
+                    // ZMK/TMK key (variable length)
+                    if (offset < data.length) {
+                        val (zmkValue, zmkLen) = extractKey(data, offset)
+                        zmk = zmkValue
+                        offset += zmkLen
+                    }
+
+                    // Key scheme for output under ZMK/TMK (1 char)
+                    if (offset < data.length && data[offset] != '%' && data[offset] != '#') {
+                        keySchemeZmk = data[offset].uppercaseChar()
+                        offset += 1
+                    }
                 }
             }
         }
@@ -315,7 +381,27 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
             offset += 1
             if (offset + 2 <= data.length) {
                 lmkId = data.substring(offset, offset + 2)
+                offset += 2
             }
+        }
+
+        // Parse optional KeyBlock attribute fields after '#' delimiter
+        // Format: #[KeyUsage(2)][Algorithm(2)][ModeOfUse(1)][KeyVersionNumber(2)][Exportability(1)][NumOptBlocks(2)]
+        var kbUsage: String? = null
+        var kbAlgorithm: String? = null
+        var kbModeOfUse: Char? = null
+        var kbKeyVersionNumber: String? = null
+        var kbExportability: Char? = null
+        var kbNumOptBlocks: String? = null
+
+        if (offset < data.length && data[offset] == '#') {
+            offset++ // skip '#'
+            if (offset + 2 <= data.length) { kbUsage = data.substring(offset, offset + 2); offset += 2 }
+            if (offset + 2 <= data.length) { kbAlgorithm = data.substring(offset, offset + 2); offset += 2 }
+            if (offset < data.length)      { kbModeOfUse = data[offset]; offset++ }
+            if (offset + 2 <= data.length) { kbKeyVersionNumber = data.substring(offset, offset + 2); offset += 2 }
+            if (offset < data.length)      { kbExportability = data[offset]; offset++ }
+            if (offset + 2 <= data.length) { kbNumOptBlocks = data.substring(offset, offset + 2); offset += 2 }
         }
 
         return A0Request(
@@ -328,7 +414,13 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
             lmkId = lmkId,
             deriveKeyMode = deriveKeyMode,
             dukptMasterKeyType = dukptMasterKeyType,
-            bdk = bdk
+            bdk = bdk,
+            keyBlockUsage = kbUsage,
+            keyBlockAlgorithm = kbAlgorithm,
+            keyBlockModeOfUse = kbModeOfUse,
+            keyBlockKeyVersionNumber = kbKeyVersionNumber,
+            keyBlockExportability = kbExportability,
+            keyBlockNumOptionalBlocks = kbNumOptBlocks
         )
     }
 
@@ -338,7 +430,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
     private fun extractKey(data: String, offset: Int): Pair<String, Int> {
         if (offset >= data.length) return Pair("", 0)
 
-        return when (val prefix = data[offset]) {
+        return when (data[offset]) {
             'U', 'X' -> {
                 val len = minOf(33, data.length - offset)
                 Pair(data.substring(offset, offset + len), len)
@@ -347,9 +439,19 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                 val len = minOf(49, data.length - offset)
                 Pair(data.substring(offset, offset + len), len)
             }
-            'S' -> {
+            'S', 'R' -> {
+                // S/R-block: prefix(1) + version(1) + blockLength(4) + ...
+                // Total = 1 (prefix char) + blockLength
+                if (offset + 6 <= data.length) {
+                    val blockLen = data.substring(offset + 2, offset + 6).toIntOrNull()
+                    if (blockLen != null && blockLen > 0) {
+                        val totalLen = minOf(1 + blockLen, data.length - offset)
+                        return Pair(data.substring(offset, offset + totalLen), totalLen)
+                    }
+                }
+                // Fallback: read until delimiter
                 var endIdx = offset + 1
-                while (endIdx < data.length && data[endIdx] != '%' && data[endIdx] != ';') {
+                while (endIdx < data.length && data[endIdx] != '%' && data[endIdx] != ';' && data[endIdx] != '#') {
                     endIdx++
                 }
                 Pair(data.substring(offset, endIdx), endIdx - offset)
@@ -410,72 +512,62 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         return variantedKey
     }
 
-    private suspend fun encryptKey(clearKey: ByteArray, encryptingKey: ByteArray, scheme: Char): String {
-        val encrypted = performTdesEncrypt(clearKey, encryptingKey)
-
-        return when (scheme) {
-            'Z' -> hsm.bytesToHex(encrypted)
-            'U' -> "U" + hsm.bytesToHex(encrypted)
-            'T' -> "T" + hsm.bytesToHex(encrypted)
-            'X' -> "X" + hsm.bytesToHex(encrypted)
-            'Y' -> "Y" + hsm.bytesToHex(encrypted)
-            'S' -> buildThalesKeyBlock(clearKey, encryptingKey)
-            else -> hsm.bytesToHex(encrypted)
+    private suspend fun encryptKey(
+        clearKey: ByteArray,
+        encryptingKey: ByteArray,
+        scheme: Char,
+        keyType: String = "000",
+        lmkId: String = "00",
+        keyBlockOverride: Triple<String, Char, Char>? = null // (usage, modeOfUse, exportability)
+    ): String {
+        return when (scheme.uppercaseChar()) {
+            'S' -> {
+                // KeyBlock has its own encryption (AES-CBC or TDES-ECB inside buildKeyBlock)
+                val (usage, mode, export) = keyBlockOverride ?: hsm.keyTypeToBlockAttributes(keyType)
+                buildThalesKeyBlock(clearKey, encryptingKey, usage, mode, export, lmkId)
+            }
+            else -> {
+                // Non-KeyBlock schemes: encrypt with LMK algorithm (ECB)
+                val encrypted = hsm.encryptWithLmkAlgorithm(clearKey, encryptingKey, lmkId)
+                when (scheme.uppercaseChar()) {
+                    'Z' -> hsm.bytesToHex(encrypted)
+                    'U' -> "U" + hsm.bytesToHex(encrypted)
+                    'T' -> "T" + hsm.bytesToHex(encrypted)
+                    'X' -> "X" + hsm.bytesToHex(encrypted)
+                    'Y' -> "Y" + hsm.bytesToHex(encrypted)
+                    else -> hsm.bytesToHex(encrypted)
+                }
+            }
         }
     }
 
-    private fun engine() = EMVEngines(CryptoLogger { msg -> hsm.hsmLogsListener.log(msg) })
-
-    private suspend fun performTdesEncrypt(data: ByteArray, key: ByteArray): ByteArray {
-        return try {
-            val result = engine().encryptionEngine.encrypt(
-                algorithm = CryptoAlgorithm.TDES,
-                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
-                    data = data,
-                    key = key,
-                    mode = ai.cortex.core.types.CipherMode.ECB
-                )
-            )
-            return result
-        } catch (e: Exception) {
-            data
-        }
-    }
-
-    private suspend fun performTdesDecrypt(data: ByteArray, key: ByteArray): ByteArray {
-        return try {
-            val result = engine().encryptionEngine.decrypt(
-                algorithm = CryptoAlgorithm.TDES,
-                decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                    data = data,
-                    key = key,
-                    mode = ai.cortex.core.types.CipherMode.ECB
-                )
-            )
-            result
-        } catch (e: Exception) {
-            data
-        }
-    }
-
-    private suspend fun buildThalesKeyBlock(clearKey: ByteArray, lmk: ByteArray): String {
-        val keyBits = clearKey.size * 8
-        val header = String.format("00%03dP0TN00N0000", keyBits)
-        val encryptedKey = performTdesEncrypt(clearKey, lmk)
-        val mac = hsm.calculateKeyCheckValue(clearKey)
-        return "S$header${hsm.bytesToHex(encryptedKey)}$mac"
-    }
+    private suspend fun buildThalesKeyBlock(
+        clearKey: ByteArray,
+        lmk: ByteArray,
+        keyUsage: String = "K0",
+        modeOfUse: Char = 'N',
+        exportability: Char = 'E',
+        lmkId: String = "00",
+        keyVersionNumber: String = "00"
+    ): String = hsm.buildKeyBlock(clearKey, lmk, keyUsage, modeOfUse, exportability, lmkId, keyVersionNumber)
 
     private suspend fun decryptZmkFromLmk(encryptedZmk: String, lmkId: String): ByteArray {
         val lmk = hsm.lmkStorage.getLmk(lmkId) ?: throw IllegalStateException("LMK not found")
         val zmkPair = lmk.getPair(P_ZMK_ZPK) ?: throw IllegalStateException("LMK pair $P_ZMK_ZPK not found")
-        val zmkHex = if (encryptedZmk[0].uppercaseChar() in "UXTYSR") {
+
+        // S-block: use key block decryption
+        if (encryptedZmk.isNotEmpty() && encryptedZmk[0].uppercaseChar() == 'S') {
+            return hsm.decryptKeyBlock(encryptedZmk, zmkPair.getCombinedKey(), lmkId)
+        }
+
+        // Legacy scheme prefixes (U/X/T/Y/R): strip prefix and decrypt
+        val zmkHex = if (encryptedZmk[0].uppercaseChar() in "UXTYR") {
             encryptedZmk.substring(1)
         } else {
             encryptedZmk
         }
         val zmkBytes = hsm.hexToBytes(zmkHex)
-        return performTdesDecrypt(zmkBytes, zmkPair.getCombinedKey())
+        return hsm.decryptWithLmkAlgorithm(zmkBytes, zmkPair.getCombinedKey(), lmkId)
     }
 
     private fun buildMode0Response(
@@ -511,7 +603,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         keyTypeInfo: KeyTypeLmkInfo
     ): HsmCommandResult {
         val clearZmk = decryptZmkFromLmk(request.zmk!!, request.lmkId)
-        val keyUnderZmk = encryptKey(clearKey, clearZmk, request.keySchemeZmk!!)
+        val keyUnderZmk = encryptKey(clearKey, clearZmk, request.keySchemeZmk!!, request.keyType, request.lmkId)
 
         val responseData = "$keyUnderLmk$keyUnderZmk$kcv"
         hsm.hsmLogsListener.onFormattedResponse(
@@ -554,7 +646,8 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
     private suspend fun buildDeriveIkeyResponse(
         request: A0Request,
         keyTypeInfo: KeyTypeLmkInfo,
-        lmk: LmkSet
+        lmk: LmkSet,
+        effectiveScheme: Char = request.keyScheme
     ): HsmCommandResult {
         val bdkStr = request.bdk
             ?: return HsmCommandResult.Error(HsmErrorCodes.INVALID_INPUT_DATA, "BDK is required for mode A/B")
@@ -568,20 +661,29 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
             ?: return HsmCommandResult.Error(HsmErrorCodes.LMK_NOT_LOADED, "LMK pair 28-29 not available")
 
         // Step 1: Decrypt BDK under LMK pair 28-29 with appropriate variant
-        val bdkHex = if (bdkStr[0].uppercaseChar() in "UXTYSR") bdkStr.substring(1) else bdkStr
-        val encryptedBdk = hsm.hexToBytes(bdkHex)
         val variantBdkLmk = applyLmkVariant(bdkLmkPair.getCombinedKey(), bdkVariant)
-        val clearBdk = performTdesDecrypt(encryptedBdk, variantBdkLmk)
+        val clearBdk = if (bdkStr.isNotEmpty() && bdkStr[0].uppercaseChar() == 'S') {
+            hsm.decryptKeyBlock(bdkStr, variantBdkLmk, request.lmkId)
+        } else {
+            val bdkHex = if (bdkStr[0].uppercaseChar() in "UXTYR") bdkStr.substring(1) else bdkStr
+            val encryptedBdk = hsm.hexToBytes(bdkHex)
+            hsm.decryptWithLmkAlgorithm(encryptedBdk, variantBdkLmk, request.lmkId)
+        }
 
         hsm.hsmLogsListener.log("[A0 Mode ${request.mode}] Step 1: Decrypted BDK under LMK 28-29 variant $bdkVariant")
         hsm.hsmLogsListener.log("  Clear BDK: ${IsoUtil.bytesToHex(clearBdk)}")
 
         // Step 2: Derive IKEY/IPEK from BDK + KSN
-        val counterBits = if (request.keyType == "009") 21
+        val counterBits = if (request.keyType == "009" || request.keyType == "FFF") 21
             else PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(request.keyType)
 
-        hsm.hsmLogsListener.log("[A0 Mode ${request.mode}] Step 2:   KSN: $ksnStr , KSN Descriptor:${request.keyType}, counterBits ${counterBits}")
-        val clearIkey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnStr, counterBits)
+        // Normalize KSN to 20 hex chars (10 bytes) for 3DES DUKPT.
+        // A0 command sends 15H for BDK types 1-3 (KSI+DID, no counter) or 16H for type 4 (AES).
+        // Right-pad with zeros to fill the transaction counter portion.
+        val fullKsn = ksnStr.padEnd(20, '0')
+
+        hsm.hsmLogsListener.log("[A0 Mode ${request.mode}] Step 2:   KSN: $ksnStr (padded: $fullKsn), KSN Descriptor:${request.keyType}, counterBits $counterBits")
+        val clearIkey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, fullKsn, counterBits)
 
         hsm.hsmLogsListener.log("[A0 Mode ${request.mode}] Step 2: Derived IKEY from BDK + KSN")
         hsm.hsmLogsListener.log("  KSN: $ksnStr")
@@ -591,7 +693,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         val outputLmkPair = lmk.getPair(keyTypeInfo.lmkPairNumber)
             ?: return HsmCommandResult.Error(HsmErrorCodes.LMK_NOT_LOADED, "LMK pair ${keyTypeInfo.lmkPairNumber} not available")
         val variantOutputLmk = applyLmkVariant(outputLmkPair.getCombinedKey(), keyTypeInfo.variant)
-        val ikeyUnderLmk = encryptKey(clearIkey, variantOutputLmk, request.keyScheme)
+        val ikeyUnderLmk = encryptKey(clearIkey, variantOutputLmk, effectiveScheme, request.keyType, request.lmkId)
 
         // Step 4: KCV
         val kcv = hsm.calculateKeyCheckValue(clearIkey)
@@ -603,7 +705,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         // Step 5 [Mode B]: Also export under ZMK
         val responseData = if (request.mode == 'B' && request.zmk != null) {
             val clearZmk = decryptZmkFromLmk(request.zmk, request.lmkId)
-            val ikeyUnderZmk = encryptKey(clearIkey, clearZmk, request.keySchemeZmk ?: 'U')
+            val ikeyUnderZmk = encryptKey(clearIkey, clearZmk, request.keySchemeZmk ?: 'U', request.keyType, request.lmkId)
             hsm.hsmLogsListener.onFormattedResponse(
                 """
                     type: ${keyTypeInfo.description}

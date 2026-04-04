@@ -72,7 +72,7 @@ object TDESCBCMACLogManager {
     }
 
     private fun addLog(entry: LogEntry) {
-        _logEntries.add(0, entry)
+        _logEntries.add(entry)
         if (_logEntries.size > 500) _logEntries.removeRange(400, _logEntries.size)
     }
 

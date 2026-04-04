@@ -341,11 +341,41 @@ class HsmSlotManager {
     }
 
     private fun getAlgorithmDisplay(lmk: LmkSet): String {
-        return when {
-            lmk.scheme == "VARIANT" -> "3DES(2key)"
-            lmk.scheme == "KEY_BLOCK" -> "AES-256"
-            else -> "3DES(3key)"
-        }
+        return lmk.lmkAlgorithm.display
+    }
+
+    /**
+     * Update the algorithm for an existing LMK slot.
+     */
+    fun updateLmkAlgorithm(slotId: String, algorithm: String): HsmCommandResult {
+        val slot = lmkLiveSlots[slotId]
+            ?: return HsmCommandResult.Error(HsmErrorCodes.INVALID_LMK_IDENTIFIER, "LMK slot $slotId not found")
+        val lmk = slot.lmkSet
+            ?: return HsmCommandResult.Error(HsmErrorCodes.INVALID_LMK_IDENTIFIER, "LMK slot $slotId is empty")
+
+        val newLmk = lmk.copy(algorithm = algorithm)
+        slot.lmkSet = newLmk
+        return HsmCommandResult.Success(
+            response = "Algorithm updated to ${newLmk.lmkAlgorithm.display} for slot $slotId",
+            data = mapOf("slotId" to slotId, "algorithm" to algorithm)
+        )
+    }
+
+    /**
+     * Update the scheme for an existing LMK slot.
+     */
+    fun updateLmkScheme(slotId: String, scheme: String): HsmCommandResult {
+        val slot = lmkLiveSlots[slotId]
+            ?: return HsmCommandResult.Error(HsmErrorCodes.INVALID_LMK_IDENTIFIER, "LMK slot $slotId not found")
+        val lmk = slot.lmkSet
+            ?: return HsmCommandResult.Error(HsmErrorCodes.INVALID_LMK_IDENTIFIER, "LMK slot $slotId is empty")
+
+        val newLmk = lmk.copy(scheme = scheme)
+        slot.lmkSet = newLmk
+        return HsmCommandResult.Success(
+            response = "Scheme updated to $scheme for slot $slotId",
+            data = mapOf("slotId" to slotId, "scheme" to scheme)
+        )
     }
 
     // ====================================================================================================
