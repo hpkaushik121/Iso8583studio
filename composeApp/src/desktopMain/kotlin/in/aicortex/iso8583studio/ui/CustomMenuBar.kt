@@ -12,17 +12,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.delay
 
 // ──────────────────────────────────────────────────────────────────────────────
 //  Custom Compose menu bar with dark-theme support and glossy look.
@@ -30,17 +34,24 @@ import androidx.compose.ui.unit.sp
 //  and works identically on Windows, macOS, and Linux.
 // ──────────────────────────────────────────────────────────────────────────────
 
-/** Shared state that tracks which top-level menu is open (-1 = none). */
 private val LocalOpenMenuIndex = compositionLocalOf { mutableStateOf(-1) }
+private val LocalHoverCounter = compositionLocalOf { mutableStateOf(0) }
 
-/**
- * Glossy, themed menu bar that renders inside the Compose content area.
- * Supports dark/light theming and a subtle gradient highlight.
- */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun GlossyMenuBar(content: @Composable RowScope.() -> Unit) {
     val openIndex = remember { mutableStateOf(-1) }
+    val hoverCounter = remember { mutableStateOf(0) }
     val isDark = MaterialTheme.colors.isLight.not()
+
+    LaunchedEffect(hoverCounter.value) {
+        if (hoverCounter.value <= 0) {
+            delay(200)
+            if (hoverCounter.value <= 0) {
+                openIndex.value = -1
+            }
+        }
+    }
 
     val barBg = if (isDark)
         Brush.verticalGradient(
@@ -59,7 +70,10 @@ fun GlossyMenuBar(content: @Composable RowScope.() -> Unit) {
 
     val borderColor = MaterialTheme.colors.onSurface.copy(alpha = if (isDark) 0.08f else 0.10f)
 
-    CompositionLocalProvider(LocalOpenMenuIndex provides openIndex) {
+    CompositionLocalProvider(
+        LocalOpenMenuIndex provides openIndex,
+        LocalHoverCounter provides hoverCounter,
+    ) {
         Surface(elevation = 1.dp) {
             Column {
                 Row(
@@ -67,11 +81,12 @@ fun GlossyMenuBar(content: @Composable RowScope.() -> Unit) {
                         .fillMaxWidth()
                         .height(24.dp)
                         .background(barBg)
+                        .onPointerEvent(PointerEventType.Enter) { hoverCounter.value++ }
+                        .onPointerEvent(PointerEventType.Exit) { hoverCounter.value-- }
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     content = content,
                 )
-                // Bottom highlight line
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -83,10 +98,6 @@ fun GlossyMenuBar(content: @Composable RowScope.() -> Unit) {
     }
 }
 
-/**
- * A top-level menu button in the [GlossyMenuBar].
- * Clicking opens its dropdown; hovering switches to it if another menu is already open.
- */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun RowScope.MenuBarMenu(
@@ -95,27 +106,28 @@ fun RowScope.MenuBarMenu(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val openIndex = LocalOpenMenuIndex.current
+    val hoverCounter = LocalHoverCounter.current
     val isOpen = openIndex.value == index
     var hovered by remember { mutableStateOf(false) }
+    var anchorHeightPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
 
     val hoverAlpha by animateFloatAsState(if (hovered || isOpen) 1f else 0f, tween(120))
     val textColor = if (isOpen) PrimaryBlue else MaterialTheme.colors.onSurface
 
-    Box {
+    Box(
+        modifier = Modifier.onGloballyPositioned { anchorHeightPx = it.size.height }
+    ) {
         Box(
             modifier = Modifier
                 .height(24.dp)
-                .clickable {
-                    openIndex.value = if (isOpen) -1 else index
-                }
                 .onPointerEvent(PointerEventType.Enter) {
                     hovered = true
-                    // Open on hover — either switch or open fresh
-                    if (openIndex.value != index) {
-                        openIndex.value = index
-                    }
+                    openIndex.value = index
                 }
-                .onPointerEvent(PointerEventType.Exit) { hovered = false }
+                .onPointerEvent(PointerEventType.Exit) {
+                    hovered = false
+                }
                 .drawBehind {
                     if (hoverAlpha > 0f) {
                         drawRoundRect(
@@ -136,22 +148,31 @@ fun RowScope.MenuBarMenu(
             )
         }
 
-        DropdownMenu(
-            expanded = isOpen,
-            onDismissRequest = { openIndex.value = -1 },
-            offset = DpOffset(0.dp, 0.dp),
-            modifier = Modifier.background(MaterialTheme.colors.surface)
-                .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
-                .widthIn(min = 180.dp),
-        ) {
-            content()
+        if (isOpen) {
+            Popup(
+                alignment = Alignment.TopStart,
+                offset = IntOffset(0, anchorHeightPx),
+                properties = PopupProperties(focusable = false),
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .shadow(8.dp, RoundedCornerShape(6.dp))
+                        .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
+                        .onPointerEvent(PointerEventType.Enter) { hoverCounter.value++ }
+                        .onPointerEvent(PointerEventType.Exit) { hoverCounter.value-- },
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colors.surface,
+                    elevation = 8.dp,
+                ) {
+                    Column(modifier = Modifier.width(IntrinsicSize.Max).widthIn(min = 180.dp)) {
+                        content()
+                    }
+                }
+            }
         }
     }
 }
 
-/**
- * A clickable menu item inside a dropdown.
- */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MenuBarItem(
@@ -161,17 +182,19 @@ fun MenuBarItem(
     val openIndex = LocalOpenMenuIndex.current
     var hovered by remember { mutableStateOf(false) }
 
-    DropdownMenuItem(
-        onClick = {
-            onClick()
-            openIndex.value = -1
-        },
+    Box(
         modifier = Modifier
+            .fillMaxWidth()
             .height(24.dp)
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }
-            .background(if (hovered) PrimaryBlue.copy(alpha = 0.10f) else Color.Transparent),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+            .background(if (hovered) PrimaryBlue.copy(alpha = 0.10f) else Color.Transparent)
+            .clickable {
+                onClick()
+                openIndex.value = -1
+            }
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.CenterStart,
     ) {
         Text(
             text = text,
@@ -182,62 +205,93 @@ fun MenuBarItem(
     }
 }
 
-/**
- * A submenu trigger that expands a nested dropdown to the right on hover.
- */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MenuBarSubMenu(
     text: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val hoverCounter = LocalHoverCounter.current
     var expanded by remember { mutableStateOf(false) }
-    var hovered by remember { mutableStateOf(false) }
+    var localHoverCount by remember { mutableStateOf(0) }
+    var anchorWidthPx by remember { mutableStateOf(0) }
 
-    Box {
-        DropdownMenuItem(
-            onClick = { expanded = !expanded },
+    LaunchedEffect(localHoverCount) {
+        if (localHoverCount <= 0) {
+            delay(150)
+            if (localHoverCount <= 0) {
+                expanded = false
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier.onGloballyPositioned { anchorWidthPx = it.size.width }
+    ) {
+        Box(
             modifier = Modifier
+                .fillMaxWidth()
                 .height(24.dp)
                 .onPointerEvent(PointerEventType.Enter) {
-                    hovered = true
+                    localHoverCount++
                     expanded = true
                 }
-                .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .background(if (hovered || expanded) PrimaryBlue.copy(alpha = 0.10f) else Color.Transparent),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                .onPointerEvent(PointerEventType.Exit) {
+                    localHoverCount--
+                }
+                .background(if (expanded || localHoverCount > 0) PrimaryBlue.copy(alpha = 0.10f) else Color.Transparent)
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.CenterStart,
         ) {
-            Text(
-                text = text,
-                fontSize = 12.sp,
-                color = MaterialTheme.colors.onSurface,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(12.dp))
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = text,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colors.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(12.dp))
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),
+                )
+            }
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            // Position to the right of the parent item
-            offset = DpOffset(180.dp, (-24).dp),
-            modifier = Modifier.background(MaterialTheme.colors.surface)
-                .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
-                .widthIn(min = 180.dp),
-        ) {
-            content()
+        if (expanded) {
+            Popup(
+                alignment = Alignment.TopStart,
+                offset = IntOffset(anchorWidthPx, 0),
+                properties = PopupProperties(focusable = false),
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .shadow(8.dp, RoundedCornerShape(6.dp))
+                        .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
+                        .onPointerEvent(PointerEventType.Enter) {
+                            localHoverCount++
+                            hoverCounter.value++
+                        }
+                        .onPointerEvent(PointerEventType.Exit) {
+                            localHoverCount--
+                            hoverCounter.value--
+                        },
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colors.surface,
+                    elevation = 8.dp,
+                ) {
+                    Column(modifier = Modifier.width(IntrinsicSize.Max).widthIn(min = 180.dp)) {
+                        content()
+                    }
+                }
+            }
         }
     }
 }
 
-/** A thin horizontal separator line inside a dropdown menu. */
 @Composable
 fun MenuBarSeparator() {
     Divider(
