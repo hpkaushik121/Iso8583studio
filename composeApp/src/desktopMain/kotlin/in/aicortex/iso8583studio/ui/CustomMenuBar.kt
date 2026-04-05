@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import kotlin.math.max
 import kotlinx.coroutines.delay
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -35,19 +36,24 @@ import kotlinx.coroutines.delay
 // ──────────────────────────────────────────────────────────────────────────────
 
 private val LocalOpenMenuIndex = compositionLocalOf { mutableStateOf(-1) }
-private val LocalHoverCounter = compositionLocalOf { mutableStateOf(0) }
+/** Pointer is over the open top-level dropdown surface (not nested flyouts). */
+private val LocalPointerOverMainDropdown = compositionLocalOf { mutableStateOf(false) }
+/** Pointer is over any nested submenu flyout (separate popups). */
+private val LocalNestedFlyoutDepth = compositionLocalOf { mutableStateOf(0) }
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun GlossyMenuBar(content: @Composable RowScope.() -> Unit) {
     val openIndex = remember { mutableStateOf(-1) }
-    val hoverCounter = remember { mutableStateOf(0) }
+    val pointerOverBar = remember { mutableStateOf(false) }
+    val pointerOverMainDropdown = remember { mutableStateOf(false) }
+    val nestedFlyoutDepth = remember { mutableStateOf(0) }
     val isDark = MaterialTheme.colors.isLight.not()
 
-    LaunchedEffect(hoverCounter.value) {
-        if (hoverCounter.value <= 0) {
+    LaunchedEffect(pointerOverBar.value, pointerOverMainDropdown.value, nestedFlyoutDepth.value) {
+        if (!pointerOverBar.value && !pointerOverMainDropdown.value && nestedFlyoutDepth.value == 0) {
             delay(200)
-            if (hoverCounter.value <= 0) {
+            if (!pointerOverBar.value && !pointerOverMainDropdown.value && nestedFlyoutDepth.value == 0) {
                 openIndex.value = -1
             }
         }
@@ -72,7 +78,8 @@ fun GlossyMenuBar(content: @Composable RowScope.() -> Unit) {
 
     CompositionLocalProvider(
         LocalOpenMenuIndex provides openIndex,
-        LocalHoverCounter provides hoverCounter,
+        LocalPointerOverMainDropdown provides pointerOverMainDropdown,
+        LocalNestedFlyoutDepth provides nestedFlyoutDepth,
     ) {
         Surface(elevation = 1.dp) {
             Column {
@@ -81,8 +88,8 @@ fun GlossyMenuBar(content: @Composable RowScope.() -> Unit) {
                         .fillMaxWidth()
                         .height(24.dp)
                         .background(barBg)
-                        .onPointerEvent(PointerEventType.Enter) { hoverCounter.value++ }
-                        .onPointerEvent(PointerEventType.Exit) { hoverCounter.value-- }
+                        .onPointerEvent(PointerEventType.Enter) { pointerOverBar.value = true }
+                        .onPointerEvent(PointerEventType.Exit) { pointerOverBar.value = false }
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     content = content,
@@ -106,7 +113,7 @@ fun RowScope.MenuBarMenu(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val openIndex = LocalOpenMenuIndex.current
-    val hoverCounter = LocalHoverCounter.current
+    val pointerOverMainDropdown = LocalPointerOverMainDropdown.current
     val isOpen = openIndex.value == index
     var hovered by remember { mutableStateOf(false) }
     var anchorHeightPx by remember { mutableStateOf(0) }
@@ -154,12 +161,15 @@ fun RowScope.MenuBarMenu(
                 offset = IntOffset(0, anchorHeightPx),
                 properties = PopupProperties(focusable = false),
             ) {
+                DisposableEffect(Unit) {
+                    onDispose { pointerOverMainDropdown.value = false }
+                }
                 Surface(
                     modifier = Modifier
                         .shadow(8.dp, RoundedCornerShape(6.dp))
                         .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
-                        .onPointerEvent(PointerEventType.Enter) { hoverCounter.value++ }
-                        .onPointerEvent(PointerEventType.Exit) { hoverCounter.value-- },
+                        .onPointerEvent(PointerEventType.Enter) { pointerOverMainDropdown.value = true }
+                        .onPointerEvent(PointerEventType.Exit) { pointerOverMainDropdown.value = false },
                     shape = RoundedCornerShape(6.dp),
                     color = MaterialTheme.colors.surface,
                     elevation = 8.dp,
@@ -211,7 +221,7 @@ fun MenuBarSubMenu(
     text: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val hoverCounter = LocalHoverCounter.current
+    val nestedFlyoutDepth = LocalNestedFlyoutDepth.current
     var expanded by remember { mutableStateOf(false) }
     var localHoverCount by remember { mutableStateOf(0) }
     var anchorWidthPx by remember { mutableStateOf(0) }
@@ -267,17 +277,22 @@ fun MenuBarSubMenu(
                 offset = IntOffset(anchorWidthPx, 0),
                 properties = PopupProperties(focusable = false),
             ) {
+                DisposableEffect(Unit) {
+                    onDispose {
+                        nestedFlyoutDepth.value = max(0, nestedFlyoutDepth.value - 1)
+                    }
+                }
                 Surface(
                     modifier = Modifier
                         .shadow(8.dp, RoundedCornerShape(6.dp))
                         .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
                         .onPointerEvent(PointerEventType.Enter) {
                             localHoverCount++
-                            hoverCounter.value++
+                            nestedFlyoutDepth.value++
                         }
                         .onPointerEvent(PointerEventType.Exit) {
                             localHoverCount--
-                            hoverCounter.value--
+                            nestedFlyoutDepth.value = max(0, nestedFlyoutDepth.value - 1)
                         },
                     shape = RoundedCornerShape(6.dp),
                     color = MaterialTheme.colors.surface,
