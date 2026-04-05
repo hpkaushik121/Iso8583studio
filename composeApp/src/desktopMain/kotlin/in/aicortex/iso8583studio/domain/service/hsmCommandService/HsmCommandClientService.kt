@@ -199,7 +199,13 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         }
     }
 
-    fun startLoadTest(commandText: String, scope: CoroutineScope) {
+    fun startLoadTest(
+        commandText: String,
+        scope: CoroutineScope,
+        durationSeconds: Int = config.loadTestDurationSeconds,
+        concurrency: Int = config.loadTestConcurrentConnections,
+        commandsPerSecond: Int = config.loadTestCommandsPerSecond,
+    ) {
         if (loadTestJob?.isActive == true) return
         _loadTestStats.value = LoadTestStats(running = true)
 
@@ -213,15 +219,15 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
             val maxTime = AtomicLong(0)
             val startTime = System.currentTimeMillis()
 
-            val delayBetweenCommands = if (config.loadTestCommandsPerSecond > 0)
-                (1000L / config.loadTestCommandsPerSecond) else 100L
+            val delayBetweenCommands = if (commandsPerSecond > 0)
+                (1000L / commandsPerSecond) else 100L
 
-            val workers = (1..config.loadTestConcurrentConnections).map {
+            val workers = (1..concurrency).map {
                 launch {
                     try {
                         while (isActive) {
                             val elapsed = (System.currentTimeMillis() - startTime) / 1000
-                            if (elapsed >= config.loadTestDurationSeconds) break
+                            if (elapsed >= durationSeconds) break
 
                             try {
                                 totalSent.incrementAndGet()
@@ -257,6 +263,83 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
             workers.joinAll()
             _loadTestStats.value = _loadTestStats.value.copy(running = false)
             writeLog(createLogEntry(LogType.INFO, "Load test completed: ${successCnt.get()} success, ${failureCnt.get()} failures"))
+        }
+    }
+
+    /**
+     * Start a load test that round-robins through a list of commands.
+     * Each worker cycles through commands sequentially.
+     */
+    fun startLoadTestMulti(
+        commands: List<String>,
+        scope: CoroutineScope,
+        durationSeconds: Int = config.loadTestDurationSeconds,
+        concurrency: Int = config.loadTestConcurrentConnections,
+        commandsPerSecond: Int = config.loadTestCommandsPerSecond,
+    ) {
+        if (commands.isEmpty()) return
+        if (commands.size == 1) { startLoadTest(commands.first(), scope, durationSeconds, concurrency, commandsPerSecond); return }
+        if (loadTestJob?.isActive == true) return
+        _loadTestStats.value = LoadTestStats(running = true)
+
+        loadTestJob = scope.launch(Dispatchers.IO) {
+            val totalSent = AtomicLong(0)
+            val totalRecv = AtomicLong(0)
+            val successCnt = AtomicLong(0)
+            val failureCnt = AtomicLong(0)
+            val totalTime = AtomicLong(0)
+            val minTime = AtomicLong(Long.MAX_VALUE)
+            val maxTime = AtomicLong(0)
+            val startTime = System.currentTimeMillis()
+
+            val delayBetweenCommands = if (commandsPerSecond > 0)
+                (1000L / commandsPerSecond) else 100L
+
+            val workers = (1..concurrency).map { workerIdx ->
+                launch {
+                    var cmdIndex = workerIdx % commands.size
+                    try {
+                        while (isActive) {
+                            val elapsed = (System.currentTimeMillis() - startTime) / 1000
+                            if (elapsed >= durationSeconds) break
+
+                            val cmd = commands[cmdIndex % commands.size]
+                            cmdIndex++
+
+                            try {
+                                totalSent.incrementAndGet()
+                                val result = sendCommand(cmd)
+                                totalRecv.incrementAndGet()
+                                if (result.success) successCnt.incrementAndGet() else failureCnt.incrementAndGet()
+                                totalTime.addAndGet(result.elapsedMs)
+                                minTime.updateAndGet { t -> minOf(t, result.elapsedMs) }
+                                maxTime.updateAndGet { t -> maxOf(t, result.elapsedMs) }
+                            } catch (_: Exception) {
+                                failureCnt.incrementAndGet()
+                            }
+
+                            delay(delayBetweenCommands)
+
+                            val elapsedSec = ((System.currentTimeMillis() - startTime) / 1000).coerceAtLeast(1)
+                            _loadTestStats.value = LoadTestStats(
+                                totalSent = totalSent.get(),
+                                totalReceived = totalRecv.get(),
+                                successCount = successCnt.get(),
+                                failureCount = failureCnt.get(),
+                                avgResponseTimeMs = if (totalRecv.get() > 0) totalTime.get().toDouble() / totalRecv.get() else 0.0,
+                                minResponseTimeMs = minTime.get(),
+                                maxResponseTimeMs = maxTime.get(),
+                                currentTps = totalRecv.get().toDouble() / elapsedSec,
+                                elapsedSeconds = elapsedSec,
+                                running = true,
+                            )
+                        }
+                    } catch (_: CancellationException) { }
+                }
+            }
+            workers.joinAll()
+            _loadTestStats.value = _loadTestStats.value.copy(running = false)
+            writeLog(createLogEntry(LogType.INFO, "Load test completed: ${successCnt.get()} success, ${failureCnt.get()} failures (${commands.size} commands)"))
         }
     }
 

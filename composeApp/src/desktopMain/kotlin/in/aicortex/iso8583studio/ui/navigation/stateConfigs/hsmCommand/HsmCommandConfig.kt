@@ -34,6 +34,9 @@ data class HsmCommandConfig(
     val loadTestCommandsPerSecond: Int = 10,
     val loadTestDurationSeconds: Int = 60,
     val loadTestPattern: LoadTestPattern = LoadTestPattern.CONSTANT,
+
+    val scenarios: List<SavedScenario> = emptyList(),
+    val savedPlaylists: List<SavedPlaylist> = emptyList(),
 ) : SimulatorConfig {
     override val serverAddress: String get() = ipAddress
     override val serverPort: Int get() = port
@@ -95,3 +98,46 @@ enum class LoadTestPattern(val displayName: String) {
     SPIKE("Spike Test"),
     BURST("Burst Pattern"),
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Saved Scenarios — persisted in HsmCommandConfig
+// ──────────────────────────────────────────────────────────────────────────────
+
+@Serializable
+data class SavedScenarioStep(
+    val commandCode: String,
+    val fieldValues: Map<String, String> = emptyMap(),
+)
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Saved Playlists — persisted in HsmCommandConfig
+// ──────────────────────────────────────────────────────────────────────────────
+
+@Serializable
+data class SavedPlaylistItem(
+    val type: String,              // "CUSTOM", "COMMAND", "SCENARIO"
+    val label: String,
+    val customText: String = "",   // for CUSTOM items
+    val commandCode: String = "",  // for COMMAND items
+    val fieldValues: Map<String, String> = emptyMap(), // for COMMAND items
+    val scenarioId: String = "",   // for SCENARIO items
+)
+
+@Serializable
+data class SavedPlaylist(
+    val id: String,
+    val name: String,
+    val items: List<SavedPlaylistItem> = emptyList(),
+    val autoAdvance: Boolean = true,
+    val createdDate: Long = System.currentTimeMillis(),
+    val modifiedDate: Long = System.currentTimeMillis(),
+)
+
+@Serializable
+data class SavedScenario(
+    val id: String,
+    val name: String,
+    val steps: List<SavedScenarioStep> = emptyList(),
+    val createdDate: Long = System.currentTimeMillis(),
+    val modifiedDate: Long = System.currentTimeMillis(),
+)

@@ -165,7 +165,11 @@ sealed class Destination : Screen {
             val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
             HsmCommandScreen(
                 config = appState.value.currentConfig(SimulatorType.HSM_COMMAND) as `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmCommandConfig,
-                onBack = { navigationController.goBack() }
+                onBack = { navigationController.goBack() },
+                onSaveConfig = { updatedConfig ->
+                    appState.value.updateConfig(updatedConfig)
+                    appState.value.save()
+                }
             )
         }
     }

@@ -102,19 +102,48 @@ private object KeyshareCryptoService {
     private fun generateRandomHex(length: Int) = (1..length).map { Random.nextInt(0, 16).toString(16) }.joinToString("").uppercase()
     private fun generateRandomPin() = (1..4).map { Random.nextInt(0, 10) }.joinToString("")
 
+    private fun hexToBytes(hex: String): ByteArray =
+        hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+
+    private fun computeKcv(keyHex: String): String {
+        return try {
+            val keyBytes = hexToBytes(keyHex)
+            if (keyBytes.size == 16 || keyBytes.size == 24 || keyBytes.size == 8) {
+                // TDES KCV: encrypt 8 zero bytes, take first 3 bytes (6 hex)
+                val expandedKey = when (keyBytes.size) {
+                    8 -> keyBytes
+                    16 -> keyBytes + keyBytes.copyOf(8)
+                    else -> keyBytes.copyOf(24)
+                }
+                val cipher = javax.crypto.Cipher.getInstance("DESede/ECB/NoPadding")
+                cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, javax.crypto.spec.SecretKeySpec(expandedKey, "DESede"))
+                cipher.doFinal(ByteArray(8)).take(3).joinToString("") { "%02X".format(it) }
+            } else if (keyBytes.size == 32) {
+                // AES-256 KCV: encrypt 16 zero bytes, take first 3 bytes (6 hex)
+                val cipher = javax.crypto.Cipher.getInstance("AES/ECB/NoPadding")
+                cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, javax.crypto.spec.SecretKeySpec(keyBytes, "AES"))
+                cipher.doFinal(ByteArray(16)).take(3).joinToString("") { "%02X".format(it) }
+            } else {
+                "N/A"
+            }
+        } catch (_: Exception) {
+            "N/A"
+        }
+    }
+
     private fun combineKeys(keys: List<String>): Pair<String, String> {
         val validKeys = keys.filter { it.isNotBlank() }
         if (validKeys.isEmpty()) return "ERROR: No keys to combine" to "N/A"
 
         try {
             val maxLength = validKeys.maxOf { it.length }
-            val paddedKeys = validKeys.map { it.padEnd(maxLength, '0') }
+            val paddedKeys = validKeys.map { it.padStart(maxLength, '0') }
             var result = "0".repeat(maxLength).toBigInteger(16)
             paddedKeys.forEach {
                 result = result.xor(it.toBigInteger(16))
             }
             val combinedKey = result.toString(16).uppercase().padStart(maxLength, '0')
-            val kcv = generateRandomHex(6)
+            val kcv = computeKcv(combinedKey)
             return combinedKey to kcv
         } catch (e: Exception) {
             return "ERROR: Invalid hex in components" to "N/A"

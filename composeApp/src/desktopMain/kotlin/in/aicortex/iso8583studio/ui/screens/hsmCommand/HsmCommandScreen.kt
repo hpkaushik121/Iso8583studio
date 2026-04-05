@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 
 enum class HsmCommandTabs(val title: String, val icon: ImageVector) {
     COMMAND_CONSOLE("Console", Icons.Default.Terminal),
+    SCENARIO_BUILDER("Scenario", Icons.Default.AccountTree),
     LOAD_TESTER("Load Test", Icons.Default.Speed),
     LOGS("Logs", Icons.Default.Article),
 }
@@ -43,6 +44,7 @@ fun HsmCommandScreen(
     config: HsmCommandConfig,
     onBack: () -> Unit,
     service: HsmCommandClientService? = null,
+    onSaveConfig: ((HsmCommandConfig) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val ownsService = service == null
@@ -67,7 +69,7 @@ fun HsmCommandScreen(
     Scaffold(
         topBar = {
             AppBarWithBack(
-                title = "HSM Commander - ${config.name}",
+                title = "HSM Host Console - ${config.name}",
                 onBackClick = {
                     scope.launch {
                         hsmService.disconnect()
@@ -81,6 +83,7 @@ fun HsmCommandScreen(
         HsmCommandContent(
             service = hsmService,
             logText = logText,
+            onSaveConfig = onSaveConfig,
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -90,6 +93,7 @@ fun HsmCommandScreen(
 private fun HsmCommandContent(
     service: HsmCommandClientService,
     logText: SnapshotStateList<LogEntry>,
+    onSaveConfig: ((HsmCommandConfig) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -98,6 +102,8 @@ private fun HsmCommandContent(
     val tabList = HsmCommandTabs.entries.toList()
     val vendorCommands = remember(service.config.hsmVendor) { getVendorCommands(service.config.hsmVendor) }
     val commandConsoleSession = remember { CommandConsoleSessionState() }
+    val scenarioSession = remember { ScenarioSessionState() }
+    var savedScenarios by remember { mutableStateOf(service.config.scenarios) }
 
     Row(modifier = modifier.fillMaxSize()) {
         NavigationRail(
@@ -139,7 +145,32 @@ private fun HsmCommandContent(
                         exchangeLog = logText,
                         logFileSessionName = service.config.name,
                     )
-                    HsmCommandTabs.LOAD_TESTER -> HsmLoadTesterTab(service = service)
+                    HsmCommandTabs.SCENARIO_BUILDER -> ScenarioBuilderTab(
+                        service = service,
+                        session = scenarioSession,
+                        savedScenarios = savedScenarios,
+                        onSaveScenario = { scenario ->
+                            val updated = savedScenarios.toMutableList()
+                            val existingIdx = updated.indexOfFirst { it.id == scenario.id }
+                            if (existingIdx >= 0) updated[existingIdx] = scenario else updated.add(scenario)
+                            savedScenarios = updated
+                            scenarioSession.currentScenarioId = scenario.id
+                            val newConfig = service.config.copy(scenarios = updated, modifiedDate = System.currentTimeMillis())
+                            onSaveConfig?.invoke(newConfig)
+                        },
+                        onDeleteScenario = { id ->
+                            val updated = savedScenarios.filter { it.id != id }
+                            savedScenarios = updated
+                            val newConfig = service.config.copy(scenarios = updated, modifiedDate = System.currentTimeMillis())
+                            onSaveConfig?.invoke(newConfig)
+                        },
+                    )
+                    HsmCommandTabs.LOAD_TESTER -> HsmLoadTesterTab(
+                        service = service,
+                        scenarioSession = scenarioSession,
+                        savedScenarios = savedScenarios,
+                        onSaveConfig = onSaveConfig,
+                    )
                     HsmCommandTabs.LOGS -> LogTab(
                         logEntries = logText,
                         onClearClick = { logText.clear() },

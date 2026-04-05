@@ -2831,31 +2831,74 @@ class PayShieldStringCommandProcessor(
 
             // 8. '%' delimiter + LMK ID (2H) — handled by outer parser via cmd.lmkId
 
-            val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
+            // Resolve LMK pair for the key to export
+            val keyLmkPair: Int
+            val keyTypeLabel: String
+            if (keyTypeCode == "FFF") {
+                // KeyBlock mode: determine LMK pair from the S-block key usage header
+                val keyUsage = if (keyUnderLmkWithScheme.length >= 8 &&
+                    keyUnderLmkWithScheme[0].uppercaseChar() == 'S') {
+                    keyUnderLmkWithScheme.substring(6, 8)
+                } else "K0"
+                keyLmkPair = A0GenerateKeyCommand.lmkPairFromKeyUsage(keyUsage)
+                keyTypeLabel = "FFF/KeyBlock (usage=$keyUsage)"
+            } else {
+                val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
+                keyLmkPair = keyType.getLmkPairNumber()
+                keyTypeLabel = "$keyTypeCode (${keyType.name})"
+            }
+
+            // Resolve LMK pair for ZMK/TMK
+            val zmkLmkPair: Int
+            if (zmkWithScheme.isNotEmpty() && zmkWithScheme[0].uppercaseChar() == 'S' && zmkWithScheme.length >= 8) {
+                val zmkUsage = zmkWithScheme.substring(6, 8)
+                zmkLmkPair = A0GenerateKeyCommand.lmkPairFromKeyUsage(zmkUsage)
+            } else {
+                zmkLmkPair = 0 // Default: LMK pair 00-01 for ZMK/ZPK
+            }
 
             simulator.hsmLogsListener.log(
                 """A8 Export Key:
-                |  Key Type: $keyTypeCode (${keyType.name})
+                |  Key Type: $keyTypeLabel
                 |  ZMK/TMK Flag: $zmkTmkFlag (${if (zmkTmkFlag == '0') "ZMK" else "TMK"})
                 |  ZMK/TMK: $zmkWithScheme
+                |  ZMK LMK Pair: $zmkLmkPair
                 |  Key under LMK: $keyUnderLmkWithScheme
+                |  Key LMK Pair: $keyLmkPair
                 |  Export Scheme: $exportScheme
                 |  LMK ID: ${cmd.lmkId}""".trimMargin()
             )
 
             // 9. Decrypt key-under-LMK using the appropriate LMK pair
-            val clearKey = decryptSchemeKeyUnderLmk(keyUnderLmkWithScheme, cmd.lmkId, keyType.getLmkPairNumber())
+            val clearKey = decryptSchemeKeyUnderLmk(keyUnderLmkWithScheme, cmd.lmkId, keyLmkPair)
 
-            // 10. Decrypt ZMK under LMK pair 00-01 (ZMK/ZPK pair)
-            val clearZmk = decryptSchemeKeyUnderLmk(zmkWithScheme, cmd.lmkId, 0)
+            // 10. Decrypt ZMK under its LMK pair
+            val clearZmk = decryptSchemeKeyUnderLmk(zmkWithScheme, cmd.lmkId, zmkLmkPair)
 
             // 11. Re-encrypt the clear key under ZMK/TMK
             val kcv = simulator.calculateKeyCheckValue(clearKey)
             val exportedKey = if (exportScheme == 'S') {
-                // KeyBlock output — use the ZMK key itself as the wrapping key
-                val (usage, mode, export) = simulator.keyTypeToBlockAttributes(keyTypeCode)
-                simulator.buildKeyBlock(clearKey, clearZmk, usage, mode, export, cmd.lmkId)
+                // KeyBlock output — use the ZMK key itself directly as KBPK (no derivation)
+                // For FFF (KeyBlock) key type, preserve the key usage/mode/exportability from the input S-block
+                val (usage, mode, export) = if (keyTypeCode == "FFF" &&
+                    keyUnderLmkWithScheme.length >= 13 && keyUnderLmkWithScheme[0].uppercaseChar() == 'S') {
+                    Triple(
+                        keyUnderLmkWithScheme.substring(6, 8),   // key usage
+                        keyUnderLmkWithScheme[9],                 // mode of use
+                        keyUnderLmkWithScheme[12]                 // exportability
+                    )
+                } else {
+                    simulator.keyTypeToBlockAttributes(keyTypeCode)
+                }
+                simulator.buildKeyBlock(clearKey, clearZmk, usage, mode, export, cmd.lmkId, useKeyDirectlyAsKbpk = true)
+            } else if (clearZmk.size == 16 && clearZmk.size == clearKey.size) {
+                // AES-128 ZMK wrapping AES-128 key — use AES-ECB
+                val cipher = Cipher.getInstance("AES/ECB/NoPadding")
+                cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(clearZmk, "AES"))
+                val encBytes = cipher.doFinal(clearKey)
+                "$exportScheme${IsoUtil.bytesToHexString(encBytes)}"
             } else {
+                // TDES ZMK wrapping
                 val expandedZmk = when (clearZmk.size) {
                     8  -> ByteArray(24).also {
                         System.arraycopy(clearZmk, 0, it, 0, 8)
@@ -2874,7 +2917,14 @@ class PayShieldStringCommandProcessor(
                 "$exportScheme${IsoUtil.bytesToHexString(encBytes)}"
             }
 
-            simulator.hsmLogsListener.log("A8 Export Key completed: KCV=$kcv")
+            simulator.hsmLogsListener.log(buildString {
+                appendLine("A8 Export Key — Results:")
+                appendLine("  Clear Key:\t\t${IsoUtil.bytesToHexString(clearKey)} (${clearKey.size * 8} bits)")
+                appendLine("  Clear ZMK:\t\t${IsoUtil.bytesToHexString(clearZmk)} (${clearZmk.size * 8} bits)")
+                appendLine("  Export Scheme:\t$exportScheme")
+                appendLine("  Exported Key:\t\t$exportedKey")
+                appendLine("  KCV:\t\t\t$kcv")
+            })
 
             HsmCommandResult.Success(
                 response = "$exportedKey$kcv",
@@ -3233,12 +3283,20 @@ class PayShieldStringCommandProcessor(
     /**
      * Decrypt a scheme-prefixed key under the given LMK pair.
      * Handles variant schemes (U/T/X/Y) and KeyBlock (S/R).
+     * For S-block keys, uses proper key block decryption with KBPK derivation from LMK.
      */
     private suspend fun decryptSchemeKeyUnderLmk(
         keyWithScheme: String,
         lmkId: String,
         pairNumber: Int
     ): ByteArray {
+        if (keyWithScheme.isNotEmpty() && keyWithScheme[0].uppercaseChar() == 'S') {
+            // S-block key: use full key block decryption (derives KBPK from LMK)
+            val lmk = simulator.lmkStorage.getLmk(lmkId)
+            val pair = lmk?.getPair(pairNumber)
+            val lmkPairKey = pair?.getCombinedKey() ?: ByteArray(0)
+            return simulator.decryptKeyBlock(keyWithScheme, lmkPairKey, lmkId)
+        }
         val encHex = getEncryptedKeyHex(keyWithScheme)
         val encBytes = IsoUtil.hexToBytes(encHex)
         return simulator.decryptUnderLmk(encBytes, lmkId, pairNumber)

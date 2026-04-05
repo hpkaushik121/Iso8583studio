@@ -233,6 +233,9 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                     val variantLmk = applyLmkVariant(lmkPair.getCombinedKey(), keyTypeInfo.variant)
                     val keyUnderLmk = encryptKey(clearKey, variantLmk, effectiveScheme, request.keyType, request.lmkId, kbOverride)
                     val kcv = hsm.calculateKeyCheckValue(clearKey)
+                    if (effectiveScheme == 'S') {
+                        logDerivedKbpk(variantLmk, request.lmkId)
+                    }
                     buildMode0Response(keyUnderLmk, kcv, request, keyTypeInfo)
                 }
                 '1' -> {
@@ -240,6 +243,9 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
                     val variantLmk = applyLmkVariant(lmkPair.getCombinedKey(), keyTypeInfo.variant)
                     val keyUnderLmk = encryptKey(clearKey, variantLmk, effectiveScheme, request.keyType, request.lmkId, kbOverride)
                     val kcv = hsm.calculateKeyCheckValue(clearKey)
+                    if (effectiveScheme == 'S') {
+                        logDerivedKbpk(variantLmk, request.lmkId)
+                    }
                     buildMode1Response(clearKey, keyUnderLmk, kcv, request, keyTypeInfo)
                 }
                 'A', 'B' -> buildDeriveIkeyResponse(request, keyTypeInfo, lmk, effectiveScheme)
@@ -512,19 +518,41 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         return variantedKey
     }
 
+    /**
+     * Log the derived KBPK for key block scheme responses.
+     * This allows the user to use the derived KBPK in the standalone Thales Key Block tool for decoding.
+     */
+    private fun logDerivedKbpk(lmkPairKey: ByteArray, lmkId: String) {
+        val lmk = hsm.lmkStorage.getLmk(lmkId) ?: return
+        val lmkAlgo = lmk.lmkAlgorithm
+        val kbpk = if (lmkAlgo.isAes) {
+            hsm.deriveLmkToKbpkV1Public(lmkPairKey, lmkAlgo)
+        } else {
+            hsm.deriveLmkToKbpkV0Public(lmkPairKey, lmkAlgo)
+        }
+        hsm.hsmLogsListener.log(buildString {
+            appendLine("========== Derived KBPK (use this to decode in Thales Key Block tool) ==========")
+            appendLine("  LMK Pair Key:\t\t${IsoUtil.bytesToHex(lmkPairKey)}")
+            appendLine("  LMK Algorithm:\t$lmkAlgo")
+            appendLine("  Derived KBPK:\t\t${IsoUtil.bytesToHex(kbpk)} (${kbpk.size * 8} bits)")
+            appendLine("================================================================================")
+        })
+    }
+
     private suspend fun encryptKey(
         clearKey: ByteArray,
         encryptingKey: ByteArray,
         scheme: Char,
         keyType: String = "000",
         lmkId: String = "00",
-        keyBlockOverride: Triple<String, Char, Char>? = null // (usage, modeOfUse, exportability)
+        keyBlockOverride: Triple<String, Char, Char>? = null, // (usage, modeOfUse, exportability)
+        useKeyDirectlyAsKbpk: Boolean = false
     ): String {
         return when (scheme.uppercaseChar()) {
             'S' -> {
                 // KeyBlock has its own encryption (AES-CBC or TDES-ECB inside buildKeyBlock)
                 val (usage, mode, export) = keyBlockOverride ?: hsm.keyTypeToBlockAttributes(keyType)
-                buildThalesKeyBlock(clearKey, encryptingKey, usage, mode, export, lmkId)
+                buildThalesKeyBlock(clearKey, encryptingKey, usage, mode, export, lmkId, useKeyDirectlyAsKbpk = useKeyDirectlyAsKbpk)
             }
             else -> {
                 // Non-KeyBlock schemes: encrypt with LMK algorithm (ECB)
@@ -548,8 +576,9 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         modeOfUse: Char = 'N',
         exportability: Char = 'E',
         lmkId: String = "00",
-        keyVersionNumber: String = "00"
-    ): String = hsm.buildKeyBlock(clearKey, lmk, keyUsage, modeOfUse, exportability, lmkId, keyVersionNumber)
+        keyVersionNumber: String = "00",
+        useKeyDirectlyAsKbpk: Boolean = false
+    ): String = hsm.buildKeyBlock(clearKey, lmk, keyUsage, modeOfUse, exportability, lmkId, keyVersionNumber, useKeyDirectlyAsKbpk)
 
     private suspend fun decryptZmkFromLmk(encryptedZmk: String, lmkId: String): ByteArray {
         val lmk = hsm.lmkStorage.getLmk(lmkId) ?: throw IllegalStateException("LMK not found")
@@ -603,7 +632,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         keyTypeInfo: KeyTypeLmkInfo
     ): HsmCommandResult {
         val clearZmk = decryptZmkFromLmk(request.zmk!!, request.lmkId)
-        val keyUnderZmk = encryptKey(clearKey, clearZmk, request.keySchemeZmk!!, request.keyType, request.lmkId)
+        val keyUnderZmk = encryptKey(clearKey, clearZmk, request.keySchemeZmk!!, request.keyType, request.lmkId, useKeyDirectlyAsKbpk = true)
 
         val responseData = "$keyUnderLmk$keyUnderZmk$kcv"
         hsm.hsmLogsListener.onFormattedResponse(
@@ -705,7 +734,7 @@ class A0GenerateKeyCommand(private val hsm: PayShield10KFeatures) {
         // Step 5 [Mode B]: Also export under ZMK
         val responseData = if (request.mode == 'B' && request.zmk != null) {
             val clearZmk = decryptZmkFromLmk(request.zmk, request.lmkId)
-            val ikeyUnderZmk = encryptKey(clearIkey, clearZmk, request.keySchemeZmk ?: 'U', request.keyType, request.lmkId)
+            val ikeyUnderZmk = encryptKey(clearIkey, clearZmk, request.keySchemeZmk ?: 'U', request.keyType, request.lmkId, useKeyDirectlyAsKbpk = true)
             hsm.hsmLogsListener.onFormattedResponse(
                 """
                     type: ${keyTypeInfo.description}

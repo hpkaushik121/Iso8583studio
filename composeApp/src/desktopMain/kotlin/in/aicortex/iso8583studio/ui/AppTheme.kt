@@ -5,6 +5,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,13 @@ val TextSecondaryLight = Color(0xFF757575)
 val TextPrimaryDark = Color(0xFFeceff1)
 val TextSecondaryDark = Color(0xFFb0bec5)
 
+// Semi-transparent variants for glass/Mica effect (Windows 11 only)
+private val BackgroundDarkGlass = Color(0xCC252836)   // ~80% opacity
+private val BackgroundLightGlass = Color(0xCCf5f7fa)  // ~80% opacity
+private val CardDarkGlass = Color(0xD92F3142)         // ~85% opacity
+private val CardLightGlass = Color(0xD9ffffff)         // ~85% opacity
+
+// Opaque palettes — used on Mac, Linux, older Windows
 private val DarkColorPalette = darkColors(
     primary = PrimaryBlue,
     primaryVariant = PrimaryBlueDark,
@@ -66,6 +74,36 @@ private val LightColorPalette = lightColors(
     secondaryVariant = AccentTealDark,
     background = BackgroundLight,
     surface = CardLight,
+    error = ErrorRed,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = TextPrimaryLight,
+    onSurface = TextPrimaryLight,
+    onError = Color.White
+)
+
+// Glass palettes — used when Mica/Acrylic backdrop is active (Windows 11)
+private val DarkColorPaletteGlass = darkColors(
+    primary = PrimaryBlue,
+    primaryVariant = PrimaryBlueDark,
+    secondary = AccentTeal,
+    background = BackgroundDarkGlass,
+    surface = CardDarkGlass,
+    error = ErrorRed,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onBackground = TextPrimaryDark,
+    onSurface = TextPrimaryDark,
+    onError = Color.White
+)
+
+private val LightColorPaletteGlass = lightColors(
+    primary = PrimaryBlue,
+    primaryVariant = PrimaryBlueDark,
+    secondary = AccentTeal,
+    secondaryVariant = AccentTealDark,
+    background = BackgroundLightGlass,
+    surface = CardLightGlass,
     error = ErrorRed,
     onPrimary = Color.White,
     onSecondary = Color.White,
@@ -134,12 +172,32 @@ val Shapes = Shapes(
     medium = RoundedCornerShape(8.dp),
     large = RoundedCornerShape(12.dp)
 )
+/**
+ * Detect system dark mode. Uses Compose's isSystemInDarkTheme() first,
+ * then falls back to Windows registry check on Windows.
+ */
 @Composable
-fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val colors = if (darkTheme) {
-        DarkColorPalette
-    } else {
-        LightColorPalette
+private fun detectDarkTheme(): Boolean {
+    val composeDark = isSystemInDarkTheme()
+    if (composeDark) return true
+    // Fallback: check Windows registry (cached)
+    return windowsDarkModeCache
+}
+
+/** Cached Windows dark mode detection — checked once at startup */
+private val windowsDarkModeCache: Boolean by lazy {
+    detectWindowsDarkMode() ?: false
+}
+
+@Composable
+fun AppTheme(darkTheme: Boolean = detectDarkTheme(), content: @Composable () -> Unit) {
+    val glassActive by isGlassEffectActive
+
+    val colors = when {
+        darkTheme && glassActive -> DarkColorPaletteGlass
+        darkTheme -> DarkColorPalette
+        glassActive -> LightColorPaletteGlass
+        else -> LightColorPalette
     }
 
     MaterialTheme(

@@ -58,7 +58,7 @@ fun HsmCommandConfigScreen(
     Scaffold(
         topBar = {
             AppBarWithBack(
-                title = "HSM Commander Configuration",
+                title = "HSM Host Console Configuration",
                 onBackClick = { navigationController.goBack() }
             )
         },
@@ -68,7 +68,7 @@ fun HsmCommandConfigScreen(
             config = ContainerConfig(
                 tabs = tabsList,
                 icon = Icons.Default.Terminal,
-                label = "HSM Commander",
+                label = "HSM Host Console",
                 simulatorConfigs = appState.hsmCommandConfigs.value,
                 currentConfig = { appState.currentConfig(SimulatorType.HSM_COMMAND) },
                 containerStatus = DevelopmentStatus.BETA
@@ -78,7 +78,7 @@ fun HsmCommandConfigScreen(
                 appState.addConfig(
                     HsmCommandConfig(
                         id = appState.generateConfigId(),
-                        name = "HSM Commander - ${appState.hsmCommandConfigs.value.size + 1}"
+                        name = "HSM Host Console - ${appState.hsmCommandConfigs.value.size + 1}"
                     )
                 )
             },

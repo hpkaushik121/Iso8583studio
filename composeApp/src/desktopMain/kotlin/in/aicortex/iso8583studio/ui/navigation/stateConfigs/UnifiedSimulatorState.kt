@@ -42,7 +42,7 @@ enum class SimulatorType(val displayName: String, val description: String) {
     SWITCH("Switch Simulator", "Payment Network Switch Simulator"),
     ACQUIRER("Acquirer Simulator", "Acquiring Bank Simulator"),
     ISSUER("Issuer Simulator", "Card Issuing Bank Simulator"),
-    HSM_COMMAND("HSM Commander", "HSM Commander Client"),
+    HSM_COMMAND("HSM Host Console", "HSM Host Console Client"),
     /** Lightweight tab for any non-simulator studio tool (converters, parsers, etc.) */
     TOOL("Tool", "Studio Tool")
 }

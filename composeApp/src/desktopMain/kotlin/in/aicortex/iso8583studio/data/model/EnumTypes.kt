@@ -40,7 +40,7 @@ enum class StudioTool(
     ),
 
     HSM_COMMAND(
-        "HSM Commander",
+        "HSM Host Console",
         "Connect and send commands to real HSMs",
         Icons.Default.Terminal,
         isNew = true,
@@ -484,6 +484,13 @@ enum class StudioTool(
         Icons.Default.CheckCircle,
         isPopular = true,
         screen = Destination.CheckDigit
+    ),
+
+    APDU_RESPONSE_QUERY(
+        "APDU Response Query",
+        "APDU response code lookup",
+        Icons.Default.Search,
+        screen = Destination.ApduResponseQuery
     );}
 
 

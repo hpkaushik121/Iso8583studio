@@ -111,6 +111,13 @@ private object ThalesKbCryptoService {
         }
     }
 
+    fun calculateAesKcv(key: ByteArray): String {
+        // CKCV = AES-CMAC(key, 16 zero bytes), first 5 bytes
+        val zeros = ByteArray(16)
+        val cmac = AesCalculatorEngine.computeCmac(zeros, key)
+        return bytesToHex(cmac).take(10)
+    }
+
     // ── Version 0 key derivation ──
 
     private fun deriveV0Key(kbpk: ByteArray, xorByte: Int): ByteArray {
@@ -245,23 +252,32 @@ private object ThalesKbCryptoService {
         val kbek = deriveV1Key(kbpk, 0x0000)
         val kbmk = deriveV1Key(kbpk, 0x0001)
 
-        val clearPayload = applyPkcs7Padding(clearKey, 16)
+        // Plaintext: 2-byte key length (bits, BE) + clear key + random padding to 16-byte boundary
+        val keyLenBits = clearKey.size * 8
+        val lenPrefix = byteArrayOf((keyLenBits shr 8).toByte(), (keyLenBits and 0xFF).toByte())
+        val unpadded = lenPrefix + clearKey
+        val padLen = if (unpadded.size % 16 == 0) 0 else 16 - (unpadded.size % 16)
+        val randomPad = ByteArray(padLen).also { java.security.SecureRandom().nextBytes(it) }
+        val clearPayload = unpadded + randomPad
 
         val encKeyHexLen = clearPayload.size * 2
-        val macHexLen = 16
+        val macHexLen = 16  // 8 bytes = 16 hex (Thales S-block)
         val blockLen = 16 + encKeyHexLen + macHexLen
         val blockLenStr = blockLen.toString().padStart(4, '0')
         val header = "1$blockLenStr$keyUsage$algorithm$modeOfUse${keyVersionNum}$exportability$numOptBlocks$reserved"
         val headerBytes = header.toByteArray(Charsets.US_ASCII)
 
-        val macInput = headerBytes + clearPayload
-        val fullCmac = AesCalculatorEngine.computeCmac(macInput, kbmk)
-        val mac = fullCmac.copyOf(8)
-        val macHex = bytesToHex(mac)
-
+        // Thales S-block V1: Encrypt-then-MAC (same pattern as V0)
+        // 1. Encrypt with IV = header[0..15]
         val iv = headerBytes.copyOf(16)
         val encryptedKey = AesCalculatorEngine.encryptCBC(clearPayload, kbek, iv)
+
+        // 2. MAC over header + encrypted key bytes
+        val macInput = headerBytes + encryptedKey
+        val fullCmac = AesCalculatorEngine.computeCmac(macInput, kbmk)
+        val mac = fullCmac.copyOf(8)
         val encKeyHex = bytesToHex(encryptedKey)
+        val macHex = bytesToHex(mac)
 
         return "S$header$encKeyHex$macHex"
     }
@@ -312,7 +328,7 @@ private object ThalesKbCryptoService {
         val header = keyBlockStr.substring(1, headerLen)
 
         val kbpk = hexToBytes(kbpkHex)
-        val kbpkKcv = calculateKcv(kbpk)
+        val kbpkKcv = if (version == 1) calculateAesKcv(kbpk) else calculateKcv(kbpk)
 
         return if (version == 1) {
             decodeVersion1(kbpk, kbpkKcv, keyBlockStr, header, headerLen, totalBlockChars,
@@ -386,24 +402,38 @@ private object ThalesKbCryptoService {
         keyUsage: String, algorithm: String, modeOfUse: String,
         keyVersionNum: String, exportability: String, numOptBlocks: String, lmkIdField: String
     ): DecodeResult {
-        val macHexLen = 16
+        val macHexLen = 16  // 8 bytes = 16 hex (Thales S-block)
         val encKeyHex = keyBlockStr.substring(headerLen, totalBlockChars - macHexLen)
         val macHex = keyBlockStr.substring(totalBlockChars - macHexLen, totalBlockChars)
         val encryptedKey = hexToBytes(encKeyHex)
+        val storedMac = hexToBytes(macHex)
 
         val kbek = deriveV1Key(kbpk, 0x0000)
         val kbmk = deriveV1Key(kbpk, 0x0001)
 
+        // Decrypt with IV = header[0..15]
         val iv = header.toByteArray(Charsets.US_ASCII).copyOf(16)
         val decrypted = AesCalculatorEngine.decryptCBC(encryptedKey, kbek, iv)
-        val clearKey = removePkcs7Padding(decrypted)
+        // Extract key using 2-byte length prefix (padding is random, not PKCS#7)
+        val keyLenBits = ((decrypted[0].toInt() and 0xFF) shl 8) or (decrypted[1].toInt() and 0xFF)
+        val keyLenBytes = keyLenBits / 8
+        require(keyLenBytes in 1..(decrypted.size - 2)) {
+            "Decryption produced invalid key length ($keyLenBits bits / $keyLenBytes bytes). " +
+                "Check that the KBPK is correct for this key block."
+        }
+        val clearKey = decrypted.copyOfRange(2, 2 + keyLenBytes)
         val kcv = calculateKcv(clearKey)
+
+        // Verify MAC: encrypt-then-MAC — CMAC over header + encrypted key bytes
+        val headerBytes = header.toByteArray(Charsets.US_ASCII)
+        val recomputedCmac = AesCalculatorEngine.computeCmac(headerBytes + encryptedKey, kbmk)
+        val recomputedMac = recomputedCmac.copyOf(8)
 
         val log = buildString {
             appendLine("Thales Key Block: Key block decode operation finished")
             appendLine("****************************************")
             appendLine("KBPK:\t\t\t${bytesToHex(kbpk)}")
-            appendLine("KCV:\t\t\t$kbpkKcv")
+            appendLine("CKCV (AES):\t\t$kbpkKcv")
             appendLine("Thales Key block:\t$keyBlockStr")
             appendLine("----------------------------------------")
             appendLine("Thales Header:\t\t$header")
@@ -421,11 +451,17 @@ private object ThalesKbCryptoService {
             appendLine("Thales MAC:\t\t$macHex")
             appendLine("----------------------------------------")
             appendLine("KBEK:\t\t\t${bytesToHex(kbek)}")
-            appendLine("KBAK:\t\t\t${bytesToHex(kbmk)}")
+            appendLine("KBMK:\t\t\t${bytesToHex(kbmk)}")
             appendLine("----------------------------------------")
             appendLine("Plain Key Block:\t${bytesToHex(decrypted)}")
+            appendLine("Key Length:\t\t$keyLenBits bits ($keyLenBytes bytes)")
             appendLine("Plain Key:\t\t${bytesToHex(clearKey)}")
             appendLine("KCV:\t\t\t$kcv")
+            appendLine("CKCV (AES):\t\t${calculateAesKcv(clearKey)}")
+            appendLine("----------------------------------------")
+            appendLine("MAC Verify:\t\t${if (storedMac.contentEquals(recomputedMac)) "OK" else "MISMATCH"}")
+            appendLine("  Stored MAC:\t\t$macHex")
+            appendLine("  Recomputed MAC:\t${bytesToHex(recomputedMac)}")
         }
 
         return DecodeResult(log, bytesToHex(clearKey), kcv)
@@ -538,16 +574,14 @@ private fun EncodeTab() {
     var lmkId by remember { mutableStateOf("00") }
     var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(kbpk) {
+    LaunchedEffect(kbpk, versionId) {
         kcv = try {
             val validLens = if (versionId == 1) listOf(32, 48, 64) else listOf(16, 32, 48)
-            if (kbpk.length in validLens) ThalesKbCryptoService.calculateKcv(ThalesKbCryptoService.hexToBytes(kbpk)) else ""
-        } catch (_: Exception) { "" }
-    }
-    LaunchedEffect(versionId) {
-        kcv = try {
-            val validLens = if (versionId == 1) listOf(32, 48, 64) else listOf(16, 32, 48)
-            if (kbpk.length in validLens) ThalesKbCryptoService.calculateKcv(ThalesKbCryptoService.hexToBytes(kbpk)) else ""
+            if (kbpk.length in validLens) {
+                val keyBytes = ThalesKbCryptoService.hexToBytes(kbpk)
+                if (versionId == 1) ThalesKbCryptoService.calculateAesKcv(keyBytes)
+                else ThalesKbCryptoService.calculateKcv(keyBytes)
+            } else ""
         } catch (_: Exception) { "" }
     }
 
@@ -700,7 +734,7 @@ private fun DecodeTab() {
     LaunchedEffect(aesKbpk) {
         aesKcv = try {
             if (aesKbpk.length in listOf(32, 48, 64))
-                ThalesKbCryptoService.calculateKcv(ThalesKbCryptoService.hexToBytes(aesKbpk)) else ""
+                ThalesKbCryptoService.calculateAesKcv(ThalesKbCryptoService.hexToBytes(aesKbpk)) else ""
         } catch (_: Exception) { "" }
     }
 

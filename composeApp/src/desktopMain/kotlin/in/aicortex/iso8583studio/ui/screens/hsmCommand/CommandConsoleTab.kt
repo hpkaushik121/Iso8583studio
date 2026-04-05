@@ -1,6 +1,10 @@
 package `in`.aicortex.iso8583studio.ui.screens.hsmCommand
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -491,26 +495,30 @@ private fun StructuredBuilderPanel(
 ) {
     val isM0 = definition.code == "M0"
     val isM2 = definition.code == "M2"
+    val isM4 = definition.code == "M4"
     val modeFlag = fieldValues["modeFlag"].orEmpty()
     val messageBlock = fieldValues["messageBlock"].orEmpty()
     val encryptedData = fieldValues["encryptedData"].orEmpty()
     val inputFormatFlag = fieldValues["inputFormatFlag"].orEmpty()
 
     LaunchedEffect(messageBlock, inputFormatFlag, definition.code) {
-        if (definition.code == "M0") {
+        if (isM0) {
             fieldValues["msgLength"] = computeM0MessageLengthField(messageBlock, inputFormatFlag)
         }
     }
 
     LaunchedEffect(encryptedData, inputFormatFlag, definition.code) {
-        if (definition.code == "M2") {
+        if (isM2) {
             fieldValues["encryptedMessageLength"] =
                 computeM0MessageLengthField(encryptedData, inputFormatFlag)
+        }
+        if (isM4) {
+            fieldValues["msgLength"] = computeM0MessageLengthField(encryptedData, inputFormatFlag)
         }
     }
 
     LaunchedEffect(modeFlag, definition.code) {
-        if ((definition.code == "M0" || definition.code == "M2") && modeFlag in setOf("00", "10")) {
+        if ((isM0 || isM2) && modeFlag in setOf("00", "10")) {
             fieldValues["iv"] = ""
         }
     }
@@ -591,10 +599,13 @@ private fun StructuredBuilderPanel(
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                // Snapshot read: force recomposition when any field value changes
+                val snapshot = fieldValues.toMap()
                 val visibleFields = definition.requestFields.filter {
-                    ThalesWireBuilder.isFieldVisible(it, fieldValues) &&
+                    ThalesWireBuilder.isFieldVisible(it, snapshot) &&
                         !(isM0 && it.id == "msgLength") &&
-                        !(isM2 && it.id == "encryptedMessageLength")
+                        !(isM2 && it.id == "encryptedMessageLength") &&
+                        !(isM4 && it.id == "msgLength")
                 }
                 FieldGrid(visibleFields, fieldValues, definition.forceVerticalFieldLayout)
             }
@@ -624,7 +635,7 @@ private fun StructuredBuilderPanel(
 }
 
 @Composable
-private fun FieldGrid(
+internal fun FieldGrid(
     visibleFields: List<ThalesCommandField>,
     fieldValues: MutableMap<String, String>,
     forceVerticalFieldLayout: Boolean = false,
@@ -786,8 +797,9 @@ private fun RawBuilderPanel(
 //  COMPACT FIELD INPUTS (for builder panel)
 // ─────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CompactTextField(
+internal fun CompactTextField(
     field: ThalesCommandField,
     value: String,
     onValueChange: (String) -> Unit,
@@ -797,26 +809,34 @@ private fun CompactTextField(
     val label = field.name + if (isOpt) " (opt)" else ""
     val hint = if (field.length > 0) "${field.length} chars" else "variable"
 
-    FixedOutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        singleLine = true,
-        label = { Text(label, fontSize = 11.sp) },
-        placeholder = {
-            Text(hint, fontSize = 10.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.25f))
-        },
-        textStyle = LocalTextStyle.current.copy(fontFamily = Mono, fontSize = 12.sp),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = PrimaryBlue,
-            unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = if (isOpt) 0.1f else 0.2f),
-            focusedLabelColor = PrimaryBlue,
-        ),
-    )
+    val content: @Composable () -> Unit = {
+        FixedOutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = modifier,
+            singleLine = true,
+            label = { Text(label, fontSize = 11.sp) },
+            placeholder = {
+                Text(hint, fontSize = 10.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.25f))
+            },
+            textStyle = LocalTextStyle.current.copy(fontFamily = Mono, fontSize = 12.sp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = PrimaryBlue,
+                unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = if (isOpt) 0.1f else 0.2f),
+                focusedLabelColor = PrimaryBlue,
+            ),
+        )
+    }
+
+    if (field.description.isNotBlank()) {
+        AutoHideTooltip(text = field.description) { content() }
+    } else {
+        content()
+    }
 }
 
 @Composable
-private fun CompactFlagField(
+internal fun CompactFlagField(
     field: ThalesCommandField,
     value: String,
     onValueChange: (String) -> Unit,
@@ -833,7 +853,7 @@ private fun CompactFlagField(
         Checkbox(
             checked = checked,
             onCheckedChange = { on ->
-                if (isOpt) onValueChange(if (on) "%" else "")
+                if (isOpt) onValueChange(if (on) field.defaultValue.ifEmpty { "%" } else "")
                 else onValueChange(if (on) "1" else "0")
             },
             colors = CheckboxDefaults.colors(checkedColor = PrimaryBlue),
@@ -842,8 +862,9 @@ private fun CompactFlagField(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CompactDropdown(
+internal fun CompactDropdown(
     field: ThalesCommandField,
     value: String,
     onValueChange: (String) -> Unit,
@@ -858,60 +879,146 @@ private fun CompactDropdown(
     val label = field.name + if (isOpt) " (opt)" else ""
     val canClear = field.omitFromWireWhenBlank && value.isNotEmpty()
 
-    Row(modifier = modifier.onGloballyPositioned { boxWidth = it.size.width }, verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.weight(1f)) {
-            FixedOutlinedTextField(
-                value = selectedLabel,
-                onValueChange = {},
-                modifier = Modifier.fillMaxWidth(),
-                readOnly = true,
-                enabled = false,
-                label = { Text(label, fontSize = 11.sp) },
-                singleLine = true,
-                textStyle = LocalTextStyle.current.copy(fontFamily = Mono, fontSize = 12.sp),
-                trailingIcon = {
-                    Icon(
-                        if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                        null, Modifier.size(18.dp),
-                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
-                    )
-                },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    disabledBorderColor = MaterialTheme.colors.onSurface.copy(alpha = if (isOpt) 0.1f else 0.2f),
-                    disabledTextColor = MaterialTheme.colors.onSurface,
-                    disabledLabelColor = MaterialTheme.colors.onSurface.copy(alpha = 0.55f),
-                ),
-            )
-            Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .width(with(density) { boxWidth.toDp() })
-                    .heightIn(max = 400.dp),
-            ) {
-                options.forEach { opt ->
-                    DropdownMenuItem(
-                        onClick = { onValueChange(opt.value); expanded = false },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                        modifier = Modifier.height(32.dp),
-                    ) {
-                        Text(opt.label, fontSize = 11.sp, fontFamily = Mono, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val content: @Composable () -> Unit = {
+        Row(modifier = modifier.onGloballyPositioned { boxWidth = it.size.width }, verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.weight(1f)) {
+                FixedOutlinedTextField(
+                    value = selectedLabel,
+                    onValueChange = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text(label, fontSize = 11.sp) },
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontFamily = Mono, fontSize = 12.sp),
+                    trailingIcon = {
+                        Icon(
+                            if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                            null, Modifier.size(18.dp),
+                            tint = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                        )
+                    },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        disabledBorderColor = MaterialTheme.colors.onSurface.copy(alpha = if (isOpt) 0.1f else 0.2f),
+                        disabledTextColor = MaterialTheme.colors.onSurface,
+                        disabledLabelColor = MaterialTheme.colors.onSurface.copy(alpha = 0.55f),
+                    ),
+                )
+                Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier
+                        .width(with(density) { boxWidth.toDp() })
+                        .heightIn(max = 400.dp),
+                ) {
+                    options.forEach { opt ->
+                        DropdownMenuItem(
+                            onClick = { onValueChange(opt.value); expanded = false },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(32.dp),
+                        ) {
+                            Text(opt.label, fontSize = 11.sp, fontFamily = Mono, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
                 }
             }
+            if (canClear) {
+                IconButton(
+                    onClick = { onValueChange("") },
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Clear",
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.45f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
-        if (canClear) {
-            IconButton(
-                onClick = { onValueChange("") },
-                modifier = Modifier.size(36.dp),
+    }
+
+    if (field.description.isNotBlank()) {
+        AutoHideTooltip(text = field.description) { content() }
+    } else {
+        content()
+    }
+}
+
+// ─────────────────────────────────────────────────────────
+//  AUTO-HIDE TOOLTIP
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Shows a dark tooltip near the mouse cursor on hover that auto-hides after [autoHideMillis].
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun AutoHideTooltip(
+    text: String,
+    autoHideMillis: Long = 3000L,
+    content: @Composable () -> Unit,
+) {
+    var isHovered by remember { mutableStateOf(false) }
+    var showTooltip by remember { mutableStateOf(false) }
+    var mousePosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val density = LocalDensity.current
+
+    // Show tooltip after short delay on hover, auto-hide after timeout
+    LaunchedEffect(isHovered) {
+        if (isHovered) {
+            kotlinx.coroutines.delay(800L)
+            if (isHovered) {
+                showTooltip = true
+                kotlinx.coroutines.delay(autoHideMillis)
+                showTooltip = false
+            }
+        } else {
+            showTooltip = false
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .hoverable(interactionSource)
+            .pointerInput(Unit) {
+                while (true) {
+                    awaitPointerEventScope {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        event.changes.firstOrNull()?.let { change ->
+                            mousePosition = change.position
+                        }
+                    }
+                }
+            }
+    ) {
+        // Collect hover state
+        val hoverInteraction by interactionSource.collectIsHoveredAsState()
+        LaunchedEffect(hoverInteraction) { isHovered = hoverInteraction }
+
+        content()
+        if (showTooltip) {
+            val offsetX = with(density) { mousePosition.x.toDp() + 12.dp }
+            val offsetY = with(density) { mousePosition.y.toDp() + 16.dp }
+            androidx.compose.ui.window.Popup(
+                offset = androidx.compose.ui.unit.IntOffset(
+                    with(density) { offsetX.roundToPx() },
+                    with(density) { offsetY.roundToPx() }
+                ),
             ) {
-                Icon(
-                    Icons.Default.Clear,
-                    contentDescription = "Clear",
-                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.45f),
-                    modifier = Modifier.size(18.dp),
-                )
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color(0xFF333333),
+                    elevation = 4.dp,
+                ) {
+                    Text(
+                        text,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp).widthIn(max = 320.dp),
+                        fontSize = 11.sp, color = Color.White,
+                    )
+                }
             }
         }
     }

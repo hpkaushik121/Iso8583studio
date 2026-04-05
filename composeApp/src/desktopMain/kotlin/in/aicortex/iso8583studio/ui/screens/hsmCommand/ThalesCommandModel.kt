@@ -350,7 +350,8 @@ object ThalesWireBuilder {
         if (ascii.length >= 2) {
             val responseCode = ascii.substring(0, 2)
             if ((definition.code == "M0" && responseCode == "M1") ||
-                (definition.code == "M2" && responseCode == "M3")
+                (definition.code == "M2" && responseCode == "M3") ||
+                (definition.code == "M4" && responseCode == "M5")
             ) {
                 parseM1M3DataBlockResponse(definition.responseFields, ascii)?.let { return it }
             }
@@ -401,12 +402,12 @@ object ThalesWireBuilder {
         val map = mutableMapOf<String, String>()
         map["errorCode"] = errorCode
 
-        val ivField = fields.find { it.id == "iv" } ?: return null
+        val ivField = fields.find { it.id == "iv" || it.id == "outputIV" } ?: return null
         val lenField = fields.find {
-            it.id == "encryptedMessageLength" || it.id == "decryptedMessageLength"
+            it.id == "encryptedMessageLength" || it.id == "decryptedMessageLength" || it.id == "msgLength"
         } ?: return null
         val dataField = fields.find {
-            it.id == "encryptedData" || it.id == "decryptedData"
+            it.id == "encryptedData" || it.id == "decryptedData" || it.id == "translatedData"
         } ?: return null
 
         fun buildOrdered(): List<Pair<ThalesCommandField, String>> =

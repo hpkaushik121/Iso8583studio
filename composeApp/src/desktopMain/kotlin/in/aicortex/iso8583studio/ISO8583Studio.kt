@@ -42,12 +42,18 @@ import `in`.aicortex.iso8583studio.ui.screens.posTerminal.POSTerminalSimulatorSc
 import `in`.aicortex.iso8583studio.ui.navigation.rememberNavigationController
 import `in`.aicortex.iso8583studio.ui.session.GlobalSimulatorTabBar
 import `in`.aicortex.iso8583studio.ui.session.SimulatorSessionManager
+import `in`.aicortex.iso8583studio.ui.session.ToolUsageTracker
+import `in`.aicortex.iso8583studio.data.model.StudioTool
 import iso8583studio.composeapp.generated.resources.Res
 import iso8583studio.composeapp.generated.resources.app
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import `in`.aicortex.iso8583studio.ui.GlassBackdrop
+import `in`.aicortex.iso8583studio.ui.GlassWindowEffect
+import `in`.aicortex.iso8583studio.ui.detectWindowsDarkMode
 import java.awt.Desktop
 import java.awt.desktop.AboutHandler
+import androidx.compose.foundation.isSystemInDarkTheme
 
 enum class DialogType {
     SUCCESS, ERROR, NONE
@@ -57,7 +63,13 @@ class ISO8583Studio {
 
     companion object {
         @JvmStatic
-        fun main(args: Array<String>) = application {
+        fun main(args: Array<String>) {
+            // Set system look-and-feel before creating any windows
+            try {
+                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName())
+            } catch (_: Throwable) { }
+
+            application {
 
             Thread.currentThread().uncaughtExceptionHandler = ExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler())
@@ -81,83 +93,246 @@ class ISO8583Studio {
                 }
             }
 
+            // Detect OS dark mode (registry fallback for Windows)
+            val osDarkMode = remember {
+                detectWindowsDarkMode() ?: false
+            }
+
             AppTheme {
+                val isDark = isSystemInDarkTheme() || osDarkMode
                 Window(
                     onCloseRequest = ::exitApplication,
                     title = "ISO8583Studio",
                     state = windowState,
-                    icon = painterResource(Res.drawable.app)
+                    icon = painterResource(Res.drawable.app),
+                    transparent = false,
+                    undecorated = false,
                 ) {
+                    GlassWindowEffect(
+                        window = window,
+                        backdrop = GlassBackdrop.MICA,
+                        darkMode = isDark,
+                    )
                     Navigator(screen = Destination.Home) { navigator ->
                         val navigationController = rememberNavigationController(navigator)
 
-                        // ─── Menu Bar (unchanged) ───────────────────────
+                        // ─── Menu Bar ─────────────────────────────────
                         MenuBar {
-                            Menu(text = "File") {
-                                Menu(text = "Configuration") {
-                                    Item(text = "Export") {
-                                        isoCoroutine.launch {
-                                            val file = FileExporter().exportFile(
-                                                window = window,
-                                                fileName = "ISO8583Studio",
-                                                fileExtension = "json",
-                                                fileContent = appState.value.export().toByteArray(),
-                                                fileDescription = "Configuration File"
-                                            )
-                                            when (file) {
-                                                is ExportResult.Success -> {
-                                                    appState.value.resultDialogInterface?.onSuccess {
-                                                        Column(
-                                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                                            verticalArrangement = Arrangement.Center
-                                                        ) {
-                                                            Text("Configuration exported successfully!")
-                                                        }
+                            // ══════════════════════════════════════════
+                            //  Quick Access — dynamic, most-used tools
+                            // ══════════════════════════════════════════
+                            Menu(text = "Quick Access") {
+                                val topLabels = ToolUsageTracker.topLabels(8)
+                                val allTools = StudioTool.values()
+                                if (topLabels.isNotEmpty()) {
+                                    for (label in topLabels) {
+                                        val tool = allTools.firstOrNull { it.label == label }
+                                        if (tool != null) {
+                                            Item(text = tool.label) {
+                                                SimulatorSessionManager.openTool(tool)
+                                            }
+                                        }
+                                    }
+                                    Separator()
+                                }
+                                Item(text = "Home") {
+                                    SimulatorSessionManager.activateMainContent()
+                                    navigationController.navigateTo(Destination.Home)
+                                }
+                            }
+
+                            // ══════════════════════════════════════════
+                            //  Simulators — grouped by type
+                            // ══════════════════════════════════════════
+                            Menu(text = "Simulators") {
+                                Menu(text = "Transaction Processing") {
+                                    Item(text = "Host Simulator") {
+                                        SimulatorSessionManager.openTool(StudioTool.HOST_SIMULATOR)
+                                    }
+                                    Item(text = "POS Terminal") {
+                                        SimulatorSessionManager.openTool(StudioTool.POS_TERMINAL)
+                                    }
+                                    Item(text = "ATM Simulator") {
+                                        SimulatorSessionManager.openTool(StudioTool.ATM_SIMULATOR)
+                                    }
+                                    Item(text = "ECR Simulator") {
+                                        SimulatorSessionManager.openTool(StudioTool.ECR_SIMULATOR)
+                                    }
+                                }
+                                Menu(text = "HSM & Security") {
+                                    Item(text = "HSM Simulator") {
+                                        SimulatorSessionManager.openTool(StudioTool.HSM_SIMULATOR)
+                                    }
+                                    Item(text = "HSM Host Console") {
+                                        SimulatorSessionManager.openTool(StudioTool.HSM_COMMAND)
+                                    }
+                                    Item(text = "APDU Simulator") {
+                                        SimulatorSessionManager.openTool(StudioTool.APDU_SIMULATOR)
+                                    }
+                                }
+                                Menu(text = "Network & Switching") {
+                                    Item(text = "Payment Switch") {
+                                        SimulatorSessionManager.openTool(StudioTool.PAYMENT_SWITCH)
+                                    }
+                                    Item(text = "Acquirer Gateway") {
+                                        SimulatorSessionManager.openTool(StudioTool.ACQUIRER_GATEWAY)
+                                    }
+                                    Item(text = "Issuer System") {
+                                        SimulatorSessionManager.openTool(StudioTool.ISSUER_SYSTEM)
+                                    }
+                                }
+                            }
+
+                            // ══════════════════════════════════════════
+                            //  Tools — organized by ToolSuite categories
+                            // ══════════════════════════════════════════
+                            Menu(text = "Tools") {
+                                Menu(text = "EMV & Card Tools") {
+                                    Item(text = "EMV 4.1 Crypto") { SimulatorSessionManager.openTool(StudioTool.EMV_41_CRYPTO) }
+                                    Item(text = "EMV 4.2 Crypto") { SimulatorSessionManager.openTool(StudioTool.EMV_42_CRYPTO) }
+                                    Item(text = "MasterCard Crypto") { SimulatorSessionManager.openTool(StudioTool.MASTERCARD_CRYPTO) }
+                                    Item(text = "VSDC Crypto") { SimulatorSessionManager.openTool(StudioTool.VSDC_CRYPTO) }
+                                    Item(text = "SDA Verification") { SimulatorSessionManager.openTool(StudioTool.SDA_VERIFICATION) }
+                                    Item(text = "DDA Verification") { SimulatorSessionManager.openTool(StudioTool.DDA_VERIFICATION) }
+                                    Separator()
+                                    Item(text = "CAP Token") { SimulatorSessionManager.openTool(StudioTool.CAP_TOKEN) }
+                                    Item(text = "HCE Visa") { SimulatorSessionManager.openTool(StudioTool.HCE_VISA) }
+                                    Item(text = "Secure Messaging") { SimulatorSessionManager.openTool(StudioTool.SECURE_MESSAGING) }
+                                    Separator()
+                                    Item(text = "ATR Parser") { SimulatorSessionManager.openTool(StudioTool.ATR_PARSER) }
+                                    Item(text = "EMV Data Parser") { SimulatorSessionManager.openTool(StudioTool.EMV_DATA_PARSER) }
+                                    Item(text = "EMV Tag Dictionary") { SimulatorSessionManager.openTool(StudioTool.EMV_TAG_DICTIONARY) }
+                                }
+
+                                Menu(text = "Cryptography") {
+                                    Item(text = "AES Calculator") { SimulatorSessionManager.openTool(StudioTool.AES_CALCULATOR) }
+                                    Item(text = "DES/3DES Calculator") { SimulatorSessionManager.openTool(StudioTool.DES_CALCULATOR) }
+                                    Item(text = "RSA Calculator") { SimulatorSessionManager.openTool(StudioTool.RSA_CALCULATOR) }
+                                    Item(text = "ECDSA Calculator") { SimulatorSessionManager.openTool(StudioTool.ECDSA_CALCULATOR) }
+                                    Item(text = "FPE Calculator") { SimulatorSessionManager.openTool(StudioTool.FPE_CALCULATOR) }
+                                    Separator()
+                                    Item(text = "Hash Calculator") { SimulatorSessionManager.openTool(StudioTool.HASH_CALCULATOR) }
+                                    Item(text = "Thales RSA") { SimulatorSessionManager.openTool(StudioTool.THALES_RSA) }
+                                }
+
+                                Menu(text = "Key Management") {
+                                    Item(text = "DEA Keys") { SimulatorSessionManager.openTool(StudioTool.DEA_KEYS) }
+                                    Item(text = "Keyshare Generator") { SimulatorSessionManager.openTool(StudioTool.KEYSHARE_GENERATOR) }
+                                    Separator()
+                                    Item(text = "Thales Keys") { SimulatorSessionManager.openTool(StudioTool.THALES_KEYS) }
+                                    Item(text = "Futurex Keys") { SimulatorSessionManager.openTool(StudioTool.FUTUREX_KEYS) }
+                                    Item(text = "Atalla Keys") { SimulatorSessionManager.openTool(StudioTool.ATALLA_KEYS) }
+                                    Item(text = "SafeNet Keys") { SimulatorSessionManager.openTool(StudioTool.SAFENET_KEYS) }
+                                    Separator()
+                                    Item(text = "Thales Key Blocks") { SimulatorSessionManager.openTool(StudioTool.THALES_KEY_BLOCKS) }
+                                    Item(text = "TR-31 Key Blocks") { SimulatorSessionManager.openTool(StudioTool.TR31_KEY_BLOCKS) }
+                                    Item(text = "RSA DER Keys") { SimulatorSessionManager.openTool(StudioTool.RSA_DER_KEYS) }
+                                    Item(text = "SSL Certificate") { SimulatorSessionManager.openTool(StudioTool.SSL_CERTIFICATE) }
+                                }
+
+                                Menu(text = "Payment & MAC") {
+                                    Item(text = "CVV Calculator") { SimulatorSessionManager.openTool(StudioTool.CVV_CALCULATOR) }
+                                    Item(text = "Amex CSC") { SimulatorSessionManager.openTool(StudioTool.AMEX_CSC) }
+                                    Item(text = "MasterCard CVC3") { SimulatorSessionManager.openTool(StudioTool.MASTERCARD_CSC) }
+                                    Separator()
+                                    Item(text = "DUKPT ISO 9797") { SimulatorSessionManager.openTool(StudioTool.DUKPT_ISO_9797) }
+                                    Item(text = "DUKPT AES") { SimulatorSessionManager.openTool(StudioTool.DUKPT_ISO_AES) }
+                                    Item(text = "ISO/IES 9797-1 MAC") { SimulatorSessionManager.openTool(StudioTool.ISO_IES_9797_1_MAC) }
+                                    Item(text = "ANSI MAC") { SimulatorSessionManager.openTool(StudioTool.ANSI_MAC) }
+                                    Item(text = "AS2805 MAC") { SimulatorSessionManager.openTool(StudioTool.AS2805_MAC) }
+                                    Item(text = "3DES CBC MAC") { SimulatorSessionManager.openTool(StudioTool.TDES_CBC_MAC) }
+                                    Item(text = "HMAC") { SimulatorSessionManager.openTool(StudioTool.HMAC_MAC) }
+                                    Item(text = "CMAC") { SimulatorSessionManager.openTool(StudioTool.CMAC_MAC) }
+                                    Item(text = "Retail MAC") { SimulatorSessionManager.openTool(StudioTool.RETAIL_MAC) }
+                                    Item(text = "MDC Hash") { SimulatorSessionManager.openTool(StudioTool.MDC_HASH) }
+                                    Separator()
+                                    Item(text = "PIN Block General") { SimulatorSessionManager.openTool(StudioTool.PIN_BLOCK_GENERAL) }
+                                    Item(text = "AES PIN Block") { SimulatorSessionManager.openTool(StudioTool.PIN_BLOCK_AES) }
+                                    Item(text = "PIN Offset (IBM)") { SimulatorSessionManager.openTool(StudioTool.PIN_OFFSET_IBM) }
+                                    Item(text = "PIN PVV") { SimulatorSessionManager.openTool(StudioTool.PIN_PVV) }
+                                    Item(text = "ZKA") { SimulatorSessionManager.openTool(StudioTool.ZKA) }
+                                }
+
+                                Menu(text = "Data Converters") {
+                                    Item(text = "Base64 Encoder") { SimulatorSessionManager.openTool(StudioTool.BASE64_ENCODER) }
+                                    Item(text = "Base94 Encoder") { SimulatorSessionManager.openTool(StudioTool.BASE94_ENCODER) }
+                                    Item(text = "BCD Converter") { SimulatorSessionManager.openTool(StudioTool.BCD_CONVERTER) }
+                                    Item(text = "Character Encoder") { SimulatorSessionManager.openTool(StudioTool.CHARACTER_ENCODER) }
+                                    Item(text = "Check Digit") { SimulatorSessionManager.openTool(StudioTool.CHECK_DIGIT) }
+                                    Separator()
+                                    Item(text = "Message Parser") { SimulatorSessionManager.openTool(StudioTool.MESSAGE_PARSER) }
+                                    Item(text = "AS2805 Calculator") { SimulatorSessionManager.openTool(StudioTool.AS2805_CALCULATOR) }
+                                    Item(text = "Bitmap Calculator") { SimulatorSessionManager.openTool(StudioTool.BITMAP_CALCULATOR) }
+                                    Item(text = "APDU Response Query") { SimulatorSessionManager.openTool(StudioTool.APDU_RESPONSE_QUERY) }
+                                }
+                            }
+
+                            // ══════════════════════════════════════════
+                            //  Configuration — import/export/settings
+                            // ══════════════════════════════════════════
+                            Menu(text = "Configuration") {
+                                Item(text = "Export Configuration") {
+                                    isoCoroutine.launch {
+                                        val file = FileExporter().exportFile(
+                                            window = window,
+                                            fileName = "ISO8583Studio",
+                                            fileExtension = "json",
+                                            fileContent = appState.value.export().toByteArray(),
+                                            fileDescription = "Configuration File"
+                                        )
+                                        when (file) {
+                                            is ExportResult.Success -> {
+                                                appState.value.resultDialogInterface?.onSuccess {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Text("Configuration exported successfully!")
                                                     }
                                                 }
-                                                is ExportResult.Cancelled -> println("Export cancelled")
-                                                is ExportResult.Error -> {
-                                                    appState.value.resultDialogInterface?.onError {
-                                                        Column(
-                                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                                            verticalArrangement = Arrangement.Center,
-                                                        ) {
-                                                            Text((file as ExportResult.Error).message)
-                                                        }
+                                            }
+                                            is ExportResult.Cancelled -> println("Export cancelled")
+                                            is ExportResult.Error -> {
+                                                appState.value.resultDialogInterface?.onError {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center,
+                                                    ) {
+                                                        Text((file as ExportResult.Error).message)
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                    Item(text = "Import") {
-                                        isoCoroutine.launch {
-                                            val file = FileImporter().importFile(
-                                                window = window,
-                                                fileExtensions = listOf("json"),
-                                                importLogic = { file ->
-                                                    appState.value.import(file)
-                                                }
-                                            )
-                                            when (file) {
-                                                is ImportResult.Success -> {
-                                                    appState.value.resultDialogInterface?.onSuccess {
-                                                        Column(
-                                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                                            verticalArrangement = Arrangement.Center
-                                                        ) {
-                                                            Text("Configuration imported successfully!")
-                                                        }
+                                }
+                                Item(text = "Import Configuration") {
+                                    isoCoroutine.launch {
+                                        val file = FileImporter().importFile(
+                                            window = window,
+                                            fileExtensions = listOf("json"),
+                                            importLogic = { file ->
+                                                appState.value.import(file)
+                                            }
+                                        )
+                                        when (file) {
+                                            is ImportResult.Success -> {
+                                                appState.value.resultDialogInterface?.onSuccess {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Text("Configuration imported successfully!")
                                                     }
                                                 }
-                                                is ImportResult.Cancelled -> println("Import cancelled")
-                                                is ImportResult.Error -> {
-                                                    appState.value.resultDialogInterface?.onError {
-                                                        Column(
-                                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                                            verticalArrangement = Arrangement.Center
-                                                        ) {
-                                                            Text(file.message)
-                                                        }
+                                            }
+                                            is ImportResult.Cancelled -> println("Import cancelled")
+                                            is ImportResult.Error -> {
+                                                appState.value.resultDialogInterface?.onError {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Text(file.message)
                                                     }
                                                 }
                                             }
@@ -168,49 +343,15 @@ class ISO8583Studio {
                                 Item(text = "Settings") {
                                     navigationController.navigateTo(Destination.GlobalSettings)
                                 }
+                            }
+
+                            // ══════════════════════════════════════════
+                            //  Help
+                            // ══════════════════════════════════════════
+                            Menu(text = "Help") {
+                                Item(text = "About ISO8583 Studio") { showAboutDialog = true }
                                 Separator()
                                 Item(text = "Exit") { exitApplication() }
-                            }
-
-                            Menu(text = "Simulator") {
-                                Item(text = "Host Simulator") {
-                                    navigationController.navigateTo(Destination.HostSimulatorConfig)
-                                }
-                                Item(text = "HSM Simulator") {
-                                    navigationController.navigateTo(Destination.HSMSimulatorConfig)
-                                }
-                                Item(text = "POS Terminal") {
-                                    navigationController.navigateTo(Destination.POSTerminalConfig)
-                                }
-                                Item(text = "APDU Simulator") {
-                                    navigationController.navigateTo(Destination.ApduSimulatorConfig)
-                                }
-                                Separator()
-                                Item(text = "ECR Simulator") {
-                                    navigationController.navigateTo(Destination.EcrSimulatorConfigScreen)
-                                }
-                                Item(text = "ATM Simulator") {
-                                    navigationController.navigateTo(Destination.ATMSimulatorConfig)
-                                }
-                                Separator()
-                                Item(text = "Payment Switch") {
-                                    navigationController.navigateTo(Destination.PaymentSwitchConfig)
-                                }
-                                Item(text = "Acquirer Gateway") {
-                                    navigationController.navigateTo(Destination.AcquirerGatewayConfig)
-                                }
-                                Item(text = "Issuer System") {
-                                    navigationController.navigateTo(Destination.IssuerSystemConfig)
-                                }
-                            }
-
-                            // NOTE: All other menu items (Payments, EMV, Cipher, Keys, etc.)
-                            // remain exactly as they were — omitted here for brevity.
-                            // Copy them from the original ISO8583Studio.kt unchanged.
-                            // Only the main content area rendering logic changes below.
-
-                            Menu(text = "Help") {
-                                Item(text = "About") { showAboutDialog = true }
                             }
                         }
 
@@ -358,6 +499,11 @@ class ISO8583Studio {
                                         state = popoutWindowState,
                                         icon = painterResource(Res.drawable.app)
                                     ) {
+                                        GlassWindowEffect(
+                                            window = window,
+                                            backdrop = GlassBackdrop.MICA,
+                                            darkMode = isDark,
+                                        )
                                         AppTheme {
                                             Navigator(screen = Destination.Home) {
                                                 Column(modifier = Modifier.fillMaxSize()) {
@@ -381,6 +527,7 @@ class ISO8583Studio {
                                     }
                                 }
                             }
+                        }
                     }
                 }
             }
@@ -439,7 +586,11 @@ private fun SessionContent(
             `in`.aicortex.iso8583studio.ui.screens.hsmCommand.HsmCommandScreen(
                 config = config,
                 onBack = onBack,
-                service = session.hsmCommandService
+                service = session.hsmCommandService,
+                onSaveConfig = { updatedConfig ->
+                    appState.value.updateConfig(updatedConfig)
+                    appState.value.save()
+                }
             )
         }
 

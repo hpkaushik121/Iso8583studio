@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 // Data model
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum class HostParamType { TEXT, HEX, DROPDOWN, NUMBER }
+enum class HostParamType { TEXT, HEX, DROPDOWN, NUMBER, DELIMITER }
 
 data class HostParamOption(val label: String, val value: String)
 
@@ -44,6 +44,10 @@ data class HostCommandParam(
     val placeholder: String = "",
     val options: List<HostParamOption> = emptyList(),
     val maxLength: Int = 256,
+    /** For DELIMITER type: the delimiter char to wire (e.g. ";" or "%"). */
+    val delimiterChar: String = ";",
+    /** Non-empty = this param belongs to a delimiter group; only shown/wired when delimiter is checked. */
+    val delimiterGroup: String = "",
 )
 
 enum class HostCommandCategory(
@@ -174,19 +178,38 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
     ),
 
     HostCommand(
-        code = "G0", responseCode = "G1", name = "Translate PIN: DUKPT (BDK) → ZPK",
+        code = "G0", responseCode = "G1", name = "Translate PIN: DUKPT (BDK) → BDK/ZPK",
         category = HostCommandCategory.PIN_TRANS,
-        description = "Derives the DUKPT transaction key from BDK+KSN then re-encrypts PIN block under ZPK.",
-        wireFormatHint = "0000G0 [BDK_1A+32H] [ZPK_1A+32H] [KSN_Desc_3H] [KSN_20H] [PINBlock_16H] [SrcFmt_2N] [DstFmt_2N] [Account_12N]",
+        description = "Derives DUKPT session key from source BDK+KSN, decrypts PIN block, re-encrypts under destination ZPK or DUKPT-derived key.",
+        wireFormatHint = "0000G0 [BDK_1A+32H] [DestKeyType_1A] [ZPK/BDK_1A+32H] [SrcKSNDesc_3H] [SrcKSN_20H] [DstKSNDesc_3H?] [DstKSN_20H?] [PINBlock_16H] [SrcFmt_2N] [DstFmt_2N] [Account_12N]",
         params = listOf(
-            HostCommandParam("bdk",     "BDK (under LMK)",       "Base Derivation Key — prefix U/T/X + key hex",    HostParamType.TEXT,    "", true,  "U0123456789ABCDEF0123456789ABCDEF"),
-            HostCommandParam("zpk",     "ZPK (under LMK)",       "Zone PIN Key — prefix U + key hex",               HostParamType.TEXT,    "", true,  "UFEDCBA9876543210FEDCBA9876543210"),
-            HostCommandParam("ksnDesc", "KSN Descriptor (3H)",   "BDK_ID length, Sub-Key length, Device_ID length", HostParamType.HEX,     "600", true, "600"),
-            HostCommandParam("ksn",     "KSN (20H)",             "Key Serial Number from terminal",                 HostParamType.HEX,     "", true,  "FFFF9876543210E00001"),
-            HostCommandParam("pinBlock","Source PIN Block (16H)","DUKPT-encrypted PIN block",                       HostParamType.HEX,     "", true,  "0412AC3700000000"),
-            HostCommandParam("srcFmt",  "Source Format",         "",                                                HostParamType.DROPDOWN,"01", true, "", PIN_BLOCK_FORMAT_OPTIONS),
-            HostCommandParam("dstFmt",  "Dest Format",           "",                                                HostParamType.DROPDOWN,"01", true, "", PIN_BLOCK_FORMAT_OPTIONS),
-            HostCommandParam("account", "Account Number (12N)",  "12 rightmost PAN digits excl. check digit",       HostParamType.HEX,     "", true,  "123456789012"),
+            HostCommandParam("bdk",         "BDK (under LMK)",              "Source Base Derivation Key encrypted under LMK pair 28-29. Used with source KSN to derive the DUKPT session key that decrypts the incoming PIN block.",
+                HostParamType.TEXT,    "", true,  "U0123456789ABCDEF0123456789ABCDEF"),
+            HostCommandParam("destKeyType", "Destination Key Type",         "'0' = Not Set (destination is ZPK). '*' = BDK-1. '~' = BDK-2. '!' = BDK-4. When BDK is selected, destination KSN fields are required.",
+                HostParamType.DROPDOWN,"0", true, "", listOf(
+                HostParamOption("'0' - Not Set (ZPK)", "0"),
+                HostParamOption("'*' (X'2A) - BDK-1", "*"),
+                HostParamOption("'~' (X'7E) - BDK-2", "~"),
+                HostParamOption("'!' (X'21) - BDK-4", "!"),
+            )),
+            HostCommandParam("destKey",     "ZPK / Dest BDK (under LMK)",  "Destination key under LMK. If Dest Key Type = '0', this is a ZPK under LMK pair 06-07. Otherwise, this is a BDK under LMK pair 28-29.",
+                HostParamType.TEXT,    "", true,  "UFEDCBA9876543210FEDCBA9876543210"),
+            HostCommandParam("srcKsnDesc",  "Source KSN Descriptor",        "3-digit KSN descriptor for the source BDK. Format: BDK_ID_len + Sub-Key_len + Device_ID_len (e.g. 906 = 9 bits BDK-ID, 0 sub-key, 6 device-ID). Determines counter bit width.",
+                HostParamType.HEX,     "906", true, "906"),
+            HostCommandParam("srcKsn",      "Key Serial Number",            "20H source Key Serial Number from the terminal. Includes BDK-ID, device-ID, and transaction counter.",
+                HostParamType.HEX,     "FFFF0123456789E00002", true,  "FFFF0123456789E00002"),
+            HostCommandParam("dstKsnDesc",  "Destination KSN Descriptor",   "3-digit KSN descriptor for the destination BDK. Only required when Destination Key Type is BDK (*,~,!).",
+                HostParamType.HEX,     "906", false, "906"),
+            HostCommandParam("dstKsn",      "Destination Key Serial Number","20H destination KSN. Only required when Destination Key Type is BDK (*,~,!). Used to derive the destination DUKPT session key.",
+                HostParamType.HEX,     "FFFF0123456789E00002", false,  "FFFF0123456789E00002"),
+            HostCommandParam("pinBlock",    "Source Encrypted Block",       "16H PIN block encrypted under the source DUKPT-derived session key (PEK variant).",
+                HostParamType.HEX,     "", true,  "7C6E2C03F30AADBF"),
+            HostCommandParam("srcFmt",      "Source PIN Block Format",      "PIN block format of the incoming encrypted PIN block.",
+                HostParamType.DROPDOWN,"01", true, "", PIN_BLOCK_FORMAT_OPTIONS),
+            HostCommandParam("dstFmt",      "Destination Format Code",      "PIN block format for the re-encrypted output PIN block.",
+                HostParamType.DROPDOWN,"01", true, "", PIN_BLOCK_FORMAT_OPTIONS),
+            HostCommandParam("account",     "Account Number",               "12 rightmost digits of the PAN excluding the check digit. Used for PIN block format 0/3 XOR masking.",
+                HostParamType.HEX,     "999999999999", true,  "999999999999"),
         )
     ),
 
@@ -315,23 +338,49 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
     HostCommand(
         code = "A0", responseCode = "A1", name = "Generate Key",
         category = HostCommandCategory.KEY_MGMT,
-        description = "Generates a DES/TDES symmetric key (TPK, ZPK, PVK, BDK, ZAK, ZEK, etc.) encrypted under the LMK.",
-        wireFormatHint = "0000A0 [Mode_1H] [KeyType_3H] [Scheme_1A] ; [TMKFlag_1N] [TMK_1A+32H] [ExportScheme_1A]",
+        description = "Generate or derive a key. Mode 0/1: random key. Mode A/B: derive IKEY from DUKPT BDK + KSN.",
+        wireFormatHint = "0000A0 [Mode_1H] [KeyType_3H] [Scheme_1A] [DeriveKeyMode_1] [DukptKeyType_1] [BDK] [KSN] ; [ZmkFlag_1N] [ZMK] [ExportScheme_1A]",
         params = listOf(
-            HostCommandParam("mode",     "Mode",         "0=Gen+export under TMK; 1=Gen under LMK only",HostParamType.DROPDOWN,"1", true, "", listOf(
+            HostCommandParam("mode",     "Mode",         "0 = Generate under LMK. 1 = Generate + export under ZMK. A = Derive IKEY from BDK+KSN (LMK only). B = Derive IKEY + export under ZMK.",
+                HostParamType.DROPDOWN,"B", true, "", listOf(
                 HostParamOption("0 – Generate Under LMK", "0"),
                 HostParamOption("1 – Generate under LMK and ZMK",     "1"),
-                HostParamOption("A – Derive Key",     "A"),
-                HostParamOption("B – Derive Key and encrypt Under ZMK",     "B"),
+                HostParamOption("A – Derive IKEY (DUKPT, LMK only)",     "A"),
+                HostParamOption("B – Derive IKEY + export under ZMK",     "B"),
             )),
-            HostCommandParam("keyType",  "Key Type",     "3H key type code",                            HostParamType.DROPDOWN,"001", true, "", KEY_TYPE_OPTIONS),
-            HostCommandParam("scheme",   "LMK Scheme",   "Key scheme / length under LMK",               HostParamType.DROPDOWN,"U", true, "", KEY_SCHEME_OPTIONS),
-            HostCommandParam("tmkFlag",  "Export under TMK?","Set 1 to also export under TMK",         HostParamType.DROPDOWN,"0", false, "", listOf(
-                HostParamOption("0 – No export", "0"),
-                HostParamOption("1 – Export under TMK", "1"),
+            HostCommandParam("keyType",  "Key Type",     "Output key type. FFF = KeyBlock (LMK pair from KeyBlock attributes). 302 = IKEY. Determines which LMK pair encrypts the output.",
+                HostParamType.DROPDOWN,"FFF", true, "", KEY_TYPE_OPTIONS),
+            HostCommandParam("scheme",   "Key Scheme (LMK)",   "Encryption scheme for output key under LMK. S = KeyBlock (for FFF), U = double-length, T = triple-length.",
+                HostParamType.DROPDOWN,"S", true, "", KEY_SCHEME_OPTIONS),
+            HostCommandParam("deriveKeyMode", "Derive Key Mode", "0 = DUKPT: derive IKEY/IPEK from BDK + KSN using ANSI X9.24. Only for Mode A/B.",
+                HostParamType.DROPDOWN,"0", false, "", listOf(
+                HostParamOption("0 – DUKPT", "0"),
+                HostParamOption("1 – ZKA", "1"),
             )),
-            HostCommandParam("tmk",      "TMK (optional)","Required if TMK flag = 1  (prefix U + 32H)", HostParamType.TEXT, "", false, "U...TMK..."),
-            HostCommandParam("exportScheme","Export Scheme","Key scheme for TMK-encrypted output",       HostParamType.DROPDOWN,"U", false, "", KEY_SCHEME_OPTIONS),
+            HostCommandParam("dukptMasterKeyType", "DUKPT Master Key Type", "BDK type under LMK 28-29. Each type uses a different LMK variant. 1=BDK-1, 2=BDK-2, 3=BDK-3, 4=BDK-4 (AES).",
+                HostParamType.DROPDOWN,"1", false, "", listOf(
+                HostParamOption("1 – BDK-1", "1"), HostParamOption("2 – BDK-2", "2"),
+                HostParamOption("3 – BDK-3", "3"), HostParamOption("4 – BDK-4 (AES)", "4"),
+            )),
+            HostCommandParam("bdk",      "BDK (under LMK)",    "DUKPT Base Derivation Key encrypted under LMK pair 28-29. S-block or prefix+hex. Used with KSN to derive IKEY via ANSI X9.24.",
+                HostParamType.TEXT, "", false, "S10096B0EN00E0003..."),
+            HostCommandParam("ksn",      "KSN",                "Key Serial Number. 15H for 3DES BDK (KSI+DID, F-padded left, last hex even). 16H for AES BDK-4.",
+                HostParamType.TEXT, "FFFF9876543210E", false, "FFFF9876543210E"),
+            HostCommandParam("a0ZmkDelim", "; Delimiter (ZMK section)", "Include ';' delimiter and ZMK/TMK export fields. Required for Mode 1/B.",
+                HostParamType.DELIMITER, "Y", false, "", delimiterChar = ";"),
+            HostCommandParam("zmkFlag",  "ZMK/TMK Flag",       "0 = ZMK, 1 = TMK. For Mode 1/B: the wrapping key type for the second output.",
+                HostParamType.DROPDOWN,"0", false, "", listOf(
+                HostParamOption("0 – ZMK", "0"),
+                HostParamOption("1 – TMK", "1"),
+            ), delimiterGroup = "a0ZmkDelim"),
+            HostCommandParam("zmk",      "ZMK/TMK (under LMK)","ZMK/TMK encrypted under LMK pair 00-01. The derived IKEY will be re-encrypted under this key. For S scheme, used directly as KBPK.",
+                HostParamType.TEXT, "", false, "S10096K0TN00E0003...", delimiterGroup = "a0ZmkDelim"),
+            HostCommandParam("exportScheme","Key Scheme (ZMK/TMK)","Output format for key under ZMK: S = KeyBlock (ZMK as KBPK), U = single, T = double, X = triple.",
+                HostParamType.DROPDOWN,"S", false, "", KEY_SCHEME_OPTIONS, delimiterGroup = "a0ZmkDelim"),
+            HostCommandParam("a0LmkDelim", "% Delimiter (LMK Identifier)", "Include '%' delimiter and LMK Identifier field.",
+                HostParamType.DELIMITER, "", false, "", delimiterChar = "%"),
+            HostCommandParam("lmkId",    "LMK Identifier",     "2-digit LMK Identifier (00-99). Selects which LMK set to use.",
+                HostParamType.TEXT, "00", false, "00", delimiterGroup = "a0LmkDelim"),
         )
     ),
 
@@ -352,13 +401,23 @@ val HOST_COMMANDS: List<HostCommand> = listOf(
     HostCommand(
         code = "A8", responseCode = "A9", name = "Export Key (LMK → ZMK)",
         category = HostCommandCategory.KEY_MGMT,
-        description = "Exports a key from LMK to ZMK encryption for transmission to another party.",
-        wireFormatHint = "0000A8 [KeyType_3H] [ZMK_1A+32H] [Key_1A+32H] [ExportScheme_1A]",
+        description = "Exports a key encrypted under LMK, re-encrypts it under a ZMK/TMK for transport. Use FFF for KeyBlock keys.",
+        wireFormatHint = "0000A8 [KeyType_3H] ;[ZMK/TMK Flag_1N] [ZMK] [Key] [ExportScheme_1A] %[LMK_ID_2N]",
         params = listOf(
-            HostCommandParam("keyType",     "Key Type",           "3H key type code",                       HostParamType.DROPDOWN,"001",true, "", KEY_TYPE_OPTIONS),
-            HostCommandParam("zmk",         "ZMK (under LMK)",    "Zone Master Key — prefix + hex",         HostParamType.TEXT,    "", true, "U...ZMK..."),
-            HostCommandParam("keyToExport", "Key to Export",      "Key under LMK — prefix + hex",           HostParamType.TEXT,    "", true, "U...KEY..."),
-            HostCommandParam("exportScheme","Export Scheme",       "Scheme for ZMK-encrypted output",        HostParamType.DROPDOWN,"U",true, "", KEY_SCHEME_OPTIONS),
+            HostCommandParam("keyType",     "Key Type",           "Key type code. Use FFF for KeyBlock keys — LMK pair is derived from S-block key usage header. Other codes (001=ZPK, 002=TPK, etc.) use fixed LMK pairs.",
+                HostParamType.DROPDOWN,"FFF",true, "", KEY_TYPE_OPTIONS),
+            HostCommandParam("a8SemiDelim", "; Delimiter (ZMK/TMK section)", "Include ';' delimiter and ZMK/TMK export fields.",
+                HostParamType.DELIMITER, "Y", false, "", delimiterChar = ";"),
+            HostCommandParam("zmk",         "ZMK/TMK (under LMK)",    "Zone/Terminal Master Key encrypted under LMK. For KeyBlock (S-block) keys, the key usage in the header determines the LMK pair. This key will be used as KBPK when export scheme is S.",
+                HostParamType.TEXT,    "", true, "S10096K0TN00E0003...", delimiterGroup = "a8SemiDelim"),
+            HostCommandParam("keyToExport", "Key to Export (under LMK)",      "The key to export, encrypted under LMK. For FFF key type, this should be an S-block. The clear key inside will be re-encrypted under the ZMK/TMK using the export scheme.",
+                HostParamType.TEXT,    "", true, "S10096P0TB00E0003...", delimiterGroup = "a8SemiDelim"),
+            HostCommandParam("exportScheme","Export Scheme (output format)",       "Format of the output key under ZMK/TMK: S = KeyBlock (ZMK used as KBPK), U = single-length variant, T = double-length variant, X = triple-length variant.",
+                HostParamType.DROPDOWN,"S",true, "", KEY_SCHEME_OPTIONS, delimiterGroup = "a8SemiDelim"),
+            HostCommandParam("a8LmkDelim", "% Delimiter (LMK Identifier)", "Include '%' delimiter and LMK Identifier field.",
+                HostParamType.DELIMITER, "", false, "", delimiterChar = "%"),
+            HostCommandParam("lmkId",    "LMK Identifier",     "2-digit LMK Identifier (00-99). Selects which LMK set to use.",
+                HostParamType.TEXT, "00", false, "00", delimiterGroup = "a8LmkDelim"),
         )
     ),
 
@@ -903,12 +962,21 @@ private fun HostCommandForm(
                             color = MaterialTheme.colors.onSurface.copy(alpha = 0.55f))
                     } else {
                         command.params.forEach { param ->
-                            HostParamField(
-                                param = param,
-                                value = paramValues[param.id] ?: param.default,
-                                onValueChange = { paramValues[param.id] = it }
-                            )
-                            Spacer(Modifier.height(10.dp))
+                            val shouldShow = if (param.delimiterGroup.isNotEmpty()) {
+                                val delimVal = paramValues[param.delimiterGroup]
+                                    ?: command.params.find { it.id == param.delimiterGroup }?.default
+                                    ?: ""
+                                delimVal == "Y"
+                            } else true
+
+                            if (shouldShow) {
+                                HostParamField(
+                                    param = param,
+                                    value = paramValues[param.id] ?: param.default,
+                                    onValueChange = { paramValues[param.id] = it }
+                                )
+                                Spacer(Modifier.height(10.dp))
+                            }
                         }
                     }
 
@@ -993,29 +1061,79 @@ private fun HostCommandForm(
 // Parameter field rendering
 // ─────────────────────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HostParamField(
     param: HostCommandParam,
     value: String,
     onValueChange: (String) -> Unit
 ) {
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(param.label, style = MaterialTheme.typography.caption, fontWeight = FontWeight.SemiBold)
-            if (param.required) Text(" *", color = MaterialTheme.colors.error,
-                style = MaterialTheme.typography.caption)
-            Spacer(Modifier.weight(1f))
-            if (param.type == HostParamType.HEX || param.type == HostParamType.TEXT) {
-                Text("${value.length} chars", style = MaterialTheme.typography.overline,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.35f))
+    // DELIMITER type: render as a checkbox with divider
+    if (param.type == HostParamType.DELIMITER) {
+        val isChecked = value == "Y"
+        val toggle = { onValueChange(if (isChecked) "" else "Y") }
+        val content: @Composable () -> Unit = {
+            Column {
+                Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f))
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { toggle() }
+                ) {
+                    Checkbox(
+                        checked = isChecked,
+                        onCheckedChange = { onValueChange(if (it) "Y" else "") },
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colors.primary)
+                    )
+                    Text(
+                        param.label,
+                        style = MaterialTheme.typography.caption,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isChecked) MaterialTheme.colors.onSurface
+                            else MaterialTheme.colors.onSurface.copy(alpha = 0.45f)
+                    )
+                    if (param.description.isNotBlank()) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            Icons.Default.Info, contentDescription = "Info",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
+                        )
+                    }
+                }
             }
         }
         if (param.description.isNotBlank()) {
-            Text(param.description, style = MaterialTheme.typography.overline,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f))
+            `in`.aicortex.iso8583studio.ui.screens.hsmCommand.AutoHideTooltip(text = param.description) { content() }
+        } else {
+            content()
         }
+        return
+    }
 
-        when (param.type) {
+    val content: @Composable () -> Unit = {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(param.label, style = MaterialTheme.typography.caption, fontWeight = FontWeight.SemiBold)
+                if (param.required) Text(" *", color = MaterialTheme.colors.error,
+                    style = MaterialTheme.typography.caption)
+                if (param.description.isNotBlank()) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = "Info",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                if (param.type == HostParamType.HEX || param.type == HostParamType.TEXT) {
+                    Text("${value.length} chars", style = MaterialTheme.typography.overline,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.35f))
+                }
+            }
+
+            when (param.type) {
             HostParamType.DROPDOWN -> HostDropdownField(param, value, onValueChange)
 
             HostParamType.NUMBER -> FixedOutlinedTextField(
@@ -1041,6 +1159,13 @@ private fun HostParamField(
                 textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace, fontSize = 12.sp)
             )
         }
+        }
+    }
+
+    if (param.description.isNotBlank()) {
+        `in`.aicortex.iso8583studio.ui.screens.hsmCommand.AutoHideTooltip(text = param.description) { content() }
+    } else {
+        content()
     }
 }
 
@@ -1114,9 +1239,18 @@ private fun buildHostCommand(cmd: HostCommand, p: Map<String, String>): String {
 
         "G0" -> buildString {
             append(h); append("G0")
-            append(v("bdk")); append(v("zpk"))
-            append(v("ksnDesc", "600")); append(v("ksn"))
-            append(v("pinBlock")); append(v("srcFmt", "01")); append(v("dstFmt", "01"))
+            append(v("bdk"))
+            val dkt = v("destKeyType", "0")
+            append(dkt)
+            append(v("destKey"))
+            append(v("srcKsnDesc", "906"))
+            append(v("srcKsn"))
+            if (dkt != "0") {
+                append(v("dstKsnDesc", "906"))
+                append(v("dstKsn"))
+            }
+            append(v("pinBlock"))
+            append(v("srcFmt", "01")); append(v("dstFmt", "01"))
             append(v("account"))
         }
 
@@ -1165,16 +1299,36 @@ private fun buildHostCommand(cmd: HostCommand, p: Map<String, String>): String {
 
         "A0" -> buildString {
             append(h); append("A0")
-            append(v("mode","1")); append(v("keyType","001")); append(v("scheme","U"))
-            val tmkFlag = v("tmkFlag","0")
-            if (tmkFlag == "1") {
-                append(";"); append(tmkFlag)
-                append(v("tmk","")); append(v("exportScheme","U"))
+            val mode = v("mode","B")
+            append(mode); append(v("keyType","FFF")); append(v("scheme","S"))
+            if (mode == "A" || mode == "B") {
+                // Derive key mode + DUKPT fields
+                append(v("deriveKeyMode","0"))
+                append(v("dukptMasterKeyType","1"))
+                append(v("bdk",""))
+                append(v("ksn",""))
+            }
+            if (v("a0ZmkDelim","Y") == "Y" && (mode == "1" || mode == "B")) {
+                append(";"); append(v("zmkFlag","0"))
+                append(v("zmk",""))
+                append(v("exportScheme","S"))
+            }
+            if (v("a0LmkDelim","") == "Y") {
+                append("%"); append(v("lmkId","00"))
             }
         }
 
         "A6" -> "${h}A6${v("keyType","001")}${v("zmkScheme","U")}${v("zmk")}${v("lmkScheme","U")}${v("keyToImport")}"
-        "A8" -> "${h}A8${v("keyType","001")}${v("zmk")}${v("keyToExport")}${v("exportScheme","U")}"
+        "A8" -> buildString {
+            append(h); append("A8"); append(v("keyType","FFF"))
+            if (v("a8SemiDelim","Y") == "Y") {
+                append(";0"); append(v("zmk")); append(v("keyToExport"))
+                append(v("exportScheme","S"))
+            }
+            if (v("a8LmkDelim","") == "Y") {
+                append("%"); append(v("lmkId","00"))
+            }
+        }
         "BU" -> "${h}BU${v("keyType","001")}${v("scheme","U")}${v("key")}"
 
         "M0" -> buildString {

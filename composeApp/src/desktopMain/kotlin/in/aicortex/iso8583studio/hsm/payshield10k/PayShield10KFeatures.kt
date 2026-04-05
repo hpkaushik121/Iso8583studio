@@ -676,7 +676,8 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
         modeOfUse: Char = 'N',
         exportability: Char = 'E',
         lmkId: String = "00",
-        keyVersionNumber: String = "00"
+        keyVersionNumber: String = "00",
+        useKeyDirectlyAsKbpk: Boolean = false
     ): String {
         val lmk = lmkStorage.getLmk(lmkId)
         val lmkAlgo = lmk?.lmkAlgorithm ?: LmkAlgorithm.TDES_2KEY
@@ -691,14 +692,75 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
         val numOptBlocks = "00"
         val reserved = lmkId.padStart(2, '0').take(2)
 
+        hsmLogsListener.log(buildString {
+            appendLine("========== Key Block Build: BEGIN ==========")
+            appendLine("Step 1: Input parameters")
+            appendLine("  Clear Key:\t\t${bytesToHex(clearKey)} (${clearKey.size * 8} bits)")
+            if (useKeyDirectlyAsKbpk) {
+                appendLine("  KBPK (direct):\t${bytesToHex(lmkPairKey)} (${lmkPairKey.size * 8} bits)")
+            } else {
+                appendLine("  LMK Pair Key:\t\t${bytesToHex(lmkPairKey)}")
+            }
+            appendLine("  LMK Algorithm:\t$lmkAlgo")
+            appendLine("  Key Usage:\t\t$keyUsage")
+            appendLine("  Algorithm:\t\t$algo")
+            appendLine("  Mode of Use:\t\t$modeOfUse")
+            appendLine("  Exportability:\t$exportability")
+            appendLine("  LMK ID:\t\t$lmkId")
+        })
+
+        if (useKeyDirectlyAsKbpk) {
+            // ZMK/TMK: use the key directly as KBPK — no derivation needed
+            val kbpk = lmkPairKey
+            val isAes = kbpk.size == 16 || kbpk.size == 24 || kbpk.size == 32
+            hsmLogsListener.log(buildString {
+                appendLine("Step 2: Using key directly as KBPK (no derivation)")
+                appendLine("  KBPK:\t\t\t${bytesToHex(kbpk)} (${kbpk.size * 8} bits)")
+            })
+            return if (isAes) {
+                // Determine AES algo from key size
+                val aesAlgo = when (kbpk.size) {
+                    16 -> LmkAlgorithm.AES_128
+                    24 -> LmkAlgorithm.AES_192
+                    else -> LmkAlgorithm.AES_256
+                }
+                buildKeyBlockVersion1(
+                    clearKey, kbpk, aesAlgo, algo,
+                    keyUsage, modeOfUse, keyVersionNum, exportability, numOptBlocks, reserved
+                )
+            } else {
+                buildKeyBlockVersion0(
+                    clearKey, kbpk, lmkAlgo, algo,
+                    keyUsage, modeOfUse, keyVersionNum, exportability, numOptBlocks, reserved
+                )
+            }
+        }
+
+        // LMK path: derive a dedicated KBPK from the LMK pair key.
+        // The LMK is NOT directly the KBPK — Thales derives a dedicated KBPK
+        // from the LMK using a key derivation process.
         if (lmkAlgo.isAes) {
+            val kbpk = deriveLmkToKbpkV1(lmkPairKey, lmkAlgo)
+            hsmLogsListener.log(buildString {
+                appendLine("Step 2: KBPK derivation (Version 1 — AES CMAC-KDF)")
+                appendLine("  LMK (input):\t\t${bytesToHex(lmkPairKey)}")
+                appendLine("  KDF method:\t\tNIST SP 800-108 CMAC-KDF, usage=0x0002 (KBPK)")
+                appendLine("  Derived KBPK:\t\t${bytesToHex(kbpk)} (${kbpk.size * 8} bits)")
+            })
             return buildKeyBlockVersion1(
-                clearKey, lmkPairKey, lmkAlgo, algo,
+                clearKey, kbpk, lmkAlgo, algo,
                 keyUsage, modeOfUse, keyVersionNum, exportability, numOptBlocks, reserved
             )
         } else {
+            val kbpk = deriveLmkToKbpkV0(lmkPairKey, lmkAlgo)
+            hsmLogsListener.log(buildString {
+                appendLine("Step 2: KBPK derivation (Version 0 — TDES-ECB KDF)")
+                appendLine("  LMK (input):\t\t${bytesToHex(lmkPairKey)}")
+                appendLine("  KDF method:\t\tTDES-ECB encrypt of 'KBPK' label + counter blocks")
+                appendLine("  Derived KBPK:\t\t${bytesToHex(kbpk)} (${kbpk.size * 8} bits)")
+            })
             return buildKeyBlockVersion0(
-                clearKey, lmkPairKey, lmkAlgo, algo,
+                clearKey, kbpk, lmkAlgo, algo,
                 keyUsage, modeOfUse, keyVersionNum, exportability, numOptBlocks, reserved
             )
         }
@@ -726,10 +788,26 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
         val kbek = deriveVersion0Key(effectiveKey, 0x45)
         val kbak = deriveVersion0Key(effectiveKey, 0x4D)
 
+        hsmLogsListener.log(buildString {
+            appendLine("Step 3: Derive KBEK and KBAK from KBPK (Version 0)")
+            appendLine("  KBPK (effective):\t${bytesToHex(effectiveKey)} (${effectiveKey.size * 8} bits)")
+            appendLine("  KBEK = KBPK XOR 0x45, expanded to triple-TDES (24 bytes)")
+            appendLine("  KBEK:\t\t\t${bytesToHex(kbek)}")
+            appendLine("  KBAK = KBPK XOR 0x4D, expanded to triple-TDES (24 bytes)")
+            appendLine("  KBAK:\t\t\t${bytesToHex(kbak)}")
+        })
+
         // Plaintext: 2-byte key length in bits (BE) + clear key + zero-pad to 8-byte blocks
         val keyLenBits = clearKey.size * 8
         val lenPrefix = byteArrayOf((keyLenBits shr 8).toByte(), (keyLenBits and 0xFF).toByte())
         val plaintext = padToBlock(lenPrefix + clearKey, 8)
+
+        hsmLogsListener.log(buildString {
+            appendLine("Step 4: Build plaintext")
+            appendLine("  Key length descriptor:\t${bytesToHex(lenPrefix)} ($keyLenBits bits)")
+            appendLine("  Clear key:\t\t\t${bytesToHex(clearKey)}")
+            appendLine("  Plaintext (len+key+pad):\t${bytesToHex(plaintext)} (${plaintext.size} bytes, padded to 8B blocks)")
+        })
 
         // Build header first to derive IV for CBC encryption
         val encKeyHex0 = bytesToHex(plaintext) // placeholder for block length calc
@@ -752,12 +830,31 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
 
         val encKeyHex = bytesToHex(encryptedKey)
 
+        hsmLogsListener.log(buildString {
+            appendLine("Step 5: Encrypt plaintext — TDES-CBC(KBEK, plaintext)")
+            appendLine("  Header:\t\t$header")
+            appendLine("  IV (header[0..7]):\t${bytesToHex(iv)}")
+            appendLine("  Encrypted key:\t$encKeyHex")
+        })
+
         // MAC: TDES-CBC-MAC(KBAK, header_ASCII_bytes || encrypted_key_BINARY_bytes), truncated to 4 bytes
         val macInput = header.toByteArray(Charsets.US_ASCII) + encryptedKey
         val fullMac = computeCbcMac(macInput, kbak, LmkAlgorithm.TDES_2KEY)
         val macHex = bytesToHex(fullMac).take(8)
 
-        return "S$header$encKeyHex$macHex"
+        val result = "S$header$encKeyHex$macHex"
+
+        hsmLogsListener.log(buildString {
+            appendLine("Step 6: Compute MAC — TDES-CBC-MAC(KBAK, header || encryptedKey)")
+            appendLine("  MAC input length:\t${macInput.size} bytes")
+            appendLine("  Full MAC:\t\t${bytesToHex(fullMac)}")
+            appendLine("  Truncated MAC (4B):\t$macHex")
+            appendLine("Step 7: Final Key Block")
+            appendLine("  Key Block:\t\t$result")
+            appendLine("========== Key Block Build: COMPLETE ==========")
+        })
+
+        return result
     }
 
     /**
@@ -790,34 +887,71 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
         val kbek = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_ENCRYPTION)
         val kbmk = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_MAC)
 
-        // Build the clear payload: clear key + PKCS#7 padding
-        val clearPayload = applyPkcs7Padding(clearKey, 16)
+        hsmLogsListener.log(buildString {
+            appendLine("Step 3: Derive KBEK and KBMK from KBPK (Version 1 — CMAC-KDF)")
+            appendLine("  KBPK:\t\t\t${bytesToHex(kbpk)} (${kbpk.size * 8} bits)")
+            appendLine("  KBEK = CMAC-KDF(KBPK, usage=0x0000 ENCRYPTION)")
+            appendLine("  KBEK:\t\t\t${bytesToHex(kbek)}")
+            appendLine("  KBMK = CMAC-KDF(KBPK, usage=0x0001 MAC)")
+            appendLine("  KBMK:\t\t\t${bytesToHex(kbmk)}")
+        })
+
+        // Build the clear payload: 2-byte key length (bits, BE) + clear key + random padding to 16B boundary
+        val keyLenBits = clearKey.size * 8
+        val lenPrefix = byteArrayOf((keyLenBits shr 8).toByte(), (keyLenBits and 0xFF).toByte())
+        val unpadded = lenPrefix + clearKey
+        val padLen = if (unpadded.size % 16 == 0) 0 else 16 - (unpadded.size % 16)
+        val randomPad = ByteArray(padLen).also { secureRandom.nextBytes(it) }
+        val clearPayload = unpadded + randomPad
+
+        hsmLogsListener.log(buildString {
+            appendLine("Step 4: Build plaintext")
+            appendLine("  Key length descriptor:\t${bytesToHex(lenPrefix)} ($keyLenBits bits)")
+            appendLine("  Clear key:\t\t\t${bytesToHex(clearKey)} (${clearKey.size * 8} bits)")
+            appendLine("  Random pad length:\t\t$padLen bytes")
+            appendLine("  Plaintext (len+key+pad):\t${bytesToHex(clearPayload)} (${clearPayload.size} bytes)")
+        })
 
         // Build header (need encrypted key length first to compute block length)
         val encKeyHexLen = clearPayload.size * 2
-        val macHexLen = 16  // 8 bytes = 16 hex
+        val macHexLen = 16  // 8 bytes = 16 hex (Thales S-block)
         val blockLen = 16 + encKeyHexLen + macHexLen
         val blockLenStr = blockLen.toString().padStart(4, '0')
         val header = "1$blockLenStr$keyUsage$algo$modeOfUse${keyVersionNum}$exportability$numOptBlocks$reserved"
         val headerBytes = header.toByteArray(Charsets.US_ASCII)
 
-        // MAC: AES-CMAC(KBMK, header + clear payload) → truncated to 8 bytes
-        val macInput = headerBytes + clearPayload
-        val fullCmac = computeAesCmac(macInput, kbmk)
-        val mac = fullCmac.copyOf(8)
-        val macHex = bytesToHex(mac)
-
-        // IV = bytes 0-15 of header (ASCII)
+        // Thales S-block V1: Encrypt-then-MAC (same pattern as V0)
+        // 1. Encrypt with IV = header[0..15]
         val iv = headerBytes.copyOf(16)
-
-        // Encrypt: AES-CBC(KBEK, IV=headerBytes, clearPayload)
         val encryptedKey = try {
             io.cryptocalc.crypto.engines.encryption.AesCalculatorEngine.encryptCBC(clearPayload, kbek, iv)
         } catch (e: Exception) { clearKey }
 
-        val encKeyHex = bytesToHex(encryptedKey)
+        // 2. MAC over header + encrypted key bytes
+        val macInput = headerBytes + encryptedKey
+        val fullCmac = computeAesCmac(macInput, kbmk)
+        val mac = fullCmac.copyOf(8)
 
-        return "S$header$encKeyHex$macHex"
+        val encKeyHex = bytesToHex(encryptedKey)
+        val macHex = bytesToHex(mac)
+
+        val result = "S$header$encKeyHex$macHex"
+
+        hsmLogsListener.log(buildString {
+            appendLine("Step 5: Encrypt plaintext — AES-CBC(KBEK, IV=header, clearPayload)")
+            appendLine("  Header:\t\t$header")
+            appendLine("  IV (header[0..15]):\t${bytesToHex(iv)}")
+            appendLine("  Encrypted key:\t$encKeyHex")
+            appendLine("Step 6: Compute MAC — AES-CMAC(KBMK, header || encryptedKey) [Encrypt-then-MAC]")
+            appendLine("  MAC input:\t\theader(${headerBytes.size}B) + encrypted(${encryptedKey.size}B) = ${macInput.size} bytes")
+            appendLine("  Full CMAC (16B):\t${bytesToHex(fullCmac)}")
+            appendLine("  Truncated MAC (8B):\t$macHex")
+            appendLine("Step 7: Final Key Block")
+            appendLine("  Key Block:\t\t$result")
+            appendLine("========== Key Block Build: COMPLETE ==========")
+        })
+
+        return result
     }
 
     /**
@@ -855,7 +989,63 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     companion object {
         private const val KEY_USAGE_ENCRYPTION = 0x0000
         private const val KEY_USAGE_MAC = 0x0001
+        private const val KEY_USAGE_KBPK = 0x0002
     }
+
+    /**
+     * Derive KBPK from LMK pair key for Version 0 (TDES) key blocks.
+     *
+     * The LMK is NOT directly the KBPK. Thales derives a dedicated KBPK from the LMK
+     * using TDES-ECB encryption of counter-based derivation blocks under the LMK.
+     * The LMK never leaves the HSM and is never embedded in the key block.
+     */
+    private fun deriveLmkToKbpkV0(lmkKey: ByteArray, lmkAlgo: LmkAlgorithm): ByteArray {
+        val targetSize = minOf(lmkKey.size, lmkAlgo.keyBytes)
+        // Expand LMK to triple-TDES (24 bytes) for use as TDES key
+        val expandedLmk = when {
+            lmkKey.size >= 24 -> lmkKey.copyOf(24)
+            lmkKey.size == 16 -> lmkKey + lmkKey.copyOf(8)
+            else -> (lmkKey + lmkKey + lmkKey).copyOf(24)
+        }
+
+        val blocksNeeded = (targetSize + 7) / 8
+        val derived = ByteArray(blocksNeeded * 8)
+
+        val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expandedLmk, "DESede"))
+
+        for (counter in 1..blocksNeeded) {
+            // Derivation data: "KBPK" label (4 bytes) + 0x00 separator + 0x00 reserved + 0x00 reserved + counter
+            val derivationData = byteArrayOf(
+                0x4B, 0x42, 0x50, 0x4B,  // "KBPK"
+                0x00,                      // separator
+                0x00, 0x00,                // reserved
+                counter.toByte()           // counter
+            )
+            val block = cipher.doFinal(derivationData)
+            block.copyInto(derived, (counter - 1) * 8)
+        }
+
+        return derived.copyOf(targetSize)
+    }
+
+    /**
+     * Derive KBPK from LMK pair key for Version 1 (AES) key blocks.
+     *
+     * Uses NIST SP 800-108 Counter Mode KDF with AES-CMAC as PRF,
+     * with a dedicated KEY_USAGE_KBPK purpose code to produce a KBPK
+     * that is cryptographically separated from the LMK.
+     */
+    private fun deriveLmkToKbpkV1(lmkKey: ByteArray, lmkAlgo: LmkAlgorithm): ByteArray {
+        val lmk = lmkKey.copyOf(lmkAlgo.keyBytes)
+        return deriveKeyBlockKey(lmk, lmkAlgo, KEY_USAGE_KBPK)
+    }
+
+    /** Public accessor for KBPK derivation (Version 0) — used by command classes for logging. */
+    fun deriveLmkToKbpkV0Public(lmkKey: ByteArray, lmkAlgo: LmkAlgorithm): ByteArray = deriveLmkToKbpkV0(lmkKey, lmkAlgo)
+
+    /** Public accessor for KBPK derivation (Version 1) — used by command classes for logging. */
+    fun deriveLmkToKbpkV1Public(lmkKey: ByteArray, lmkAlgo: LmkAlgorithm): ByteArray = deriveLmkToKbpkV1(lmkKey, lmkAlgo)
 
     /**
      * Decrypt a Thales KeyBlock (Scheme "S") and return the clear key bytes.
@@ -900,48 +1090,75 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
         val lmk = lmkStorage.getLmk(lmkId)
         val lmkAlgo = lmk?.lmkAlgorithm ?: LmkAlgorithm.TDES_2KEY
 
+        hsmLogsListener.log(buildString {
+            appendLine("========== Key Block Decode: BEGIN ==========")
+            appendLine("Step 1: Parse key block")
+            appendLine("  Key Block:\t\t$keyBlock")
+            appendLine("  Version:\t\t$version (${if (version == 1) "AES" else "3DES"} KBPK)")
+            appendLine("  Block Length:\t\t$blockLen")
+            appendLine("  Header:\t\t$header")
+            appendLine("  Key Usage:\t\t$keyUsage")
+            appendLine("  Algorithm:\t\t$algorithm")
+            appendLine("  Mode of Use:\t\t$modeOfUse")
+            appendLine("  Key Version No.:\t$keyVersionNum")
+            appendLine("  Exportability:\t$exportability")
+            appendLine("  Num. of Opt. blocks:\t$numOptBlocks")
+            appendLine("  LMK ID:\t\t$lmkIdField")
+            appendLine("  LMK Pair Key:\t\t${bytesToHex(lmkPairKey)}")
+            appendLine("  LMK Algorithm:\t$lmkAlgo")
+        })
+
         return if (version == 1 && lmkAlgo.isAes) {
-            // Version 1: MAC = 8 bytes (16 hex), AES-CBC + PKCS#7
+            // Version 1: MAC = 8 bytes (16 hex), AES-CBC + PKCS#7 (Thales S-block)
             val macHexLen = 16
             val encKeyHex = keyBlock.substring(headerLen, totalBlockChars - macHexLen)
             val macHex = keyBlock.substring(totalBlockChars - macHexLen, totalBlockChars)
             val encryptedKey = hexToBytes(encKeyHex)
 
-            val kbpk = lmkPairKey.copyOf(lmkAlgo.keyBytes)
+            hsmLogsListener.log(buildString {
+                appendLine("Step 2: Extract encrypted payload (Version 1)")
+                appendLine("  Encrypted key hex:\t$encKeyHex")
+                appendLine("  MAC hex:\t\t$macHex")
+            })
+
+            // Derive KBPK from LMK — the LMK is NOT directly the KBPK
+            val kbpk = deriveLmkToKbpkV1(lmkPairKey, lmkAlgo)
             val kbek = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_ENCRYPTION)
             val kbmk = deriveKeyBlockKey(kbpk, lmkAlgo, KEY_USAGE_MAC)
+
+            hsmLogsListener.log(buildString {
+                appendLine("Step 3: Derive KBPK from LMK (AES CMAC-KDF)")
+                appendLine("  LMK (input):\t\t${bytesToHex(lmkPairKey)}")
+                appendLine("  KDF method:\t\tNIST SP 800-108 CMAC-KDF, usage=0x0002 (KBPK)")
+                appendLine("  Derived KBPK:\t\t${bytesToHex(kbpk)} (${kbpk.size * 8} bits)")
+                appendLine("Step 4: Derive KBEK and KBMK from KBPK (CMAC-KDF)")
+                appendLine("  KBEK = CMAC-KDF(KBPK, usage=0x0000 ENCRYPTION)")
+                appendLine("  KBEK:\t\t\t${bytesToHex(kbek)}")
+                appendLine("  KBMK = CMAC-KDF(KBPK, usage=0x0001 MAC)")
+                appendLine("  KBMK:\t\t\t${bytesToHex(kbmk)}")
+            })
+
+            // Thales S-block V1: IV = header[0..15]
             val iv = header.toByteArray(Charsets.US_ASCII).copyOf(16)
             val decrypted = io.cryptocalc.crypto.engines.encryption.AesCalculatorEngine.decryptCBC(encryptedKey, kbek, iv)
-            val clearKey = removePkcs7Padding(decrypted)
+            // Extract key using 2-byte length prefix (padding is random, not PKCS#7)
+            val keyLenBits = ((decrypted[0].toInt() and 0xFF) shl 8) or (decrypted[1].toInt() and 0xFF)
+            val keyLenBytes = keyLenBits / 8
+            require(keyLenBytes in 1..(decrypted.size - 2)) {
+                "Key block decryption produced invalid key length ($keyLenBits bits). Check KBPK."
+            }
+            val clearKey = decrypted.copyOfRange(2, 2 + keyLenBytes)
             val kcv = calculateKeyCheckValue(clearKey)
 
             hsmLogsListener.log(buildString {
-                appendLine("Thales Key Block: Key block decode operation finished")
-                appendLine("****************************************")
-                appendLine("KBPK:\t\t\t${bytesToHex(kbpk)}")
-                appendLine("KCV:\t\t\t$kcv")
-                appendLine("Thales Key block:\t$keyBlock")
-                appendLine("----------------------------------------")
-                appendLine("Thales Header:\t\t$header")
-                appendLine("----------------------------------------")
-                appendLine("  Version Id:\t\t$version - AES KBPK")
-                appendLine("  Block Length:\t\t${header.substring(1, 5)}")
-                appendLine("  Key Usage:\t\t$keyUsage")
-                appendLine("  Algorithm:\t\t$algorithm")
-                appendLine("  Mode of Use:\t\t$modeOfUse")
-                appendLine("  Key Version No.:\t$keyVersionNum")
-                appendLine("  Exportability:\t$exportability")
-                appendLine("  Num. of Opt. blocks:\t$numOptBlocks")
-                appendLine("  LMK ID:\t\t$lmkIdField")
-                appendLine("Thales Encrypted key:\t$encKeyHex")
-                appendLine("Thales MAC:\t\t$macHex")
-                appendLine("----------------------------------------")
-                appendLine("KBEK:\t\t\t${bytesToHex(kbek)}")
-                appendLine("KBAK:\t\t\t${bytesToHex(kbmk)}")
-                appendLine("----------------------------------------")
-                appendLine("Plain Key Block:\t${bytesToHex(decrypted)}")
-                appendLine("Plain Key:\t\t${bytesToHex(clearKey)}")
-                appendLine("KCV:\t\t\t$kcv")
+                appendLine("Step 5: Decrypt — AES-CBC(KBEK, IV=header, encryptedKey)")
+                appendLine("  IV (header[0..15]):\t${bytesToHex(iv)}")
+                appendLine("  Decrypted (raw):\t${bytesToHex(decrypted)}")
+                appendLine("Step 6: Extract key using length prefix")
+                appendLine("  Key length descriptor:\t${bytesToHex(decrypted.copyOf(2))} ($keyLenBits bits)")
+                appendLine("  Clear Key:\t\t\t${bytesToHex(clearKey)} ($keyLenBits bits / $keyLenBytes bytes)")
+                appendLine("  KCV:\t\t\t\t$kcv")
+                appendLine("========== Key Block Decode: COMPLETE ==========")
             })
 
             clearKey
@@ -952,9 +1169,28 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
             val macHex = keyBlock.substring(totalBlockChars - macHexLen, totalBlockChars)
             val encryptedKey = hexToBytes(encKeyHex)
 
-            val effectiveKey = lmkPairKey.copyOf(minOf(lmkPairKey.size, lmkAlgo.keyBytes))
-            val kbek = deriveVersion0Key(effectiveKey, 0x45)
-            val kbak = deriveVersion0Key(effectiveKey, 0x4D)
+            hsmLogsListener.log(buildString {
+                appendLine("Step 2: Extract encrypted payload (Version 0)")
+                appendLine("  Encrypted key hex:\t$encKeyHex")
+                appendLine("  MAC hex:\t\t$macHex")
+            })
+
+            // Derive KBPK from LMK — the LMK is NOT directly the KBPK
+            val kbpk = deriveLmkToKbpkV0(lmkPairKey, lmkAlgo)
+            val kbek = deriveVersion0Key(kbpk, 0x45)
+            val kbak = deriveVersion0Key(kbpk, 0x4D)
+
+            hsmLogsListener.log(buildString {
+                appendLine("Step 3: Derive KBPK from LMK (TDES-ECB KDF)")
+                appendLine("  LMK (input):\t\t${bytesToHex(lmkPairKey)}")
+                appendLine("  KDF method:\t\tTDES-ECB encrypt of 'KBPK' label + counter blocks")
+                appendLine("  Derived KBPK:\t\t${bytesToHex(kbpk)} (${kbpk.size * 8} bits)")
+                appendLine("Step 4: Derive KBEK and KBAK from KBPK")
+                appendLine("  KBEK = KBPK XOR 0x45, expanded to triple-TDES (24 bytes)")
+                appendLine("  KBEK:\t\t\t${bytesToHex(kbek)}")
+                appendLine("  KBAK = KBPK XOR 0x4D, expanded to triple-TDES (24 bytes)")
+                appendLine("  KBAK:\t\t\t${bytesToHex(kbak)}")
+            })
 
             try {
                 // V0 uses TDES-CBC with IV = first 8 bytes of header ASCII
@@ -976,32 +1212,15 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
                 val kcv = calculateKeyCheckValue(clearKey)
 
                 hsmLogsListener.log(buildString {
-                    appendLine("Thales Key Block: Key block decode operation finished")
-                    appendLine("****************************************")
-                    appendLine("KBPK:\t\t\t${bytesToHex(effectiveKey)}")
-                    appendLine("KCV:\t\t\t$kcv")
-                    appendLine("Thales Key block:\t$keyBlock")
-                    appendLine("----------------------------------------")
-                    appendLine("Thales Header:\t\t$header")
-                    appendLine("----------------------------------------")
-                    appendLine("  Version Id:\t\t$version - 3DES KBPK")
-                    appendLine("  Block Length:\t\t${header.substring(1, 5)}")
-                    appendLine("  Key Usage:\t\t$keyUsage")
-                    appendLine("  Algorithm:\t\t$algorithm")
-                    appendLine("  Mode of Use:\t\t$modeOfUse")
-                    appendLine("  Key Version No.:\t$keyVersionNum")
-                    appendLine("  Exportability:\t$exportability")
-                    appendLine("  Num. of Opt. blocks:\t$numOptBlocks")
-                    appendLine("  LMK ID:\t\t$lmkIdField")
-                    appendLine("Thales Encrypted key:\t$encKeyHex")
-                    appendLine("Thales MAC:\t\t$macHex")
-                    appendLine("----------------------------------------")
-                    appendLine("KBEK:\t\t\t${bytesToHex(kbek)}")
-                    appendLine("KBAK:\t\t\t${bytesToHex(kbak)}")
-                    appendLine("----------------------------------------")
-                    appendLine("Plain Key Block:\t${bytesToHex(decrypted)}")
-                    appendLine("Plain Key:\t\t${bytesToHex(clearKey)}")
-                    appendLine("KCV:\t\t\t$kcv")
+                    appendLine("Step 5: Decrypt — TDES-CBC(KBEK, encryptedKey)")
+                    appendLine("  IV (header[0..7]):\t${bytesToHex(iv)}")
+                    appendLine("  Decrypted (raw):\t${bytesToHex(decrypted)}")
+                    appendLine("Step 6: Extract clear key from plaintext")
+                    appendLine("  Key length descriptor:\t${bytesToHex(decrypted.copyOf(2))} ($keyLenBits bits)")
+                    appendLine("  Clear Key:\t\t\t${bytesToHex(clearKey)} ($keyLenBits bits / $keyLenBytes bytes)")
+                    appendLine("  Padding bytes:\t\t${decrypted.size - 2 - keyLenBytes}")
+                    appendLine("  KCV:\t\t\t\t$kcv")
+                    appendLine("========== Key Block Decode: COMPLETE ==========")
                 })
 
                 clearKey
