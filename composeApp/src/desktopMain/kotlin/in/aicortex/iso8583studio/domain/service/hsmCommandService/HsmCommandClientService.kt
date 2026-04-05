@@ -45,6 +45,19 @@ data class LoadTestStats(
     val running: Boolean = false,
 )
 
+/** Per-command execution log entry captured during load tests. */
+data class LoadTestCommandLog(
+    val command: String,
+    val response: String,
+    val timestamp: Long,
+    val elapsedMs: Long,
+    val bytesSent: Int,
+    val bytesReceived: Int,
+    val success: Boolean,
+    val errorMessage: String?,
+    val workerIndex: Int,
+)
+
 class HsmCommandClientService(val config: HsmCommandConfig) {
 
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
@@ -60,6 +73,18 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
     private var loadTestJob: Job? = null
     private val _loadTestStats = MutableStateFlow(LoadTestStats())
     val loadTestStats: StateFlow<LoadTestStats> = _loadTestStats.asStateFlow()
+
+    private val _commandLogs = java.util.concurrent.ConcurrentLinkedQueue<LoadTestCommandLog>()
+
+    /** Retrieve and clear all command logs collected during the last load test. */
+    fun drainCommandLogs(): List<LoadTestCommandLog> {
+        val list = mutableListOf<LoadTestCommandLog>()
+        while (true) { list.add(_commandLogs.poll() ?: break) }
+        return list
+    }
+
+    /** Clear any pending command logs. */
+    fun clearCommandLogs() { _commandLogs.clear() }
 
     fun writeLog(log: LogEntry) {
         beforeWriteLog?.invoke(log)
@@ -208,6 +233,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
     ) {
         if (loadTestJob?.isActive == true) return
         _loadTestStats.value = LoadTestStats(running = true)
+        _commandLogs.clear()
 
         loadTestJob = scope.launch(Dispatchers.IO) {
             val totalSent = AtomicLong(0)
@@ -222,7 +248,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
             val delayBetweenCommands = if (commandsPerSecond > 0)
                 (1000L / commandsPerSecond) else 100L
 
-            val workers = (1..concurrency).map {
+            val workers = (1..concurrency).map { workerIdx ->
                 launch {
                     try {
                         while (isActive) {
@@ -231,14 +257,32 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
 
                             try {
                                 totalSent.incrementAndGet()
+                                val ts = System.currentTimeMillis()
                                 val result = sendCommand(commandText)
                                 totalRecv.incrementAndGet()
                                 if (result.success) successCnt.incrementAndGet() else failureCnt.incrementAndGet()
                                 totalTime.addAndGet(result.elapsedMs)
                                 minTime.updateAndGet { t -> minOf(t, result.elapsedMs) }
                                 maxTime.updateAndGet { t -> maxOf(t, result.elapsedMs) }
-                            } catch (_: Exception) {
+                                _commandLogs.add(LoadTestCommandLog(
+                                    command = result.formattedRequest,
+                                    response = result.formattedResponse,
+                                    timestamp = ts,
+                                    elapsedMs = result.elapsedMs,
+                                    bytesSent = result.rawRequest.size,
+                                    bytesReceived = result.rawResponse.size,
+                                    success = result.success,
+                                    errorMessage = result.errorMessage,
+                                    workerIndex = workerIdx,
+                                ))
+                            } catch (e: Exception) {
                                 failureCnt.incrementAndGet()
+                                _commandLogs.add(LoadTestCommandLog(
+                                    command = commandText, response = "",
+                                    timestamp = System.currentTimeMillis(),
+                                    elapsedMs = 0, bytesSent = 0, bytesReceived = 0,
+                                    success = false, errorMessage = e.message, workerIndex = workerIdx,
+                                ))
                             }
 
                             delay(delayBetweenCommands)
@@ -281,6 +325,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         if (commands.size == 1) { startLoadTest(commands.first(), scope, durationSeconds, concurrency, commandsPerSecond); return }
         if (loadTestJob?.isActive == true) return
         _loadTestStats.value = LoadTestStats(running = true)
+        _commandLogs.clear()
 
         loadTestJob = scope.launch(Dispatchers.IO) {
             val totalSent = AtomicLong(0)
@@ -308,14 +353,32 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
 
                             try {
                                 totalSent.incrementAndGet()
+                                val ts = System.currentTimeMillis()
                                 val result = sendCommand(cmd)
                                 totalRecv.incrementAndGet()
                                 if (result.success) successCnt.incrementAndGet() else failureCnt.incrementAndGet()
                                 totalTime.addAndGet(result.elapsedMs)
                                 minTime.updateAndGet { t -> minOf(t, result.elapsedMs) }
                                 maxTime.updateAndGet { t -> maxOf(t, result.elapsedMs) }
-                            } catch (_: Exception) {
+                                _commandLogs.add(LoadTestCommandLog(
+                                    command = result.formattedRequest,
+                                    response = result.formattedResponse,
+                                    timestamp = ts,
+                                    elapsedMs = result.elapsedMs,
+                                    bytesSent = result.rawRequest.size,
+                                    bytesReceived = result.rawResponse.size,
+                                    success = result.success,
+                                    errorMessage = result.errorMessage,
+                                    workerIndex = workerIdx,
+                                ))
+                            } catch (e: Exception) {
                                 failureCnt.incrementAndGet()
+                                _commandLogs.add(LoadTestCommandLog(
+                                    command = cmd, response = "",
+                                    timestamp = System.currentTimeMillis(),
+                                    elapsedMs = 0, bytesSent = 0, bytesReceived = 0,
+                                    success = false, errorMessage = e.message, workerIndex = workerIdx,
+                                ))
                             }
 
                             delay(delayBetweenCommands)

@@ -79,7 +79,6 @@ private fun applyWindowsGlass(
     darkMode: Boolean,
 ): Boolean {
     return try {
-        val dwmExtend = com.sun.jna.Function.getFunction("dwmapi", "DwmExtendFrameIntoClientArea")
         val dwmSetAttr = com.sun.jna.Function.getFunction("dwmapi", "DwmSetWindowAttribute")
 
         // Get HWND — try getWindowID first, fall back to FindWindow
@@ -96,21 +95,7 @@ private fun applyWindowsGlass(
             found
         }
 
-        // Make AWT layers non-opaque so DWM backdrop shows in title bar area
-        window.background = java.awt.Color(0, 0, 0, 0)
-        window.rootPane.isOpaque = false
-        window.rootPane.background = java.awt.Color(0, 0, 0, 0)
-        (window.contentPane as? JComponent)?.isOpaque = false
-        (window.contentPane as? JComponent)?.background = java.awt.Color(0, 0, 0, 0)
-
-        // Extend DWM frame into entire client area: MARGINS { -1, -1, -1, -1 }
-        val margins = com.sun.jna.Memory(16).apply {
-            setInt(0, -1); setInt(4, -1); setInt(8, -1); setInt(12, -1)
-        }
-        val extResult = dwmExtend.invoke(Int::class.java, arrayOf(hwnd, margins)) as Int
-        println("[Glass] DwmExtendFrameIntoClientArea result: $extResult (0=OK)")
-
-        // Set dark/light title bar
+        // ── 1. Set dark/light title bar to follow OS theme ──
         val darkVal = com.sun.jna.Memory(4).apply { setInt(0, if (darkMode) 1 else 0) }
         val darkResult = dwmSetAttr.invoke(
             Int::class.java,
@@ -118,7 +103,7 @@ private fun applyWindowsGlass(
         ) as Int
         println("[Glass] DwmSetWindowAttribute(DARK_MODE=$darkMode) result: $darkResult (0=OK)")
 
-        // Set backdrop type (Mica / Acrylic / Tabbed Mica)
+        // ── 2. Set Mica / Acrylic backdrop on the title bar ──
         val backdropType = when (backdrop) {
             GlassBackdrop.MICA -> DWMSBT_MAINWINDOW
             GlassBackdrop.ACRYLIC -> DWMSBT_TRANSIENTWINDOW
@@ -131,9 +116,36 @@ private fun applyWindowsGlass(
         ) as Int
         println("[Glass] DwmSetWindowAttribute(BACKDROP=$backdropType) result: $backdropResult (0=OK)")
 
+        // ── 3. Extend glass into client area only for transparent/undecorated windows ──
+        val isTransparent = window.isUndecorated
+        if (isTransparent) {
+            val dwmExtend = com.sun.jna.Function.getFunction("dwmapi", "DwmExtendFrameIntoClientArea")
+            // Make AWT layers non-opaque so DWM backdrop shows through content
+            window.background = java.awt.Color(0, 0, 0, 0)
+            window.rootPane.isOpaque = false
+            window.rootPane.background = java.awt.Color(0, 0, 0, 0)
+            (window.contentPane as? JComponent)?.isOpaque = false
+            (window.contentPane as? JComponent)?.background = java.awt.Color(0, 0, 0, 0)
+
+            val margins = com.sun.jna.Memory(16).apply {
+                setInt(0, -1); setInt(4, -1); setInt(8, -1); setInt(12, -1)
+            }
+            val extResult = dwmExtend.invoke(Int::class.java, arrayOf(hwnd, margins)) as Int
+            println("[Glass] DwmExtendFrameIntoClientArea result: $extResult (0=OK)")
+            isGlassEffectActive.value = true
+        }
+
+        // ── 4. Force the title bar to repaint with new attributes ──
+        // Toggling the window size forces Windows to redraw the non-client area
+        val bounds = window.bounds
+        com.sun.jna.platform.win32.User32.INSTANCE.SetWindowPos(
+            hwnd, null,
+            bounds.x, bounds.y, bounds.width, bounds.height,
+            0x0020 /* SWP_FRAMECHANGED */ or 0x0002 /* SWP_NOMOVE */ or 0x0001 /* SWP_NOSIZE */ or 0x0004 /* SWP_NOZORDER */
+        )
         window.repaint()
-        isGlassEffectActive.value = true
-        println("[Glass] Glass effect applied successfully")
+
+        println("[Glass] Title bar styled successfully (dark=$darkMode, backdrop=$backdropType, fullGlass=$isTransparent)")
         true
     } catch (e: Throwable) {
         println("[Glass] Failed to apply glass effect: ${e.message}")
@@ -166,7 +178,13 @@ fun GlassWindowEffect(
     darkMode: Boolean = true,
 ) {
     LaunchedEffect(window, backdrop, darkMode) {
-        delay(300)
-        applyGlassEffect(window, backdrop, darkMode)
+        // Wait for window to be fully realized and visible
+        delay(500)
+        val success = applyGlassEffect(window, backdrop, darkMode)
+        if (!success) {
+            // Retry once after a longer delay if first attempt fails
+            delay(1000)
+            applyGlassEffect(window, backdrop, darkMode)
+        }
     }
 }

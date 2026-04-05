@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.ConnectionState
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.HsmCommandClientService
+import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.LoadTestCommandLog
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.LoadTestStats
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmCommandConfig
@@ -45,10 +46,16 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.SavedSc
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.SavedPlaylist
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.SavedPlaylistItem
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import javax.swing.JFileChooser
+import javax.swing.filechooser.FileNameExtensionFilter
 
 private val Mono = FontFamily.Monospace
 private val AccentGreen = Color(0xFF4CAF50)
@@ -112,6 +119,18 @@ private enum class PlaylistItemStatus {
     PENDING, RUNNING, COMPLETED, FAILED, SKIPPED
 }
 
+/** Captured result of a single playlist item execution. */
+private data class PlaylistItemResult(
+    val itemIndex: Int,
+    val itemLabel: String,
+    val itemType: String,
+    val commands: List<String>,
+    val stats: LoadTestStats,
+    val commandLogs: List<LoadTestCommandLog>,
+    val startTime: Long,
+    val endTime: Long,
+)
+
 // ──────────────────────────────────────────────────────────────────────────────
 //  Main composable
 // ──────────────────────────────────────────────────────────────────────────────
@@ -151,9 +170,9 @@ fun HsmLoadTesterTab(
     var tps by remember { mutableStateOf(service.config.loadTestCommandsPerSecond.toString()) }
     var duration by remember { mutableStateOf(service.config.loadTestDurationSeconds.toString()) }
 
-    // Report state
-    var lastReport by remember { mutableStateOf<String?>(null) }
-    var showReport by remember { mutableStateOf(false) }
+    // Per-item results collected during playlist run
+    val itemResults = remember { mutableStateListOf<PlaylistItemResult>() }
+    var exportMessage by remember { mutableStateOf<String?>(null) }
 
     // Resolve all playlist commands
     val allCommands: List<String> = playlist.flatMap { it.resolveCommands() }
@@ -163,6 +182,7 @@ fun HsmLoadTesterTab(
     fun startPlaylistSequential() {
         if (playlist.isEmpty() || connectionState != ConnectionState.CONNECTED) return
         isPlaylistRunning = true
+        itemResults.clear()
         // Reset statuses
         playlist.forEach { itemStatuses[it.id] = PlaylistItemStatus.PENDING }
         currentRunningIndex = 0
@@ -180,6 +200,8 @@ fun HsmLoadTesterTab(
                 }
 
                 itemStatuses[item.id] = PlaylistItemStatus.RUNNING
+                service.clearCommandLogs()
+                val itemStartTime = System.currentTimeMillis()
 
                 // Start load test for this item
                 service.startLoadTestMulti(
@@ -199,7 +221,21 @@ fun HsmLoadTesterTab(
                     }
                 }
 
+                val itemEndTime = System.currentTimeMillis()
                 val finalStats = service.loadTestStats.value
+                val logs = service.drainCommandLogs()
+
+                itemResults.add(PlaylistItemResult(
+                    itemIndex = i,
+                    itemLabel = item.label,
+                    itemType = item.type.label,
+                    commands = commands,
+                    stats = finalStats,
+                    commandLogs = logs,
+                    startTime = itemStartTime,
+                    endTime = itemEndTime,
+                ))
+
                 itemStatuses[item.id] = if (finalStats.failureCount == 0L && finalStats.totalSent > 0)
                     PlaylistItemStatus.COMPLETED else PlaylistItemStatus.COMPLETED
 
@@ -655,12 +691,28 @@ fun HsmLoadTesterTab(
             if (stats.totalSent > 0 && !stats.running && !isPlaylistRunning) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (exportMessage != null) {
+                        Text(exportMessage!!, fontSize = 11.sp, color = AccentGreen, fontWeight = FontWeight.Medium)
+                    }
                     Button(
                         onClick = {
-                            lastReport = generateReport(stats, allCommands, playlist, duration.toIntOrNull() ?: 60, concurrency.toIntOrNull() ?: 1, tps.toIntOrNull() ?: 10)
-                            showReport = true
+                            scope.launch {
+                                val html = generateHtmlReport(
+                                    service = service,
+                                    itemResults = itemResults.toList(),
+                                    playlist = playlist.toList(),
+                                    allCommands = allCommands,
+                                    durationSec = duration.toIntOrNull() ?: 60,
+                                    workers = concurrency.toIntOrNull() ?: 1,
+                                    targetTps = tps.toIntOrNull() ?: 10,
+                                    finalStats = stats,
+                                )
+                                val saved = withContext(Dispatchers.IO) { saveHtmlReport(html) }
+                                exportMessage = saved
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(backgroundColor = PrimaryBlue),
                         shape = RoundedCornerShape(8.dp),
@@ -776,12 +828,6 @@ fun HsmLoadTesterTab(
         )
     }
 
-    if (showReport && lastReport != null) {
-        ReportDialog(
-            report = lastReport!!,
-            onDismiss = { showReport = false },
-        )
-    }
 
     // ── Save Playlist Dialog ──
     if (showSavePlaylistDialog) {
@@ -1422,113 +1468,265 @@ private fun LoadTestCommandPickerDialog(
 //  Report generation + dialog
 // ──────────────────────────────────────────────────────────────────────────────
 
-private fun generateReport(
-    stats: LoadTestStats,
-    allCommands: List<String>,
-    playlist: List<PlaylistItem>,
-    durationSec: Int,
-    workers: Int,
-    targetTps: Int,
-): String {
-    val now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-    val total = stats.successCount + stats.failureCount
-    val successRate = if (total > 0) (stats.successCount.toDouble() / total * 100) else 0.0
-
-    return buildString {
-        appendLine("═══════════════════════════════════════════════════════════════")
-        appendLine("  HSM LOAD TEST REPORT")
-        appendLine("  Generated: $now")
-        appendLine("═══════════════════════════════════════════════════════════════")
-        appendLine()
-        appendLine("── Test Configuration ──────────────────────────────────────────")
-        appendLine("  Workers:             $workers")
-        appendLine("  Target Cmd/sec:      $targetTps")
-        appendLine("  Duration per item:   ${durationSec}s")
-        appendLine("  Playlist items:      ${playlist.size}")
-        appendLine("  Total commands:      ${allCommands.size}")
-        appendLine()
-        appendLine("── Playlist ───────────────────────────────────────────────────")
-        for ((i, item) in playlist.withIndex()) {
-            val cmds = item.resolveCommands()
-            appendLine("  ${i + 1}. [${item.type.label}] ${item.label} (${cmds.size} commands)")
-            for ((j, cmd) in cmds.withIndex()) {
-                appendLine("     ${j + 1}) $cmd")
-            }
-        }
-        appendLine()
-        appendLine("── Results ────────────────────────────────────────────────────")
-        appendLine("  Total Sent:          ${stats.totalSent}")
-        appendLine("  Total Received:      ${stats.totalReceived}")
-        appendLine("  Successful:          ${stats.successCount}")
-        appendLine("  Failed:              ${stats.failureCount}")
-        appendLine("  Success Rate:        ${"%.2f".format(successRate)}%")
-        appendLine()
-        appendLine("── Latency ────────────────────────────────────────────────────")
-        appendLine("  Average:             ${"%.2f".format(stats.avgResponseTimeMs)} ms")
-        appendLine("  Minimum:             ${if (stats.minResponseTimeMs == Long.MAX_VALUE) "N/A" else "${stats.minResponseTimeMs} ms"}")
-        appendLine("  Maximum:             ${if (stats.maxResponseTimeMs == 0L) "N/A" else "${stats.maxResponseTimeMs} ms"}")
-        appendLine()
-        appendLine("── Throughput ─────────────────────────────────────────────────")
-        appendLine("  Actual TPS:          ${"%.2f".format(stats.currentTps)}")
-        appendLine("  Elapsed:             ${stats.elapsedSeconds}s")
-        appendLine()
-        appendLine("═══════════════════════════════════════════════════════════════")
-        appendLine("  End of Report")
-        appendLine("═══════════════════════════════════════════════════════════════")
+/** Show a file-save dialog and write the HTML report to the chosen location. Returns a status message. */
+private fun saveHtmlReport(html: String): String {
+    val chooser = JFileChooser().apply {
+        dialogTitle = "Export Load Test Report"
+        fileSelectionMode = JFileChooser.FILES_ONLY
+        isAcceptAllFileFilterUsed = false
+        fileFilter = FileNameExtensionFilter("HTML Report (.html)", "html")
+        val ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+        selectedFile = java.io.File("HSM_LoadTest_Report_$ts.html")
+    }
+    val result = chooser.showSaveDialog(null)
+    if (result != JFileChooser.APPROVE_OPTION) return "Export cancelled"
+    val file = chooser.selectedFile.let {
+        if (it.name.lowercase().endsWith(".html")) it else java.io.File("${it.absolutePath}.html")
+    }
+    return try {
+        file.writeText(html, Charsets.UTF_8)
+        "Saved to ${file.absolutePath}"
+    } catch (e: Exception) {
+        "Export failed: ${e.message}"
     }
 }
 
-@Composable
-private fun ReportDialog(
-    report: String,
-    onDismiss: () -> Unit,
-) {
-    var copied by remember { mutableStateOf(false) }
+private fun generateHtmlReport(
+    service: HsmCommandClientService,
+    itemResults: List<PlaylistItemResult>,
+    playlist: List<PlaylistItem>,
+    allCommands: List<String>,
+    durationSec: Int,
+    workers: Int,
+    targetTps: Int,
+    finalStats: LoadTestStats,
+): String {
+    val now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+    val tsFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+    val cfg = service.config
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Assessment, null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
-                Text("Load Test Report", fontWeight = FontWeight.Bold)
+    val totalBytesSent = itemResults.sumOf { ir -> ir.commandLogs.sumOf { it.bytesSent.toLong() } }
+    val totalBytesRecv = itemResults.sumOf { ir -> ir.commandLogs.sumOf { it.bytesReceived.toLong() } }
+    val totalCommands = itemResults.sumOf { it.commandLogs.size.toLong() }
+    val overallSuccess = itemResults.sumOf { it.stats.successCount }
+    val overallFailure = itemResults.sumOf { it.stats.failureCount }
+    val overallTotal = overallSuccess + overallFailure
+    val overallSuccessRate = if (overallTotal > 0) overallSuccess.toDouble() / overallTotal * 100 else 0.0
+    val overallStartTime = itemResults.minOfOrNull { it.startTime } ?: System.currentTimeMillis()
+    val overallEndTime = itemResults.maxOfOrNull { it.endTime } ?: System.currentTimeMillis()
+    val overallDurationSec = ((overallEndTime - overallStartTime) / 1000.0).coerceAtLeast(0.001)
+    val allLogs = itemResults.flatMap { it.commandLogs }
+    val avgMs = if (allLogs.isNotEmpty()) allLogs.map { it.elapsedMs }.average() else 0.0
+    val minMs = allLogs.minOfOrNull { it.elapsedMs } ?: 0
+    val maxMs = allLogs.maxOfOrNull { it.elapsedMs } ?: 0
+    val p95Ms = if (allLogs.isNotEmpty()) {
+        val sorted = allLogs.map { it.elapsedMs }.sorted()
+        sorted[(sorted.size * 0.95).toInt().coerceAtMost(sorted.lastIndex)]
+    } else 0L
+
+    fun h(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+    fun ts(ms: Long): String = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault()).format(tsFormatter)
+    fun fullTs(ms: Long): String = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault()).format(dateFormatter)
+    fun bytes(b: Long): String = when {
+        b < 1024 -> "$b B"
+        b < 1048576 -> "%.1f KB".format(b / 1024.0)
+        else -> "%.2f MB".format(b / 1048576.0)
+    }
+
+    return buildString {
+        append("""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HSM Load Test Report</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6;font-size:13px;background:#fff}
+.page{max-width:1100px;margin:0 auto;padding:40px 32px}
+header{border-bottom:2px solid #1a1a1a;padding-bottom:16px;margin-bottom:32px}
+header h1{font-size:20px;font-weight:600;letter-spacing:-0.3px}
+header p{font-size:12px;color:#666;margin-top:2px}
+h2{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#1a1a1a;margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid #ddd}
+h3{font-size:13px;font-weight:600;margin:0 0 8px}
+section{margin-bottom:24px}
+.meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;border:1px solid #ddd;border-radius:3px;overflow:hidden}
+.meta-item{padding:10px 14px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;font-size:12px}
+.meta-item:nth-child(odd){background:#fafafa}
+.meta-item .k{color:#666}
+.meta-item .v{font-weight:500;font-family:'SF Mono','Cascadia Code','Consolas',monospace;font-size:11px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#ddd;border:1px solid #ddd;border-radius:3px;overflow:hidden;margin-bottom:16px}
+.stat{background:#fff;padding:14px 16px;text-align:center}
+.stat .n{font-size:22px;font-weight:600;font-family:'SF Mono','Cascadia Code','Consolas',monospace;line-height:1.2}
+.stat .l{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-top:2px}
+.stat .s{font-size:10px;color:#999;margin-top:1px}
+table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:4px}
+th{text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.3px;color:#666;padding:7px 10px;border-bottom:2px solid #ddd;background:#fafafa;position:sticky;top:0;z-index:1}
+td{padding:5px 10px;border-bottom:1px solid #eee;font-family:'SF Mono','Cascadia Code','Consolas',monospace;font-size:11px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+tr:hover td{background:#f8f8f8}
+.t-wrap{border:1px solid #ddd;border-radius:3px;overflow:auto;max-height:460px}
+.ok{color:#1a8a1a;font-weight:600}
+.fail{color:#c00;font-weight:600}
+.item-block{border:1px solid #ddd;border-radius:3px;margin-bottom:20px;overflow:hidden}
+.item-hdr{background:#fafafa;padding:10px 14px;border-bottom:1px solid #ddd;display:flex;align-items:baseline;gap:10px}
+.item-hdr .idx{font-weight:700;font-size:14px;color:#333;min-width:24px}
+.item-hdr .lbl{font-weight:600;font-size:13px}
+.item-hdr .info{font-size:11px;color:#888;margin-left:auto}
+.item-body{padding:14px}
+.item-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:#eee;border:1px solid #eee;border-radius:3px;overflow:hidden;margin-bottom:12px}
+.item-stats .stat{padding:8px 10px}
+.item-stats .stat .n{font-size:15px}
+details{margin-bottom:10px}
+summary{cursor:pointer;font-size:12px;font-weight:500;color:#333;padding:4px 0}
+summary:hover{color:#000}
+footer{border-top:1px solid #ddd;padding-top:16px;margin-top:40px;text-align:center;font-size:11px;color:#999}
+@media(max-width:800px){.stats,.item-stats{grid-template-columns:repeat(2,1fr)}.meta{grid-template-columns:1fr}}
+@media print{.t-wrap{max-height:none;overflow:visible}body{font-size:11px}.page{padding:20px}}
+</style>
+</head>
+<body>
+<div class="page">
+""")
+
+        // Header
+        appendLine("<header>")
+        appendLine("<h1>HSM Load Test Report</h1>")
+        appendLine("<p>Generated $now &mdash; ${h(cfg.hsmVendor.displayName)} &mdash; ${h(cfg.ipAddress)}:${cfg.port}</p>")
+        appendLine("</header>")
+
+        // Connection & Configuration
+        appendLine("<h2>Test Parameters</h2>")
+        appendLine("<div class=\"meta\">")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">HSM Vendor</span><span class=\"v\">${h(cfg.hsmVendor.displayName)}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Host</span><span class=\"v\">${h(cfg.ipAddress)}:${cfg.port}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Header Format</span><span class=\"v\">${cfg.hsmVendor.headerFormat}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Message Header</span><span class=\"v\">${h(cfg.headerValue.ifBlank { "\u2014" })}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">SSL/TLS</span><span class=\"v\">${if (cfg.sslConfig.enabled) "Enabled" else "Disabled"}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">TCP Length Header</span><span class=\"v\">${if (cfg.tcpLengthHeaderEnabled) "Yes" else "No"}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Timeout</span><span class=\"v\">${cfg.timeout}s</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Concurrent Workers</span><span class=\"v\">$workers</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Target Cmd/sec</span><span class=\"v\">$targetTps</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Duration per Item</span><span class=\"v\">${durationSec}s</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Playlist Items</span><span class=\"v\">${playlist.size}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Total Commands</span><span class=\"v\">${allCommands.size}</span></div>")
+        appendLine("</div>")
+
+        // Overall Summary
+        appendLine("<h2>Summary</h2>")
+        appendLine("<div class=\"stats\">")
+        fun stat(n: String, l: String, s: String = "") {
+            append("<div class=\"stat\"><div class=\"n\">$n</div><div class=\"l\">$l</div>")
+            if (s.isNotEmpty()) append("<div class=\"s\">$s</div>")
+            appendLine("</div>")
+        }
+        stat("$overallTotal", "Total Sent")
+        stat("$overallSuccess", "Successful", "${"%.1f".format(overallSuccessRate)}%")
+        stat("$overallFailure", "Failed", "${"%.1f".format(100.0 - overallSuccessRate)}%")
+        stat("${"%.1f".format(overallTotal / overallDurationSec)}", "Throughput (tps)")
+        appendLine("</div>")
+        appendLine("<div class=\"stats\">")
+        stat("${"%.2f".format(avgMs)} ms", "Avg Latency")
+        stat("$minMs / $maxMs ms", "Min / Max Latency", "P95: $p95Ms ms")
+        stat(bytes(totalBytesSent), "Data Sent", "$totalBytesSent bytes")
+        stat(bytes(totalBytesRecv), "Data Received", "$totalBytesRecv bytes")
+        appendLine("</div>")
+        appendLine("<div class=\"meta\" style=\"grid-template-columns:repeat(4,1fr)\">")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Start</span><span class=\"v\">${fullTs(overallStartTime)}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">End</span><span class=\"v\">${fullTs(overallEndTime)}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Duration</span><span class=\"v\">${"%.1f".format(overallDurationSec)}s</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Executions</span><span class=\"v\">$totalCommands</span></div>")
+        appendLine("</div>")
+
+        // Playlist Overview
+        appendLine("<h2>Playlist Overview</h2>")
+        appendLine("<div class=\"t-wrap\"><table>")
+        appendLine("<tr><th>#</th><th>Type</th><th>Label</th><th>Cmds</th><th>Sent</th><th>OK</th><th>Fail</th><th>Avg ms</th><th>TPS</th><th>Sent</th><th>Recv</th><th>Duration</th></tr>")
+        for ((i, item) in playlist.withIndex()) {
+            val ir = itemResults.getOrNull(i)
+            val cmds = item.resolveCommands()
+            val s = ir?.stats
+            val logs = ir?.commandLogs ?: emptyList()
+            val bSent = logs.sumOf { it.bytesSent.toLong() }
+            val bRecv = logs.sumOf { it.bytesReceived.toLong() }
+            val dur = if (ir != null) "%.1fs".format((ir.endTime - ir.startTime) / 1000.0) else "\u2014"
+            appendLine("<tr>")
+            appendLine("<td>${i + 1}</td><td>${h(item.type.label)}</td><td style=\"font-family:inherit\">${h(item.label)}</td><td>${cmds.size}</td>")
+            appendLine("<td>${s?.totalSent ?: "\u2014"}</td>")
+            appendLine("<td class=\"ok\">${s?.successCount ?: "\u2014"}</td>")
+            appendLine("<td class=\"fail\">${s?.failureCount ?: "\u2014"}</td>")
+            appendLine("<td>${if (s != null) "%.2f".format(s.avgResponseTimeMs) else "\u2014"}</td>")
+            appendLine("<td>${if (s != null) "%.1f".format(s.currentTps) else "\u2014"}</td>")
+            appendLine("<td>${bytes(bSent)}</td><td>${bytes(bRecv)}</td><td>$dur</td>")
+            appendLine("</tr>")
+        }
+        appendLine("</table></div>")
+
+        // Per-item Details
+        appendLine("<h2>Execution Details</h2>")
+        for (ir in itemResults) {
+            val s = ir.stats
+            val logs = ir.commandLogs
+            val bSent = logs.sumOf { it.bytesSent.toLong() }
+            val bRecv = logs.sumOf { it.bytesReceived.toLong() }
+            val itemTotal = s.successCount + s.failureCount
+            val rate = if (itemTotal > 0) s.successCount.toDouble() / itemTotal * 100 else 0.0
+
+            appendLine("<div class=\"item-block\">")
+            appendLine("<div class=\"item-hdr\">")
+            appendLine("<span class=\"idx\">${ir.itemIndex + 1}</span>")
+            appendLine("<span class=\"lbl\">${h(ir.itemLabel)}</span>")
+            appendLine("<span class=\"info\">${h(ir.itemType)} &middot; ${ir.commands.size} cmd &middot; ${fullTs(ir.startTime)} \u2014 ${fullTs(ir.endTime)}</span>")
+            appendLine("</div>")
+            appendLine("<div class=\"item-body\">")
+
+            // Item stats row
+            appendLine("<div class=\"item-stats\">")
+            stat("${s.totalSent}", "Sent")
+            stat("${s.successCount}", "OK", "${"%.1f".format(rate)}%")
+            stat("${s.failureCount}", "Fail")
+            stat("${"%.2f".format(s.avgResponseTimeMs)} ms", "Avg Latency", "${if (s.minResponseTimeMs == Long.MAX_VALUE) "\u2014" else "${s.minResponseTimeMs}"} / ${if (s.maxResponseTimeMs == 0L) "\u2014" else "${s.maxResponseTimeMs}"} ms")
+            stat("${"%.1f".format(s.currentTps)}", "TPS")
+            stat("${bytes(bSent)} / ${bytes(bRecv)}", "Data S/R")
+            appendLine("</div>")
+
+            // Commands
+            if (ir.commands.size <= 5) {
+                appendLine("<details open><summary>Commands (${ir.commands.size})</summary>")
+            } else {
+                appendLine("<details><summary>Commands (${ir.commands.size})</summary>")
             }
-        },
-        text = {
-            Column(modifier = Modifier.size(600.dp, 450.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = {
-                        val clipboard = java.awt.Toolkit.getDefaultToolkit().systemClipboard
-                        clipboard.setContents(java.awt.datatransfer.StringSelection(report), null)
-                        copied = true
-                    }) {
-                        Icon(if (copied) Icons.Default.Check else Icons.Default.ContentCopy, null, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(if (copied) "Copied!" else "Copy to Clipboard", fontSize = 11.sp)
-                    }
-                }
-                Spacer(Modifier.height(4.dp))
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.04f),
-                ) {
-                    val scrollState = rememberScrollState()
-                    Text(
-                        report,
-                        modifier = Modifier.verticalScroll(scrollState).padding(12.dp),
-                        fontFamily = Mono, fontSize = 10.sp, lineHeight = 16.sp,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f),
-                    )
-                }
+            appendLine("<table><tr><th>#</th><th>Command</th></tr>")
+            for ((ci, cmd) in ir.commands.withIndex()) {
+                appendLine("<tr><td>${ci + 1}</td><td>${h(cmd)}</td></tr>")
             }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(backgroundColor = PrimaryBlue)) {
-                Text("Close", color = Color.White)
+            appendLine("</table></details>")
+
+            // Execution log
+            appendLine("<details open><summary>Execution Log (${logs.size} entries)</summary>")
+            appendLine("<div class=\"t-wrap\"><table>")
+            appendLine("<tr><th>#</th><th>Time</th><th>W</th><th>Command</th><th>Response</th><th>Status</th><th>ms</th><th>Sent</th><th>Recv</th><th>Error</th></tr>")
+            for ((li, log) in logs.withIndex()) {
+                appendLine("<tr>")
+                appendLine("<td>${li + 1}</td>")
+                appendLine("<td>${ts(log.timestamp)}</td>")
+                appendLine("<td>${log.workerIndex}</td>")
+                appendLine("<td title=\"${h(log.command)}\">${h(log.command)}</td>")
+                appendLine("<td title=\"${h(log.response)}\">${h(log.response)}</td>")
+                appendLine("<td class=\"${if (log.success) "ok" else "fail"}\">${if (log.success) "OK" else "FAIL"}</td>")
+                appendLine("<td>${log.elapsedMs}</td>")
+                appendLine("<td>${log.bytesSent}</td>")
+                appendLine("<td>${log.bytesReceived}</td>")
+                appendLine("<td style=\"font-family:inherit;color:#999\">${h(log.errorMessage ?: "")}</td>")
+                appendLine("</tr>")
             }
-        },
-        dismissButton = {},
-    )
+            appendLine("</table></div></details>")
+            appendLine("</div></div>") // item-body, item-block
+        }
+
+        // Footer
+        appendLine("<footer>ISO8583Studio &mdash; HSM Load Test Report &mdash; $now</footer>")
+        appendLine("</div></body></html>")
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
