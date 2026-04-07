@@ -173,6 +173,9 @@ fun HsmLoadTesterTab(
     // Per-item results collected during playlist run
     val itemResults = remember { mutableStateListOf<PlaylistItemResult>() }
     var exportMessage by remember { mutableStateOf<String?>(null) }
+    var isExporting by remember { mutableStateOf(false) }
+    var exportStep by remember { mutableStateOf("") }
+    var exportProgress by remember { mutableStateOf(0f) }
 
     // Resolve all playlist commands
     val allCommands: List<String> = playlist.flatMap { it.resolveCommands() }
@@ -689,38 +692,118 @@ fun HsmLoadTesterTab(
 
             // Export button row
             if (stats.totalSent > 0 && !stats.running && !isPlaylistRunning) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (exportMessage != null) {
-                        Text(exportMessage!!, fontSize = 11.sp, color = AccentGreen, fontWeight = FontWeight.Medium)
-                    }
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val html = generateHtmlReport(
-                                    service = service,
-                                    itemResults = itemResults.toList(),
-                                    playlist = playlist.toList(),
-                                    allCommands = allCommands,
-                                    durationSec = duration.toIntOrNull() ?: 60,
-                                    workers = concurrency.toIntOrNull() ?: 1,
-                                    targetTps = tps.toIntOrNull() ?: 10,
-                                    finalStats = stats,
-                                )
-                                val saved = withContext(Dispatchers.IO) { saveHtmlReport(html) }
-                                exportMessage = saved
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = PrimaryBlue),
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = ButtonDefaults.elevation(0.dp),
+                if (isExporting) {
+                    // ── Export progress card ──────────────────────────────────────────
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = 2.dp,
+                        shape = RoundedCornerShape(10.dp),
+                        backgroundColor = MaterialTheme.colors.surface,
                     ) {
-                        Icon(Icons.Default.Assessment, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Export Report", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = PrimaryBlue,
+                                    )
+                                    Text(
+                                        "Preparing report…",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colors.onSurface,
+                                    )
+                                }
+                                Text(
+                                    "${(exportProgress * 100).toInt()}%",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = Mono,
+                                    color = PrimaryBlue,
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = exportProgress,
+                                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                                color = PrimaryBlue,
+                                backgroundColor = PrimaryBlue.copy(alpha = 0.12f),
+                            )
+                            if (exportStep.isNotEmpty()) {
+                                Text(
+                                    exportStep,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.55f),
+                                    fontFamily = Mono,
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (exportMessage != null) {
+                            Text(
+                                exportMessage!!,
+                                fontSize = 11.sp,
+                                color = if (exportMessage!!.startsWith("Saved")) AccentGreen else AccentRed,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    isExporting = true
+                                    exportStep = ""
+                                    exportProgress = 0f
+                                    exportMessage = null
+                                    val html = withContext(Dispatchers.Default) {
+                                        generateHtmlReport(
+                                            service = service,
+                                            itemResults = itemResults.toList(),
+                                            playlist = playlist.toList(),
+                                            allCommands = allCommands,
+                                            durationSec = duration.toIntOrNull() ?: 60,
+                                            workers = concurrency.toIntOrNull() ?: 1,
+                                            targetTps = tps.toIntOrNull() ?: 10,
+                                            finalStats = stats,
+                                            onProgress = { step, progress ->
+                                                exportStep = step
+                                                exportProgress = progress
+                                            },
+                                        )
+                                    }
+                                    exportStep = "Opening save dialog…"
+                                    exportProgress = 0.95f
+                                    val saved = withContext(Dispatchers.IO) { saveHtmlReport(html) }
+                                    exportMessage = saved
+                                    isExporting = false
+                                    exportStep = ""
+                                    exportProgress = 0f
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = PrimaryBlue),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = ButtonDefaults.elevation(0.dp),
+                        ) {
+                            Icon(Icons.Default.Assessment, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Export Report", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
@@ -1500,12 +1583,15 @@ private fun generateHtmlReport(
     workers: Int,
     targetTps: Int,
     finalStats: LoadTestStats,
+    onProgress: ((step: String, progress: Float) -> Unit)? = null,
 ): String {
     val now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
     val tsFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
     val cfg = service.config
 
+    // ── Pre-compute aggregates ──────────────────────────────────────────────────
+    onProgress?.invoke("Computing statistics…", 0.02f)
     val totalBytesSent = itemResults.sumOf { ir -> ir.commandLogs.sumOf { it.bytesSent.toLong() } }
     val totalBytesRecv = itemResults.sumOf { ir -> ir.commandLogs.sumOf { it.bytesReceived.toLong() } }
     val totalCommands = itemResults.sumOf { it.commandLogs.size.toLong() }
@@ -1516,6 +1602,8 @@ private fun generateHtmlReport(
     val overallStartTime = itemResults.minOfOrNull { it.startTime } ?: System.currentTimeMillis()
     val overallEndTime = itemResults.maxOfOrNull { it.endTime } ?: System.currentTimeMillis()
     val overallDurationSec = ((overallEndTime - overallStartTime) / 1000.0).coerceAtLeast(0.001)
+
+    onProgress?.invoke("Sorting latency data for percentiles…", 0.06f)
     val allLogs = itemResults.flatMap { it.commandLogs }
     val avgMs = if (allLogs.isNotEmpty()) allLogs.map { it.elapsedMs }.average() else 0.0
     val minMs = allLogs.minOfOrNull { it.elapsedMs } ?: 0
@@ -1534,7 +1622,14 @@ private fun generateHtmlReport(
         else -> "%.2f MB".format(b / 1048576.0)
     }
 
+    // Detail sections contribute the bulk of the output (one section per item).
+    // We emit progress as we build each item block so the user sees activity.
+    val detailSectionProgressStart = 0.45f
+    val detailSectionProgressEnd   = 0.90f
+
     return buildString {
+        // ── HTML shell + styles ────────────────────────────────────────────────
+        onProgress?.invoke("Writing report header and styles…", 0.10f)
         append("""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1589,6 +1684,7 @@ footer{border-top:1px solid #ddd;padding-top:16px;margin-top:40px;text-align:cen
 """)
 
         // Header
+        onProgress?.invoke("Writing test parameters…", 0.20f)
         appendLine("<header>")
         appendLine("<h1>HSM Load Test Report</h1>")
         appendLine("<p>Generated $now &mdash; ${h(cfg.hsmVendor.displayName)} &mdash; ${h(cfg.ipAddress)}:${cfg.port}</p>")
@@ -1612,6 +1708,7 @@ footer{border-top:1px solid #ddd;padding-top:16px;margin-top:40px;text-align:cen
         appendLine("</div>")
 
         // Overall Summary
+        onProgress?.invoke("Writing summary statistics…", 0.30f)
         appendLine("<h2>Summary</h2>")
         appendLine("<div class=\"stats\">")
         fun stat(n: String, l: String, s: String = "") {
@@ -1638,6 +1735,7 @@ footer{border-top:1px solid #ddd;padding-top:16px;margin-top:40px;text-align:cen
         appendLine("</div>")
 
         // Playlist Overview
+        onProgress?.invoke("Writing playlist overview (${playlist.size} items)…", 0.40f)
         appendLine("<h2>Playlist Overview</h2>")
         appendLine("<div class=\"t-wrap\"><table>")
         appendLine("<tr><th>#</th><th>Type</th><th>Label</th><th>Cmds</th><th>Sent</th><th>OK</th><th>Fail</th><th>Avg ms</th><th>TPS</th><th>Sent</th><th>Recv</th><th>Duration</th></tr>")
@@ -1662,8 +1760,17 @@ footer{border-top:1px solid #ddd;padding-top:16px;margin-top:40px;text-align:cen
         appendLine("</table></div>")
 
         // Per-item Details
+        onProgress?.invoke("Writing execution details…", detailSectionProgressStart)
         appendLine("<h2>Execution Details</h2>")
-        for (ir in itemResults) {
+        for ((irIdx, ir) in itemResults.withIndex()) {
+            val itemProgressFraction = if (itemResults.size > 1)
+                irIdx.toFloat() / (itemResults.size - 1) else 1f
+            val sectionProgress = detailSectionProgressStart +
+                itemProgressFraction * (detailSectionProgressEnd - detailSectionProgressStart)
+            onProgress?.invoke(
+                "Item ${irIdx + 1}/${itemResults.size}: \"${ir.itemLabel}\" — ${ir.commandLogs.size} log entries…",
+                sectionProgress,
+            )
             val s = ir.stats
             val logs = ir.commandLogs
             val bSent = logs.sumOf { it.bytesSent.toLong() }
@@ -1724,6 +1831,7 @@ footer{border-top:1px solid #ddd;padding-top:16px;margin-top:40px;text-align:cen
         }
 
         // Footer
+        onProgress?.invoke("Finalising HTML (${allLogs.size} log entries, ${itemResults.size} items)…", 0.92f)
         appendLine("<footer>ISO8583Studio &mdash; HSM Load Test Report &mdash; $now</footer>")
         appendLine("</div></body></html>")
     }

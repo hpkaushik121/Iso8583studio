@@ -185,6 +185,7 @@ class PayShieldStringCommandProcessor(
             "A6" -> executeA6(cmd)
             "A8" -> executeA8(cmd)
             "BU" -> executeBU(cmd)
+            "KA" -> executeKA(cmd)
             "BW" -> executeBW(cmd)
             "BG" -> executeBG(cmd)
 
@@ -1034,32 +1035,50 @@ class PayShieldStringCommandProcessor(
             var pos = 0
             val data = cmd.data
 
-            val mode    = data.substring(pos, pos + 2); pos += 2
-            val inFmt   = data[pos].toString(); pos++
-            val outFmt  = data[pos].toString(); pos++
+            val mode   = data.substring(pos, pos + 2); pos += 2
+            val inFmt  = data[pos].toString(); pos++
+            val outFmt = data[pos].toString(); pos++
 
             val keyTypeCode = data.substring(pos, pos + 3); pos += 3
-            val keyScheme = data[pos]; pos++
-            val keyHex = data.substring(pos, pos + 32); pos += 32
-            val encKey = IsoUtil.hexToBytes(keyHex)
 
-            val isBdkType = keyTypeCode in BDK_KEY_TYPES
+            // ── Key parsing ──────────────────────────────────────────────────────────────
+            // Use extractSchemeKey so that both variant (U/T/X/Y prefix + 32H) keys and
+            // KeyBlock (S-block, variable length) keys are handled correctly.
+            // The old approach of "scheme(1) + hex(32)" broke on S-blocks because the
+            // S-block header contains non-hex chars (e.g. "0T", "TN") that cannot be
+            // parsed with toInt(16).
+            val (keyWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
+            val isKeyBlock = keyWithScheme.firstOrNull()?.uppercaseChar() == 'S'
 
+            // For S-block keys extract usage/algo from the fixed header layout:
+            //   S(1) + version(1) + blockLen(4) + keyUsage(2) + algo(1) + modeOfUse(1) + ...
+            val keyUsageFromBlock = if (isKeyBlock && keyWithScheme.length >= 8)
+                keyWithScheme.substring(6, 8) else ""
+            val keyAlgoFromBlock  = if (isKeyBlock && keyWithScheme.length >= 9)
+                keyWithScheme[8].uppercaseChar() else 'T'
+
+            // BDK / DUKPT path: S-block with BDK/EMV usage, or legacy BDK key type codes
+            val isBdkType = if (isKeyBlock)
+                keyUsageFromBlock in setOf("B0", "B1", "E0", "E1", "E2", "E4")
+            else
+                keyTypeCode in BDK_KEY_TYPES
+
+            // ── KSN (BDK / DUKPT path only) ──────────────────────────────────────────────
             var ksnDescriptor = ""
             var ksnHex = ""
             if (isBdkType) {
                 ksnDescriptor = data.substring(pos, pos + 3); pos += 3
-                ksnHex = data.substring(pos, pos + 20); pos += 20
+                ksnHex        = data.substring(pos, pos + 20); pos += 20
             }
 
             val ivHex = if (mode == "01" && pos + 16 <= data.length) {
                 data.substring(pos, pos + 16).also { pos += 16 }
             } else "0000000000000000"
 
-            val dataLenHex = data.substring(pos, pos + 4); pos += 4
-            val dataLen = dataLenHex.toInt(16)
+            val dataLenHex  = data.substring(pos, pos + 4); pos += 4
+            val dataLen     = dataLenHex.toInt(16)
             val plainDataHex = data.substring(pos, minOf(pos + dataLen, data.length))
-            val plainData = IsoUtil.hexToBytes(plainDataHex)
+            val plainData   = IsoUtil.hexToBytes(plainDataHex)
 
             hsmLogsListener.log(buildString {
                 appendLine("M0 - Encrypt Data Block Request")
@@ -1067,10 +1086,14 @@ class PayShieldStringCommandProcessor(
                 appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Key Type................. = [$keyTypeCode]")
-                appendLine("Key...................... = [$keyScheme$keyHex]")
+                appendLine("Key...................... = [$keyWithScheme]")
+                if (isKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$keyUsageFromBlock]")
+                    appendLine("  Key Block Algo........ = [$keyAlgoFromBlock]")
+                }
                 if (isBdkType) {
                     appendLine("KSN Descriptor........... = [$ksnDescriptor]")
-                    appendLine("Key serial number........ = [$ksnHex]")
+                    appendLine("Key Serial Number........ = [$ksnHex]")
                 }
                 if (mode == "01") appendLine("IV....................... = [$ivHex]")
                 appendLine("Message Length........... = [$dataLenHex]")
@@ -1082,94 +1105,93 @@ class PayShieldStringCommandProcessor(
                 appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Key Type................. = [$keyTypeCode]")
-                appendLine("Key...................... = [$keyScheme$keyHex]")
+                appendLine("Key...................... = [$keyWithScheme]")
+                if (isKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$keyUsageFromBlock]")
+                    appendLine("  Key Block Algo........ = [$keyAlgoFromBlock]")
+                }
                 if (isBdkType) {
                     appendLine("KSN Descriptor........... = [$ksnDescriptor]")
-                    appendLine("Key serial number........ = [$ksnHex]")
+                    appendLine("Key Serial Number........ = [$ksnHex]")
                 }
                 if (mode == "01") appendLine("IV....................... = [$ivHex]")
                 appendLine("Message Length........... = [$dataLenHex]")
                 appendLine("Message Block............ = [$plainDataHex]")
             })
 
-            hsmLogsListener.log("[M0] Step 1: Key derivation - keyType=$keyTypeCode, isBdk=$isBdkType, lmkSlot=${cmd.lmkId}")
+            hsmLogsListener.log("[M0] Step 1: Key derivation - keyType=$keyTypeCode isKeyBlock=$isKeyBlock isBdk=$isBdkType lmkSlot=${cmd.lmkId}")
 
+            // ── Resolve LMK pair ─────────────────────────────────────────────────────────
+            val lmkPairNumber = when {
+                isKeyBlock -> A0GenerateKeyCommand.lmkPairFromKeyUsage(keyUsageFromBlock)
+                isBdkType  -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]?.lmkPairNumber
+                               ?: PayShield10KCommandProcessor.LMK_PAIR_BDK
+                else       -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]?.lmkPairNumber
+                               ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
+            }
+            hsmLogsListener.log("[M0] Step 2: lmkPair=$lmkPairNumber")
+
+            // ── Decrypt key under LMK ────────────────────────────────────────────────────
+            // decryptSchemeKeyUnderLmk handles both variant (U/T/X/Y) and S-block keys.
+            val clearBdkOrKey = decryptSchemeKeyUnderLmk(keyWithScheme, cmd.lmkId, lmkPairNumber)
+            hsmLogsListener.log("[M0] Step 3: Decrypted clear key = ${IsoUtil.bytesToHexString(clearBdkOrKey)}")
+
+            // ── DUKPT session key derivation (BDK path) ──────────────────────────────────
             val clearKey: ByteArray
             if (isBdkType) {
-                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
-                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_BDK
-                val variant = keyTypeInfo?.variant ?: 0
-                hsmLogsListener.log("[M0] Step 2: BDK path - lmkPair=$lmkPairNumber, variant=$variant")
-
-                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
-                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
-                val lmkPair = lmk.getPair(lmkPairNumber)
-                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
-
-                val combinedLmk = lmkPair.getCombinedKey()
-                hsmLogsListener.log("[M0] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
-
-                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
-                hsmLogsListener.log("[M0] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
-
-                val clearBdk = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
-                hsmLogsListener.log("[M0] Step 5: Decrypted clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
-
                 val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
-                hsmLogsListener.log("[M0] Step 6: KSN descriptor=$ksnDescriptor, counterBits=$counterBits")
+                hsmLogsListener.log("[M0] Step 4: KSN descriptor=$ksnDescriptor counterBits=$counterBits")
 
-                val initialKey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnHex, counterBits)
-                hsmLogsListener.log("[M0] Step 7: IPEK (Initial Key) = ${IsoUtil.bytesToHexString(initialKey)}")
+                val initialKey = PayShield10KCommandProcessor.deriveInitialKey(clearBdkOrKey, ksnHex, counterBits)
+                hsmLogsListener.log("[M0] Step 5: IPEK = ${IsoUtil.bytesToHexString(initialKey)}")
 
                 val ksnBytes = IsoUtil.hexToBytes(ksnHex)
-                val counter = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
-                hsmLogsListener.log("[M0] Step 8: DUKPT counter = $counter")
+                val counter  = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
+                hsmLogsListener.log("[M0] Step 6: DUKPT counter = $counter")
 
-                val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
-                hsmLogsListener.log("[M0] Step 9: DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
-
-                clearKey = sessionKey
+                clearKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
+                hsmLogsListener.log("[M0] Step 7: DUKPT session key = ${IsoUtil.bytesToHexString(clearKey)}")
             } else {
-                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
-                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
-                val variant = keyTypeInfo?.variant ?: 0
-                hsmLogsListener.log("[M0] Step 2: Non-BDK path - lmkPair=$lmkPairNumber, variant=$variant")
-
-                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
-                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
-                val lmkPair = lmk.getPair(lmkPairNumber)
-                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
-
-                val combinedLmk = lmkPair.getCombinedKey()
-                hsmLogsListener.log("[M0] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
-
-                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
-                hsmLogsListener.log("[M0] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
-
-                clearKey = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
-                hsmLogsListener.log("[M0] Step 5: Decrypted clear key = ${IsoUtil.bytesToHexString(clearKey)}")
+                clearKey = clearBdkOrKey
             }
 
-            hsmLogsListener.log("[M0] Step 10: Encrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${plainData.size} bytes")
-            hsmLogsListener.log("[M0] Step 10: Plain data = $plainDataHex")
+            hsmLogsListener.log("[M0] Step 8: Encrypting - mode=${if (mode == "01") "CBC" else "ECB"} algo=${if (keyAlgoFromBlock == 'A') "AES" else "TDES"} dataLen=${plainData.size}")
+            hsmLogsListener.log("[M0] Step 8: Plain data = $plainDataHex")
 
+            // ── Data encryption ──────────────────────────────────────────────────────────
+            // Use AES when the S-block algorithm field is 'A'; TDES for everything else.
             val cipherMode = if (mode == "01") CipherMode.CBC else CipherMode.ECB
-            val encData = engine().encryptionEngine.encrypt(
-                algorithm = CryptoAlgorithm.TDES,
-                encryptionEngineParameters = SymmetricEncryptionEngineParameters(
-                    data = plainData,
-                    key = clearKey,
-                    iv = if (mode == "01") IsoUtil.hexToBytes(ivHex) else null,
-                    mode = cipherMode,
-                    padding = PaddingMethods.PKCS5
+            val useAes     = keyAlgoFromBlock == 'A'
+            val encData = if (useAes) {
+                engine().encryptionEngine.encrypt(
+                    algorithm = CryptoAlgorithm.AES,
+                    encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+                        data = plainData,
+                        key  = clearKey,
+                        iv   = if (mode == "01") IsoUtil.hexToBytes(ivHex) else null,
+                        mode = cipherMode,
+                        padding = PaddingMethods.PKCS5
+                    )
                 )
-            )
-            val encHex  = IsoUtil.bytesToHexString(encData)
-            val outLen  = (encData.size*2).toString(16).padStart(4, '0').uppercase()
+            } else {
+                engine().encryptionEngine.encrypt(
+                    algorithm = CryptoAlgorithm.TDES,
+                    encryptionEngineParameters = SymmetricEncryptionEngineParameters(
+                        data = plainData,
+                        key  = clearKey,
+                        iv   = if (mode == "01") IsoUtil.hexToBytes(ivHex) else null,
+                        mode = cipherMode,
+                        padding = PaddingMethods.PKCS5
+                    )
+                )
+            }
+
+            val encHex       = IsoUtil.bytesToHexString(encData)
+            val outLen       = (encData.size * 2).toString(16).padStart(4, '0').uppercase()
             val responseBody = if (mode == "01") "$ivHex$outLen$encHex" else "$outLen$encHex"
 
-            hsmLogsListener.log("[M0] Step 12: Encryption result = $encHex")
-            hsmLogsListener.log("[M0] Step 12: Response body = $responseBody")
+            hsmLogsListener.log("[M0] Step 9: Encryption result = $encHex")
+            hsmLogsListener.log("[M0] Step 9: Response body = $responseBody")
 
             hsmLogsListener.log(buildString {
                 appendLine("M1 - Encrypt Data Block Response")
@@ -1198,33 +1220,52 @@ class PayShieldStringCommandProcessor(
     /**
      * M2 - Decrypt Data Block
      * For ZEK/DEK keys:
-     *   Command: 0000M2[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key_1A+32H][IV_16H?][MsgLen_4H][Data_nH]
+     *   Command: 0000M2[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key(scheme+variable)][IV_16H?][MsgLen_4H][Data_nH]
      * For BDK (DUKPT) keys:
-     *   Command: 0000M2[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key_1A+32H][KSNDesc_3H][KSN_20H][IV_16H?][MsgLen_4H][Data_nH]
+     *   Command: 0000M2[Mode_2N][InFmt_1N][OutFmt_1N][KeyType_3H][Key(scheme+variable)][KSNDesc_3H][KSN_20H][IV_16H?][MsgLen_4H][Data_nH]
      * Response: 0000M300[IV_16H][DataLen_4H][Decrypted_nH]
      * Mode 00 = ECB, 01 = CBC.  InFmt/OutFmt 1 = hex-encoded.
+     * Supports variant (U/T/X/Y) and KeyBlock (S-block) keys.
      */
     private suspend fun executeM2(cmd: ParsedCommand): HsmCommandResult {
         return try {
             var pos = 0
             val data = cmd.data
 
-            val mode    = data.substring(pos, pos + 2); pos += 2
-            val inFmt   = data[pos].toString(); pos++
-            val outFmt  = data[pos].toString(); pos++
+            val mode   = data.substring(pos, pos + 2); pos += 2
+            val inFmt  = data[pos].toString(); pos++
+            val outFmt = data[pos].toString(); pos++
 
             val keyTypeCode = data.substring(pos, pos + 3); pos += 3
-            val keyScheme = data[pos]; pos++
-            val keyHex = data.substring(pos, pos + 32); pos += 32
-            val encKey = IsoUtil.hexToBytes(keyHex)
 
-            val isBdkType = keyTypeCode in BDK_KEY_TYPES
+            // ── Key parsing ──────────────────────────────────────────────────────────────
+            // Use extractSchemeKey so that both variant (U/T/X/Y prefix + 32H) keys and
+            // KeyBlock (S-block, variable length) keys are handled correctly.
+            // The old approach of "scheme(1) + hex(32)" broke on S-blocks because the
+            // S-block header contains non-hex chars (e.g. "0T", "TN") that cannot be
+            // parsed with toInt(16).
+            val (keyWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
+            val isKeyBlock = keyWithScheme.firstOrNull()?.uppercaseChar() == 'S'
 
+            // For S-block keys extract usage/algo from the fixed header layout:
+            //   S(1) + version(1) + blockLen(4) + keyUsage(2) + algo(1) + modeOfUse(1) + ...
+            val keyUsageFromBlock = if (isKeyBlock && keyWithScheme.length >= 8)
+                keyWithScheme.substring(6, 8) else ""
+            val keyAlgoFromBlock  = if (isKeyBlock && keyWithScheme.length >= 9)
+                keyWithScheme[8].uppercaseChar() else 'T'
+
+            // BDK / DUKPT path: S-block with BDK/EMV usage, or legacy BDK key type codes
+            val isBdkType = if (isKeyBlock)
+                keyUsageFromBlock in setOf("B0", "B1", "E0", "E1", "E2", "E4")
+            else
+                keyTypeCode in BDK_KEY_TYPES
+
+            // ── KSN (BDK / DUKPT path only) ──────────────────────────────────────────────
             var ksnDescriptor = ""
             var ksnHex = ""
             if (isBdkType) {
                 ksnDescriptor = data.substring(pos, pos + 3); pos += 3
-                ksnHex = data.substring(pos, pos + 20); pos += 20
+                ksnHex        = data.substring(pos, pos + 20); pos += 20
             }
 
             val ivHex = if (mode == "01" && pos + 16 <= data.length) {
@@ -1232,19 +1273,24 @@ class PayShieldStringCommandProcessor(
             } else "0000000000000000"
 
             val dataLenHex = data.substring(pos, pos + 4); pos += 4
-            val dataLen = dataLenHex.toInt(16)
+            val dataLen    = dataLenHex.toInt(16)
             val encDataHex = data.substring(pos, minOf(pos + dataLen, data.length))
-            var encData = IsoUtil.hexToBytes(encDataHex)
+            val encData    = IsoUtil.hexToBytes(encDataHex)
+
             hsmLogsListener.log(buildString {
                 appendLine("M2 - Decrypt Data Block Request")
                 appendLine("Mode Flag................ = [$mode] ${if (mode == "00") "ECB" else "CBC"}")
                 appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Key Type................. = [$keyTypeCode]")
-                appendLine("Key...................... = [$keyScheme$keyHex]")
+                appendLine("Key...................... = [$keyWithScheme]")
+                if (isKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$keyUsageFromBlock]")
+                    appendLine("  Key Block Algo........ = [$keyAlgoFromBlock]")
+                }
                 if (isBdkType) {
                     appendLine("KSN Descriptor........... = [$ksnDescriptor]")
-                    appendLine("Key serial number........ = [$ksnHex]")
+                    appendLine("Key Serial Number........ = [$ksnHex]")
                 }
                 if (mode == "01") appendLine("IV....................... = [$ivHex]")
                 appendLine("Message Length........... = [$dataLenHex]")
@@ -1256,112 +1302,112 @@ class PayShieldStringCommandProcessor(
                 appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Key Type................. = [$keyTypeCode]")
-                appendLine("Key...................... = [$keyScheme$keyHex]")
+                appendLine("Key...................... = [$keyWithScheme]")
+                if (isKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$keyUsageFromBlock]")
+                    appendLine("  Key Block Algo........ = [$keyAlgoFromBlock]")
+                }
                 if (isBdkType) {
                     appendLine("KSN Descriptor........... = [$ksnDescriptor]")
-                    appendLine("Key serial number........ = [$ksnHex]")
+                    appendLine("Key Serial Number........ = [$ksnHex]")
                 }
                 if (mode == "01") appendLine("IV....................... = [$ivHex]")
                 appendLine("Message Length........... = [$dataLenHex]")
                 appendLine("Message Block............ = [$encDataHex]")
             })
 
-            hsmLogsListener.log("[M2] Step 1: Key derivation - keyType=$keyTypeCode, isBdk=$isBdkType, lmkSlot=${cmd.lmkId}")
+            hsmLogsListener.log("[M2] Step 1: Key derivation - keyType=$keyTypeCode isKeyBlock=$isKeyBlock isBdk=$isBdkType lmkSlot=${cmd.lmkId}")
 
+            // ── Resolve LMK pair ─────────────────────────────────────────────────────────
+            val lmkPairNumber = when {
+                isKeyBlock -> A0GenerateKeyCommand.lmkPairFromKeyUsage(keyUsageFromBlock)
+                isBdkType  -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]?.lmkPairNumber
+                               ?: PayShield10KCommandProcessor.LMK_PAIR_BDK
+                else       -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]?.lmkPairNumber
+                               ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
+            }
+            hsmLogsListener.log("[M2] Step 2: lmkPair=$lmkPairNumber")
+
+            // ── Decrypt key under LMK ────────────────────────────────────────────────────
+            // decryptSchemeKeyUnderLmk handles both variant (U/T/X/Y) and S-block keys.
+            val clearBdkOrKey = decryptSchemeKeyUnderLmk(keyWithScheme, cmd.lmkId, lmkPairNumber)
+            hsmLogsListener.log("[M2] Step 3: Decrypted clear key = ${IsoUtil.bytesToHexString(clearBdkOrKey)}")
+
+            // ── DUKPT session key derivation (BDK path) ──────────────────────────────────
             val clearKey: ByteArray
             if (isBdkType) {
-                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
-                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_BDK
-                val variant = keyTypeInfo?.variant ?: 0
-                hsmLogsListener.log("[M2] Step 2: BDK path - lmkPair=$lmkPairNumber, variant=$variant")
-
-                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
-                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
-                val lmkPair = lmk.getPair(lmkPairNumber)
-                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
-
-                val combinedLmk = lmkPair.getCombinedKey()
-                hsmLogsListener.log("[M2] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
-
-                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
-                hsmLogsListener.log("[M2] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
-
-                val clearBdk = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
-                hsmLogsListener.log("[M2] Step 5: Decrypted clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
-
                 val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
-                hsmLogsListener.log("[M2] Step 6: KSN descriptor=$ksnDescriptor, counterBits=$counterBits")
+                hsmLogsListener.log("[M2] Step 4: KSN descriptor=$ksnDescriptor counterBits=$counterBits")
 
-                val initialKey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnHex, counterBits)
-                hsmLogsListener.log("[M2] Step 7: IPEK (Initial Key) = ${IsoUtil.bytesToHexString(initialKey)}")
+                val initialKey = PayShield10KCommandProcessor.deriveInitialKey(clearBdkOrKey, ksnHex, counterBits)
+                hsmLogsListener.log("[M2] Step 5: IPEK = ${IsoUtil.bytesToHexString(initialKey)}")
 
                 val ksnBytes = IsoUtil.hexToBytes(ksnHex)
-                val counter = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
-                hsmLogsListener.log("[M2] Step 8: DUKPT counter = $counter")
+                val counter  = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
+                hsmLogsListener.log("[M2] Step 6: DUKPT counter = $counter")
 
-                val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
-                hsmLogsListener.log("[M2] Step 9: DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
-
-
-                clearKey = sessionKey
+                clearKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
+                hsmLogsListener.log("[M2] Step 7: DUKPT session key = ${IsoUtil.bytesToHexString(clearKey)}")
             } else {
-                val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
-                val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
-                val variant = keyTypeInfo?.variant ?: 0
-                hsmLogsListener.log("[M2] Step 2: Non-BDK path - lmkPair=$lmkPairNumber, variant=$variant")
-
-                val lmk = simulator.lmkStorage.getLmk(cmd.lmkId)
-                    ?: return HsmCommandResult.Error("15", "LMK not loaded for slot ${cmd.lmkId}")
-                val lmkPair = lmk.getPair(lmkPairNumber)
-                    ?: return HsmCommandResult.Error("15", "LMK pair $lmkPairNumber not available")
-
-                val combinedLmk = lmkPair.getCombinedKey()
-                hsmLogsListener.log("[M2] Step 3: LMK combined key = ${IsoUtil.bytesToHexString(combinedLmk)}")
-
-                val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
-                hsmLogsListener.log("[M2] Step 4: Variant LMK (variant=$variant) = ${IsoUtil.bytesToHexString(variantLmk)}")
-
-                clearKey = performTdesDecryptForM2(encKey, variantLmk, cmd.lmkId)
-                hsmLogsListener.log("[M2] Step 5: Decrypted clear key = ${IsoUtil.bytesToHexString(clearKey)}")
+                clearKey = clearBdkOrKey
             }
 
-            hsmLogsListener.log("[M2] Step 10: Decrypting data - mode=${if (mode == "01") "CBC" else "ECB"}, clearKey=${IsoUtil.bytesToHexString(clearKey)}, iv=$ivHex, dataLen=${encData.size} bytes")
-            hsmLogsListener.log("[M2] Step 10: Encrypted data = $encDataHex")
+            hsmLogsListener.log("[M2] Step 8: Decrypting - mode=${if (mode == "01") "CBC" else "ECB"} algo=${if (keyAlgoFromBlock == 'A') "AES" else "TDES"} dataLen=${encData.size}")
+            hsmLogsListener.log("[M2] Step 8: Encrypted data = $encDataHex")
 
-
+            // ── Data decryption ──────────────────────────────────────────────────────────
+            // Use AES when the S-block algorithm field is 'A'; TDES for everything else.
             val cipherMode = if (mode == "01") CipherMode.CBC else CipherMode.ECB
-            val ivBytes = IsoUtil.hexToBytes(ivHex)
-            val eng = engine()
-            val decData = try {
-                eng.encryptionEngine.decrypt(
-                    algorithm = CryptoAlgorithm.TDES,
-                    decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                        data = encData,
-                        key = clearKey,
-                        iv = ivBytes,
-                        mode = cipherMode,
-                        padding = PaddingMethods.PKCS5
+            val ivBytes    = IsoUtil.hexToBytes(ivHex)
+            val useAes     = keyAlgoFromBlock == 'A'
+            val eng        = engine()
+
+            val decData = if (useAes) {
+                try {
+                    eng.encryptionEngine.decrypt(
+                        algorithm = CryptoAlgorithm.AES,
+                        decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                            data = encData, key = clearKey, iv = ivBytes,
+                            mode = cipherMode, padding = PaddingMethods.PKCS5
+                        )
                     )
-                )
-            } catch (_: Exception) {
-                hsmLogsListener.log("[M2] PKCS5 padding invalid, falling back to NoPadding")
-                eng.encryptionEngine.decrypt(
-                    algorithm = CryptoAlgorithm.TDES,
-                    decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                        data = encData,
-                        key = clearKey,
-                        iv = ivBytes,
-                        mode = cipherMode,
-                        padding = PaddingMethods.NONE
+                } catch (_: Exception) {
+                    hsmLogsListener.log("[M2] AES PKCS5 padding invalid, falling back to NoPadding")
+                    eng.encryptionEngine.decrypt(
+                        algorithm = CryptoAlgorithm.AES,
+                        decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                            data = encData, key = clearKey, iv = ivBytes,
+                            mode = cipherMode, padding = PaddingMethods.NONE
+                        )
                     )
-                )
+                }
+            } else {
+                try {
+                    eng.encryptionEngine.decrypt(
+                        algorithm = CryptoAlgorithm.TDES,
+                        decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                            data = encData, key = clearKey, iv = ivBytes,
+                            mode = cipherMode, padding = PaddingMethods.PKCS5
+                        )
+                    )
+                } catch (_: Exception) {
+                    hsmLogsListener.log("[M2] TDES PKCS5 padding invalid, falling back to NoPadding")
+                    eng.encryptionEngine.decrypt(
+                        algorithm = CryptoAlgorithm.TDES,
+                        decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                            data = encData, key = clearKey, iv = ivBytes,
+                            mode = cipherMode, padding = PaddingMethods.NONE
+                        )
+                    )
+                }
             }
-            val decHex  = IsoUtil.bytesToHexString(decData)
-            val outLen  = (decData.size*2).toString(16).padStart(4, '0').uppercase()
+
+            val decHex       = IsoUtil.bytesToHexString(decData)
+            val outLen       = (decData.size * 2).toString(16).padStart(4, '0').uppercase()
             val responseBody = if (mode == "01") "$ivHex$outLen$decHex" else "$outLen$decHex"
 
-            hsmLogsListener.log("[M2] Step 12: Decryption result = $decHex")
-            hsmLogsListener.log("[M2] Step 12: Response body = $responseBody")
+            hsmLogsListener.log("[M2] Step 9: Decryption result = $decHex")
+            hsmLogsListener.log("[M2] Step 9: Response body = $responseBody")
 
             hsmLogsListener.log(buildString {
                 appendLine("M3 - Decrypt Data Block Response")
@@ -2143,55 +2189,155 @@ class PayShieldStringCommandProcessor(
     //       or M6[BDK_FLAG][BDK][KSN_DESC][KSN][MODE_1N][MSG_LEN_4H][MSG]
     // Response: M7 00 [MAC_8H]
     // ====================================================================================================
-    private fun executeM6(cmd: ParsedCommand): HsmCommandResult {
+    // ====================================================================================================
+    // M6 — Generate MAC (Extended)
+    //
+    // Command format:
+    //   M6 [ModeFlag 1N] [InputFormatFlag 1N] [MacSize 1N] [MacAlgorithm 1N] [PaddingMethod 1N]
+    //      [KeyType 3H] [MacKey scheme+variable] [IV 16H, only if mode!=0] [MsgLen 4H] [Msg]
+    //      [%LmkId 2N, optional]
+    //
+    // ModeFlag:      0 = only block, 1 = first, 2 = middle, 3 = last
+    // InputFormat:   0 = binary, 1 = hex-encoded binary
+    // MacSize:       0 = 4 bytes (8H), 1 = 8 bytes (16H full MAC)
+    // MacAlgorithm:  0 = ISO 9797-1 Alg 1, 1 = ISO 9797-1 Alg 3 (ANSI X9.19)
+    // PaddingMethod: 1 = ISO 9797 Method 1 (zeros), 2 = Method 2 (0x80+zeros)
+    // KeyType:       FFF = KeyBlock, 003 = TAK, 009 = BDK, etc.
+    //
+    // Response: M7 00 [MAC 8H or 16H] [OCD 16H, only if mode=1 or mode=2]
+    // ====================================================================================================
+    private suspend fun executeM6(cmd: ParsedCommand): HsmCommandResult {
         return try {
             var pos = 0
             val data = cmd.data
 
-            val tak: ByteArray
-            val ksnHex: String?
+            val modeFlag        = data[pos]; pos++
+            val inputFormatFlag = data[pos]; pos++
+            val macSizeFlag     = data[pos]; pos++
+            val macAlgorithm    = data[pos]; pos++
+            val paddingMethod   = data[pos].digitToInt(); pos++
+            val keyTypeCode     = data.substring(pos, pos + 3); pos += 3
 
-            if (data[pos] == '~' || data[pos] == '!') {
-                // DUKPT MAC mode — BDK + KSN
-                pos++ // BDK flag
-                val bdkScheme = data[pos]; pos++
-                val bdkHex = data.substring(pos, pos + 32); pos += 32
-                pos += 3 // KSN descriptor
-                ksnHex = data.substring(pos, pos + 20); pos += 20
-                tak = IsoUtil.hexToBytes(bdkHex) // will be derived from BDK
-            } else {
-                // TAK mode (variant scheme char + 32H hex)
-                pos++ // scheme char
-                val takHex = data.substring(pos, pos + 32); pos += 32
-                tak = IsoUtil.hexToBytes(takHex)
-                ksnHex = null
+            // ── MAC key parsing (S-block or variant+hex) ──────────────────────────────────
+            val (keyWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
+            val isKeyBlock = keyWithScheme.firstOrNull()?.uppercaseChar() == 'S'
+
+            val keyUsageFromBlock = if (isKeyBlock && keyWithScheme.length >= 8)
+                keyWithScheme.substring(6, 8) else ""
+
+            // IV / OCD — only present when mode is not 0 (only-block)
+            val ivHex = if (modeFlag != '0' && pos + 16 <= data.length)
+                data.substring(pos, pos + 16).also { pos += 16 }
+            else null
+
+            // Message Length (4H) + Message Block
+            val msgLenHex  = data.substring(pos, pos + 4); pos += 4
+            val msgLen     = msgLenHex.toInt(16)
+            val messageHex = data.substring(pos, minOf(pos + msgLen * 2, data.length))
+            val message    = IsoUtil.hexToBytes(messageHex)
+
+            // ── Resolve LMK pair ────────────────────────────────────────────────────────────
+            val lmkPairNumber = when {
+                isKeyBlock -> A0GenerateKeyCommand.lmkPairFromKeyUsage(keyUsageFromBlock)
+                else       -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]?.lmkPairNumber
+                               ?: PayShield10KCommandProcessor.LMK_PAIR_TAK
             }
 
-            val mode = data[pos]; pos++
+            // ── Decrypt MAC key under LMK ───────────────────────────────────────────────────
+            val clearMacKey = decryptSchemeKeyUnderLmk(keyWithScheme, cmd.lmkId, lmkPairNumber)
 
-            // Message length (4H) + message
-            val msgLenHex = data.substring(pos, pos + 4); pos += 4
-            val msgLen = msgLenHex.toInt(16)
-            val messageHex = data.substring(pos, pos + msgLen * 2)
-            val message = IsoUtil.hexToBytes(messageHex)
+            // ── MAC variant for DUKPT BDK path ──────────────────────────────────────────────
+            val isBdkType = if (isKeyBlock)
+                keyUsageFromBlock in setOf("B0", "B1", "E0", "E1", "E2", "E4")
+            else
+                keyTypeCode in BDK_KEY_TYPES
+            val effectiveMacKey = if (isBdkType)
+                DukptEngine.xorBytes(clearMacKey, DukptEngine.MAC_VARIANT)
+            else
+                clearMacKey
 
-            hsmLogsListener.onFormattedRequest("""
-                M6 - Generate MAC
-                KSN: ${ksnHex ?: "N/A"}  Mode: $mode  MsgLen: $msgLen
-            """.trimIndent())
+            // ── Algorithm selection ─────────────────────────────────────────────────────────
+            // PayShield M6/M8 wire encoding: '1' = ISO 9797-1 Alg 1, '3' = ISO 9797-1 Alg 3
+            val algorithm = when (macAlgorithm) {
+                '1' -> "ISO9797_ALG1"
+                '3' -> "ISO9797_ALG3"
+                else -> return HsmCommandResult.Error("04", "Unsupported MAC algorithm: $macAlgorithm")
+            }
+            val macSizeBytes = if (macSizeFlag == '1') 8 else 4
 
+            val modeDesc  = when (modeFlag) {
+                '0' -> "Only block (single-block message)"
+                '1' -> "First block"
+                '2' -> "Middle block"
+                '3' -> "Last block"
+                else -> "Unknown"
+            }
+            val algDesc   = when (macAlgorithm) {
+                '1' -> "ISO 9797-1 Algorithm 1"
+                '3' -> "ISO 9797-1 Algorithm 3 (ANSI X9.19)"
+                else -> "Unknown"
+            }
+            val padDesc   = when (paddingMethod) {
+                1 -> "ISO 9797 Method 1 (pad with 0x00)"
+                2 -> "ISO 9797 Method 2 (pad with 0x80)"
+                else -> "Method $paddingMethod"
+            }
+
+            hsmLogsListener.log(buildString {
+                appendLine("M6 - Generate MAC (Extended) Request")
+                appendLine("Mode Flag................ = [$modeFlag] $modeDesc")
+                appendLine("Input Format Flag........ = [$inputFormatFlag] ${if (inputFormatFlag == '1') "Hex-Encoded Binary" else "Binary"}")
+                appendLine("MAC Size................. = [$macSizeFlag] ${macSizeBytes} bytes (${macSizeBytes * 2}H)")
+                appendLine("MAC Algorithm............ = [$macAlgorithm] $algDesc")
+                appendLine("Padding Method........... = [$paddingMethod] $padDesc")
+                appendLine("Key Type................. = [$keyTypeCode]")
+                appendLine("MAC Key.................. = [$keyWithScheme]")
+                if (isKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$keyUsageFromBlock]")
+                    appendLine("  Is BDK/DUKPT.......... = $isBdkType")
+                }
+                if (ivHex != null) appendLine("IV....................... = [$ivHex]")
+                appendLine("Message Length........... = [$msgLenHex] ($msgLen bytes)")
+                appendLine("Message Block............ = [$messageHex]")
+            })
+            hsmLogsListener.onFormattedRequest(buildString {
+                appendLine("M6 - Generate MAC (Extended) Request")
+                appendLine("Mode Flag................ = [$modeFlag] $modeDesc")
+                appendLine("Input Format Flag........ = [$inputFormatFlag] ${if (inputFormatFlag == '1') "Hex-Encoded Binary" else "Binary"}")
+                appendLine("MAC Size................. = [$macSizeFlag] ${macSizeBytes} bytes (${macSizeBytes * 2}H)")
+                appendLine("MAC Algorithm............ = [$macAlgorithm] $algDesc")
+                appendLine("Padding Method........... = [$paddingMethod] $padDesc")
+                appendLine("Key Type................. = [$keyTypeCode]")
+                appendLine("MAC Key.................. = [$keyWithScheme]")
+                if (isKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$keyUsageFromBlock]")
+                }
+                if (ivHex != null) appendLine("IV / OCD................. = [$ivHex]")
+                appendLine("Message Length........... = [$msgLenHex] ($msgLen bytes)")
+                appendLine("Message Block............ = [$messageHex]")
+            })
+
+            // ── Generate MAC ─────────────────────────────────────────────────────────────────
             val result = commandProcessor.executeGenerateMac(
-                data = message,
-                tak = tak,
-                algorithm = "ISO9797_ALG3"
+                data          = message,
+                tak           = effectiveMacKey,
+                algorithm     = algorithm,
+                paddingMethod = paddingMethod,
+                macSizeBytes  = macSizeBytes
             )
 
             if (result is HsmCommandResult.Success) {
-                HsmCommandResult.Success(
-                    response = result.data["mac"] as? String ?: result.response,
-                    data = result.data
-                )
-            } else result
+                val macHex = result.data["mac"] as? String ?: result.response
+                hsmLogsListener.log("[M6] Generated MAC = $macHex")
+                hsmLogsListener.onFormattedResponse(buildString {
+                    appendLine("M7 - Generate MAC Response")
+                    appendLine("Error Code............... = [00]")
+                    appendLine("MAC...................... = [$macHex]")
+                })
+                HsmCommandResult.Success(response = macHex, data = mapOf("mac" to macHex))
+            } else {
+                result
+            }
 
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "M6 failed: ${e.message}")
@@ -2936,23 +3082,74 @@ class PayShieldStringCommandProcessor(
     }
 
     // ====================================================================================================
-    // BU — Generate Key Check Value
-    // Command: BU[KeyType_3H][Key(scheme+variable)]
-    // Handles variant scheme (U/T/X/Y) and KeyBlock ('S') keys.
-    // Response: BV 00 [KCV_6H]
+    // BU — Generate Key Check Value (legacy 2-digit key type code format)
+    // Wire: BU + KeyTypeCode(2H) + KeyLengthFlag(1) + Key(variable)
+    //          + [; + KeyType3(3H)]
+    //          + [; + Reserved(1) + Reserved(1) + KcvType(1)]
+    //          + [% + LmkId(2)]
+    // Handles variant (U/T/X/Y) and KeyBlock ('S') keys.
+    // Response: BV + 00 + KCV(6H)
     // ====================================================================================================
     private suspend fun executeBU(cmd: ParsedCommand): HsmCommandResult {
         return try {
             var pos = 0
             val data = cmd.data
 
-            val keyTypeCode = data.substring(pos, pos + 3); pos += 3
-            val (keyWithScheme, _) = extractSchemeKey(data, pos)
+            // 1. Key Type Code (2 hex chars) — identifies the LMK pair
+            if (pos + 2 > data.length) return HsmCommandResult.Error("15", "BU: missing key type code")
+            val keyTypeCode2 = data.substring(pos, pos + 2).uppercase(); pos += 2
 
-            val keyType = KeyType.values().find { it.code == keyTypeCode } ?: KeyType.TYPE_001
+            // 2. Key Length Flag (1 char): 0=single, 1=double, 2=triple, F=keyblock
+            if (pos >= data.length) return HsmCommandResult.Error("15", "BU: missing key length flag")
+            val keyLengthFlag = data[pos].uppercaseChar(); pos++
 
-            val clearKey = decryptSchemeKeyUnderLmk(keyWithScheme, cmd.lmkId, keyType.getLmkPairNumber())
-            val kcv = simulator.calculateKeyCheckValue(clearKey)
+            // 3. Key (scheme-prefixed or bare hex)
+            val (keyWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
+
+            // 4. Optional: ; + 3-digit Key Type
+            var keyType3: String? = null
+            if (pos < data.length && data[pos] == ';') {
+                pos++ // consume ;
+                if (pos + 3 <= data.length) { keyType3 = data.substring(pos, pos + 3); pos += 3 }
+            }
+
+            // 5. Optional: ; + Reserved(1) + Reserved(1) + KcvType(1)
+            var kcvType = "1" // default: 6-digit KCV
+            if (pos < data.length && data[pos] == ';') {
+                pos++ // consume ;
+                if (pos + 3 <= data.length) {
+                    kcvType = data[pos + 2].toString(); pos += 3
+                }
+            }
+
+            // 6. Optional: % + LMK Identifier (2 chars)
+            var effectiveLmkId = cmd.lmkId
+            if (pos < data.length && data[pos] == '%') {
+                pos++ // consume %
+                if (pos + 2 <= data.length) { effectiveLmkId = data.substring(pos, pos + 2); pos += 2 }
+            }
+
+            // 7. Resolve LMK pair
+            val lmkPair = when {
+                // KeyBlock: read key usage from S-block header bytes 6-8
+                keyLengthFlag == 'F' || keyWithScheme.firstOrNull()?.uppercaseChar() == 'S' -> {
+                    val keyUsage = if (keyWithScheme.length >= 8) keyWithScheme.substring(6, 8) else "K0"
+                    A0GenerateKeyCommand.lmkPairFromKeyUsage(keyUsage)
+                }
+                // Explicit 3-digit key type overrides the 2-digit code
+                keyType3 != null ->
+                    A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyType3]?.lmkPairNumber
+                        ?: legacyKeyTypeCodeToLmkPair(keyTypeCode2)
+                else -> legacyKeyTypeCodeToLmkPair(keyTypeCode2)
+            }
+
+            hsmLogsListener.log("[BU] keyTypeCode=$keyTypeCode2 keyLengthFlag=$keyLengthFlag keyType3=$keyType3 lmkPair=$lmkPair kcvType=$kcvType lmkId=$effectiveLmkId")
+
+            // 8. Decrypt key under LMK
+            val clearKey = decryptSchemeKeyUnderLmk(keyWithScheme, effectiveLmkId, lmkPair)
+
+            // 9. Calculate and return KCV
+            val kcv = if (kcvType == "0") "" else simulator.calculateKeyCheckValue(clearKey)
 
             HsmCommandResult.Success(
                 response = kcv,
@@ -2961,6 +3158,96 @@ class PayShieldStringCommandProcessor(
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "BU failed: ${e.message}")
         }
+    }
+
+    // ====================================================================================================
+    // KA — Generate Key Check Value (key-first format)
+    // Wire: KA + Key(variable) + KeyType(2H)
+    //          + [; + Reserved(1) + Reserved(1) + KcvType(1)]
+    //          + [% + LmkId(2)]
+    // Handles variant (U/T/X/Y) and KeyBlock ('S') keys.
+    // Response: KB + 00 + KCV(6H)
+    // ====================================================================================================
+    private suspend fun executeKA(cmd: ParsedCommand): HsmCommandResult {
+        return try {
+            var pos = 0
+            val data = cmd.data
+
+            // 1. Key (scheme-prefixed or bare hex) — comes first
+            val (keyWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
+
+            // 2. Key Type (2 hex chars) — identifies the LMK pair
+            if (pos + 2 > data.length) return HsmCommandResult.Error("15", "KA: missing key type")
+            val keyType2 = data.substring(pos, pos + 2).uppercase(); pos += 2
+
+            // 3. Optional: ; + Reserved(1) + Reserved(1) + KcvType(1)
+            var kcvType = "1" // default: 6-digit KCV
+            if (pos < data.length && data[pos] == ';') {
+                pos++ // consume ;
+                if (pos + 3 <= data.length) {
+                    kcvType = data[pos + 2].toString(); pos += 3
+                }
+            }
+
+            // 4. Optional: % + LMK Identifier (2 chars)
+            var effectiveLmkId = cmd.lmkId
+            if (pos < data.length && data[pos] == '%') {
+                pos++ // consume %
+                if (pos + 2 <= data.length) { effectiveLmkId = data.substring(pos, pos + 2); pos += 2 }
+            }
+
+            // 5. Resolve LMK pair — S-block keys read usage from header; else map 2-digit code
+            val lmkPair = when {
+                keyWithScheme.firstOrNull()?.uppercaseChar() == 'S' -> {
+                    val keyUsage = if (keyWithScheme.length >= 8) keyWithScheme.substring(6, 8) else "K0"
+                    A0GenerateKeyCommand.lmkPairFromKeyUsage(keyUsage)
+                }
+                else -> legacyKeyTypeCodeToLmkPair(keyType2)
+            }
+
+            hsmLogsListener.log("[KA] keyType=$keyType2 lmkPair=$lmkPair kcvType=$kcvType lmkId=$effectiveLmkId")
+
+            // 6. Decrypt key under LMK
+            val clearKey = decryptSchemeKeyUnderLmk(keyWithScheme, effectiveLmkId, lmkPair)
+
+            // 7. Calculate and return KCV
+            val kcv = if (kcvType == "0") "" else simulator.calculateKeyCheckValue(clearKey)
+
+            HsmCommandResult.Success(
+                response = kcv,
+                data = mapOf("kcv" to kcv)
+            )
+        } catch (e: Exception) {
+            HsmCommandResult.Error("15", "KA failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Maps the 2-digit legacy key type code (BU/KA wire format) to the simulator LMK pair index.
+     *
+     * Thales key type → LMK pair mapping:
+     *   00 → ZMK   (pair 04-05)    01 → ZPK   (pair 06-07)
+     *   02 → TMK/TPK/PVK (14-15)  03 → TAK   (pair 16-17)
+     *   04 → PVK   (pair 18-19)   05 → ZEK   (pair 20-21)
+     *   06 → ZAK   (pair 22-23)   07 → BDK   (pair 24-25)
+     *   08         (pair 26-27)   09         (pair 28-29)
+     *   0A         (pair 30-31)   0B         (pair 32-33)
+     *   10 → Variant 1 pair 04-05  42 → Variant 4 pair 14-15
+     */
+    private fun legacyKeyTypeCodeToLmkPair(code: String): Int = when (code.uppercase()) {
+        "00", "10" -> PayShield10KCommandProcessor.LMK_PAIR_ZMK_ZPK  // ZMK / Variant 1 pair 04-05
+        "01"       -> PayShield10KCommandProcessor.LMK_PAIR_ZMK_ZPK  // ZPK, pair 06-07
+        "02", "42" -> PayShield10KCommandProcessor.LMK_PAIR_TPK      // TMK/TPK/PVK / Variant 4 pair 14-15
+        "03"       -> PayShield10KCommandProcessor.LMK_PAIR_TAK      // TAK, pair 16-17
+        "04"       -> PayShield10KCommandProcessor.LMK_PAIR_PVK      // PVK, pair 18-19
+        "05"       -> PayShield10KCommandProcessor.LMK_PAIR_ZEK      // ZEK, pair 20-21
+        "06"       -> PayShield10KCommandProcessor.LMK_PAIR_ZEK      // ZAK, pair 22-23
+        "07"       -> PayShield10KCommandProcessor.LMK_PAIR_BDK      // BDK, pair 24-25
+        "08"       -> PayShield10KCommandProcessor.LMK_PAIR_ZMK_ZPK  // pair 26-27
+        "09"       -> PayShield10KCommandProcessor.LMK_PAIR_ZMK_ZPK  // pair 28-29
+        "0A"       -> PayShield10KCommandProcessor.LMK_PAIR_TPK      // pair 30-31
+        "0B"       -> PayShield10KCommandProcessor.LMK_PAIR_TAK      // pair 32-33
+        else       -> PayShield10KCommandProcessor.LMK_PAIR_TPK
     }
 
     // ====================================================================================================

@@ -38,7 +38,7 @@ import kotlinx.coroutines.delay
 private val LocalOpenMenuIndex = compositionLocalOf { mutableStateOf(-1) }
 /** Pointer is over the open top-level dropdown surface (not nested flyouts). */
 private val LocalPointerOverMainDropdown = compositionLocalOf { mutableStateOf(false) }
-/** Pointer is over any nested submenu flyout (separate popups). */
+/** Number of nested submenu flyouts currently open (visibility-based, not pointer-based). */
 private val LocalNestedFlyoutDepth = compositionLocalOf { mutableStateOf(0) }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -235,6 +235,18 @@ fun MenuBarSubMenu(
         }
     }
 
+    val expandedSnapshot = expanded
+    DisposableEffect(expandedSnapshot) {
+        if (expandedSnapshot) {
+            nestedFlyoutDepth.value++
+        }
+        onDispose {
+            if (expandedSnapshot) {
+                nestedFlyoutDepth.value = max(0, nestedFlyoutDepth.value - 1)
+            }
+        }
+    }
+
     Box(
         modifier = Modifier.onGloballyPositioned { anchorWidthPx = it.size.width }
     ) {
@@ -277,22 +289,15 @@ fun MenuBarSubMenu(
                 offset = IntOffset(anchorWidthPx, 0),
                 properties = PopupProperties(focusable = false),
             ) {
-                DisposableEffect(Unit) {
-                    onDispose {
-                        nestedFlyoutDepth.value = max(0, nestedFlyoutDepth.value - 1)
-                    }
-                }
                 Surface(
                     modifier = Modifier
                         .shadow(8.dp, RoundedCornerShape(6.dp))
                         .border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
                         .onPointerEvent(PointerEventType.Enter) {
                             localHoverCount++
-                            nestedFlyoutDepth.value++
                         }
                         .onPointerEvent(PointerEventType.Exit) {
                             localHoverCount--
-                            nestedFlyoutDepth.value = max(0, nestedFlyoutDepth.value - 1)
                         },
                     shape = RoundedCornerShape(6.dp),
                     color = MaterialTheme.colors.surface,

@@ -33,7 +33,10 @@ data class LmkSet(
     val pairs: MutableMap<Int, LmkPair> = mutableMapOf(), // 14 LMK pairs (00-27)
     val createdAt: Long = System.currentTimeMillis(),
     val scheme: String = "VARIANT",                       // VARIANT or KEY_BLOCK
-    val algorithm: String = "TDES_2KEY"                   // LmkAlgorithm enum name
+    val algorithm: String = "TDES_2KEY",                  // LmkAlgorithm enum name
+    val kbpkHex: String? = null                          // Optional KBPK override (hex string).
+                                                          // When set, used directly for S-block encrypt/decrypt
+                                                          // instead of deriving KBPK from LMK pair keys.
 ) {
     val lmkAlgorithm: LmkAlgorithm get() = LmkAlgorithm.fromName(algorithm)
 

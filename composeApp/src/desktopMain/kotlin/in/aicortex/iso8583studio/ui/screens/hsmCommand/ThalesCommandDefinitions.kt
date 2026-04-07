@@ -230,6 +230,60 @@ private val lmkPairIdOptions = listOf(
     CodeOption("04", "04 - LMK Pair 04"),
 )
 
+private val kaKeyTypeCodeOptions = listOf(
+    CodeOption("00", "00 - LMK pair 04-05"),
+    CodeOption("01", "01 - LMK pair 06-07"),
+    CodeOption("02", "02 - LMK pair 14-15"),
+    CodeOption("03", "03 - LMK pair 16-17"),
+    CodeOption("04", "04 - LMK pair 18-19"),
+    CodeOption("05", "05 - LMK pair 20-21"),
+    CodeOption("06", "06 - LMK pair 22-23"),
+    CodeOption("07", "07 - LMK pair 24-25"),
+    CodeOption("08", "08 - LMK pair 26-27"),
+    CodeOption("09", "09 - LMK pair 28-29"),
+    CodeOption("0A", "0A - LMK pair 30-31"),
+    CodeOption("0B", "0B - LMK pair 32-33"),
+    CodeOption("10", "10 - Variant 1 of LMK pair 04-05"),
+    CodeOption("42", "42 - Variant 4 of LMK pair 14-15"),
+    CodeOption("FF", "FF - Use key type specified after delimiter."),
+)
+
+private val kaKeyLengthFlagOptions = listOf(
+    CodeOption("0", "0 - for single length key"),
+    CodeOption("1", "1 - for double length key"),
+    CodeOption("2", "2 - for triple length key"),
+    CodeOption("F", "F - for a key block LMK"),
+)
+
+private val kaKcvTypeOptions = listOf(
+    CodeOption("0", "0 : No KCV"),
+    CodeOption("1", "1 : 6 digit KCV"),
+)
+
+private val kaKeyTypeOptions = listOf(
+    CodeOption("00", "00-ZMK (encrypted under LMK pair 04-05)"),
+    CodeOption("01", "01-ZPK (encrypted under LMK pair 06-07)"),
+    CodeOption("02", "02-TMK, TPK or PVK (encrypted under LMK pair 14-15)"),
+    CodeOption("03", "03-TAK (encrypted under LMK pair 16-17)"),
+    CodeOption("04", "04-PVK (encrypted under LMK pair 14-15)"),
+    CodeOption("05", "05-ZEK (encrypted under LMK pair 26-27)"),
+    CodeOption("06", "06-ZAK (encrypted under LMK pair 26-27)"),
+    CodeOption("07", "07-BDK (encrypted under LMK pair 14-15)"),
+    CodeOption("08", "08-ZMK (encrypted under LMK pair 04-05)"),
+    CodeOption("09", "09-ZPK (encrypted under LMK pair 06-07)"),
+    CodeOption("0A", "0A-TMK/ZEK (encrypted under LMK pair 14-15)"),
+    CodeOption("0B", "0B-ZAK (encrypted under LMK pair 14-15)"),
+    CodeOption("0C", "0C-ZEK (encrypted under LMK pair 22-23)"),
+    CodeOption("0D", "0D-ZAK (encrypted under LMK pair 22-23)"),
+    CodeOption("0E", "0E-DEK (encrypted under LMK pair 28-29)"),
+    CodeOption("0F", "0F-RSA Key (encrypted under LMK pair 28-29)"),
+)
+
+private val reservedZeroOptions = listOf(
+    CodeOption("0", "0"),
+    CodeOption("1", "1"),
+)
+
 private fun f(
     id: String,
     name: String,
@@ -679,21 +733,25 @@ val thalesCommandDefinitions: List<ThalesCommandDefinition> = listOf(
         description = "Generate a check value for a key encrypted under LMK",
         category = CommandCategory.KEY_MANAGEMENT,
         requestFields = listOf(
-            f("keyTypeCode", "Key Type Code", FieldType.DEC, 2, default = "00",
-                desc = "2-digit legacy key type code"),
-            f("keyLengthFlag", "Key Length Flag", FieldType.CODE, 1, default = "1", options = listOf(
-                CodeOption("0", "0 - Single length"), CodeOption("1", "1 - Double length"), CodeOption("2", "2 - Triple length"))),
-            f("key", "Key", FieldType.HEX, 0, desc = "16H/32H/48H depending on key length"),
-            f("keyType", "Key Type (3-digit)", FieldType.CODE, 3,
-                req = FieldRequirement.OPTIONAL, options = keyTypeOptions,
-                desc = "Optional 3-digit key type (preceded by ; delimiter)"),
-            f("kcvType", "KCV Type", FieldType.CODE, 1, FieldRequirement.OPTIONAL, options = kcvTypeOptions,
-                desc = "Preceded by ; delimiter"),
-            f("reserved", "Reserved", FieldType.ASCII, 0, req = FieldRequirement.OPTIONAL),
-            f("hashId", "Hash Identifier", FieldType.CODE, 2, req = FieldRequirement.OPTIONAL, options = hashAlgorithmOptions),
-            f("hmacKeyLengthBytes", "HMAC Key Length (bytes)", FieldType.DEC, 0, req = FieldRequirement.OPTIONAL),
-            f("hmacKey", "HMAC Key", FieldType.HEX, 0, req = FieldRequirement.OPTIONAL),
-            f("lmkIdentifier", "LMK Identifier", FieldType.CODE, 0, req = FieldRequirement.OPTIONAL, options = lmkIdentifierOptions),
+            f("keyTypeCode", "Key Type Code", FieldType.CODE, 2, default = "00", options = kaKeyTypeCodeOptions),
+            f("keyLengthFlag", "Key Length Flag", FieldType.CODE, 1, default = "1", options = kaKeyLengthFlagOptions),
+            f("key", "Key", FieldType.HEX, 0),
+            f("delimiter0", "Delimiter", FieldType.FLAG, 0, req = FieldRequirement.OPTIONAL, default = ";",
+                desc = "; separator before Key Type"),
+            f("keyType", "Key Type", FieldType.CODE, 3, default = "000", options = keyTypeOptions,
+                cond = FieldCondition("delimiter0", setOf(";"))),
+            f("delimiter1", "Delimiter", FieldType.FLAG, 0, req = FieldRequirement.OPTIONAL, default = ";",
+                desc = "; separator before Reserved fields"),
+            f("reserved1", "Reserved", FieldType.CODE, 1, req = FieldRequirement.OPTIONAL, default = "0",
+                options = reservedZeroOptions, cond = FieldCondition("delimiter1", setOf(";"))),
+            f("reserved2", "Reserved", FieldType.CODE, 1, req = FieldRequirement.OPTIONAL, default = "0",
+                options = reservedZeroOptions, cond = FieldCondition("delimiter1", setOf(";"))),
+            f("kcvType", "Key Check Value Type", FieldType.CODE, 1, req = FieldRequirement.OPTIONAL,
+                default = "1", options = kaKcvTypeOptions, cond = FieldCondition("delimiter1", setOf(";"))),
+            f("delimiter2", "Delimiter", FieldType.FLAG, 0, req = FieldRequirement.OPTIONAL, default = "%",
+                desc = "% separator before LMK Identifier"),
+            f("lmkIdentifier", "LMK Identifier", FieldType.ASCII, 2, req = FieldRequirement.OPTIONAL, default = "00",
+                cond = FieldCondition("delimiter2", setOf("%"))),
         ),
         responseFields = listOf(
             f("errorCode", "Error Code", FieldType.DEC, 2),
@@ -985,9 +1043,20 @@ val thalesCommandDefinitions: List<ThalesCommandDefinition> = listOf(
         description = "Generate a key check value (not double-length ZMK)",
         category = CommandCategory.KEY_MANAGEMENT,
         requestFields = listOf(
-            f("keyType", "Key Type", FieldType.CODE, 3, default = "001", options = keyTypeOptions),
-            f("key", "Key", FieldType.HEX, 0),
-            f("kcvType", "Key Check Value Type", FieldType.CODE, 1, FieldRequirement.OPTIONAL, options = kcvTypeOptions),
+            f("key", "KEY", FieldType.HEX, 0),
+            f("keyType", "Key Type", FieldType.CODE, 2, default = "00", options = kaKeyTypeOptions),
+            f("delimiter1", "Delimiter", FieldType.FLAG, 0, req = FieldRequirement.OPTIONAL, default = ";",
+                desc = "; separator before Reserved fields"),
+            f("reserved1", "Reserved", FieldType.CODE, 1, req = FieldRequirement.OPTIONAL, default = "0",
+                options = reservedZeroOptions, cond = FieldCondition("delimiter1", setOf(";"))),
+            f("reserved2", "Reserved", FieldType.CODE, 1, req = FieldRequirement.OPTIONAL, default = "0",
+                options = reservedZeroOptions, cond = FieldCondition("delimiter1", setOf(";"))),
+            f("kcvType", "Key Check Value Type", FieldType.CODE, 1, req = FieldRequirement.OPTIONAL,
+                default = "1", options = kaKcvTypeOptions, cond = FieldCondition("delimiter1", setOf(";"))),
+            f("delimiter2", "Delimiter", FieldType.FLAG, 0, req = FieldRequirement.OPTIONAL, default = "%",
+                desc = "% separator before LMK Identifier"),
+            f("lmkIdentifier", "LMK Identifier", FieldType.ASCII, 2, req = FieldRequirement.OPTIONAL, default = "00",
+                cond = FieldCondition("delimiter2", setOf("%"))),
         ),
         responseFields = listOf(
             f("errorCode", "Error Code", FieldType.DEC, 2),
@@ -1810,37 +1879,41 @@ val thalesCommandDefinitions: List<ThalesCommandDefinition> = listOf(
 
     ThalesCommandDefinition(
         code = "M6", responseCode = "M7", name = "Generate MAC (Extended)",
-        description = "Generate MAC with extended algorithm support",
+        description = "Generate MAC with extended algorithm support including KeyBlock keys",
         category = CommandCategory.MAC_OPERATIONS,
         requestFields = listOf(
-            f("modeFlag", "Mode Flag", FieldType.CODE, 1, default = "1", options = listOf(
-                CodeOption("0", "0 - Verify MAC"), CodeOption("1", "1 - Generate MAC"),
-                CodeOption("2", "2 - Generate + Verify"), CodeOption("3", "3 - Translate MAC"))),
-            f("inputFormatFlag", "Input Format Flag", FieldType.DEC, 1, default = "0"),
-            f("macSize", "MAC Size", FieldType.CODE, 1, default = "4", options = listOf(
-                CodeOption("0", "0 - Full MAC"), CodeOption("1", "1"), CodeOption("2", "2"),
-                CodeOption("3", "3"), CodeOption("4", "4 - Default (4 bytes)"),
-                CodeOption("5", "5"), CodeOption("6", "6"), CodeOption("7", "7"),
-                CodeOption("8", "8"), CodeOption("9", "9"))),
-            f("macAlgorithm", "MAC Algorithm", FieldType.CODE, 1, default = "0", options = listOf(
-                CodeOption("0", "0 - ISO 9797-1 Alg 1"), CodeOption("1", "1 - ISO 9797-1 Alg 3"),
-                CodeOption("2", "2 - AES-CMAC"), CodeOption("3", "3 - HMAC-SHA-1"),
-                CodeOption("4", "4 - HMAC-SHA-224"), CodeOption("5", "5 - HMAC-SHA-256"),
-                CodeOption("6", "6 - HMAC-SHA-384"), CodeOption("7", "7 - HMAC-SHA-512"))),
-            f("paddingMethod", "Padding Method", FieldType.CODE, 1, default = "0", options = listOf(
-                CodeOption("0", "0 - Pad 0x00"), CodeOption("1", "1 - ISO 9797 Method 1"),
-                CodeOption("2", "2 - ISO 9797 Method 2"))),
+            f("modeFlag", "Mode Flag", FieldType.CODE, 1, default = "0", options = listOf(
+                CodeOption("0", "0 - Only block (single-block message)"),
+                CodeOption("1", "1 - First block"),
+                CodeOption("2", "2 - Middle block"),
+                CodeOption("3", "3 - Last block"))),
+            f("inputFormatFlag", "Input Format Flag", FieldType.CODE, 1, default = "1", options = listOf(
+                CodeOption("0", "0 - Binary"),
+                CodeOption("1", "1 - Hex-Encoded Binary"),
+                CodeOption("2", "2 - Text"))),
+            f("macSize", "MAC Size", FieldType.CODE, 1, default = "1", options = listOf(
+                CodeOption("0", "0 - Half MAC (4 bytes / 8H)"),
+                CodeOption("1", "1 - Full MAC (8 bytes / 16H)"))),
+            f("macAlgorithm", "MAC Algorithm", FieldType.CODE, 1, default = "3", options = listOf(
+                CodeOption("1", "1 - ISO 9797-1 Algorithm 1"),
+                CodeOption("3", "3 - ISO 9797-1 Algorithm 3 (ANSI X9.19 / Retail MAC)"))),
+            f("paddingMethod", "Padding Method", FieldType.CODE, 1, default = "1", options = listOf(
+                CodeOption("1", "1 - ISO 9797 Method 1 (zero pad)"),
+                CodeOption("2", "2 - ISO 9797 Method 2 (0x80 + zeros)"))),
             f("keyType", "Key Type", FieldType.CODE, 3, default = "FFF", options = keyTypeOptions),
-            f("macKey", "MAC Key", FieldType.HEX, 0, desc = "MAC key under LMK (S-block or hex)"),
-            f("iv", "IV", FieldType.HEX, 0, default = "0000000000000000"),
+            f("macKey", "MAC Key", FieldType.HEX, 0, desc = "MAC key under LMK (S-block or variant+hex)"),
+            f("iv", "IV / OCD", FieldType.HEX, 16, req = FieldRequirement.OPTIONAL, default = "0000000000000000",
+                cond = FieldCondition("modeFlag", setOf("1", "2", "3"))),
             f("msgLength", "Message Length", FieldType.HEX, 4),
             f("messageBlock", "Message Block", FieldType.HEX, 0),
-            f("lmkIdentifier", "LMK Identifier", FieldType.CODE, 0, req = FieldRequirement.OPTIONAL, options = lmkIdentifierOptions),
+            f("delimiter", "Delimiter", FieldType.FLAG, 0, req = FieldRequirement.OPTIONAL, default = "%"),
+            f("lmkIdentifier", "LMK Identifier", FieldType.ASCII, 2, req = FieldRequirement.OPTIONAL,
+                default = "00", cond = FieldCondition("delimiter", setOf("%"))),
         ),
         responseFields = listOf(
             f("errorCode", "Error Code", FieldType.DEC, 2),
             f("mac", "MAC", FieldType.HEX, 0),
-            f("iv", "IV", FieldType.HEX, 0, req = FieldRequirement.OPTIONAL),
+            f("ocd", "Output Chaining Data", FieldType.HEX, 16, req = FieldRequirement.OPTIONAL),
         ),
     ),
 
