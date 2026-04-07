@@ -2262,6 +2262,20 @@ class GatewayClient {
         status = TransactionStatus.SENT_TO_DESTINATION
         processSynchronous()
     }
+
+    /**
+     * Send pre-built raw bytes directly to the destination connection without any
+     * ISO8583 parsing overhead. The byte array is transmitted as-is; the connection
+     * is established, the message sent, and the response awaited via [processSynchronous].
+     */
+    suspend fun sendRawMessage(rawBytes: ByteArray) {
+        m_Request = TransmittedData(
+            gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
+        )
+        m_Request?.readMessage = rawBytes
+        status = TransactionStatus.SENT_TO_DESTINATION
+        processSynchronous()
+    }
 }
 
 // Supporting classes

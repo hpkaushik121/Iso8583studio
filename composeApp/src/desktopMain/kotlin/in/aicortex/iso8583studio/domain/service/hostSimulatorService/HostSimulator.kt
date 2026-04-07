@@ -1160,15 +1160,34 @@ class HostSimulator : Simulator {
         receivedFromDest = callback
     }
 
-    suspend fun sendToSecondConnection(data: Iso8583Data) {
+    suspend fun sendToSecondConnection(data: Iso8583Data) = withContext(Dispatchers.IO) {
         try {
             val client = createClient()
             client.sendMessageToSecondConnection(data)
-        }catch (e: Exception){
+        } catch (e: Exception) {
             writeLog(
                 createLogEntry(
                     type = LogType.ERROR,
                     message = "Error sending data to second connection: ${e.message}"
+                )
+            )
+        }
+    }
+
+    /**
+     * Send raw bytes to the destination connection directly, bypassing ISO8583 parsing.
+     * Opens a new connection on the IO thread, transmits the bytes, awaits the response,
+     * then closes the connection. Suitable for the Send Message tab in CLIENT mode.
+     */
+    suspend fun sendRawToConnection(rawBytes: ByteArray) = withContext(Dispatchers.IO) {
+        try {
+            val client = createClient()
+            client.sendRawMessage(rawBytes)
+        } catch (e: Exception) {
+            writeLog(
+                createLogEntry(
+                    type = LogType.ERROR,
+                    message = "Error sending raw message: ${e.message}"
                 )
             )
         }

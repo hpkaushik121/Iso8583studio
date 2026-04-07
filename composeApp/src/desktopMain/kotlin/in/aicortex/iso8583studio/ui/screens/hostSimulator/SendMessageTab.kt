@@ -273,31 +273,18 @@ internal fun SendMessageTab(
                         text = if (isSending) "Sending..." else "Send Message",
                         onClick = {
                             if (rawMessageString.isNotEmpty()) {
-                                // Start sending process
                                 isSending = true
                                 showLogPanel = true
-
                                 coroutineScope.launch {
                                     try {
-                                        // Convert string to bytes
-                                        rawMessageBytes =
-                                            IsoUtil.stringToBcd(rawMessageString,
-                                                rawMessageString.length / 2)
-
-                                        // Create ISO8583 data object
-                                        val isoData = Iso8583Data(
-                                            config = gw.configuration,
-                                            isFirst = false
+                                        // Convert hex string to raw bytes and send directly.
+                                        // No ISO8583 unpack/repack — the Send Message tab
+                                        // opens its own connection on the IO thread.
+                                        rawMessageBytes = IsoUtil.stringToBcd(
+                                            rawMessageString,
+                                            rawMessageString.length / 2
                                         )
-                                        isoData.unpack(rawMessageBytes)
-
-                                        // Update parsed message
-                                        parsedMessageCreated = isoData.logFormat()
-
-                                        // Send the message
-                                        gw.sendToSecondConnection(isoData)
-
-
+                                        gw.sendRawToConnection(rawMessageBytes)
                                     } catch (e: Exception) {
                                         e.printStackTrace()
                                     } finally {

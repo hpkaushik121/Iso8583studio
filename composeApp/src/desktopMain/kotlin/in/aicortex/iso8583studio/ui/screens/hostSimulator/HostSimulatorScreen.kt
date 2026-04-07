@@ -307,10 +307,9 @@ fun HostSimulator(
             )
         } else if (gw.configuration.gatewayType == GatewayType.CLIENT){
             listOf(
-                HostSimulatorTabs.HOST_HANDLER,
+                HostSimulatorTabs.SEND_MESSAGE,
                 HostSimulatorTabs.LOGS,
                 HostSimulatorTabs.TEMPLATE,
-                HostSimulatorTabs.SEND_MESSAGE,
                 HostSimulatorTabs.UNPACK_MESSAGE
             )
         } else {
