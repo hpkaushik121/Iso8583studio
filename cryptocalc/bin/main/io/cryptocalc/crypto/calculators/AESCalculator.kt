@@ -17,7 +17,7 @@ class AESCalculator() : BaseCalculator<AesCryptoInput, AesCryptoResult>() {
     override val id = "aes-calculator"
     override val name = "AES Calculator"
     override val category = CalculatorCategory.CRYPTOGRAPHIC
-    override val version = "1.0.5"
+    override val version = "1.0.6"
 
     override suspend fun executeOperation(input: AesCryptoInput): AesCryptoResult {
         val key = IsoUtil.hexToBytes(input.key)
