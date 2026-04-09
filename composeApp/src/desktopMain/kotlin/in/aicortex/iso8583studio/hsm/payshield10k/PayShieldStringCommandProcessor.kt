@@ -1572,18 +1572,25 @@ class PayShieldStringCommandProcessor(
     }
 
     // ====================================================================================================
-    // G0 — Translate PIN Block from BDK (DUKPT) to ZPK
-    // Command: G0[BDK_FLAG][BDK][ZPK][KSN_DESC][KSN][PIN_BLOCK][SRC_FMT][DST_FMT][ACCOUNT]
-    // Response: G1 00 [PIN_LEN] [PIN_BLOCK] [DST_FMT]
-    // BDK_FLAG: ~ = Type2 BDK
+    // G0 — Translate PIN Block from BDK (DUKPT) to ZPK/BDK
+    // Supports two wire formats:
+    //
+    // (A) Variant-scheme keys:
+    //   G0[BDK_1A+32H][DestKeyType_1A][DestKey_1A+32H][KSNDesc_3H][KSN_20H]
+    //     [DestKSNDesc_3H][DestKSN_20H]  ← only when DestKeyType is BDK
+    //     [PINBlock_16H][SrcFmt_2N][DstFmt_2N][Account_12N]
+    //
+    // (B) S-block (KeyBlock) BDK keys — K1 format:
+    //   G0[SrcBDK_S-block][DstBDK_S-block][SrcKSNDesc_3H][SrcKSN_20H]
+    //     [DstKSNDesc_3H][DstKSN_20H][PINBlock_16H][SrcFmt_2N][DstFmt_2N]
+    //     [Account_12N][%LMK_2N]
+    //   No DestKeyType character — S-block key usage (B0/B1/E0-E4) self-describes.
+    //
+    // Response: G1 00 [PINLen_2N] [PINBlock_16H] [DstFmt_2N]
     // ====================================================================================================
     /**
-     * G0 - Translate PIN from BDK (3DES DUKPT) to ZPK
-     * Wire format: [Header_4A][G0][BDK_1A+32H][ZPK_1A+32H][KSNDesc_3H][KSN_20H][PINBlock_16H][SrcFmt_2N][DstFmt_2N][Account_12N]
-     * Response:    [Header_4A][G1][00][PINLen_2N][PINBlock_16H][DstFmt_2N]
-     *
-     * Differs from CI only in that G0 carries an explicit Source Format Code (Field 8)
-     * before the Destination Format Code (Field 9).
+     * G0 - Translate PIN from BDK (3DES DUKPT) to ZPK/BDK
+     * Wire format: see comment above for both variant and S-block formats.
      *
      * Field order per Thales payShield 10K Host Command Reference:
      *   Field 3 = BDK (1A + 32H)          — Base Derivation Key under LMK pair 28-29
@@ -1629,127 +1636,299 @@ class PayShieldStringCommandProcessor(
 
             hsmLogsListener.log("► G0  [1/N]  Parsing wire fields  (LMK slot: ${cmd.lmkId})")
 
-            // Field 3 — Source BDK: scheme char (1A) + key hex (32H)
-            val srcBdkScheme = data[pos]; pos++
-            val srcBdkHex = data.substring(pos, pos + 32); pos += 32
-            val srcBdk = IsoUtil.hexToBytes(srcBdkHex)
-            hsmLogsListener.log("          Field 3  BDK                (LMK 28-29) : $srcBdkScheme$srcBdkHex")
+            // ── Detect format: S-block (K1) vs variant-scheme ────────────────
+            val firstChar = if (data.isNotEmpty()) data[0].uppercaseChar() else '?'
+            val isSBlockFormat = firstChar == 'S'
 
-            // Field 4 — Destination Key Type (1A): '0'=ZPK, '*'=BDK-1, '~'=BDK-2, '!'=BDK-4
-            val destKeyType = data[pos]; pos++
-            val destIsBdk = destKeyType != '0'
-            hsmLogsListener.log("          Field 4  Destination Key Type             : ${destKeyTypeLabel(destKeyType)}")
+            if (isSBlockFormat) {
+                // ============================================================
+                // K1 FORMAT: S-block BDK keys
+                // Wire: SrcBDK(S-block) + DstBDK(S-block) +
+                //       SrcKSNDesc(3H) + SrcKSN(20H) +
+                //       DstKSNDesc(3H) + DstKSN(20H) +
+                //       PINBlock(16H) + SrcFmt(2N) + DstFmt(2N) +
+                //       Account(12N) [+ %LMK(2N)]
+                // ============================================================
+                hsmLogsListener.log("► G0  Detected S-block (KeyBlock) format — K1 wire layout")
 
-            // Field 5 — Destination key: scheme char (1A) + key hex (32H)
-            val destKeyScheme = data[pos]; pos++
-            val destKeyHex = data.substring(pos, pos + 32); pos += 32
-            val destKey = IsoUtil.hexToBytes(destKeyHex)
-            val destKeyLabel = if (destIsBdk) "Dest BDK" else "ZPK"
-            val destLmkLabel = if (destIsBdk) "LMK 28-29" else "LMK 06-07"
-            hsmLogsListener.log("          Field 5  $destKeyLabel             ($destLmkLabel) : $destKeyScheme$destKeyHex")
+                // --- Source BDK (S-block) ---
+                val (srcKeyWithScheme, srcKeyLen) = extractSchemeKey(data, pos); pos += srcKeyLen
+                val srcKeyUsageFromBlock = if (srcKeyWithScheme.length >= 8) srcKeyWithScheme.substring(6, 8) else ""
+                val srcKeyAlgoFromBlock = if (srcKeyWithScheme.length >= 9) srcKeyWithScheme[8].uppercaseChar() else 'T'
+                val srcIsBdk = srcKeyUsageFromBlock in setOf("B0", "B1", "E0", "E1", "E2", "E4")
+                hsmLogsListener.log("          Source BDK (S-block)                      : ${srcKeyWithScheme.take(40)}...")
+                hsmLogsListener.log("          Source Key Usage=$srcKeyUsageFromBlock  Algo=$srcKeyAlgoFromBlock  isBDK=$srcIsBdk")
 
-            // Field 6 — Source KSN Descriptor (3H)
-            val srcKsnDescriptor = data.substring(pos, pos + 3); pos += 3
-            val srcCounterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(srcKsnDescriptor)
-            hsmLogsListener.log("          Field 6  Source KSN Descriptor            : $srcKsnDescriptor  (counter bits: $srcCounterBits)")
+                // --- Destination BDK (S-block) ---
+                val (dstKeyWithScheme, dstKeyLen) = extractSchemeKey(data, pos); pos += dstKeyLen
+                val dstKeyUsageFromBlock = if (dstKeyWithScheme.length >= 8) dstKeyWithScheme.substring(6, 8) else ""
+                val dstKeyAlgoFromBlock = if (dstKeyWithScheme.length >= 9) dstKeyWithScheme[8].uppercaseChar() else 'T'
+                val dstIsBdk = dstKeyUsageFromBlock in setOf("B0", "B1", "E0", "E1", "E2", "E4")
+                hsmLogsListener.log("          Dest BDK (S-block)                        : ${dstKeyWithScheme.take(40)}...")
+                hsmLogsListener.log("          Dest Key Usage=$dstKeyUsageFromBlock  Algo=$dstKeyAlgoFromBlock  isBDK=$dstIsBdk")
 
-            // Field 7 — Source KSN (20H = 10 bytes)
-            val srcKsnHex = data.substring(pos, pos + 20); pos += 20
-            hsmLogsListener.log("          Field 7  Source KSN                       : $srcKsnHex")
+                // --- Source KSN Descriptor (3H) + KSN (20H) ---
+                val srcKsnDescriptor = data.substring(pos, pos + 3); pos += 3
+                val srcCounterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(srcKsnDescriptor)
+                hsmLogsListener.log("          Source KSN Descriptor                     : $srcKsnDescriptor  (counter bits: $srcCounterBits)")
+                val srcKsnHex = data.substring(pos, pos + 20); pos += 20
+                hsmLogsListener.log("          Source KSN                                : $srcKsnHex")
 
-            // Fields 8 & 9 — Destination KSN Descriptor + KSN (only when dest is BDK)
-            var destKsnDescriptor: String? = null
-            var destKsnHex: String? = null
-            if (destIsBdk) {
-                destKsnDescriptor = data.substring(pos, pos + 3); pos += 3
-                val destCounterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(destKsnDescriptor)
-                hsmLogsListener.log("          Field 8  Dest KSN Descriptor              : $destKsnDescriptor  (counter bits: $destCounterBits)")
+                // --- Destination KSN Descriptor (3H) + KSN (20H) ---
+                val dstKsnDescriptor = data.substring(pos, pos + 3); pos += 3
+                val dstCounterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(dstKsnDescriptor)
+                hsmLogsListener.log("          Dest KSN Descriptor                       : $dstKsnDescriptor  (counter bits: $dstCounterBits)")
+                val dstKsnHex = data.substring(pos, pos + 20); pos += 20
+                hsmLogsListener.log("          Dest KSN                                  : $dstKsnHex")
 
-                destKsnHex = data.substring(pos, pos + 20); pos += 20
-                hsmLogsListener.log("          Field 9  Dest KSN                         : $destKsnHex")
-            }
+                // --- PIN block (16H) ---
+                val pinBlockHex = data.substring(pos, pos + 16); pos += 16
+                hsmLogsListener.log("          Source PIN Block (enc/DUKPT)               : $pinBlockHex")
 
-            // Source PIN block (16H = 8 bytes)
-            val pinBlockHex = data.substring(pos, pos + 16); pos += 16
-            val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
-            val fldNum = if (destIsBdk) 10 else 8
-            hsmLogsListener.log("          Field $fldNum Source PIN Block  (enc/DUKPT)    : $pinBlockHex")
+                // --- Source/Dest format codes (2N each) ---
+                val srcFormat = data.substring(pos, pos + 2); pos += 2
+                val dstFormat = data.substring(pos, pos + 2); pos += 2
+                hsmLogsListener.log("          Source Format Code                         : $srcFormat  [${resolveFormat(srcFormat).description}]")
+                hsmLogsListener.log("          Dest Format Code                           : $dstFormat  [${resolveFormat(dstFormat).description}]")
 
-            // Source PIN block format code (2N)
-            val srcFormat = data.substring(pos, pos + 2); pos += 2
-            hsmLogsListener.log("          Field ${fldNum+1} Source Format Code               : $srcFormat  [${resolveFormat(srcFormat).description}]")
+                // --- Account number (12N) ---
+                val account = data.substring(pos, minOf(pos + 12, data.length))
+                hsmLogsListener.log("          Account Number (12N)                       : $account")
 
-            // Destination PIN block format code (2N)
-            val dstFormat = data.substring(pos, pos + 2); pos += 2
-            hsmLogsListener.log("          Field ${fldNum+2} Destination Format Code          : $dstFormat  [${resolveFormat(dstFormat).description}]")
+                // ── Formatted request ────────────────────────────────────
+                hsmLogsListener.onFormattedRequest(buildString {
+                    appendLine("Message Header........... = [${cmd.header}]")
+                    appendLine("Command Code............. = [G0] Translate PIN BDK→BDK (S-block K1 format)")
+                    appendLine("Source BDK (S-block)..... = [$srcKeyWithScheme]")
+                    appendLine("  Key Usage.............. = [$srcKeyUsageFromBlock]  Algo=[$srcKeyAlgoFromBlock]")
+                    appendLine("Dest BDK (S-block)....... = [$dstKeyWithScheme]")
+                    appendLine("  Key Usage.............. = [$dstKeyUsageFromBlock]  Algo=[$dstKeyAlgoFromBlock]")
+                    appendLine("Source KSN Descriptor.... = [$srcKsnDescriptor]  (counter bits: $srcCounterBits)")
+                    appendLine("Source KSN............... = [$srcKsnHex]")
+                    appendLine("Dest KSN Descriptor...... = [$dstKsnDescriptor]  (counter bits: $dstCounterBits)")
+                    appendLine("Dest KSN................. = [$dstKsnHex]")
+                    appendLine("Source Encrypted Block... = [$pinBlockHex]")
+                    appendLine("Source PIN block Format.. = [$srcFormat] ${resolveFormat(srcFormat).description}")
+                    appendLine("Destination Format Code.. = [$dstFormat] ${resolveFormat(dstFormat).description}")
+                    appendLine("Account Number........... = [$account]")
+                    appendLine("LMK ID................... = [${cmd.lmkId}]")
+                })
 
-            // Account number (12N)
-            val account = data.substring(pos, minOf(pos + 12, data.length))
-            hsmLogsListener.log("          Field ${fldNum+3} Account Number (12 PAN dig)      : $account")
+                // ── Step 1: Decrypt source BDK under LMK ─────────────────
+                val srcLmkPair = A0GenerateKeyCommand.lmkPairFromKeyUsage(srcKeyUsageFromBlock)
+                hsmLogsListener.log("[G0-K1] Step 1: Decrypting source BDK  lmkPair=$srcLmkPair")
+                val clearSrcBdk = decryptSchemeKeyUnderLmk(srcKeyWithScheme, cmd.lmkId, srcLmkPair)
+                hsmLogsListener.log("[G0-K1] Step 2: Source BDK (clear) = ${IsoUtil.bytesToHexString(clearSrcBdk)}")
 
-            // ── Emit structured formatted request ────────────────────────────
-            hsmLogsListener.onFormattedRequest(buildString {
-                appendLine("Message Header........... = [${cmd.header}]")
-                appendLine("Command Code............. = [G0] Translate PIN from BDK to ${if (destIsBdk) "BDK" else "ZPK"} (3DES DUKPT) Request")
-                appendLine("BDK...................... = [$srcBdkScheme$srcBdkHex]")
-                appendLine("Destination Key Type..... = [$destKeyType] ${destKeyTypeLabel(destKeyType)}")
-                appendLine("${destKeyLabel}${"." .repeat(maxOf(1, 21 - destKeyLabel.length))} = [$destKeyScheme$destKeyHex]")
-                appendLine("KSN Descriptor........... = [$srcKsnDescriptor]")
-                appendLine("Key serial number........ = [$srcKsnHex]")
-                if (destIsBdk) {
-                    appendLine("KSN Descriptor........... = [$destKsnDescriptor]")
-                    appendLine("Key serial number........ = [$destKsnHex]")
-                }
-                appendLine("Source Encrypted Block... = [$pinBlockHex]")
-                appendLine("Source PIN block Format.. = [$srcFormat] ${resolveFormat(srcFormat).description}")
-                appendLine("Destination Format Code.. = [$dstFormat] ${resolveFormat(dstFormat).description}")
-                appendLine("Account Number........... = [$account]")
-            })
+                // ── Step 2: Decrypt dest BDK under LMK ───────────────────
+                val dstLmkPair = A0GenerateKeyCommand.lmkPairFromKeyUsage(dstKeyUsageFromBlock)
+                hsmLogsListener.log("[G0-K1] Step 3: Decrypting dest BDK  lmkPair=$dstLmkPair")
+                val clearDstBdk = decryptSchemeKeyUnderLmk(dstKeyWithScheme, cmd.lmkId, dstLmkPair)
+                hsmLogsListener.log("[G0-K1] Step 4: Dest BDK (clear) = ${IsoUtil.bytesToHexString(clearDstBdk)}")
 
-            // ── Step-by-step logging ─────────────────────────────────────────
-            hsmLogsListener.log("► G0  Decrypting source BDK under LMK pair 28-29  ($srcBdkScheme = ${schemeLabel(srcBdkScheme)})")
-            hsmLogsListener.log("► G0  Decrypting dest $destKeyLabel under $destLmkLabel  ($destKeyScheme = ${schemeLabel(destKeyScheme)})")
-            hsmLogsListener.log("► G0  Deriving source IPEK from BDK + KSN  (ANSI X9.24 3DES DUKPT)")
-            hsmLogsListener.log("             Source KSN descriptor : $srcKsnDescriptor  →  counter bits: $srcCounterBits")
-            hsmLogsListener.log("             Source KSN            : $srcKsnHex")
-            hsmLogsListener.log("► G0  Decrypting source PIN block with source DUKPT session key")
-            hsmLogsListener.log("             Source PIN block (enc/DUKPT) : $pinBlockHex  src format: $srcFormat [${resolveFormat(srcFormat).description}]")
-            if (destIsBdk) {
-                hsmLogsListener.log("► G0  Deriving dest IPEK from dest BDK + dest KSN (3DES DUKPT)")
-                hsmLogsListener.log("             Dest KSN descriptor   : $destKsnDescriptor")
-                hsmLogsListener.log("             Dest KSN              : $destKsnHex")
-                hsmLogsListener.log("► G0  Re-formatting PIN block and encrypting under dest DUKPT session key")
+                // ── Step 3: Source DUKPT → derive PEK, decrypt PIN block ─
+                val srcIpek = PayShield10KCommandProcessor.deriveInitialKey(clearSrcBdk, srcKsnHex, srcCounterBits)
+                hsmLogsListener.log("[G0-K1] Step 5: Source IPEK = ${IsoUtil.bytesToHexString(srcIpek)}")
+                val srcKsnBytes = IsoUtil.hexToBytes(srcKsnHex)
+                val srcCounter = PayShield10KCommandProcessor.extractDukptCounter(srcKsnBytes, srcCounterBits)
+                val srcSessionKey = commandProcessor.deriveDukptSessionKey(srcIpek, srcKsnHex, srcCounter, srcCounterBits)
+                hsmLogsListener.log("[G0-K1] Step 6: Source session key = ${IsoUtil.bytesToHexString(srcSessionKey)}")
+                val srcPek = DukptEngine.xorBytes(srcSessionKey, DukptEngine.PEK_VARIANT)
+                hsmLogsListener.log("[G0-K1] Step 7: Source PEK (w/ variant) = ${IsoUtil.bytesToHexString(srcPek)}")
+
+                val pinBlockBytes = IsoUtil.hexToBytes(pinBlockHex)
+                val clearPinBlock = commandProcessor.decryptPinBlock(pinBlockBytes, srcPek)
+                hsmLogsListener.log("[G0-K1] Step 8: Decrypted PIN block = ${IsoUtil.bytesToHexString(clearPinBlock)}")
+
+                val pin = commandProcessor.extractPinFromBlock(clearPinBlock, account, resolveFormat(srcFormat))
+                hsmLogsListener.log("[G0-K1] Step 9: Extracted PIN  length=${pin.length}  pin=$pin")
+
+                // ── Step 4: Dest DUKPT → derive PEK, re-encrypt PIN block ─
+                val dstIpek = PayShield10KCommandProcessor.deriveInitialKey(clearDstBdk, dstKsnHex, dstCounterBits)
+                hsmLogsListener.log("[G0-K1] Step 10: Dest IPEK = ${IsoUtil.bytesToHexString(dstIpek)}")
+                val dstKsnBytes = IsoUtil.hexToBytes(dstKsnHex)
+                val dstCounter = PayShield10KCommandProcessor.extractDukptCounter(dstKsnBytes, dstCounterBits)
+                val dstSessionKey = commandProcessor.deriveDukptSessionKey(dstIpek, dstKsnHex, dstCounter, dstCounterBits)
+                hsmLogsListener.log("[G0-K1] Step 11: Dest session key = ${IsoUtil.bytesToHexString(dstSessionKey)}")
+                val dstPek = DukptEngine.xorBytes(dstSessionKey, DukptEngine.PEK_VARIANT)
+                hsmLogsListener.log("[G0-K1] Step 12: Dest PEK (w/ variant) = ${IsoUtil.bytesToHexString(dstPek)}")
+
+                val newPinBlock = commandProcessor.formatPinBlock(pin, account, resolveFormat(dstFormat))
+                hsmLogsListener.log("[G0-K1] Step 13: New clear PIN block = ${IsoUtil.bytesToHexString(newPinBlock)}")
+                val encNewPinBlock = commandProcessor.encryptPinBlock(newPinBlock, dstPek)
+                val encPinBlockStr = IsoUtil.bytesToHexString(encNewPinBlock)
+                val pinLenPad = pin.length.toString().padStart(2, '0')
+                hsmLogsListener.log("[G0-K1] Step 14: Encrypted PIN block = $encPinBlockStr  pinLen=$pinLenPad")
+
+                // ── Format response ──────────────────────────────────────
+                hsmLogsListener.log("◄ G0  Translation successful (K1 S-block format)")
+                hsmLogsListener.onFormattedResponse(buildString {
+                    appendLine(sep)
+                    appendLine("◄ G1  Response — Translate PIN BDK→BDK (S-block K1)")
+                    appendLine(sep)
+                    appendLine("  Response Code          : G1")
+                    appendLine("  Error Code             : 00  ✓ No error")
+                    appendLine("  PIN Length             : $pinLenPad")
+                    appendLine("  Encrypted PIN          : $encPinBlockStr")
+                    appendLine("  Destination Format Code: $dstFormat  [${resolveFormat(dstFormat).description}]")
+                    appendLine(sep)
+                })
+
+                HsmCommandResult.Success(
+                    response = "${pinLenPad}${encPinBlockStr}${dstFormat}",
+                    data = mapOf(
+                        "encryptedPinBlock" to encPinBlockStr,
+                        "pinLength"         to pin.length.toString(),
+                        "srcKsn"            to srcKsnHex,
+                        "destKsn"           to dstKsnHex,
+                        "destKeyType"       to "BDK"
+                    )
+                )
+
             } else {
-                hsmLogsListener.log("► G0  Re-formatting PIN block and encrypting under ZPK")
-            }
-            hsmLogsListener.log("             Dest format  : $dstFormat  [${resolveFormat(dstFormat).description}]  account: $account")
+                // ============================================================
+                // VARIANT-SCHEME FORMAT (U/T/X/Y or bare hex keys)
+                //
+                // Two sub-layouts supported:
+                //  (a) K1-style (no destKeyType):
+                //      SrcBDK(scheme+hex) + DstBDK(scheme+hex) +
+                //      SrcKSNDesc(3H) + SrcKSN(20H) + DstKSNDesc(3H) + DstKSN(20H) +
+                //      PINBlock(16H) + SrcFmt(2N) + DstFmt(2N) + Account(12N) [+ %LMK]
+                //
+                //  (b) Legacy (with destKeyType):
+                //      SrcBDK(scheme+hex) + DestKeyType(1A) + DstKey(scheme+hex) +
+                //      SrcKSNDesc(3H) + SrcKSN(20H) + [DstKSNDesc + DstKSN] +
+                //      PINBlock(16H) + SrcFmt(2N) + DstFmt(2N) + Account(12N)
+                //
+                // Auto-detect: after reading srcBDK, check if the next char is
+                // a destKeyType indicator ('0','*','~','!') or a key scheme char.
+                // ============================================================
+                hsmLogsListener.log("► G0  Detected variant-scheme format")
 
-            val result = commandProcessor.executeG0TranslatePinBdkToZpk(
-                lmkId               = cmd.lmkId,
-                encryptedSrcBdk     = srcBdk,
-                destKeyType         = destKeyType,
-                encryptedDestKey    = destKey,
-                srcKsnDescriptor    = srcKsnDescriptor,
-                srcKsn              = srcKsnHex,
-                destKsnDescriptor   = destKsnDescriptor,
-                destKsn             = destKsnHex,
-                encryptedPinBlock   = pinBlock,
-                sourcePinBlockFormat = resolveFormat(srcFormat),
-                destPinBlockFormat   = resolveFormat(dstFormat),
-                accountNumber       = account
-            )
+                // --- Source BDK (scheme+hex or bare hex) ---
+                val (srcKeyWithScheme, srcKeyLen) = extractSchemeKey(data, pos); pos += srcKeyLen
+                hsmLogsListener.log("          Source BDK                                : $srcKeyWithScheme")
 
-            if (result is HsmCommandResult.Success) {
-                val encPinBlock = result.data["encryptedPinBlock"] as String
-                val pinLength   = (result.data["pinLength"] as? String) ?: "04"
-                val pinLenPad   = pinLength.padStart(2, '0')
-                val wireResponse = "${cmd.header}G100${pinLenPad}${encPinBlock}${dstFormat}"
+                // --- Auto-detect destKeyType ---
+                val nextChar = if (pos < data.length) data[pos] else '?'
+                val hasDestKeyType = nextChar in setOf('0', '*', '~', '!')
+
+                val destKeyType: Char
+                val destIsBdk: Boolean
+                if (hasDestKeyType) {
+                    destKeyType = data[pos]; pos++
+                    destIsBdk = destKeyType != '0'
+                    hsmLogsListener.log("          Dest Key Type (legacy)                     : ${destKeyTypeLabel(destKeyType)}")
+                } else {
+                    destKeyType = '*'
+                    destIsBdk = true
+                    hsmLogsListener.log("          Dest Key Type                              : (none — K1-style BDK-to-BDK)")
+                }
+
+                // --- Destination key (scheme+hex or bare hex) ---
+                val (dstKeyWithScheme, dstKeyLen) = extractSchemeKey(data, pos); pos += dstKeyLen
+                val destKeyLabel = if (destIsBdk) "Dest BDK" else "ZPK"
+                val destLmkLabel = if (destIsBdk) "LMK 28-29" else "LMK 06-07"
+                hsmLogsListener.log("          $destKeyLabel                    ($destLmkLabel) : $dstKeyWithScheme")
+
+                // --- Source KSN Descriptor (3H) + KSN (20H) ---
+                val srcKsnDescriptor = data.substring(pos, pos + 3); pos += 3
+                val srcCounterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(srcKsnDescriptor)
+                hsmLogsListener.log("          Source KSN Descriptor                     : $srcKsnDescriptor  (counter bits: $srcCounterBits)")
+                val srcKsnHex = data.substring(pos, pos + 20); pos += 20
+                hsmLogsListener.log("          Source KSN                                : $srcKsnHex")
+
+                // --- Destination KSN Descriptor + KSN (when dest is BDK) ---
+                var destKsnDescriptor: String? = null
+                var destKsnHex: String? = null
+                if (destIsBdk) {
+                    destKsnDescriptor = data.substring(pos, pos + 3); pos += 3
+                    val destCounterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(destKsnDescriptor)
+                    hsmLogsListener.log("          Dest KSN Descriptor                       : $destKsnDescriptor  (counter bits: $destCounterBits)")
+                    destKsnHex = data.substring(pos, pos + 20); pos += 20
+                    hsmLogsListener.log("          Dest KSN                                  : $destKsnHex")
+                }
+
+                // --- PIN block (16H) ---
+                val pinBlockHex = data.substring(pos, pos + 16); pos += 16
+                val pinBlock = IsoUtil.hexToBytes(pinBlockHex)
+                hsmLogsListener.log("          Source PIN Block (enc/DUKPT)               : $pinBlockHex")
+
+                // --- Source/Dest format codes (2N each) ---
+                val srcFormat = data.substring(pos, pos + 2); pos += 2
+                val dstFormat = data.substring(pos, pos + 2); pos += 2
+                hsmLogsListener.log("          Source Format Code                         : $srcFormat  [${resolveFormat(srcFormat).description}]")
+                hsmLogsListener.log("          Dest Format Code                           : $dstFormat  [${resolveFormat(dstFormat).description}]")
+
+                // --- Account number (12N) ---
+                val account = data.substring(pos, minOf(pos + 12, data.length))
+                hsmLogsListener.log("          Account Number (12N)                       : $account")
+
+                // ── Emit structured formatted request ────────────────────
+                hsmLogsListener.onFormattedRequest(buildString {
+                    appendLine("Message Header........... = [${cmd.header}]")
+                    appendLine("Command Code............. = [G0] Translate PIN from BDK to ${if (destIsBdk) "BDK" else "ZPK"} (3DES DUKPT)")
+                    appendLine("Source BDK............... = [$srcKeyWithScheme]")
+                    if (hasDestKeyType) appendLine("Destination Key Type..... = [$destKeyType] ${destKeyTypeLabel(destKeyType)}")
+                    appendLine("$destKeyLabel................ = [$dstKeyWithScheme]")
+                    appendLine("Source KSN Descriptor.... = [$srcKsnDescriptor]")
+                    appendLine("Source KSN............... = [$srcKsnHex]")
+                    if (destIsBdk) {
+                        appendLine("Dest KSN Descriptor...... = [$destKsnDescriptor]")
+                        appendLine("Dest KSN................. = [$destKsnHex]")
+                    }
+                    appendLine("Source Encrypted Block... = [$pinBlockHex]")
+                    appendLine("Source PIN block Format.. = [$srcFormat] ${resolveFormat(srcFormat).description}")
+                    appendLine("Destination Format Code.. = [$dstFormat] ${resolveFormat(dstFormat).description}")
+                    appendLine("Account Number........... = [$account]")
+                    appendLine("LMK ID................... = [${cmd.lmkId}]")
+                })
+
+                // ── Decrypt keys using scheme-aware helpers ──────────────
+                val srcLmkPair = PayShield10KCommandProcessor.LMK_PAIR_BDK
+                val clearSrcBdk = decryptSchemeKeyUnderLmk(srcKeyWithScheme, cmd.lmkId, srcLmkPair)
+                hsmLogsListener.log("[G0] Source BDK (clear) = ${IsoUtil.bytesToHexString(clearSrcBdk)}")
+
+                val dstLmkPair = if (destIsBdk) PayShield10KCommandProcessor.LMK_PAIR_BDK
+                                 else PayShield10KCommandProcessor.LMK_PAIR_ZMK_ZPK
+                val clearDstKey = decryptSchemeKeyUnderLmk(dstKeyWithScheme, cmd.lmkId, dstLmkPair)
+                hsmLogsListener.log("[G0] Dest key (clear) = ${IsoUtil.bytesToHexString(clearDstKey)}")
+
+                // ── Source DUKPT derivation ───────────────────────────────
+                val srcIpek = PayShield10KCommandProcessor.deriveInitialKey(clearSrcBdk, srcKsnHex, srcCounterBits)
+                val srcKsnBytes = IsoUtil.hexToBytes(srcKsnHex)
+                val srcCounter = PayShield10KCommandProcessor.extractDukptCounter(srcKsnBytes, srcCounterBits)
+                val srcSessionKey = commandProcessor.deriveDukptSessionKey(srcIpek, srcKsnHex, srcCounter, srcCounterBits)
+                val srcPek = DukptEngine.xorBytes(srcSessionKey, DukptEngine.PEK_VARIANT)
+                hsmLogsListener.log("[G0] Source PEK = ${IsoUtil.bytesToHexString(srcPek)}")
+
+                val clearPinBlock = commandProcessor.decryptPinBlock(pinBlock, srcPek)
+                hsmLogsListener.log("[G0] Decrypted PIN block = ${IsoUtil.bytesToHexString(clearPinBlock)}")
+                val pin = commandProcessor.extractPinFromBlock(clearPinBlock, account, resolveFormat(srcFormat))
+                hsmLogsListener.log("[G0] Extracted PIN length=${pin.length}  pin=$pin")
+
+                // ── Destination encryption ────────────────────────────────
+                val encryptionKey: ByteArray = if (destIsBdk && destKsnDescriptor != null && destKsnHex != null) {
+                    val dstCounterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(destKsnDescriptor)
+                    val dstIpek = PayShield10KCommandProcessor.deriveInitialKey(clearDstKey, destKsnHex, dstCounterBits)
+                    val dstKsnBytes = IsoUtil.hexToBytes(destKsnHex)
+                    val dstCounter = PayShield10KCommandProcessor.extractDukptCounter(dstKsnBytes, dstCounterBits)
+                    val dstSessionKey = commandProcessor.deriveDukptSessionKey(dstIpek, destKsnHex, dstCounter, dstCounterBits)
+                    DukptEngine.xorBytes(dstSessionKey, DukptEngine.PEK_VARIANT).also {
+                        hsmLogsListener.log("[G0] Dest PEK = ${IsoUtil.bytesToHexString(it)}")
+                    }
+                } else {
+                    clearDstKey
+                }
+
+                val newPinBlock = commandProcessor.formatPinBlock(pin, account, resolveFormat(dstFormat))
+                val encNewPinBlock = commandProcessor.encryptPinBlock(newPinBlock, encryptionKey)
+                val encPinBlockStr = IsoUtil.bytesToHexString(encNewPinBlock)
+                val pinLenPad = pin.length.toString().padStart(2, '0')
+                hsmLogsListener.log("[G0] Encrypted PIN block = $encPinBlockStr  pinLen=$pinLenPad")
 
                 val destModeLabel = if (destIsBdk) "dest DUKPT session key" else "ZPK"
                 hsmLogsListener.log("◄ G0  Translation successful")
-                hsmLogsListener.log("          Translated PIN Block (enc/$destModeLabel) : $encPinBlock")
-                hsmLogsListener.log("          Returned PIN Length                   : $pinLenPad")
-                hsmLogsListener.log("          Output Format Code                    : $dstFormat  [${resolveFormat(dstFormat).description}]")
 
                 hsmLogsListener.onFormattedResponse(buildString {
                     appendLine(sep)
@@ -1758,20 +1937,20 @@ class PayShieldStringCommandProcessor(
                     appendLine("  Response Code          : G1")
                     appendLine("  Error Code             : 00  ✓ No error")
                     appendLine("  PIN Length             : $pinLenPad")
-                    appendLine("  Encrypted PIN          : $encPinBlock")
+                    appendLine("  Encrypted PIN          : $encPinBlockStr")
                     appendLine("  Destination Format Code: $dstFormat  [${resolveFormat(dstFormat).description}]")
                     appendLine(sep)
-                    appendLine("  Wire Response          : $wireResponse")
                 })
 
                 HsmCommandResult.Success(
-                    response = "${pinLenPad}${encPinBlock}${dstFormat}",
-                    data = result.data
+                    response = "${pinLenPad}${encPinBlockStr}${dstFormat}",
+                    data = mapOf(
+                        "encryptedPinBlock" to encPinBlockStr,
+                        "pinLength"         to pin.length.toString(),
+                        "srcKsn"            to srcKsnHex,
+                        "destKeyType"       to destKeyType.toString()
+                    ) + if (destKsnHex != null) mapOf("destKsn" to destKsnHex) else emptyMap()
                 )
-            } else {
-                val err = result as HsmCommandResult.Error
-                hsmLogsListener.log("✗ G0  Translation FAILED — errorCode=${err.errorCode}  ${err.message}")
-                result
             }
 
         } catch (e: Exception) {
@@ -1955,10 +2134,11 @@ class PayShieldStringCommandProcessor(
     // M4 — Translate Data Block (decrypt under source key, re-encrypt under destination key)
     // Wire format:
     //   M4[SrcMode_2N][DstMode_2N][InFmt_1N][OutFmt_1N]
-    //     [SrcKeyType_3H][SrcKey_1A+32H][SrcKSNDesc_3H?][SrcKSN_20H?]
-    //     [DstKeyType_3H][DstKey_1A+32H][DstKSNDesc_3H?][DstKSN_20H?]
+    //     [SrcKeyType_3H][SrcKey_scheme+variable][SrcKSNDesc_3H?][SrcKSN_20H?]
+    //     [DstKeyType_3H][DstKey_scheme+variable][DstKSNDesc_3H?][DstKSN_20H?]
     //     [SrcIV_16H?][DstIV_16H?][MsgLen_4H][MsgBlock_nH]
     // Response: M5 00 [MsgLen_4H][MsgBlock_nH]
+    // MsgLen is in hex-character count (not bytes).
     // ====================================================================================================
     private suspend fun executeM4(cmd: ParsedCommand): HsmCommandResult {
         return try {
@@ -1974,12 +2154,18 @@ class PayShieldStringCommandProcessor(
             // Output Format Flag (1N): 0=Binary, 1=Hex-Encoded
             val outFmt = data[pos].toString(); pos++
 
-            // --- Source Key ---
+            // --- Source Key (S-block or variant+hex) ---
             val srcKeyTypeCode = data.substring(pos, pos + 3); pos += 3
-            val srcScheme = data[pos]; pos++
-            val srcKeyHex = data.substring(pos, pos + 32); pos += 32
-            val srcEncKey = IsoUtil.hexToBytes(srcKeyHex)
-            val srcIsBdk = srcKeyTypeCode in BDK_KEY_TYPES
+            val (srcKeyWithScheme, srcKeyLen) = extractSchemeKey(data, pos); pos += srcKeyLen
+            val srcIsKeyBlock = srcKeyWithScheme.firstOrNull()?.uppercaseChar() == 'S'
+            val srcKeyUsageFromBlock = if (srcIsKeyBlock && srcKeyWithScheme.length >= 8)
+                srcKeyWithScheme.substring(6, 8) else ""
+            val srcKeyAlgoFromBlock = if (srcIsKeyBlock && srcKeyWithScheme.length >= 9)
+                srcKeyWithScheme[8].uppercaseChar() else 'T'
+            val srcIsBdk = if (srcIsKeyBlock)
+                srcKeyUsageFromBlock in setOf("B0", "B1", "E0", "E1", "E2", "E4")
+            else
+                srcKeyTypeCode in BDK_KEY_TYPES
 
             var srcKsnDescriptor = ""
             var srcKsnHex = ""
@@ -1988,12 +2174,18 @@ class PayShieldStringCommandProcessor(
                 srcKsnHex = data.substring(pos, pos + 20); pos += 20
             }
 
-            // --- Destination Key ---
+            // --- Destination Key (S-block or variant+hex) ---
             val dstKeyTypeCode = data.substring(pos, pos + 3); pos += 3
-            val dstScheme = data[pos]; pos++
-            val dstKeyHex = data.substring(pos, pos + 32); pos += 32
-            val dstEncKey = IsoUtil.hexToBytes(dstKeyHex)
-            val dstIsBdk = dstKeyTypeCode in BDK_KEY_TYPES
+            val (dstKeyWithScheme, dstKeyLen) = extractSchemeKey(data, pos); pos += dstKeyLen
+            val dstIsKeyBlock = dstKeyWithScheme.firstOrNull()?.uppercaseChar() == 'S'
+            val dstKeyUsageFromBlock = if (dstIsKeyBlock && dstKeyWithScheme.length >= 8)
+                dstKeyWithScheme.substring(6, 8) else ""
+            val dstKeyAlgoFromBlock = if (dstIsKeyBlock && dstKeyWithScheme.length >= 9)
+                dstKeyWithScheme[8].uppercaseChar() else 'T'
+            val dstIsBdk = if (dstIsKeyBlock)
+                dstKeyUsageFromBlock in setOf("B0", "B1", "E0", "E1", "E2", "E4")
+            else
+                dstKeyTypeCode in BDK_KEY_TYPES
 
             var dstKsnDescriptor = ""
             var dstKsnHex = ""
@@ -2012,7 +2204,7 @@ class PayShieldStringCommandProcessor(
                 data.substring(pos, pos + 16).also { pos += 16 }
             } else "0000000000000000"
 
-            // Message Length (4H, hex-char count as hex) + Message Block
+            // Message Length (4H, hex-char count) + Message Block
             val dataLenHex = data.substring(pos, pos + 4); pos += 4
             val dataLen = dataLenHex.toInt(16)
             val msgBlockHex = data.substring(pos, minOf(pos + dataLen, data.length))
@@ -2026,48 +2218,99 @@ class PayShieldStringCommandProcessor(
                 appendLine("Input Format Flag........ = [$inFmt] ${if (inFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Output Format Flag....... = [$outFmt] ${if (outFmt == "1") "Hex-Encoded Binary" else "Binary"}")
                 appendLine("Source Key Type.......... = [$srcKeyTypeCode]")
-                appendLine("Source Key............... = [$srcScheme$srcKeyHex]")
-                if (srcIsBdk) {
-                    appendLine("KSN Descriptor........... = [$srcKsnDescriptor]")
-                    appendLine("Key serial number........ = [$srcKsnHex]")
+                appendLine("Source Key............... = [$srcKeyWithScheme]")
+                if (srcIsKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$srcKeyUsageFromBlock]")
+                    appendLine("  Key Block Algo........ = [$srcKeyAlgoFromBlock]")
                 }
-                appendLine("Destination Key Type..... = [$dstKeyTypeCode]")
-                appendLine("Destination Key.......... = [$dstScheme$dstKeyHex]")
+                if (srcIsBdk) {
+                    appendLine("Source KSN Descriptor.... = [$srcKsnDescriptor]")
+                    appendLine("Source KSN............... = [$srcKsnHex]")
+                }
+                appendLine("Dest Key Type............ = [$dstKeyTypeCode]")
+                appendLine("Dest Key................. = [$dstKeyWithScheme]")
+                if (dstIsKeyBlock) {
+                    appendLine("  Key Block Usage....... = [$dstKeyUsageFromBlock]")
+                    appendLine("  Key Block Algo........ = [$dstKeyAlgoFromBlock]")
+                }
                 if (dstIsBdk) {
-                    appendLine("KSN Descriptor........... = [$dstKsnDescriptor]")
-                    appendLine("Key serial number........ = [$dstKsnHex]")
+                    appendLine("Dest KSN Descriptor...... = [$dstKsnDescriptor]")
+                    appendLine("Dest KSN................. = [$dstKsnHex]")
                 }
                 if (srcMode == "01") appendLine("Source IV................ = [$srcIvHex]")
                 if (dstMode == "01") appendLine("Destination IV........... = [$dstIvHex]")
                 appendLine("Message Length........... = [$dataLenHex]")
-                appendLine("Message Block............ = [$msgBlockHex]")
+                appendLine("Encrypted Data........... = [$msgBlockHex]")
             }
             hsmLogsListener.log(requestLog)
             hsmLogsListener.onFormattedRequest(requestLog)
 
-            // ── Step 1: Derive source clear key ──
-            hsmLogsListener.log("[M4] Step 1: Deriving source key - keyType=$srcKeyTypeCode, isBdk=$srcIsBdk, lmkSlot=${cmd.lmkId}")
-            val srcClearKey = deriveDataKeyForM4(
-                encKey = srcEncKey, keyTypeCode = srcKeyTypeCode, isBdk = srcIsBdk,
-                ksnDescriptor = srcKsnDescriptor, ksnHex = srcKsnHex, lmkId = cmd.lmkId, tag = "M4-SRC"
-            ) ?: return HsmCommandResult.Error("15", "Failed to derive source key")
+            // ── Step 1: Resolve source LMK pair, decrypt source key ──
+            val srcLmkPairNumber = when {
+                srcIsKeyBlock -> A0GenerateKeyCommand.lmkPairFromKeyUsage(srcKeyUsageFromBlock)
+                srcIsBdk      -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[srcKeyTypeCode]?.lmkPairNumber
+                                 ?: PayShield10KCommandProcessor.LMK_PAIR_BDK
+                else          -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[srcKeyTypeCode]?.lmkPairNumber
+                                 ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
+            }
+            hsmLogsListener.log("[M4] Step 1: Source lmkPair=$srcLmkPairNumber isKeyBlock=$srcIsKeyBlock isBdk=$srcIsBdk")
+            val clearSrcBdkOrKey = decryptSchemeKeyUnderLmk(srcKeyWithScheme, cmd.lmkId, srcLmkPairNumber)
+            hsmLogsListener.log("[M4] Step 2: Source clear key = ${IsoUtil.bytesToHexString(clearSrcBdkOrKey)}")
 
-            // ── Step 2: Derive destination clear key ──
-            hsmLogsListener.log("[M4] Step 2: Deriving destination key - keyType=$dstKeyTypeCode, isBdk=$dstIsBdk, lmkSlot=${cmd.lmkId}")
-            val dstClearKey = deriveDataKeyForM4(
-                encKey = dstEncKey, keyTypeCode = dstKeyTypeCode, isBdk = dstIsBdk,
-                ksnDescriptor = dstKsnDescriptor, ksnHex = dstKsnHex, lmkId = cmd.lmkId, tag = "M4-DST"
-            ) ?: return HsmCommandResult.Error("15", "Failed to derive destination key")
+            val srcClearKey: ByteArray = if (srcIsBdk) {
+                val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(srcKsnDescriptor)
+                val ipek = PayShield10KCommandProcessor.deriveInitialKey(clearSrcBdkOrKey, srcKsnHex, counterBits)
+                hsmLogsListener.log("[M4] Step 3: Source IPEK = ${IsoUtil.bytesToHexString(ipek)}")
+                val ksnBytes = IsoUtil.hexToBytes(srcKsnHex)
+                val counter  = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
+                val sessionKey = commandProcessor.deriveDukptSessionKey(ipek, srcKsnHex, counter, counterBits)
+                hsmLogsListener.log("[M4] Step 4: Source DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
+                val dataVariantKey = DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
+                DukptEngine.applyVariantEncryption(dataVariantKey).also {
+                    hsmLogsListener.log("[M4] Step 5: Source data encryption key = ${IsoUtil.bytesToHexString(it)}")
+                }
+            } else {
+                clearSrcBdkOrKey
+            }
+
+            // ── Step 2: Resolve destination LMK pair, decrypt destination key ──
+            val dstLmkPairNumber = when {
+                dstIsKeyBlock -> A0GenerateKeyCommand.lmkPairFromKeyUsage(dstKeyUsageFromBlock)
+                dstIsBdk      -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[dstKeyTypeCode]?.lmkPairNumber
+                                 ?: PayShield10KCommandProcessor.LMK_PAIR_BDK
+                else          -> A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[dstKeyTypeCode]?.lmkPairNumber
+                                 ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
+            }
+            hsmLogsListener.log("[M4] Step 6: Dest lmkPair=$dstLmkPairNumber isKeyBlock=$dstIsKeyBlock isBdk=$dstIsBdk")
+            val clearDstBdkOrKey = decryptSchemeKeyUnderLmk(dstKeyWithScheme, cmd.lmkId, dstLmkPairNumber)
+            hsmLogsListener.log("[M4] Step 7: Dest clear key = ${IsoUtil.bytesToHexString(clearDstBdkOrKey)}")
+
+            val dstClearKey: ByteArray = if (dstIsBdk) {
+                val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(dstKsnDescriptor)
+                val ipek = PayShield10KCommandProcessor.deriveInitialKey(clearDstBdkOrKey, dstKsnHex, counterBits)
+                hsmLogsListener.log("[M4] Step 8: Dest IPEK = ${IsoUtil.bytesToHexString(ipek)}")
+                val ksnBytes = IsoUtil.hexToBytes(dstKsnHex)
+                val counter  = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
+                val sessionKey = commandProcessor.deriveDukptSessionKey(ipek, dstKsnHex, counter, counterBits)
+                hsmLogsListener.log("[M4] Step 9: Dest DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
+                val dataVariantKey = DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
+                DukptEngine.applyVariantEncryption(dataVariantKey).also {
+                    hsmLogsListener.log("[M4] Step 10: Dest data encryption key = ${IsoUtil.bytesToHexString(it)}")
+                }
+            } else {
+                clearDstBdkOrKey
+            }
 
             // ── Step 3: Decrypt under source key ──
             val srcCipherMode = if (srcMode == "01") CipherMode.CBC else CipherMode.ECB
-            val srcIvBytes = IsoUtil.hexToBytes(srcIvHex)
-            hsmLogsListener.log("[M4] Step 3: Decrypting under source key - mode=${if (srcMode == "01") "CBC" else "ECB"}, key=${IsoUtil.bytesToHexString(srcClearKey)}")
+            val srcIvBytes    = IsoUtil.hexToBytes(srcIvHex)
+            val srcAlgo = if (srcKeyAlgoFromBlock == 'A') CryptoAlgorithm.AES else CryptoAlgorithm.TDES
+            hsmLogsListener.log("[M4] Step 11: Decrypting - mode=${if (srcMode == "01") "CBC" else "ECB"} algo=$srcAlgo key=${IsoUtil.bytesToHexString(srcClearKey)}")
 
             val eng = engine()
             val decData = try {
                 eng.encryptionEngine.decrypt(
-                    algorithm = CryptoAlgorithm.TDES,
+                    algorithm = srcAlgo,
                     decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                         data = msgBlock,
                         key = srcClearKey,
@@ -2079,7 +2322,7 @@ class PayShieldStringCommandProcessor(
             } catch (_: Exception) {
                 hsmLogsListener.log("[M4] PKCS5 padding invalid on source decrypt, falling back to NoPadding")
                 eng.encryptionEngine.decrypt(
-                    algorithm = CryptoAlgorithm.TDES,
+                    algorithm = srcAlgo,
                     decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                         data = msgBlock,
                         key = srcClearKey,
@@ -2089,15 +2332,16 @@ class PayShieldStringCommandProcessor(
                     )
                 )
             }
-            hsmLogsListener.log("[M4] Step 3: Decrypted plaintext = ${IsoUtil.bytesToHexString(decData)}")
+            hsmLogsListener.log("[M4] Step 12: Decrypted plaintext = ${IsoUtil.bytesToHexString(decData)}")
 
             // ── Step 4: Re-encrypt under destination key ──
             val dstCipherMode = if (dstMode == "01") CipherMode.CBC else CipherMode.ECB
-            val dstIvBytes = IsoUtil.hexToBytes(dstIvHex)
-            hsmLogsListener.log("[M4] Step 4: Re-encrypting under destination key - mode=${if (dstMode == "01") "CBC" else "ECB"}, key=${IsoUtil.bytesToHexString(dstClearKey)}")
+            val dstIvBytes    = IsoUtil.hexToBytes(dstIvHex)
+            val dstAlgo = if (dstKeyAlgoFromBlock == 'A') CryptoAlgorithm.AES else CryptoAlgorithm.TDES
+            hsmLogsListener.log("[M4] Step 13: Re-encrypting - mode=${if (dstMode == "01") "CBC" else "ECB"} algo=$dstAlgo key=${IsoUtil.bytesToHexString(dstClearKey)}")
 
             val encData = eng.encryptionEngine.encrypt(
-                algorithm = CryptoAlgorithm.TDES,
+                algorithm = dstAlgo,
                 encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                     data = decData,
                     key = dstClearKey,
@@ -2107,16 +2351,18 @@ class PayShieldStringCommandProcessor(
                 )
             )
             val encHex = IsoUtil.bytesToHexString(encData)
-            val outLen = encData.size.toString(16).padStart(4, '0').uppercase()
+            // Output length is hex-char count (matches input convention)
+            val outLen = encHex.length.toString(16).padStart(4, '0').uppercase()
 
-            hsmLogsListener.log("[M4] Step 5: Encrypted result = $encHex (${encData.size} bytes)")
+            hsmLogsListener.log("[M4] Step 14: Encrypted result = $encHex (${encData.size} bytes)")
 
             // ── Log formatted response ──
             val responseLog = buildString {
                 appendLine("M5 - Translate Data Block Response")
                 appendLine("Error Code............... = [00]")
-                appendLine("Message Length........... = [$outLen]")
-                appendLine("Message Block............ = [$encHex]")
+                appendLine("Output IV................ = []")
+                appendLine("Translated Message Length = [$outLen]")
+                appendLine("Translated Data.......... = [$encHex]")
             }
             hsmLogsListener.log(responseLog)
             hsmLogsListener.onFormattedResponse(responseLog)
@@ -2127,59 +2373,6 @@ class PayShieldStringCommandProcessor(
             )
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "M4 failed: ${e.message}")
-        }
-    }
-
-    /**
-     * Derive the clear data-encryption key for M4, handling both BDK (DUKPT) and non-BDK key types.
-     * Returns null if LMK is unavailable.
-     */
-    private suspend fun deriveDataKeyForM4(
-        encKey: ByteArray, keyTypeCode: String, isBdk: Boolean,
-        ksnDescriptor: String, ksnHex: String, lmkId: String, tag: String
-    ): ByteArray? {
-        val keyTypeInfo = A0GenerateKeyCommand.KEY_TYPE_LMK_MAP[keyTypeCode]
-
-        if (isBdk) {
-            val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_BDK
-            val variant = keyTypeInfo?.variant ?: 0
-            hsmLogsListener.log("[$tag] BDK path - lmkPair=$lmkPairNumber, variant=$variant")
-
-            val lmk = simulator.lmkStorage.getLmk(lmkId) ?: return null
-            val lmkPair = lmk.getPair(lmkPairNumber) ?: return null
-            val combinedLmk = lmkPair.getCombinedKey()
-            val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
-
-            val clearBdk = performTdesDecryptForM2(encKey, variantLmk, lmkId)
-            hsmLogsListener.log("[$tag] Clear BDK = ${IsoUtil.bytesToHexString(clearBdk)}")
-
-            val counterBits = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
-            val initialKey = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnHex, counterBits)
-            hsmLogsListener.log("[$tag] IPEK = ${IsoUtil.bytesToHexString(initialKey)}")
-
-            val ksnBytes = IsoUtil.hexToBytes(ksnHex)
-            val counter = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
-            val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
-            hsmLogsListener.log("[$tag] DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
-
-            val variantKey = DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
-            hsmLogsListener.log("[$tag] Data variant key (session XOR variant) = ${IsoUtil.bytesToHexString(variantKey)}")
-            val clearKey = DukptEngine.applyVariantEncryption(variantKey)
-            hsmLogsListener.log("[$tag] Data encryption key (after ANSI X9.24 one-way function) = ${IsoUtil.bytesToHexString(clearKey)}")
-            return clearKey
-        } else {
-            val lmkPairNumber = keyTypeInfo?.lmkPairNumber ?: PayShield10KCommandProcessor.LMK_PAIR_TPK
-            val variant = keyTypeInfo?.variant ?: 0
-            hsmLogsListener.log("[$tag] Non-BDK path - lmkPair=$lmkPairNumber, variant=$variant")
-
-            val lmk = simulator.lmkStorage.getLmk(lmkId) ?: return null
-            val lmkPair = lmk.getPair(lmkPairNumber) ?: return null
-            val combinedLmk = lmkPair.getCombinedKey()
-            val variantLmk = applyLmkVariantForM2(combinedLmk, variant)
-
-            val clearKey = performTdesDecryptForM2(encKey, variantLmk, lmkId)
-            hsmLogsListener.log("[$tag] Clear key = ${IsoUtil.bytesToHexString(clearKey)}")
-            return clearKey
         }
     }
 

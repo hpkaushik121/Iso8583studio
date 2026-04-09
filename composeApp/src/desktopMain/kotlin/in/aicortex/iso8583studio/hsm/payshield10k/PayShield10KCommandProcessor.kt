@@ -1410,7 +1410,7 @@ class PayShield10KCommandProcessor(
     // HELPER METHODS (Unchanged from original)
     // ====================================================================================================
 
-    private fun formatPinBlock(
+    internal fun formatPinBlock(
         pin: String,
         accountNumber: String,
         format: PinBlockFormat
@@ -1458,7 +1458,7 @@ class PayShield10KCommandProcessor(
         return pinBytes.zip(panBytes) { a, b -> (a.toInt() xor b.toInt()).toByte() }.toByteArray()
     }
 
-    private fun extractPinFromBlock(
+    internal fun extractPinFromBlock(
         pinBlock: ByteArray,
         accountNumber: String,
         format: PinBlockFormat
@@ -1490,7 +1490,7 @@ class PayShield10KCommandProcessor(
         }
     }
 
-    private suspend fun encryptPinBlock(pinBlock: ByteArray, key: ByteArray): ByteArray {
+    internal suspend fun encryptPinBlock(pinBlock: ByteArray, key: ByteArray): ByteArray {
         return engine().encryptionEngine.encrypt(
             algorithm = CryptoAlgorithm.TDES,
             encryptionEngineParameters = SymmetricEncryptionEngineParameters(
@@ -1501,7 +1501,7 @@ class PayShield10KCommandProcessor(
         )
     }
 
-    private suspend fun decryptPinBlock(encryptedPinBlock: ByteArray, key: ByteArray): ByteArray {
+    internal suspend fun decryptPinBlock(encryptedPinBlock: ByteArray, key: ByteArray): ByteArray {
         return engine().encryptionEngine.decrypt(
             algorithm = CryptoAlgorithm.TDES,
             decryptionEngineParameters = SymmetricDecryptionEngineParameters(
