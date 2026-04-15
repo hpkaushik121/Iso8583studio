@@ -49,15 +49,20 @@ internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : Encry
         return when (algorithm) {
             is CryptoAlgorithm.AES -> {
                 val parameter = encryptionEngineParameters as SymmetricEncryptionEngineParameters
-                when (parameter.mode) {
-                    CipherMode.ECB -> TODO()
-                    CipherMode.CBC -> TODO()
-                    CipherMode.CFB -> TODO()
-                    CipherMode.OFB -> TODO()
-                    CipherMode.GCM -> TODO()
-                    CipherMode.CTR -> TODO()
+                logSymmetricParams(
+                    "Encrypt", "AES",
+                    parameter.data, parameter.key, parameter.iv,
+                    parameter.mode, parameter.padding
+                )
+                val result = when (parameter.mode) {
+                    CipherMode.ECB -> AesCalculatorEngine.encryptECB(parameter.data, parameter.key, parameter.padding)
+                    CipherMode.CBC -> AesCalculatorEngine.encryptCBC(
+                        parameter.data, parameter.key, parameter.iv, parameter.padding
+                    )
+                    else -> TODO("AES ${parameter.mode} not yet implemented")
                 }
-                byteArrayOf()
+                logResult("Encrypt", result)
+                result
             }
 
             is CryptoAlgorithm.TDES -> {
@@ -110,6 +115,22 @@ internal class EncryptionEngineImpl(override val emvEngines: EMVEngines) : Encry
                     CipherMode.OFB -> TdesCalculatorEngine.decryptOFB(parameter.data, parameter.key, parameter.iv, parameter.padding)
                     CipherMode.GCM -> TODO()
                     CipherMode.CTR -> TODO()
+                }
+                logResult("Decrypt", result)
+                result
+            }
+
+            is CryptoAlgorithm.AES -> {
+                val parameter = decryptionEngineParameters as SymmetricDecryptionEngineParameters
+                logSymmetricParams(
+                    "Decrypt", "AES",
+                    parameter.data, parameter.key, parameter.iv,
+                    parameter.mode, parameter.padding
+                )
+                val result = when (parameter.mode) {
+                    CipherMode.ECB -> AesCalculatorEngine.decryptECB(parameter.data, parameter.key, parameter.padding)
+                    CipherMode.CBC -> AesCalculatorEngine.decryptCBC(parameter.data, parameter.key, parameter.iv, parameter.padding)
+                    else -> TODO("AES ${parameter.mode} not yet implemented")
                 }
                 logResult("Decrypt", result)
                 result

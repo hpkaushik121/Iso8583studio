@@ -163,7 +163,23 @@ internal fun SendMessageTab(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 IconButton(
-                                    onClick = { showCreateIsoDialog = true },
+                                    onClick = {
+                                        if (rawMessageString.isNotEmpty() && currentMessage == null) {
+                                            try {
+                                                rawMessageBytes = IsoUtil.stringToBcd(
+                                                    rawMessageString,
+                                                    rawMessageString.length / 2
+                                                )
+                                                val isoData = Iso8583Data(gw.configuration, isFirst = false)
+                                                isoData.unpackByteArray(rawMessageBytes)
+                                                parsedMessageCreated = isoData.logFormat()
+                                                currentMessage = isoData
+                                            } catch (_: Exception) {
+                                                // If parsing fails, open dialog without parsed message
+                                            }
+                                        }
+                                        showCreateIsoDialog = true
+                                    },
                                     modifier = Modifier.size(24.dp)
                                 ) {
                                     Icon(
@@ -253,10 +269,11 @@ internal fun SendMessageTab(
                                 rawMessageBytes = IsoUtil.stringToBcd(rawMessageString,
                                     rawMessageString.length / 2)
                                 val isoData = Iso8583Data(gw.configuration, isFirst = false)
-                                isoData.unpack(
+                                isoData.unpackByteArray(
                                     rawMessageBytes
                                 )
                                 parsedMessageCreated = isoData.logFormat()
+                                currentMessage = isoData
                             } catch (e: Exception) {
                                 gw.resultDialogInterface?.onError {
                                     Text("Error parsing data: ${e.message}")

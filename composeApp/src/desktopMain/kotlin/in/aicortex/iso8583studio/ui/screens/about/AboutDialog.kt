@@ -41,7 +41,7 @@ import java.util.*
  * About dialog for ISO8583Studio application
  *
  * @param onCloseRequest Callback to invoke when the dialog should be closed
- * @param version Application version (defaults to BuildConfig.VERSION if available, or "1.0.6")
+ * @param version Application version (defaults to BuildConfig.VERSION if available, or "1.0.7")
  */
 @Composable
 fun AboutDialog(
