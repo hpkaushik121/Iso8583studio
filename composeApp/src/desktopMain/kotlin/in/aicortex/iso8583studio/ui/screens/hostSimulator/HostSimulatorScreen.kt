@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import `in`.aicortex.iso8583studio.data.BitAttribute
+import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
@@ -294,6 +295,21 @@ fun HostSimulator(
         }
     }
 
+    // Hoisted state for SendMessageTab — survives tab switches
+    val sendMsgLiveMessage = remember(gw) {
+        mutableStateOf(createDefaultIso8583EditorMessage(gw, isFirst = false))
+    }
+    val sendMsgBitAttributes = remember(gw) {
+        mutableStateOf(sendMsgLiveMessage.value.bitAttributes.clone())
+    }
+    val sendMsgRawMessageString = remember(gw) {
+        mutableStateOf(IsoUtil.bcdToString(sendMsgLiveMessage.value.pack()))
+    }
+    val sendMsgLastPackedHexNorm = remember(gw) {
+        mutableStateOf(normalizeSendTabHex(sendMsgRawMessageString.value))
+    }
+    val sendMsgSelectedMessage = remember { mutableStateOf<Transaction?>(null) }
+
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList =
         if (gw.configuration.gatewayType == GatewayType.PROXY) {
@@ -441,6 +457,11 @@ fun HostSimulator(
                     gw = gw,
                     logText = logText,
                     onClearClick = { logText.clear() },
+                    liveMessageState = sendMsgLiveMessage,
+                    bitAttributesState = sendMsgBitAttributes,
+                    rawMessageStringState = sendMsgRawMessageString,
+                    lastPackedHexNormState = sendMsgLastPackedHexNorm,
+                    selectedMessageState = sendMsgSelectedMessage,
                 )
 
 

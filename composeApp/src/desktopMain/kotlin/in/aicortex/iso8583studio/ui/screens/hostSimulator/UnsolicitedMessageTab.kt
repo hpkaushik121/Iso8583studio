@@ -83,58 +83,41 @@ fun UnsolicitedMessageTab(
     )
     Box(modifier = modifier.fillMaxSize().background(gradient)) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            ProfessionalHeader(
-                currentFields = currentFields.value,
-                showBitmapAnalysis = showBitmapAnalysis.value,
-                showMessageParser = showMessageParser.value,
-                isFirst = isFirst.value,
-                onBitmapToggle = { showBitmapAnalysis.value = !showBitmapAnalysis.value },
-                onParserToggle = { showMessageParser.value = !showMessageParser.value },
-                onFormatToggle = { isFirst.value = !isFirst.value },
-                gw = gw
-            )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-
-
-            AnimatedVisibility(
-                visible = showMessageParser.value,
-                enter = slideInVertically(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
-                exit = slideOutVertically() + fadeOut()
-            ) {
-                EnhancedMessageParserCard(
-                    rawMessage = rawMessage.value,
-                    onMessageChange = { newMessage ->
-                        rawMessage.value = newMessage
-                        if (newMessage.isNotBlank()) {
-                            try {
-                                val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
-                                parsed.unpack(IsoUtil.stringToBcd(newMessage))
-                                currentFields.value = parsed.bitAttributes
-                                currentBitmap.value = parsed.bitmap
-                                message = parsed
-                                parseError.value = null
-                                selectedField.value = null
-                            } catch (e: Exception) {
-                                parseError.value = e.message ?: "Unknown parsing error"
-                                message = null
-                                currentFields.value = arrayOf()
-                                currentBitmap.value = null
-                            }
-                        } else {
+            EnhancedMessageParserCard(
+                rawMessage = rawMessage.value,
+                onMessageChange = { newMessage ->
+                    rawMessage.value = newMessage
+                    if (newMessage.isNotBlank()) {
+                        try {
+                            val parsed = Iso8583Data(gw.configuration, isFirst = isFirst.value)
+                            parsed.unpack(IsoUtil.stringToBcd(newMessage))
+                            currentFields.value = parsed.bitAttributes
+                            currentBitmap.value = parsed.bitmap
+                            message = parsed
+                            parseError.value = null
+                            selectedField.value = null
+                        } catch (e: Exception) {
+                            parseError.value = e.message ?: "Unknown parsing error"
                             message = null
                             currentFields.value = arrayOf()
                             currentBitmap.value = null
-                            parseError.value = null
-                            selectedField.value = null
                         }
-                    },
-                    parsedMessage = message,
-                    parseError = parseError.value,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                    } else {
+                        message = null
+                        currentFields.value = arrayOf()
+                        currentBitmap.value = null
+                        parseError.value = null
+                        selectedField.value = null
+                    }
+                },
+                parsedMessage = message,
+                parseError = parseError.value,
+                showBitmapAnalysis = showBitmapAnalysis.value,
+                onBitmapToggle = { showBitmapAnalysis.value = !showBitmapAnalysis.value },
+                currentFields = currentFields.value,
+                modifier = Modifier.fillMaxWidth()
+            )
             if (showBitmapAnalysis.value) {
                 Dialog(
                     onDismissRequest = {
@@ -181,8 +164,7 @@ fun UnsolicitedMessageTab(
 
             }
 
-            if (showMessageParser.value) Spacer(modifier = Modifier.height(8.dp))
-
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxSize(),
@@ -565,6 +547,9 @@ fun EnhancedMessageParserCard(
     onMessageChange: (String) -> Unit,
     parsedMessage: Iso8583Data?,
     parseError: String?,
+    showBitmapAnalysis: Boolean = false,
+    onBitmapToggle: (() -> Unit)? = null,
+    currentFields: Array<BitAttribute>? = null,
     modifier: Modifier = Modifier
 ) {
 
@@ -631,9 +616,11 @@ fun EnhancedMessageParserCard(
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     parsedMessage?.let { msg ->
-
                         Card(
                             backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(12.dp)
@@ -658,17 +645,13 @@ fun EnhancedMessageParserCard(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
                         if (msg.hasHeader) {
                             Card(
                                 backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(
-                                        horizontal = 8.dp,
-                                        vertical = 4.dp
-                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
@@ -678,8 +661,6 @@ fun EnhancedMessageParserCard(
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-
-                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "TPDU: ${IsoUtil.bytesToHexString(msg.tpduHeader.rawTPDU)}",
                                         style = MaterialTheme.typography.caption.copy(
@@ -688,10 +669,8 @@ fun EnhancedMessageParserCard(
                                         )
                                     )
                                 }
-
                             }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
                         Card(
                             backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(12.dp)
@@ -706,7 +685,6 @@ fun EnhancedMessageParserCard(
                                     tint = MaterialTheme.colors.primary,
                                     modifier = Modifier.size(14.dp)
                                 )
-
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "${msg.bitAttributes.count { it.isSet }} fields",
@@ -717,9 +695,16 @@ fun EnhancedMessageParserCard(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
                     }
-
+                    if (onBitmapToggle != null) {
+                        EnhancedFilterChip(
+                            selected = showBitmapAnalysis,
+                            onClick = onBitmapToggle,
+                            icon = Icons.Default.GridOn,
+                            label = "Bitmap",
+                            badge = "${currentFields?.count { it.isSet } ?: 0}/64"
+                        )
+                    }
                 }
             }
 
