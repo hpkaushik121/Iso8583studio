@@ -1406,7 +1406,9 @@ class GatewayClient {
                 return null
             }
 
-            val iso8583Data = gatewayHandler?.configuration?.bitTemplateSource?.let {
+            val template = gatewayHandler?.configuration?.getBitTemplate(isFirst)
+                ?: gatewayHandler?.configuration?.bitTemplateSource
+            val iso8583Data = template?.let {
                 Iso8583Data(
                     it,
                     gatewayHandler?.configuration!!,

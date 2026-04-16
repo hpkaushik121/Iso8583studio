@@ -41,7 +41,6 @@ fun Iso8583TemplateScreen(
     onSaveClick: () -> Unit,
     onConfigChange: (GatewayConfig) -> Unit = {}
 ) {
-    var bitTemplates by remember { mutableStateOf(config.bitTemplateSource) }
     var selectedBit by remember { mutableStateOf<BitSpecific?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showYamlDialog by remember { mutableStateOf(false) }
@@ -222,13 +221,14 @@ fun Iso8583TemplateScreen(
                                 )
                             }
                         } else {
-                            // Non-collapsible when only one section is visible
+                            // Non-collapsible when only one section is visible (CLIENT gateway)
                             OutgoingConfigurationContent(
                                 bitTemplatesDest = bitTemplatesDest,
                                 onBitTemplatesDestChange = { bitTemplatesDest = it },
                                 selectedBit = selectedBit,
                                 onBitSelected = { selectedBit = it; showEditDialog = true },
                                 config = config,
+                                labelPrefix = "",
                                 useAsciiDest = useAsciiDest,
                                 codeFormatDest = codeFormatDest,
                                 dontUseTPDUDest = dontUseTPDUDest,
@@ -1442,6 +1442,12 @@ fun OutgoingConfigurationContent(
     selectedBit: BitSpecific?,
     onBitSelected: (BitSpecific) -> Unit,
     config: GatewayConfig,
+    /**
+     * Prefix prepended to every sub-card title ("Bit Templates", "Advanced Options", etc.).
+     * Defaults to "Dest" when both source/dest sections are shown together.
+     * Pass empty string for CLIENT/single-section layouts to show neutral labels.
+     */
+    labelPrefix: String = "Dest",
     useAsciiDest: Boolean,
     codeFormatDest: CodeFormat,
     dontUseTPDUDest: Boolean,
@@ -1468,7 +1474,7 @@ fun OutgoingConfigurationContent(
     ) {
         // Left side - Bit Templates
         BitTemplatePropertyGrid(
-            title = "Dest Bit Templates",
+            title = if (labelPrefix.isEmpty()) "Bit Templates" else "$labelPrefix Bit Templates",
             bitTemplates = bitTemplatesDest,
             onBitSelected = onBitSelected,
             onBitTemplatesChange = onBitTemplatesDestChange,
@@ -1489,9 +1495,9 @@ fun OutgoingConfigurationContent(
                     .fillMaxHeight()
                     .padding(start = 16.dp)
             ) {
-                // Advanced options group - Dest (Outgoing)
+                // Advanced options group
                 AdvancedOptionsCard(
-                    title = "Dest Advanced Options",
+                    title = if (labelPrefix.isEmpty()) "Advanced Options" else "$labelPrefix Advanced Options",
                     useAscii = useAsciiDest,
                     dontUseTPDU = dontUseTPDUDest,
                     respondIfUnrecognized = respondIfUnrecognizedDest,
@@ -1506,9 +1512,9 @@ fun OutgoingConfigurationContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Message Encoder/Decoder Section - Dest
+                // Message Encoder/Decoder Section
                 MessageFormatCard(
-                    title = "Dest Message Format",
+                    title = if (labelPrefix.isEmpty()) "Message Format" else "$labelPrefix Message Format",
                     config = config,
                     selectedFormat = codeFormatDest,
                     onFormatChange = {
@@ -1525,9 +1531,9 @@ fun OutgoingConfigurationContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Customized message group - Dest
+                // Customized message group
                 CustomizedMessageCard(
-                    title = "Dest Customized Message",
+                    title = if (labelPrefix.isEmpty()) "Customized Message" else "$labelPrefix Customized Message",
                     customizedMessage = customizedMessageDest,
                     ignoreHeaderLength = ignoreHeaderLengthDest,
                     fixedResponseHeader = fixedResponseHeaderDest,
@@ -1538,9 +1544,9 @@ fun OutgoingConfigurationContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Bit manipulation controls for Dest
+                // Bit manipulation controls
                 BitManipulationControls(
-                    title = "Dest Bit Templates Management",
+                    title = if (labelPrefix.isEmpty()) "Bit Templates Management" else "$labelPrefix Bit Templates Management",
                     bitTemplates = bitTemplatesDest,
                     onBitTemplatesChange = onBitTemplatesDestChange
                 )

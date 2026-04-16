@@ -52,5 +52,5 @@ interface CalculatorResult {
 @Serializable
 data class ResultMetadata(
     var executionTimeMs: Long = 0,
-    val version: String = "1.0.7"
+    val version: String = "1.0.8"
 )
