@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +72,7 @@ enum class HostSimulatorTabs(val title: String, val icon: ImageVector) {
     TEMPLATE("ISO8583 Template", Icons.Default.Code),
     SEND_MESSAGE("Send Message", Icons.Default.Send),
     UNPACK_MESSAGE("Unsolicited Message", Icons.Default.MarkEmailRead),
+    LOAD_TEST("Load Test", Icons.Default.Speed),
 }
 
 /**
@@ -310,6 +312,8 @@ fun HostSimulator(
         mutableStateOf(normalizeSendTabHex(sendMsgRawMessageString.value))
     }
     val sendMsgSelectedMessage = remember { mutableStateOf<Transaction?>(null) }
+    // Persistent-connection state for ASYNC CLIENT mode — survives tab switches
+    val sendMsgIsConnected = remember(gw) { mutableStateOf(false) }
 
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList =
@@ -325,6 +329,7 @@ fun HostSimulator(
         } else if (gw.configuration.gatewayType == GatewayType.CLIENT){
             listOf(
                 HostSimulatorTabs.SEND_MESSAGE,
+                HostSimulatorTabs.LOAD_TEST,
                 HostSimulatorTabs.LOGS,
                 HostSimulatorTabs.TEMPLATE,
                 HostSimulatorTabs.UNPACK_MESSAGE
@@ -476,8 +481,14 @@ fun HostSimulator(
                     rawMessageStringState = sendMsgRawMessageString,
                     lastPackedHexNormState = sendMsgLastPackedHexNorm,
                     selectedMessageState = sendMsgSelectedMessage,
+                    isConnectedState = sendMsgIsConnected,
                 )
 
+
+                HostSimulatorTabs.LOAD_TEST -> LoadTestTab(
+                    gw = gw,
+                    rawMessageStringState = sendMsgRawMessageString
+                )
 
                 HostSimulatorTabs.UNPACK_MESSAGE -> UnsolicitedMessageTab(
                     gw = gw,

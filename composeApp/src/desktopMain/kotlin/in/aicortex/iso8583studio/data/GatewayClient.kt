@@ -2318,6 +2318,76 @@ class GatewayClient {
             }
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Persistent-connection helpers (ASYNC CLIENT mode)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Open and hold a connection to the configured destination.
+     * The socket is kept in [secondConnection] for reuse across multiple [sendRawMessageKeepAlive] calls.
+     */
+    suspend fun connectToDestination() {
+        establishSecondConnection()
+        writeServerLog(createLogEntry(
+            type = LogType.CONNECTION,
+            message = "PERSISTENT CONNECTION ESTABLISHED TO " +
+                "${gatewayHandler?.configuration?.destinationServer}:${gatewayHandler?.configuration?.destinationPort}"
+        ))
+    }
+
+    /**
+     * Close the persistent destination connection without affecting any other state.
+     */
+    fun disconnectFromDestination() {
+        try {
+            secondConnection?.close()
+        } catch (_: Exception) {}
+        m_SecondConnection = null
+        writeServerLog(createLogEntry(type = LogType.CONNECTION, message = "PERSISTENT CONNECTION CLOSED"))
+    }
+
+    /**
+     * Send raw bytes on an **already established** [secondConnection].
+     *
+     * Unlike [sendRawMessage] this method:
+     * - Does **not** call [establishSecondConnection] (assumes the caller did it via [connectToDestination]).
+     * - Does **not** close the connection afterwards, so the same socket can be reused.
+     */
+    suspend fun sendRawMessageKeepAlive(rawBytes: ByteArray) {
+        writeServerLog(createLogEntry(type = LogType.INFO, "====================RAW SEND (PERSISTENT) TO DESTINATION======================"))
+        writeServerLog(createLogEntry(type = LogType.DEBUG, "RAW TX (${rawBytes.size} bytes): ${IsoUtil.bcdToString(rawBytes)}"))
+
+        val parsedSent = parseData(rawBytes, false)
+        writeServerLog(createLogEntry(type = LogType.MESSAGE, parsedSent?.logFormat() ?: ""))
+        onSentToDest?.invoke(parsedSent)
+
+        when (gatewayHandler?.configuration?.destinationConnectionType) {
+            ConnectionType.TCP_IP -> {
+                if (doesConnectToPermanentConnection()) {
+                    nccProcess?.get(destinationNII)?.send(rawBytes)
+                } else {
+                    secondConnection?.getOutputStream()?.write(rawBytes, 0, rawBytes.size)
+                    secondConnection?.getOutputStream()?.flush()
+                }
+            }
+            ConnectionType.COM -> {
+                gatewayHandler?.secondRs232Handler?.sendMessage(rawBytes, MessageLengthType.NONE)
+            }
+            ConnectionType.REST -> {
+                sendRest(rawBytes, m_SecondRestConnection)
+            }
+            else -> {}
+        }
+
+        writeServerLog(createLogEntry(type = LogType.DEBUG, "RAW SEND COMPLETE — ${rawBytes.size} bytes"))
+        status = TransactionStatus.SENT_TO_DESTINATION
+
+        // Receive response on the same persistent socket; non-fatal if the server sends none.
+        try {
+            receive(secondConnection)
+        } catch (_: Exception) {}
+    }
 }
 
 // Supporting classes

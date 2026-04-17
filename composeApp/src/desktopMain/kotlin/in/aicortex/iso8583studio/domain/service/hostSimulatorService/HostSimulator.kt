@@ -36,10 +36,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.InetAddress
@@ -1177,7 +1180,7 @@ class HostSimulator : Simulator {
     /**
      * Send raw bytes to the destination connection directly, bypassing ISO8583 parsing.
      * Opens a new connection on the IO thread, transmits the bytes, awaits the response,
-     * then closes the connection. Suitable for the Send Message tab in CLIENT mode.
+     * then closes the connection. Used for SYNCHRONOUS CLIENT mode.
      */
     suspend fun sendRawToConnection(rawBytes: ByteArray) = withContext(Dispatchers.IO) {
         try {
@@ -1190,6 +1193,304 @@ class HostSimulator : Simulator {
                     message = "Error sending raw message: ${e.message}"
                 )
             )
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Persistent connection pool for ASYNC CLIENT mode
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /** Holds the single persistent [GatewayClient] used by the Send Message tab in ASYNC mode. */
+    @Volatile
+    var persistentSendClient: GatewayClient? = null
+        private set
+
+    /**
+     * Open a persistent connection to the configured destination and store it in [persistentSendClient].
+     * @return `true` on success, `false` if the connection attempt failed.
+     */
+    suspend fun connectForSend(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            disconnectForSend()          // close any previous socket first
+            val client = createClient()
+            client.connectToDestination()
+            persistentSendClient = client
+            writeLog(createLogEntry(type = LogType.CONNECTION,
+                message = "PERSISTENT SEND CONNECTION READY TO " +
+                    "${configuration.destinationServer}:${configuration.destinationPort}"))
+            true
+        } catch (e: Exception) {
+            writeLog(createLogEntry(type = LogType.ERROR,
+                message = "Failed to open persistent send connection: ${e.message}"))
+            false
+        }
+    }
+
+    /**
+     * Close and release the persistent [persistentSendClient] connection.
+     */
+    suspend fun disconnectForSend() = withContext(Dispatchers.IO) {
+        persistentSendClient?.disconnectFromDestination()
+        persistentSendClient = null
+    }
+
+    /**
+     * Send raw bytes on the already-open [persistentSendClient] without creating a new connection.
+     * Intended for ASYNC CLIENT mode where the same socket is reused across many sends.
+     */
+    suspend fun sendRawOnPersistentConnection(rawBytes: ByteArray) = withContext(Dispatchers.IO) {
+        val client = persistentSendClient
+        if (client == null) {
+            writeLog(createLogEntry(type = LogType.ERROR,
+                message = "No persistent connection. Use Connect before sending in ASYNC mode."))
+            return@withContext
+        }
+        try {
+            client.sendRawMessageKeepAlive(rawBytes)
+        } catch (e: Exception) {
+            writeLog(createLogEntry(type = LogType.ERROR,
+                message = "Error on persistent send: ${e.message}"))
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Load Testing
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Read-only snapshot of the latest load-test progress; polled by the UI every ~150 ms.
+     * Written only from [startLoadTest] / [stopLoadTest].
+     */
+    @Volatile var loadTestProgress: `in`.aicortex.iso8583studio.data.model.LoadTestProgress =
+        `in`.aicortex.iso8583studio.data.model.LoadTestProgress()
+        private set
+
+    /**
+     * Final results after the last completed (or stopped) load test.
+     * Empty while a test is in progress.
+     */
+    @Volatile var loadTestResults: List<`in`.aicortex.iso8583studio.data.model.RequestResult> = emptyList()
+        private set
+
+    /** `true` while a load test is actively running. */
+    @Volatile var loadTestRunning: Boolean = false
+        private set
+
+    private var loadTestJob: Job? = null
+
+    /**
+     * Launch a load test in [coroutineScope] so it survives tab switches.
+     * Progress is polled via [loadTestProgress]; final results via [loadTestResults].
+     */
+    fun startLoadTest(
+        rawBytes: ByteArray,
+        config: `in`.aicortex.iso8583studio.data.model.LoadTestConfig
+    ) {
+        if (loadTestRunning) return
+        loadTestResults = emptyList()
+        loadTestProgress = `in`.aicortex.iso8583studio.data.model.LoadTestProgress(
+            status = `in`.aicortex.iso8583studio.data.model.LoadTestStatus.RUNNING,
+            totalRequests = config.totalRequests
+        )
+        loadTestRunning = true
+
+        loadTestJob = coroutineScope.launchSafely {
+            val results = mutableListOf<`in`.aicortex.iso8583studio.data.model.RequestResult>()
+            try {
+                executeLoadTest(rawBytes, config, results)
+            } finally {
+                val elapsed = loadTestProgress.elapsedMs
+                loadTestResults = results.toList()
+                loadTestProgress = loadTestProgress.copy(
+                    status = `in`.aicortex.iso8583studio.data.model.LoadTestStatus.COMPLETED,
+                    sent = results.size,
+                    success = results.count { it.success },
+                    failure = results.count { !it.success },
+                    elapsedMs = elapsed
+                )
+                loadTestRunning = false
+            }
+        }
+    }
+
+    /** Cancel a running load test. Results collected so far are preserved. */
+    fun stopLoadTest() {
+        loadTestProgress = loadTestProgress.copy(
+            status = `in`.aicortex.iso8583studio.data.model.LoadTestStatus.STOPPING,
+            message = "Stopping…"
+        )
+        loadTestJob?.cancel()
+        loadTestJob = null
+    }
+
+    private suspend fun executeLoadTest(
+        rawBytes: ByteArray,
+        config: `in`.aicortex.iso8583studio.data.model.LoadTestConfig,
+        results: MutableList<`in`.aicortex.iso8583studio.data.model.RequestResult>
+    ) = withContext(Dispatchers.IO) {
+        val isAsyncMode = configuration.transmissionType == TransmissionType.ASYNCHRONOUS
+        val testStart = System.currentTimeMillis()
+        val deadline = if (config.maxDurationSeconds > 0)
+            testStart + config.maxDurationSeconds * 1000L else Long.MAX_VALUE
+
+        // ── Warm-up (not counted in results) ──────────────────────────────────
+        if (config.warmUpRequests > 0) {
+            loadTestProgress = loadTestProgress.copy(
+                status = `in`.aicortex.iso8583studio.data.model.LoadTestStatus.WARMING_UP,
+                message = "Warming up (${config.warmUpRequests} requests)…"
+            )
+            for (i in 0 until config.warmUpRequests) {
+                if (System.currentTimeMillis() >= deadline) break
+                try { createClient().sendRawMessage(rawBytes) } catch (_: Exception) {}
+            }
+        }
+
+        loadTestProgress = loadTestProgress.copy(
+            status = `in`.aicortex.iso8583studio.data.model.LoadTestStatus.RUNNING,
+            message = if (isAsyncMode) "Running (async pool · ${config.connectionPoolSize} connections)"
+                      else "Running (sync · new connection per request)"
+        )
+
+        val sentAtomic    = AtomicInteger(0)
+        val successAtomic = AtomicInteger(0)
+        val failureAtomic = AtomicInteger(0)
+        val resultsMutex  = Mutex()
+        var stopped = false
+
+        if (isAsyncMode) {
+            // ── ASYNC: pre-open a fixed connection pool ────────────────────────
+            val poolSize = config.connectionPoolSize.coerceAtLeast(1)
+            val pool = mutableListOf<GatewayClient>()
+            for (idx in 0 until poolSize) {
+                if (System.currentTimeMillis() >= deadline) break
+                try {
+                    val c = createClient()
+                    c.connectToDestination()
+                    pool.add(c)
+                } catch (e: Exception) {
+                    writeLog(createLogEntry(LogType.ERROR, "Load-test pool[$idx] connect error: ${e.message}"))
+                }
+            }
+            if (pool.isEmpty()) {
+                writeLog(createLogEntry(LogType.ERROR, "Load test aborted: could not open any pooled connection."))
+                return@withContext
+            }
+
+            // Channel acts as a thread-safe round-robin connection hand-off
+            val poolChannel = Channel<GatewayClient>(capacity = pool.size)
+            for (conn in pool) poolChannel.send(conn)
+
+            try {
+                val semaphore = Semaphore(config.concurrentUsers.coerceAtLeast(1))
+                val jobs = (0 until config.totalRequests).map { idx ->
+                    launch {
+                        if (stopped || System.currentTimeMillis() >= deadline) return@launch
+                        if (config.rampUpSeconds > 0 && idx > 0) {
+                            val rampMs = config.rampUpSeconds * 1000L * idx / config.totalRequests
+                            delay(rampMs)
+                        }
+                        semaphore.withPermit {
+                            if (stopped || System.currentTimeMillis() >= deadline) return@withPermit
+                            val conn = poolChannel.receive()
+                            val reqStart = System.currentTimeMillis()
+                            var ok = false
+                            var errMsg: String? = null
+                            try {
+                                conn.sendRawMessageKeepAlive(rawBytes)
+                                ok = true
+                                successAtomic.incrementAndGet()
+                            } catch (e: Exception) {
+                                errMsg = e.message
+                                failureAtomic.incrementAndGet()
+                                if (config.stopOnFirstError) stopped = true
+                            } finally {
+                                poolChannel.send(conn)
+                            }
+                            val reqEnd = System.currentTimeMillis()
+                            resultsMutex.withLock {
+                                results.add(`in`.aicortex.iso8583studio.data.model.RequestResult(
+                                    index = idx,
+                                    threadId = Thread.currentThread().id,
+                                    startTimeMs = reqStart,
+                                    endTimeMs = reqEnd,
+                                    latencyMs = reqEnd - reqStart,
+                                    success = ok,
+                                    errorMessage = errMsg,
+                                    requestSizeBytes = rawBytes.size,
+                                    connectionId = conn.hashCode() % poolSize
+                                ))
+                            }
+                            val n = sentAtomic.incrementAndGet()
+                            val elapsed = System.currentTimeMillis() - testStart
+                            loadTestProgress = loadTestProgress.copy(
+                                sent = n,
+                                success = successAtomic.get(),
+                                failure = failureAtomic.get(),
+                                currentTps = if (elapsed > 0) n * 1000.0 / elapsed else 0.0,
+                                elapsedMs = elapsed
+                            )
+                            if (config.thinkTimeMs > 0) delay(config.thinkTimeMs)
+                        }
+                    }
+                }
+                for (job in jobs) job.join()
+            } finally {
+                for (conn in pool) conn.disconnectFromDestination()
+                poolChannel.close()
+            }
+
+        } else {
+            // ── SYNC: new TCP connection per request ───────────────────────────
+            val semaphore = Semaphore(config.concurrentUsers.coerceAtLeast(1))
+            val jobs = (0 until config.totalRequests).map { idx ->
+                launch {
+                    if (stopped || System.currentTimeMillis() >= deadline) return@launch
+                    if (config.rampUpSeconds > 0 && idx > 0) {
+                        val rampMs = config.rampUpSeconds * 1000L * idx / config.totalRequests
+                        delay(rampMs)
+                    }
+                    semaphore.withPermit {
+                        if (stopped || System.currentTimeMillis() >= deadline) return@withPermit
+                        val reqStart = System.currentTimeMillis()
+                        var ok = false
+                        var errMsg: String? = null
+                        try {
+                            createClient().sendRawMessage(rawBytes)
+                            ok = true
+                            successAtomic.incrementAndGet()
+                        } catch (e: Exception) {
+                            errMsg = e.message
+                            failureAtomic.incrementAndGet()
+                            if (config.stopOnFirstError) stopped = true
+                        }
+                        val reqEnd = System.currentTimeMillis()
+                        resultsMutex.withLock {
+                            results.add(`in`.aicortex.iso8583studio.data.model.RequestResult(
+                                index = idx,
+                                threadId = Thread.currentThread().id,
+                                startTimeMs = reqStart,
+                                endTimeMs = reqEnd,
+                                latencyMs = reqEnd - reqStart,
+                                success = ok,
+                                errorMessage = errMsg,
+                                requestSizeBytes = rawBytes.size,
+                                connectionId = 0
+                            ))
+                        }
+                        val n = sentAtomic.incrementAndGet()
+                        val elapsed = System.currentTimeMillis() - testStart
+                        loadTestProgress = loadTestProgress.copy(
+                            sent = n,
+                            success = successAtomic.get(),
+                            failure = failureAtomic.get(),
+                            currentTps = if (elapsed > 0) n * 1000.0 / elapsed else 0.0,
+                            elapsedMs = elapsed
+                        )
+                        if (config.thinkTimeMs > 0) delay(config.thinkTimeMs)
+                    }
+                }
+            }
+            for (job in jobs) job.join()
         }
     }
 

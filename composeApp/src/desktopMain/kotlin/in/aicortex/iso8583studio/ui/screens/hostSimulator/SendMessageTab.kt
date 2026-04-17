@@ -56,6 +56,8 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Input
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -82,6 +84,8 @@ import androidx.compose.ui.window.Dialog
 import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.getValue
+import `in`.aicortex.iso8583studio.data.model.GatewayType
+import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
 import ai.cortex.core.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
@@ -119,15 +123,22 @@ internal fun SendMessageTab(
     rawMessageStringState: MutableState<String>,
     lastPackedHexNormState: MutableState<String>,
     selectedMessageState: MutableState<Transaction?>,
+    isConnectedState: MutableState<Boolean> = mutableStateOf(false),
 ) {
     // Delegate to hoisted state so variable names throughout the function body are unchanged
     var liveMessage: Iso8583Data by liveMessageState
     val bitAttributes: MutableState<Array<BitAttribute>> = bitAttributesState
     var rawMessageString: String by rawMessageStringState
     var lastPackedHexNorm: String by lastPackedHexNormState
+    var isConnected: Boolean by isConnectedState
+
+    // Whether this gateway uses the persistent-connection (ASYNC CLIENT) mode
+    val isAsyncClient = gw.configuration.gatewayType == GatewayType.CLIENT &&
+        gw.configuration.transmissionType == TransmissionType.ASYNCHRONOUS
 
     var hexParseError by remember { mutableStateOf<String?>(null) }
     var showDecodedLog by remember { mutableStateOf(false) }
+    var isConnecting by remember { mutableStateOf(false) }
 
     var savedMessages =
         remember { gw.configuration.simulatedTransactionsToDest.toMutableStateList() }
@@ -214,6 +225,7 @@ internal fun SendMessageTab(
                         .verticalScroll(composerScroll),
                     verticalArrangement = Arrangement.Top
                 ) {
+                    // ── Row 1: title (left) + secondary utility buttons (right) ──
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -237,7 +249,10 @@ internal fun SendMessageTab(
                                     color = MaterialTheme.colors.onSurface
                                 )
                                 Text(
-                                    text = "MTI · TPDU · bitmap & fields",
+                                    text = if (isAsyncClient)
+                                        "Async · ${gw.configuration.destinationServer}:${gw.configuration.destinationPort}"
+                                    else
+                                        "MTI · TPDU · bitmap & fields",
                                     style = MaterialTheme.typography.caption,
                                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.55f)
                                 )
@@ -247,7 +262,6 @@ internal fun SendMessageTab(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Paste & Decode — outlined ghost button
                             OutlinedButton(
                                 onClick = { showHexPasteDialog = true },
                                 shape = RoundedCornerShape(6.dp),
@@ -259,27 +273,14 @@ internal fun SendMessageTab(
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                 modifier = Modifier.height(32.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.Input,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(15.dp)
-                                )
+                                Icon(Icons.Default.Input, null, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    "Paste & Decode",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.2.sp
-                                )
+                                Text("Paste & Decode", fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.2.sp)
                             }
-
-                            // New message — subtle text-style button with border
                             OutlinedButton(
                                 onClick = {
                                     selectedMessage = null
-                                    applyLiveMessage(
-                                        createDefaultIso8583EditorMessage(gw, isFirst = false)
-                                    )
+                                    applyLiveMessage(createDefaultIso8583EditorMessage(gw, isFirst = false))
                                 },
                                 shape = RoundedCornerShape(6.dp),
                                 border = BorderStroke(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.2f)),
@@ -290,21 +291,10 @@ internal fun SendMessageTab(
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                 modifier = Modifier.height(32.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.Message,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(15.dp)
-                                )
+                                Icon(Icons.Default.Message, null, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    "New message",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.2.sp
-                                )
+                                Text("New message", fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.2.sp)
                             }
-
-                            // Save — icon-chip button, only shown when there's content
                             if (rawMessageString.isNotBlank()) {
                                 OutlinedButton(
                                     onClick = { showSaveDialog = true },
@@ -317,88 +307,181 @@ internal fun SendMessageTab(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                                     modifier = Modifier.height(32.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Save,
-                                        contentDescription = "Save to library",
-                                        modifier = Modifier.size(15.dp)
-                                    )
+                                    Icon(Icons.Default.Save, "Save to library", modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(5.dp))
-                                    Text(
-                                        "Save",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        letterSpacing = 0.2.sp
-                                    )
+                                    Text("Save", fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.2.sp)
                                 }
                             }
+                        }
+                    }
 
-                            // Send — filled primary CTA
-                            Button(
-                                onClick = {
-                                    val norm = normalizeSendTabHex(rawMessageString)
-                                    if (norm.isEmpty()) return@Button
-                                    if (norm.length % 2 != 0) {
-                                        gw.resultDialogInterface?.onError {
-                                            Text("Invalid hex length")
-                                        }
-                                        return@Button
-                                    }
-                                    isSending = true
-                                    rightSideTab = 1
-                                    coroutineScope.launch {
-                                        try {
-                                            val bytes = IsoUtil.stringToBcd(norm, norm.length / 2)
-                                            gw.sendRawToConnection(bytes)
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                        } finally {
-                                            isSending = false
-                                        }
-                                    }
-                                },
-                                enabled = rawMessageString.isNotBlank() && !isSending,
-                                shape = RoundedCornerShape(6.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = MaterialTheme.colors.primary,
-                                    contentColor = Color.White,
-                                    disabledBackgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.38f),
-                                    disabledContentColor = Color.White.copy(alpha = 0.6f)
-                                ),
-                                elevation = ButtonDefaults.elevation(
-                                    defaultElevation = 2.dp,
-                                    pressedElevation = 6.dp,
-                                    disabledElevation = 0.dp
-                                ),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                                modifier = Modifier.height(32.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.08f))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // ── Row 2: connection controls (left, async only) + Send (right) ──
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left: persistent-connection bar (ASYNC CLIENT only)
+                        if (isAsyncClient) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (isSending) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        "Sending…",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.3.sp
-                                    )
-                                } else {
-                                    Icon(
-                                        Icons.Default.Send,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        "Send",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.3.sp
-                                    )
+                                // Status chip
+                                val connColor = when {
+                                    isConnecting -> Color(0xFFF57F17)   // amber — in progress
+                                    isConnected  -> Color(0xFF2E7D32)   // green — live
+                                    else         -> MaterialTheme.colors.onSurface.copy(alpha = 0.45f)
                                 }
+                                val connBg = when {
+                                    isConnecting -> Color(0xFFF57F17).copy(alpha = 0.10f)
+                                    isConnected  -> Color(0xFF2E7D32).copy(alpha = 0.10f)
+                                    else         -> MaterialTheme.colors.onSurface.copy(alpha = 0.06f)
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = connBg,
+                                    border = BorderStroke(1.dp, connColor.copy(alpha = 0.40f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        if (isConnecting) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(8.dp),
+                                                color = connColor,
+                                                strokeWidth = 1.5.dp
+                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(7.dp)
+                                                    .background(connColor, RoundedCornerShape(50))
+                                            )
+                                        }
+                                        Text(
+                                            text = when {
+                                                isConnecting -> "Connecting…"
+                                                isConnected  -> "Connected"
+                                                else         -> "Not connected"
+                                            },
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = connColor
+                                        )
+                                    }
+                                }
+
+                                // Connect button
+                                if (!isConnected) {
+                                    Button(
+                                        onClick = {
+                                            isConnecting = true
+                                            coroutineScope.launch {
+                                                try {
+                                                    isConnected = gw.connectForSend()
+                                                } finally {
+                                                    isConnecting = false
+                                                }
+                                            }
+                                        },
+                                        enabled = !isConnecting,
+                                        shape = RoundedCornerShape(6.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            backgroundColor = Color(0xFF1565C0),
+                                            contentColor = Color.White,
+                                            disabledBackgroundColor = Color(0xFF1565C0).copy(alpha = 0.35f),
+                                            disabledContentColor = Color.White.copy(alpha = 0.55f)
+                                        ),
+                                        elevation = ButtonDefaults.elevation(defaultElevation = 2.dp, pressedElevation = 5.dp),
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.Wifi, null, modifier = Modifier.size(15.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Connect", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.2.sp)
+                                    }
+                                } else {
+                                    // Disconnect button
+                                    OutlinedButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                gw.disconnectForSend()
+                                                isConnected = false
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(6.dp),
+                                        border = BorderStroke(1.dp, Color(0xFFC62828).copy(alpha = 0.55f)),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            backgroundColor = Color(0xFFC62828).copy(alpha = 0.07f),
+                                            contentColor = Color(0xFFC62828)
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.WifiOff, null, modifier = Modifier.size(15.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Disconnect", fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.2.sp)
+                                    }
+                                }
+                            }
+                        } else {
+                            Box(modifier = Modifier) // spacer — keeps Send on the right for sync mode
+                        }
+
+                        // Send button (always on the right)
+                        Button(
+                            onClick = {
+                                val norm = normalizeSendTabHex(rawMessageString)
+                                if (norm.isEmpty()) return@Button
+                                if (norm.length % 2 != 0) {
+                                    gw.resultDialogInterface?.onError { Text("Invalid hex length") }
+                                    return@Button
+                                }
+                                isSending = true
+                                rightSideTab = 1
+                                coroutineScope.launch {
+                                    try {
+                                        val bytes = IsoUtil.stringToBcd(norm, norm.length / 2)
+                                        if (isAsyncClient) {
+                                            gw.sendRawOnPersistentConnection(bytes)
+                                        } else {
+                                            gw.sendRawToConnection(bytes)
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    } finally {
+                                        isSending = false
+                                    }
+                                }
+                            },
+                            enabled = rawMessageString.isNotBlank() && !isSending &&
+                                (!isAsyncClient || isConnected),
+                            shape = RoundedCornerShape(6.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colors.primary,
+                                contentColor = Color.White,
+                                disabledBackgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.38f),
+                                disabledContentColor = Color.White.copy(alpha = 0.6f)
+                            ),
+                            elevation = ButtonDefaults.elevation(defaultElevation = 2.dp, pressedElevation = 6.dp, disabledElevation = 0.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            if (isSending) {
+                                CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Sending…", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp)
+                            } else {
+                                Icon(Icons.Default.Send, null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Send", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp)
                             }
                         }
                     }
