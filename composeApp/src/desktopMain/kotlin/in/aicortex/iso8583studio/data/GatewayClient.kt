@@ -2266,17 +2266,57 @@ class GatewayClient {
     }
 
     /**
-     * Send pre-built raw bytes directly to the destination connection without any
-     * ISO8583 parsing overhead. The byte array is transmitted as-is; the connection
-     * is established, the message sent, and the response awaited via [processSynchronous].
+     * Send pre-built raw bytes directly to the destination socket without any
+     * ISO8583 parse / convert / repack cycle.
+     *
+     * The standard [processSynchronous] path calls [send] which (for CLIENT/PROXY gateways)
+     * re-parses the bytes with SOURCE-side header settings, strips the user-supplied TPDU via
+     * [convertToDest], and re-packs everything — so the bytes that reach the wire are different
+     * from what the user composed.  This method bypasses that pipeline entirely so that the
+     * exact byte array built in the Send Message tab composer is what hits the wire.
      */
     suspend fun sendRawMessage(rawBytes: ByteArray) {
-        m_Request = TransmittedData(
-            gatewayHandler?.configuration?.messageLengthTypeSource ?: MessageLengthType.BCD
-        )
-        m_Request?.readMessage = rawBytes
+        writeServerLog(createLogEntry(type = LogType.INFO, "====================RAW SEND TO DESTINATION======================"))
+        writeServerLog(createLogEntry(type = LogType.DEBUG, "RAW TX (${rawBytes.size} bytes): ${IsoUtil.bcdToString(rawBytes)}"))
+
+        // Log the parsed fields of what is being sent (using dest-side settings, isFirst=false)
+        val parsedSent = parseData(rawBytes, false)
+        writeServerLog(createLogEntry(type = LogType.MESSAGE, parsedSent?.logFormat() ?: ""))
+        onSentToDest?.invoke(parsedSent)
+
+        establishSecondConnection()
+
+        when (gatewayHandler?.configuration?.destinationConnectionType) {
+            ConnectionType.TCP_IP -> {
+                if (doesConnectToPermanentConnection()) {
+                    nccProcess?.get(destinationNII)?.send(rawBytes)
+                } else {
+                    secondConnection?.getOutputStream()?.write(rawBytes, 0, rawBytes.size)
+                    secondConnection?.getOutputStream()?.flush()
+                }
+            }
+            ConnectionType.COM -> {
+                gatewayHandler?.secondRs232Handler?.sendMessage(rawBytes, MessageLengthType.NONE)
+            }
+            ConnectionType.REST -> {
+                sendRest(rawBytes, m_SecondRestConnection)
+            }
+            else -> {}
+        }
+
+        writeServerLog(createLogEntry(type = LogType.DEBUG, "RAW SEND COMPLETE — ${rawBytes.size} bytes"))
         status = TransactionStatus.SENT_TO_DESTINATION
-        processSynchronous()
+
+        // receive() handles its own logging and fires onReceivedFormDest; non-fatal if server sends no reply.
+        try {
+            receive(secondConnection)
+        } catch (_: Exception) {
+            // Server may not reply; that is acceptable for fire-and-forget sends.
+        } finally {
+            if (!doesConnectToPermanentConnection()) {
+                secondConnection?.close()
+            }
+        }
     }
 }
 

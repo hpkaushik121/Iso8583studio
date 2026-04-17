@@ -67,7 +67,11 @@ import ai.cortex.core.IsoUtil
 internal fun createDefaultIso8583EditorMessage(gw: HostSimulator, isFirst: Boolean): Iso8583Data {
     return Iso8583Data(gw.configuration, isFirst).apply {
         messageType = "0200"
-        tpduHeader.rawTPDU = IsoUtil.stringToBcd("6000000000", 5)
+        // Seed TPDU from the configured fixed header; fall back to the industry-standard 6000000000
+        val configTpdu = if (isFirst) gw.configuration.fixedResponseHeaderSource
+                         else gw.configuration.fixedResponseHeaderDest
+        tpduHeader.rawTPDU = configTpdu?.takeIf { it.size == 5 }
+            ?: IsoUtil.stringToBcd("6000000000", 5)
         bitAttributes.forEach { it.isSet = false }
         packBit(3, "000000")
         packBit(4, "000009999000")

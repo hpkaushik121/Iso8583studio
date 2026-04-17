@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import `in`.aicortex.iso8583studio.data.BitAttribute
 import `in`.aicortex.iso8583studio.data.Iso8583Data
+import `in`.aicortex.iso8583studio.data.convertToDest
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
@@ -449,7 +450,20 @@ fun HostSimulator(
                 HostSimulatorTabs.TEMPLATE -> {
                     Iso8583TemplateScreen(
                         config = gw.configuration,
-                        onSaveClick = onSaveClick
+                        onSaveClick = {
+                            onSaveClick()
+                            // After saving, re-sync the Send Message tab's liveMessage so that
+                            // hasHeader / TPDU / bit-template changes take effect immediately.
+                            // convertToDest creates a fresh Iso8583Data with the updated config
+                            // (new doNotUseHeaderDest, fixedResponseHeaderDest, bitTemplateDest)
+                            // while preserving every field value the user already filled in.
+                            val updated = convertToDest(sendMsgLiveMessage.value) ?: return@Iso8583TemplateScreen
+                            sendMsgLiveMessage.value = updated
+                            sendMsgBitAttributes.value = updated.bitAttributes.clone()
+                            val newHex = IsoUtil.bcdToString(updated.pack())
+                            sendMsgRawMessageString.value = newHex
+                            sendMsgLastPackedHexNorm.value = normalizeSendTabHex(newHex)
+                        }
                     )
                 }
 
