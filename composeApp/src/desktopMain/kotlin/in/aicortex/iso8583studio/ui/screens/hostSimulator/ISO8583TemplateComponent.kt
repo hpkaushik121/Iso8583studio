@@ -350,6 +350,12 @@ fun Iso8583TemplateScreen(
                     it.copy(fields = fields?.toMutableList())
                 }
                 config.simulatedTransactionsToSource = simulatedTrans
+                // Propagate the per-bit edit through the same save pipeline used by
+                // the bottom Save button so dependent UI (e.g. SendMessage tab's
+                // liveMessage / bitAttributes) gets rebuilt against the updated
+                // template. Without this, type/length changes saved from the bit
+                // edit dialog never reach the composer.
+                onSaveClick()
                 showEditDialog = false
                 selectedBit = null
             }

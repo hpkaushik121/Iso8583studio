@@ -273,30 +273,15 @@ object IsoUtil {
 
         val result = ByteArray(resultLength)
         var tempValue = value
-        var position = resultLength - 1
 
-        // Handle least significant digit differently if we have an odd number of digits
-        if (digits % 2 == 1) {
-            result[position] = (tempValue % 10).toByte()
-            tempValue /= 10
-            position--
-        }
-
-        // Process the remaining digits two at a time
-        while (tempValue > 0 && position >= 0) {
+        // Walk digit pairs from the right so any leading zero pad lands in the
+        // high nibble of the first byte (e.g. 186 → 0x01 0x86, not 0x18 0x06).
+        for (position in resultLength - 1 downTo 0) {
             val low = tempValue % 10
             tempValue /= 10
             val high = tempValue % 10
             tempValue /= 10
-
             result[position] = ((high shl 4) or low).toByte()
-            position--
-        }
-
-        // Pad with zeros if necessary
-        while (position >= 0) {
-            result[position] = 0
-            position--
         }
 
         return result

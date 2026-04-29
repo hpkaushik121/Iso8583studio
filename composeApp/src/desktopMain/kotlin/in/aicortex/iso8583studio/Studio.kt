@@ -1,2 +1,2 @@
 package `in`.aicortex.iso8583studio
-const val StudioVersion = "1.0.9"
+const val StudioVersion = "1.0.10"

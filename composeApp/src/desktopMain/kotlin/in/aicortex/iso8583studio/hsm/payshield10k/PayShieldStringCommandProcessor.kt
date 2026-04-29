@@ -375,8 +375,8 @@ class PayShieldStringCommandProcessor(
      */
     private fun executeVR(cmd: ParsedCommand): HsmCommandResult {
         return HsmCommandResult.Success(
-            response = "PayShield 10K Simulator v1.0.9",
-            data = mapOf("version" to "1.0.9")
+            response = "PayShield 10K Simulator v1.0.10",
+            data = mapOf("version" to "1.0.10")
         )
     }
 

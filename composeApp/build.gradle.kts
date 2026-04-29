@@ -80,7 +80,7 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             includeAllModules = true
             packageName = "ISO8583Studio"
-            packageVersion = "1.0.9"
+            packageVersion = "1.0.10"
             description = "ISO8583 Message Processing Studio"
             copyright = "© 2025 AiCortex Solutions Pvt. Ltd. All rights reserved."
             vendor = "AiCortex Solutions Pvt. Ltd."

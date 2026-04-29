@@ -67,12 +67,11 @@ class BitAttribute {
             ascToString(m_Data!!)
         } else {
             val str = bcdToString(m_Data!!)
-            if (length % 2 == 1) {
-                if (length >= 6) {
-                    str.substring(0, str.length - 1)
-                } else {
-                    str.substring(1, str.length - 1)
-                }
+            // For odd logical length, BCD is packed into ceil(n/2) bytes with a
+            // leading pad nibble. Strip that nibble so the returned value has
+            // exactly `length` characters.
+            if (str.length > length && length > 0) {
+                str.substring(str.length - length)
             } else {
                 str
             }

@@ -92,6 +92,7 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
 import `in`.aicortex.iso8583studio.ui.screens.components.PrimaryButton
 import `in`.aicortex.iso8583studio.ui.screens.components.SecondaryButton
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -150,6 +151,7 @@ internal fun SendMessageTab(
 
     var rightSideTab by remember { mutableIntStateOf(0) }
     var isSending by remember { mutableStateOf(false) }
+    var sendJob by remember { mutableStateOf<Job?>(null) }
     var headerSyncToken by remember { mutableIntStateOf(0) }
     var showHexPasteDialog by remember { mutableStateOf(false) }
 
@@ -435,6 +437,31 @@ internal fun SendMessageTab(
                             Box(modifier = Modifier) // spacer — keeps Send on the right for sync mode
                         }
 
+                        // Right side: Cancel (only while sending) + Send
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isSending) {
+                                OutlinedButton(
+                                    onClick = {
+                                        sendJob?.cancel()
+                                        sendJob = null
+                                        isSending = false
+                                    },
+                                    shape = RoundedCornerShape(6.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colors.error
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Clear, null, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Cancel", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp)
+                                }
+                            }
+
                         // Send button (always on the right)
                         Button(
                             onClick = {
@@ -446,7 +473,7 @@ internal fun SendMessageTab(
                                 }
                                 isSending = true
                                 rightSideTab = 1
-                                coroutineScope.launch {
+                                sendJob = coroutineScope.launch {
                                     try {
                                         val bytes = IsoUtil.stringToBcd(norm, norm.length / 2)
                                         if (isAsyncClient) {
@@ -458,6 +485,7 @@ internal fun SendMessageTab(
                                         e.printStackTrace()
                                     } finally {
                                         isSending = false
+                                        sendJob = null
                                     }
                                 }
                             },
@@ -483,6 +511,7 @@ internal fun SendMessageTab(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Send", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp)
                             }
+                        }
                         }
                     }
 

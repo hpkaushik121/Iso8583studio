@@ -937,7 +937,14 @@ fun BitAttribute.getValue(): String? {
             if (!PlaceholderProcessor.holdersList.contains(dataField)) {
                 dataField = IsoUtil.bcdToString(data ?: byteArrayOf())
                 if(lengthAttribute == BitLength.FIXED){
-                    dataField = dataField.padStart(maxLength, '0')
+                    // BCD with an odd maxLength is packed into ceil(n/2) bytes,
+                    // adding a leading pad nibble. Strip that nibble on display
+                    // so the value reflects the declared field length.
+                    dataField = if (dataField.length > maxLength) {
+                        dataField.substring(dataField.length - maxLength)
+                    } else {
+                        dataField.padStart(maxLength, '0')
+                    }
                 }
             }
             dataField
