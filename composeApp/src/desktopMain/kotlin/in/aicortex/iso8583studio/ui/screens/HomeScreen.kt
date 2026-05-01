@@ -150,7 +150,8 @@ enum class ToolSuite(
             StudioTool.BASE94_ENCODER,
             StudioTool.BCD_CONVERTER,
             StudioTool.CHARACTER_ENCODER,
-            StudioTool.CHECK_DIGIT
+            StudioTool.CHECK_DIGIT,
+            StudioTool.TRACK2_CODEC
         )
     )
 }

@@ -54,6 +54,7 @@ import `in`.aicortex.iso8583studio.ui.screens.payments.dukpt.DukptIso9797Screen
 import `in`.aicortex.iso8583studio.ui.screens.generic.HashCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.MessageParserScreen
 import `in`.aicortex.iso8583studio.ui.screens.generic.PinBlockGeneralScreen
+import `in`.aicortex.iso8583studio.ui.screens.generic.Track2Screen
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.HsmCommandScreen
 import `in`.aicortex.iso8583studio.ui.screens.hsmSimulator.HsmSimulatorScreen
@@ -368,6 +369,14 @@ sealed class Destination : Screen {
                 onError = appState.value.resultDialogInterface!!,
                 onBack = { navigationController.goBack() }
             )
+        }
+    }
+
+    object Track2Calculator : Screen {
+        @Composable
+        override fun Content() {
+            val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
+            Track2Screen { navigationController.goBack() }
         }
     }
 

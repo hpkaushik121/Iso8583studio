@@ -309,6 +309,7 @@ class ISO8583Studio {
                                         MenuBarItem("BCD Converter") { SimulatorSessionManager.openTool(StudioTool.BCD_CONVERTER) }
                                         MenuBarItem("Character Encoder") { SimulatorSessionManager.openTool(StudioTool.CHARACTER_ENCODER) }
                                         MenuBarItem("Check Digit") { SimulatorSessionManager.openTool(StudioTool.CHECK_DIGIT) }
+                                        MenuBarItem("Track 2 Codec") { SimulatorSessionManager.openTool(StudioTool.TRACK2_CODEC) }
                                         MenuBarSeparator()
                                         MenuBarItem("Message Parser") { SimulatorSessionManager.openTool(StudioTool.MESSAGE_PARSER) }
                                         MenuBarItem("AS2805 Calculator") { SimulatorSessionManager.openTool(StudioTool.AS2805_CALCULATOR) }

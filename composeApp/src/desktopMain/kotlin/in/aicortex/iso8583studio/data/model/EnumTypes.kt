@@ -491,6 +491,14 @@ enum class StudioTool(
         "APDU response code lookup",
         Icons.Default.Search,
         screen = Destination.ApduResponseQuery
+    ),
+
+    TRACK2_CODEC(
+        "Track 2 Codec",
+        "Encode / decode Track 2 (ASCII & EMV Tag 57)",
+        Icons.Default.CreditCard,
+        isNew = true,
+        screen = Destination.Track2Calculator
     );}
 
 

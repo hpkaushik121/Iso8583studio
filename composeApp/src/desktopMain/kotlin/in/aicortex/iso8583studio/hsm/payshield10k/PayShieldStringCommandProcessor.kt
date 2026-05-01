@@ -1346,8 +1346,20 @@ class PayShieldStringCommandProcessor(
                 val counter  = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
                 hsmLogsListener.log("[M2] Step 6: DUKPT counter = $counter")
 
-                clearKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
-                hsmLogsListener.log("[M2] Step 7: DUKPT session key = ${IsoUtil.bytesToHexString(clearKey)}")
+                val sessionKey = commandProcessor.deriveDukptSessionKey(initialKey, ksnHex, counter, counterBits)
+                hsmLogsListener.log("[M2] Step 7: DUKPT session key = ${IsoUtil.bytesToHexString(sessionKey)}")
+
+                // Apply ANSI X9.24 Data Variant derivation (matches DUKPT ISO9797
+                // "DUKPT DATA" tab with the data-variant toggle enabled):
+                //   variantKey = sessionKey XOR DATA_VARIANT
+                //   dataKey    = 3DES-ECB(variantKey)[L] || 3DES-ECB(variantKey)[R]
+                if (keyAlgoFromBlock != 'A' && sessionKey.size == 16) {
+                    val variantKey = DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
+                    clearKey = DukptEngine.applyVariantEncryption(variantKey)
+                    hsmLogsListener.log("[M2] Step 7a: Data variant key = ${IsoUtil.bytesToHexString(clearKey)}")
+                } else {
+                    clearKey = sessionKey
+                }
             } else {
                 clearKey = clearBdkOrKey
             }

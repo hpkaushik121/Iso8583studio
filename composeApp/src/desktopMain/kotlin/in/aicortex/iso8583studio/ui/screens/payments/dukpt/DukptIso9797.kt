@@ -115,6 +115,18 @@ data class DukptPekResult(
     val derivedPek: String,
     val pekKcv: String
 )
+
+/**
+ * Result of DUKPT DEK (Data Encryption Key) derivation per ANSI X9.24.
+ */
+data class DukptDekResult(
+    val derivedIpek: String,
+    val ipekKcv: String,
+    val derivedSessionKey: String,
+    val sessionKeyKcv: String,
+    val derivedDek: String,
+    val dekKcv: String
+)
 /**
  * ═════════════════════════════════════════
  * DUKPTService — DUKPT Tool UI Service
@@ -158,6 +170,44 @@ object DUKPTService {
             ipekKcv = DukptEngine.computeKcv(ipek),
             derivedPek = IsoUtil.bytesToHex(pek).uppercase(),
             pekKcv = DukptEngine.computeKcv(pek)
+        )
+    }
+
+    /**
+     * Derive DEK (Data Encryption Key) from BDK/IPEK and KSN per ANSI X9.24-2004.
+     *
+     * Steps:
+     *   1. Session key = derived from BDK+KSN (or IPEK+KSN)
+     *   2. Variant key = session_key XOR DATA_VARIANT
+     *   3. DEK         = 3DES one-way function on the variant key
+     */
+    fun deriveDek(bdk: String, ksn: String, inputKeyType: String): DukptDekResult {
+        val bdkBytes = IsoUtil.hexToBytes(bdk.replace(" ", ""))
+        val ksnBytes = IsoUtil.hexToBytes(ksn.replace(" ", ""))
+
+        val ipek = if (inputKeyType == "IPEK") {
+            require(bdkBytes.size == 16) { "IPEK must be 16 bytes (32 hex chars)" }
+            bdkBytes
+        } else {
+            DukptEngine.deriveIpek(bdkBytes, ksnBytes, COUNTER_BITS)
+        }
+
+        val sessionKey = if (inputKeyType == "IPEK") {
+            DukptEngine.derivePekFromIpek(ipek, ksnBytes, COUNTER_BITS)
+        } else {
+            DukptEngine.deriveSessionKey(ipek, ksnBytes, COUNTER_BITS)
+        }
+
+        val variantKey = DukptEngine.xorBytes(sessionKey, DukptEngine.DATA_VARIANT)
+        val dek = DukptEngine.applyVariantEncryption(variantKey)
+
+        return DukptDekResult(
+            derivedIpek = IsoUtil.bytesToHex(ipek).uppercase(),
+            ipekKcv = DukptEngine.computeKcv(ipek),
+            derivedSessionKey = IsoUtil.bytesToHex(sessionKey).uppercase(),
+            sessionKeyKcv = DukptEngine.computeKcv(sessionKey),
+            derivedDek = IsoUtil.bytesToHex(dek).uppercase(),
+            dekKcv = DukptEngine.computeKcv(dek)
         )
     }
 
@@ -238,7 +288,7 @@ object DUKPTService {
      * Encrypt data using 3DES-CBC with zero IV. When isDataVariant is true,
      * the ANSI X9.24 data variant key derivation is applied (XOR + one-way function).
      */
-    fun encryptData(key: String, isDataVariant: Boolean, dataInputType: String, data: String): String {
+    fun encryptData(key: String, isDataVariant: Boolean, dataInputType: String, data: String, mode: String = "CBC"): String {
         val dataBytes = if (dataInputType == "ASCII") data.toByteArray() else data.decodeHex()
         val keyBytes = key.decodeHex()
         val actualKey = if (isDataVariant) {
@@ -250,24 +300,36 @@ object DUKPTService {
         } else {
             dataBytes
         }
-        val cipher = Cipher.getInstance("DESede/CBC/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"), IvParameterSpec(ByteArray(8)))
+        val transform = if (mode == "ECB") "DESede/ECB/NoPadding" else "DESede/CBC/NoPadding"
+        val cipher = Cipher.getInstance(transform)
+        val keySpec = SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede")
+        if (mode == "ECB") {
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec)
+        } else {
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, IvParameterSpec(ByteArray(8)))
+        }
         return cipher.doFinal(padded).toHex().uppercase()
     }
 
     /**
-     * Decrypt data using 3DES-CBC with zero IV. When isDataVariant is true,
+     * Decrypt data using 3DES (CBC zero-IV or ECB). When isDataVariant is true,
      * the ANSI X9.24 data variant key derivation is applied (XOR + one-way function).
      */
-    fun decryptData(key: String, isDataVariant: Boolean, data: String): String {
+    fun decryptData(key: String, isDataVariant: Boolean, data: String, mode: String = "CBC"): String {
         val dataBytes = data.decodeHex()
         val keyBytes = key.decodeHex()
         val actualKey = if (isDataVariant) {
             val variantKey = DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT)
             DukptEngine.applyVariantEncryption(variantKey)
         } else keyBytes
-        val cipher = Cipher.getInstance("DESede/CBC/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede"), IvParameterSpec(ByteArray(8)))
+        val transform = if (mode == "ECB") "DESede/ECB/NoPadding" else "DESede/CBC/NoPadding"
+        val cipher = Cipher.getInstance(transform)
+        val keySpec = SecretKeySpec(DukptEngine.expandTo24(actualKey), "DESede")
+        if (mode == "ECB") {
+            cipher.init(Cipher.DECRYPT_MODE, keySpec)
+        } else {
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, IvParameterSpec(ByteArray(8)))
+        }
         return cipher.doFinal(dataBytes).toHex().uppercase()
     }
 
@@ -286,12 +348,20 @@ object DUKPTService {
 
 enum class DUKPTTabs(val title: String, val icon: ImageVector) {
     PEK_DERIVATION("PEK Derivation", Icons.Default.VpnKey),
+    DEK_DERIVATION("DEK Derivation", Icons.Default.Key),
     DUKPT_PIN("DUKPT PIN", Icons.Default.Pin),
     DUKPT_MAC("DUKPT MAC", Icons.Default.Verified),
     DUKPT_DATA("DUKPT Data", Icons.Default.SyncAlt)
 }
 
 private class PekDerivationState {
+    var selectedKeyType by mutableStateOf("BDK")
+    var bdk by mutableStateOf("")
+    var ksn by mutableStateOf("")
+    var isLoading by mutableStateOf(false)
+}
+
+private class DekDerivationState {
     var selectedKeyType by mutableStateOf("BDK")
     var bdk by mutableStateOf("")
     var ksn by mutableStateOf("")
@@ -315,6 +385,7 @@ private class DukptDataState {
     var pek by mutableStateOf("")
     var isDataVariant by mutableStateOf(false)
     var selectedDataType by mutableStateOf("ASCII")
+    var selectedMode by mutableStateOf("CBC")
     var data by mutableStateOf("")
     var isLoading by mutableStateOf(false)
 }
@@ -326,6 +397,7 @@ fun DukptIso9797Screen(onBack: () -> Unit) {
     val tabList = DUKPTTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
     val pekDerivState = remember { PekDerivationState() }
+    val dekDerivState = remember { DekDerivationState() }
     val pinState = remember { DukptPinState() }
     val macState = remember { DukptMacState() }
     val dataState = remember { DukptDataState() }
@@ -373,6 +445,7 @@ fun DukptIso9797Screen(onBack: () -> Unit) {
                     ) { tab ->
                         when (tab) {
                             DUKPTTabs.PEK_DERIVATION -> PekDerivationCard(pekDerivState)
+                            DUKPTTabs.DEK_DERIVATION -> DekDerivationCard(dekDerivState)
                             DUKPTTabs.DUKPT_PIN -> DukptPinCard(pinState)
                             DUKPTTabs.DUKPT_MAC -> DukptMacCard(macState)
                             DUKPTTabs.DUKPT_DATA -> DukptDataCard(dataState)
@@ -438,6 +511,63 @@ private fun PekDerivationCard(state: PekDerivationState) { with(state) {
                         DUKPTLogManager.logOperation("PEK Derivation", inputs, result = resultStr, executionTime = 155)
                     } catch (e: Exception) {
                         DUKPTLogManager.logOperation("PEK Derivation", inputs, error = e.message, executionTime = 155)
+                    }
+                    isLoading = false
+                }
+            },
+            isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.ArrowForward, modifier = Modifier.fillMaxWidth()
+        )
+    }
+}}
+
+@Composable
+private fun DekDerivationCard(state: DekDerivationState) { with(state) {
+    val keyTypes = remember { listOf("BDK", "IPEK") }
+
+    val bdkValidation = DUKPTValidationUtils.validate(bdk, "BDK", length = 32)
+    val ksnValidation = DUKPTValidationUtils.validate(ksn, "KSN", length = 20)
+
+    val isFormValid = bdk.isNotBlank() && ksn.isNotBlank() &&
+            bdkValidation.state != ValidationState.ERROR && ksnValidation.state != ValidationState.ERROR
+
+    ModernCryptoCard(title = "DEK Derivation", subtitle = "Derive Data Encryption Key from BDK/IPEK", icon = DUKPTTabs.DEK_DERIVATION.icon) {
+        ModernDropdownField(
+            label = "Input Key Designation",
+            value = selectedKeyType,
+            options = keyTypes,
+            onSelectionChanged = { index -> selectedKeyType = keyTypes[index] }
+        )
+        Spacer(Modifier.height(12.dp))
+        EnhancedTextField(
+            value = bdk,
+            onValueChange = { bdk = it },
+            label = if (selectedKeyType == "BDK") "BDK (32 Hex Chars)" else "IPEK (32 Hex Chars)",
+            validation = bdkValidation
+        )
+        Spacer(Modifier.height(12.dp))
+        EnhancedTextField(value = ksn, onValueChange = { ksn = it }, label = "KSN (20 Hex Chars)", validation = ksnValidation)
+        Spacer(Modifier.height(16.dp))
+        ModernButton(
+            text = "Derive DEK", onClick = {
+                isLoading = true
+                val inputs = mapOf("Input Key Type" to selectedKeyType, "BDK" to bdk, "KSN" to ksn)
+                GlobalScope.launch {
+                    delay(150)
+                    try {
+                        val result = DUKPTService.deriveDek(bdk, ksn, selectedKeyType)
+                        val resultStr = buildString {
+                            if (selectedKeyType == "BDK") {
+                                append("Derived IPEK: ${result.derivedIpek}\n")
+                                append("IPEK KCV: ${result.ipekKcv}\n")
+                            }
+                            append("Session Key: ${result.derivedSessionKey}\n")
+                            append("Session Key KCV: ${result.sessionKeyKcv}\n")
+                            append("Derived DEK: ${result.derivedDek}\n")
+                            append("DEK KCV: ${result.dekKcv}")
+                        }
+                        DUKPTLogManager.logOperation("DEK Derivation", inputs, result = resultStr, executionTime = 155)
+                    } catch (e: Exception) {
+                        DUKPTLogManager.logOperation("DEK Derivation", inputs, error = e.message, executionTime = 155)
                     }
                     isLoading = false
                 }
@@ -552,6 +682,7 @@ private fun DukptMacCard(state: DukptMacState) { with(state) {
 @Composable
 private fun DukptDataCard(state: DukptDataState) { with(state) {
     val dataTypes = remember { listOf("ASCII", "Hexadecimal") }
+    val modes = remember { listOf("CBC", "ECB") }
 
     val pekValidation = DUKPTValidationUtils.validate(pek, "PEK", length = 32)
     val dataValidation = DUKPTValidationUtils.validate(data, "Data", isHex = selectedDataType == "Hexadecimal")
@@ -578,6 +709,18 @@ private fun DukptDataCard(state: DukptDataState) { with(state) {
         )
         Spacer(Modifier.height(12.dp))
 
+        Text("Cipher Mode (zero IV)", style = MaterialTheme.typography.body2, fontWeight = FontWeight.Medium)
+        Row {
+            modes.forEach { mode ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = (mode == selectedMode), onClick = { selectedMode = mode })
+                    Text(text = mode, style = MaterialTheme.typography.body1, modifier = Modifier.clickable { selectedMode = mode })
+                    Spacer(Modifier.width(8.dp))
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+
         EnhancedTextField(value = data, onValueChange = { data = it }, label = "Data", validation = dataValidation, maxLines = 5)
         Spacer(Modifier.height(16.dp))
 
@@ -585,11 +728,11 @@ private fun DukptDataCard(state: DukptDataState) { with(state) {
             ModernButton(
                 text = "Encrypt", onClick = {
                     isLoading = true
-                    val inputs = mapOf("PEK" to pek, "Is Data Variant" to isDataVariant.toString(), "Data Input Type" to selectedDataType, "Data" to data)
+                    val inputs = mapOf("PEK" to pek, "Is Data Variant" to isDataVariant.toString(), "Data Input Type" to selectedDataType, "Mode" to selectedMode, "Data" to data)
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTService.encryptData(pek, isDataVariant, selectedDataType, data)
+                            val result = DUKPTService.encryptData(pek, isDataVariant, selectedDataType, data, selectedMode)
                             DUKPTLogManager.logOperation("Data Encryption", inputs, result = "Encrypted Data (Hex): $result", executionTime = 155)
                         } catch (e: Exception) {
                             DUKPTLogManager.logOperation("Data Encryption", inputs, error = e.message, executionTime = 155)
@@ -603,11 +746,11 @@ private fun DukptDataCard(state: DukptDataState) { with(state) {
                 text = "Decrypt", onClick = {
                     isLoading = true
                     // For decryption, data must be Hex. The dropdown is ignored.
-                    val inputs = mapOf("PEK" to pek, "Is Data Variant" to isDataVariant.toString(), "Encrypted Data" to data)
+                    val inputs = mapOf("PEK" to pek, "Is Data Variant" to isDataVariant.toString(), "Mode" to selectedMode, "Encrypted Data" to data)
                     GlobalScope.launch {
                         delay(150)
                         try {
-                            val result = DUKPTService.decryptData(pek, isDataVariant, data)
+                            val result = DUKPTService.decryptData(pek, isDataVariant, data, selectedMode)
                             val ascii = result.chunked(2).map { it.toInt(16).toChar() }.joinToString("")
                             val displayAscii = ascii.filter { it in ' '..'~' }
                             val resultStr = buildString {
