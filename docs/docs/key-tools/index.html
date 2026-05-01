@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Management Tools Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio Key Management Tools documentation - DEA / 3DES key utilities, TR-31 and Thales key blocks, vendor-specific key calculators (Thales, Futurex, Atalla, Safenet), keyshare generation, and SSL/X.509 certificate workflows.">
+    <meta name="keywords" content="TR-31 key block, Thales key block, key calculator, Futurex key, Atalla key, Safenet key, keyshare splitting, SSL certificate, X.509, CSR, DES parity, key management, payment HSM keys">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/key-tools/">
+    <link rel="stylesheet" href="../_shared.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../" class="nav-link">Documentation</a>
+            <a href="../../blogs/" class="nav-link">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Overview</div>
+            <a href="#overview" class="sidebar-link active">Introduction</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">DES / 3DES</div>
+            <a href="#dea" class="sidebar-link">DEA Keys</a>
+            <a href="#keyshare" class="sidebar-link">Keyshare Generator</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Key Blocks</div>
+            <a href="#tr31" class="sidebar-link">TR-31 Key Block</a>
+            <a href="#thales-block" class="sidebar-link">Thales Key Block</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">HSM Vendor Calculators</div>
+            <a href="#thales-keys" class="sidebar-link">Thales</a>
+            <a href="#futurex" class="sidebar-link">Futurex</a>
+            <a href="#atalla" class="sidebar-link">Atalla</a>
+            <a href="#safenet" class="sidebar-link">Safenet</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Certificates</div>
+            <a href="#ssl" class="sidebar-link">SSL / X.509</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#tips" class="sidebar-link">Tips</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="../">Documentation</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>Key Management Tools</span>
+        </div>
+
+        <h1 class="page-title">Key Management Tools</h1>
+        <p class="page-description">Generate, validate, wrap, share, and verify cryptographic keys used across payment systems &mdash; from raw 3DES key generation and parity enforcement to TR-31 / Thales key blocks, vendor HSM-specific calculators, keyshare splitting, and X.509 certificate workflows.</p>
+
+        <section class="doc-section" id="overview">
+            <h2>Introduction</h2>
+            <p>Key Management Tools cluster around four jobs:</p>
+            <ul>
+                <li><strong>Build keys</strong> &mdash; generate and combine raw key material.</li>
+                <li><strong>Wrap keys</strong> &mdash; bind a key to its usage / algorithm via TR-31 or Thales key blocks.</li>
+                <li><strong>Distribute keys</strong> &mdash; split into shares for multi-custodian loading and validate the resulting halves.</li>
+                <li><strong>Compute key check values</strong> &mdash; for vendor HSMs and operational sign-off.</li>
+            </ul>
+            <p>SSL / X.509 certificate handling is also grouped here for projects that need terminal or host-to-host TLS.</p>
+        </section>
+
+        <section class="doc-section" id="dea">
+            <h2>DEA Keys (DES / 3DES Utility)</h2>
+            <p>A multi-tab tool focused on raw 3DES key material.</p>
+
+            <h3>Tabs</h3>
+            <ul>
+                <li><strong>Key Generator</strong> &mdash; Generate cryptographically random DES, 2-key 3DES, or 3-key 3DES keys.</li>
+                <li><strong>Key Combination</strong> &mdash; XOR multiple key components together to reconstruct a key from shares.</li>
+                <li><strong>Parity Enforcement</strong> &mdash; Adjust the LSB of each byte so each byte has odd parity (DES requirement).</li>
+                <li><strong>Key Validation</strong> &mdash; Check parity, detect weak keys, and compute KCV (Key Check Value) using <code>00 00 00 00 00 00 00 00</code>.</li>
+            </ul>
+
+            <h3>Walk-through: Combine three components</h3>
+            <ol class="steps">
+                <li>Open <strong>DEA Keys &rarr; Key Combination</strong>.</li>
+                <li>Enter each component (32 hex chars each for 2-key 3DES).</li>
+                <li>Click <strong>Combine</strong>. The tool XORs all components.</li>
+                <li>Switch to <strong>Parity Enforcement</strong> if your spec requires odd parity, then <strong>Key Validation</strong> to confirm KCV.</li>
+            </ol>
+        </section>
+
+        <section class="doc-section" id="keyshare">
+            <h2>Keyshare Generator</h2>
+            <p>Splits a single key into <em>n</em> shares such that all <em>n</em> are required to reconstruct the key (XOR-based component scheme). Useful for multi-custodian key loading.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Master Key</strong> &mdash; Hex key to split.</li>
+                <li><strong>Number of Shares</strong> &mdash; 2 or 3 typical for compliance.</li>
+            </ul>
+
+            <h3>Output</h3>
+            <ul>
+                <li>Random components for shares 1 to <em>n</em>&minus;1.</li>
+                <li>Final component computed so XOR of all components = the master key.</li>
+                <li>KCV of each share for safe transport verification.</li>
+            </ul>
+
+            <div class="info-card warning">
+                <div class="info-card-title">Custody</div>
+                <p>Components must be transported and stored separately under the control of different custodians. Recombining shares brings them under the control of a single trustee, so do this only inside the HSM during loading.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="tr31">
+            <h2>TR-31 Key Block</h2>
+            <p>ASC X9.143 (formerly TR-31) defines a key block format that binds a key to its allowable usage, algorithm, mode, and exportability. A TR-31 block is opaque to anything outside the issuing HSM but lets two HSMs exchange keys without losing metadata.</p>
+
+            <h3>Tabs</h3>
+            <ul>
+                <li><strong>Wrap</strong> &mdash; Build a key block from a clear key under a Key Block Protection Key (KBPK).</li>
+                <li><strong>Unwrap</strong> &mdash; Decode a key block, validate its MAC, and reveal the contents.</li>
+            </ul>
+
+            <h3>Inputs (Wrap)</h3>
+            <ul>
+                <li><strong>KBPK</strong> &mdash; 32 / 48 hex chars (3DES) or 64 hex (AES).</li>
+                <li><strong>Clear Key</strong> &mdash; Key to wrap.</li>
+                <li><strong>Key Usage</strong> &mdash; Two-character code (e.g. <code>P0</code> = PIN encryption, <code>M0</code> = MAC, <code>K0</code> = Key Encryption Key).</li>
+                <li><strong>Algorithm</strong> &mdash; <code>D</code> = DES, <code>T</code> = TDES, <code>A</code> = AES, etc.</li>
+                <li><strong>Mode of Use</strong> &mdash; <code>E</code> = encrypt, <code>D</code> = decrypt, <code>B</code> = both, <code>N</code> = no restriction.</li>
+                <li><strong>Key Version Number</strong> &mdash; Two characters.</li>
+                <li><strong>Exportability</strong> &mdash; <code>E</code> = exportable, <code>S</code> = sensitive (no clear export), <code>N</code> = no export.</li>
+            </ul>
+
+            <h3>Output</h3>
+            <p>An ASCII key block string starting with the version (<code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>) plus encrypted key, MAC, and optional optional blocks.</p>
+
+            <pre><code>A0072P0TE00E0000ABC...   (D variant TR-31 block)</code></pre>
+        </section>
+
+        <section class="doc-section" id="thales-block">
+            <h2>Thales Key Block</h2>
+            <p>The Thales-specific key block format used by PayShield HSMs. Similar in concept to TR-31 but with Thales&rsquo; own header and key usage codes.</p>
+
+            <h3>Workflow</h3>
+            <ul>
+                <li>Pick a <strong>Thales Key Type</strong> &mdash; ZMK, ZPK, TMK, BDK, ZEK, etc.</li>
+                <li>Provide the <strong>LMK Variant</strong> applicable to that key type.</li>
+                <li>Provide the <strong>clear key</strong> material.</li>
+                <li>The tool returns the encrypted key under LMK along with its KCV.</li>
+            </ul>
+
+            <div class="info-card tip">
+                <div class="info-card-title">Tip</div>
+                <p>Use this when you have a clear key and want to import it under the HSM Simulator&rsquo;s LMK without typing it through the console.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="thales-keys">
+            <h2>Thales Key Calculator</h2>
+            <p>Vendor-aware calculations matching Thales PayShield host commands.</p>
+
+            <h3>Operations</h3>
+            <ul>
+                <li><strong>Key Generation</strong> &mdash; Equivalent to <code>A0</code> (Generate a Key) host command.</li>
+                <li><strong>Key Translation</strong> &mdash; Equivalent to <code>A6</code> (Translate a Key from One ZMK to Another).</li>
+                <li><strong>KCV Computation</strong> &mdash; Match Thales-style 6-digit KCVs for operational sign-off.</li>
+                <li><strong>Variant Application</strong> &mdash; Apply LMK and ZMK variants used during key wrapping.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="futurex">
+            <h2>Futurex Key Calculator</h2>
+            <p>Computes keys in Futurex Excrypt / VirtuCrypt key block format.</p>
+
+            <ul>
+                <li>Wrap clear keys under a Futurex KEK.</li>
+                <li>Compute KCVs in Futurex&rsquo;s expected representation.</li>
+                <li>Generate keys with the right MFK header for import.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="atalla">
+            <h2>Atalla Key Calculator</h2>
+            <p>Atalla / Utimaco AKB-style key block helpers, including AKB header construction and KCV verification.</p>
+        </section>
+
+        <section class="doc-section" id="safenet">
+            <h2>Safenet Key Calculator</h2>
+            <p>Safenet / Thales Luna key calculations for legacy and modern formats.</p>
+        </section>
+
+        <section class="doc-section" id="ssl">
+            <h2>SSL / X.509 Certificate Tool</h2>
+            <p>An end-to-end certificate workflow tool for terminal-host TLS.</p>
+
+            <h3>Tabs</h3>
+            <ul>
+                <li><strong>Keys</strong> &mdash; Generate RSA key pairs (2048 / 3072 / 4096-bit) or read existing keys.</li>
+                <li><strong>CSRs</strong> &mdash; Build a Certificate Signing Request from a key and DN parameters (CN, OU, O, L, S, C).</li>
+                <li><strong>Read CSR</strong> &mdash; Parse and display the contents of an existing CSR.</li>
+                <li><strong>Self-Signed</strong> &mdash; Issue a self-signed certificate from a key + DN, with configurable validity.</li>
+                <li><strong>Read Certificate</strong> &mdash; Parse and display an X.509 certificate, including extensions.</li>
+            </ul>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Common Name (CN)</strong></li>
+                <li><strong>Organisation (O), Org. Unit (OU)</strong></li>
+                <li><strong>Locality (L), State (S), Country (C)</strong></li>
+                <li><strong>Validity (Days)</strong></li>
+                <li><strong>Key Size</strong> &mdash; 2048 / 3072 / 4096.</li>
+            </ul>
+
+            <p>Outputs are displayed as PEM and as parsed fields side-by-side, with a copy button per artifact.</p>
+        </section>
+
+        <section class="doc-section" id="tips">
+            <h2>Tips</h2>
+            <ul>
+                <li>Always verify the KCV after combining shares or unwrapping a key block. A wrong KCV almost always means a typo in one share.</li>
+                <li>For TR-31, watch out for case sensitivity in the header &mdash; the key usage and mode codes are uppercase.</li>
+                <li>If your HSM rejects an imported key, compare the version byte (<code>A</code> vs <code>B</code> vs <code>C</code> vs <code>D</code>) &mdash; older HSMs may only accept specific versions.</li>
+                <li>For SSL, generate the key first, then the CSR, then the cert &mdash; the tool will pre-fill DN parameters from a previous CSR if you stay on the same session.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../blogs/" class="footer-link">Blog</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

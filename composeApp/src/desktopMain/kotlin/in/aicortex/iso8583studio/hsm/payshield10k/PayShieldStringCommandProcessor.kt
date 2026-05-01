@@ -2366,13 +2366,24 @@ class PayShieldStringCommandProcessor(
             // Output length is hex-char count (matches input convention)
             val outLen = encHex.length.toString(16).padStart(4, '0').uppercase()
 
+            // Output IV: last cipher block of ciphertext, only emitted for non-ECB destination modes.
+            // 8 bytes (16H) for TDES, 16 bytes (32H) for AES — matches the chaining block size.
+            val outIvHex = if (dstMode != "00" && encData.isNotEmpty()) {
+                val blockBytes = if (dstAlgo == CryptoAlgorithm.AES) 16 else 8
+                if (encData.size >= blockBytes) {
+                    IsoUtil.bytesToHexString(encData.copyOfRange(encData.size - blockBytes, encData.size))
+                } else ""
+            } else ""
+
             hsmLogsListener.log("[M4] Step 14: Encrypted result = $encHex (${encData.size} bytes)")
+
+            val responseBody = if (outIvHex.isNotEmpty()) "$outIvHex$outLen$encHex" else "$outLen$encHex"
 
             // ── Log formatted response ──
             val responseLog = buildString {
                 appendLine("M5 - Translate Data Block Response")
                 appendLine("Error Code............... = [00]")
-                appendLine("Output IV................ = []")
+                if (outIvHex.isNotEmpty()) appendLine("Output IV................ = [$outIvHex]")
                 appendLine("Translated Message Length = [$outLen]")
                 appendLine("Translated Data.......... = [$encHex]")
             }
@@ -2380,8 +2391,8 @@ class PayShieldStringCommandProcessor(
             hsmLogsListener.onFormattedResponse(responseLog)
 
             HsmCommandResult.Success(
-                response = "$outLen$encHex",
-                data = mapOf("translatedData" to encHex, "srcIv" to srcIvHex, "dstIv" to dstIvHex)
+                response = responseBody,
+                data = mapOf("translatedData" to encHex, "srcIv" to srcIvHex, "dstIv" to dstIvHex, "outIv" to outIvHex)
             )
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "M4 failed: ${e.message}")

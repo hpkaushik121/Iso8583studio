@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIN Tools Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio PIN Tools documentation - PIN block calculators (ISO 9564 formats 0-4, OEM variants), AES PIN block, IBM 3624 PIN offset, and VISA PVV calculation.">
+    <meta name="keywords" content="PIN block calculator, ISO 9564, PIN block format 0, format 1, format 3, format 4, AES PIN block, PVV calculator, IBM 3624 offset, VISA PVV, payment PIN testing">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/pin-tools/">
+    <link rel="stylesheet" href="../_shared.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../" class="nav-link">Documentation</a>
+            <a href="../../blogs/" class="nav-link">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Overview</div>
+            <a href="#overview" class="sidebar-link active">Introduction</a>
+            <a href="#formats" class="sidebar-link">PIN Block Formats</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">PIN Blocks</div>
+            <a href="#pin-block" class="sidebar-link">PIN Block Calculator</a>
+            <a href="#format-walkthroughs" class="sidebar-link">Format Walk-throughs</a>
+            <a href="#aes-pin" class="sidebar-link">AES PIN Block</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">PIN Verification</div>
+            <a href="#pvv" class="sidebar-link">VISA PVV</a>
+            <a href="#offset" class="sidebar-link">IBM 3624 Offset</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#tips" class="sidebar-link">Tips</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="../">Documentation</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>PIN Tools</span>
+        </div>
+
+        <h1 class="page-title">PIN Tools</h1>
+        <p class="page-description">PIN block encoding and PIN verification calculators covering ISO 9564 formats, OEM variants, AES-encrypted PIN blocks, IBM 3624 offset, and VISA PVV. Each tool validates inputs in real time and logs every operation for audit.</p>
+
+        <section class="doc-section" id="overview">
+            <h2>Introduction</h2>
+            <p>A PIN block is a fixed-format encoding of a cardholder PIN designed to be encrypted under a key (TPK, ZPK, or DUKPT-derived) and transmitted across a payment network. ISO 9564 defines the canonical formats; vendors and legacy networks add a few non-standard variants you may still encounter.</p>
+        </section>
+
+        <section class="doc-section" id="formats">
+            <h2>PIN Block Formats</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Format</th><th>Source</th><th>PAN-bound?</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>ISO-0</strong></td><td>ISO 9564-1</td><td>Yes</td><td>PIN XOR PAN. Most common in legacy systems. Equivalent to ANSI X9.8.</td></tr>
+                        <tr><td><strong>ISO-1</strong></td><td>ISO 9564-1</td><td>No</td><td>PIN + random padding. Used when PAN is not available.</td></tr>
+                        <tr><td><strong>ISO-2</strong></td><td>ISO 9564-1</td><td>No</td><td>PIN + <code>F</code> padding. EMV ICC offline PIN.</td></tr>
+                        <tr><td><strong>ISO-3</strong></td><td>ISO 9564-1</td><td>Yes</td><td>Like ISO-0 but with random fill nibbles instead of zeros.</td></tr>
+                        <tr><td><strong>ISO-4</strong></td><td>ISO 9564-1 (2017)</td><td>Yes</td><td>16-byte block; AES-only. Currently mandated for new deployments.</td></tr>
+                        <tr><td><strong>OEM-1</strong></td><td>Diebold / Docutel / NCR</td><td>Varies</td><td>Vendor-specific historical formats &mdash; rarely needed for new work.</td></tr>
+                        <tr><td><strong>ECI 1-4</strong></td><td>Eurocheque / EFT</td><td>Varies</td><td>European legacy variants.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-card warning">
+                <div class="info-card-title">Use ISO-4 for new work</div>
+                <p>If you have flexibility, target ISO Format 4 with AES &mdash; it&rsquo;s the only format approved for new PCI-PIN evaluations.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="pin-block">
+            <h2>PIN Block Calculator</h2>
+            <p>The PIN Block Calculator is a multi-tab tool with one tab per supported format. Each tab can run in <strong>Encode</strong> mode (PIN &rarr; encrypted PIN block) or <strong>Decode</strong> mode (encrypted PIN block &rarr; PIN).</p>
+
+            <h3>Common Inputs</h3>
+            <ul>
+                <li><strong>PIN</strong> &mdash; 4&ndash;12 numeric digits.</li>
+                <li><strong>PAN</strong> &mdash; Primary Account Number, format-dependent (ISO-0/3/4 only).</li>
+                <li><strong>Encryption Key</strong> &mdash; The key under which the PIN block will be (or has been) encrypted.</li>
+                <li><strong>Encrypted PIN Block</strong> &mdash; In decode mode, the cipher text to recover the PIN from.</li>
+            </ul>
+
+            <h3>Walk-through (Encode, ISO-0)</h3>
+            <ol class="steps">
+                <li>Open the PIN Block Calculator from <code>Tools &rarr; Payments &rarr; PIN Block</code>.</li>
+                <li>Switch to the <strong>ISO-0</strong> tab.</li>
+                <li>Set mode to <strong>Encode</strong>.</li>
+                <li>Enter the PIN (e.g. <code>1234</code>).</li>
+                <li>Enter the PAN. The tool extracts the rightmost 12 digits excluding the check digit automatically.</li>
+                <li>Enter the encryption key (32 hex chars for 3DES).</li>
+                <li>Click <strong>Calculate</strong>. The clear PIN block, PAN block, and encrypted PIN block are all shown.</li>
+            </ol>
+        </section>
+
+        <section class="doc-section" id="format-walkthroughs">
+            <h2>Format Walk-throughs</h2>
+
+            <h3>ISO-0 / ANSI X9.8</h3>
+            <pre><code>Step 1 (PIN block):  04 12 34 FF FF FF FF FF
+   - 04 = PIN length (4 digits)
+   - 1234 = PIN
+   - FF padding to 8 bytes
+
+Step 2 (PAN block):  00 00 12 34 56 78 90 12
+   - leading zeros + rightmost 12 digits of PAN excluding check digit
+
+Step 3 (XOR):        04 12 26 CB A9 87 6F ED
+Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
+
+            <h3>ISO-1</h3>
+            <p>No PAN; the PIN is followed by random fill bytes. Use when PAN is not transmitted (e.g. some IVR / VRU flows).</p>
+
+            <h3>ISO-3</h3>
+            <p>Like ISO-0 but the padding nibbles are random in the range <code>0xA</code>&ndash;<code>0xF</code>. Each generated PIN block is unique even for the same PIN + PAN combination.</p>
+
+            <h3>ISO-4 (AES)</h3>
+            <p>16-byte clear PIN block: control field, PIN length, PIN digits, then a random fill. Encrypted with AES (128 / 192 / 256-bit) and XOR-combined with a derived PAN block. Use the dedicated <a href="#aes-pin">AES PIN Block</a> tab for ISO-4 work.</p>
+
+            <h3>OEM-1 / ECI</h3>
+            <p>Reserved for compatibility with legacy ATM and POS networks. The exact layout differs per vendor; the calculator labels each tab with the vendor name.</p>
+        </section>
+
+        <section class="doc-section" id="aes-pin">
+            <h2>AES PIN Block (ISO-4) Calculator</h2>
+            <p>The PIN Block AES tab focuses on the modern ISO Format 4 design.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>PIN</strong> &mdash; 4&ndash;12 digits.</li>
+                <li><strong>PAN</strong> &mdash; Required for the PAN block XOR step.</li>
+                <li><strong>AES Key</strong> &mdash; 32 / 48 / 64 hex chars.</li>
+                <li><strong>Cipher Mode</strong> &mdash; ECB or CBC (CBC requires an IV).</li>
+            </ul>
+
+            <h3>Output</h3>
+            <ul>
+                <li>Clear PIN block (16 bytes)</li>
+                <li>PAN block (16 bytes)</li>
+                <li>Intermediate ciphertext (after AES of clear PIN block)</li>
+                <li>Final encrypted PIN block (after XOR with PAN block)</li>
+            </ul>
+
+            <div class="info-card tip">
+                <div class="info-card-title">DUKPT-AES</div>
+                <p>For DUKPT AES PIN translation, derive the AES PIN working key in the DUKPT Tools first, then plug it in here.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="pvv">
+            <h2>VISA PVV Calculator</h2>
+            <p>The PIN Verification Value (PVV) is a 4-digit value computed from the PIN, PAN, and a PVK that lets the issuer verify a PIN without storing it. Specified by VISA.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>PAN</strong> &mdash; 12 or more digits.</li>
+                <li><strong>PIN</strong> &mdash; 4&ndash;12 digits.</li>
+                <li><strong>PVK Index</strong> &mdash; Single digit 0&ndash;6.</li>
+                <li><strong>PDK / PVK</strong> &mdash; 32 hex chars (2-key 3DES).</li>
+            </ul>
+
+            <h3>Modes</h3>
+            <ul>
+                <li><strong>Generate</strong> &mdash; Produces a 4-digit PVV from PAN + PIN + PVK.</li>
+                <li><strong>Validate</strong> &mdash; Compares an entered PVV against the recomputed value.</li>
+            </ul>
+
+            <h3>Algorithm Summary</h3>
+            <ol>
+                <li>Build the Transformed Security Parameter (TSP): rightmost 11 digits of PAN (excluding check digit) + PVK index + leftmost 4 digits of PIN.</li>
+                <li>3DES-encrypt the TSP under the PVK.</li>
+                <li>Scan the result hex left-to-right and pick the first 4 decimal digits. If fewer than 4 are found, scan again picking hex digits A&ndash;F mapped via <code>X mod 10</code>.</li>
+            </ol>
+
+            <pre><code>PAN:        4111111111111111
+PIN:        1234
+PVK Index:  1
+PVK:        0123456789ABCDEFFEDCBA9876543210
+
+TSP:        1111111111111234
+Encrypted:  82A5...   (16 hex chars)
+PVV:        8254</code></pre>
+        </section>
+
+        <section class="doc-section" id="offset">
+            <h2>IBM 3624 PIN Offset Calculator</h2>
+            <p>The IBM 3624 method derives a "natural PIN" from the PAN under a PIN Generation Key (PGK), then computes an offset that, added (mod 10) to the natural PIN, produces the customer&rsquo;s chosen PIN.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>PAN</strong> &mdash; 12+ digits.</li>
+                <li><strong>Customer PIN</strong> &mdash; 4&ndash;12 digits.</li>
+                <li><strong>PGK</strong> &mdash; 32 hex chars (2-key 3DES).</li>
+                <li><strong>Decimalisation Table</strong> &mdash; Default <code>0123456789012345</code>; can be customised per issuer.</li>
+                <li><strong>PIN Length</strong> &mdash; Default 4.</li>
+            </ul>
+
+            <h3>Modes</h3>
+            <ul>
+                <li><strong>Generate Offset</strong> &mdash; Compute the offset given the PIN.</li>
+                <li><strong>Verify PIN</strong> &mdash; Re-derive the natural PIN, add the offset, and compare to entered PIN.</li>
+            </ul>
+
+            <h3>Algorithm Summary</h3>
+            <ol>
+                <li>3DES-encrypt the PAN block under the PGK.</li>
+                <li>Apply the decimalisation table to the result to obtain a natural PIN.</li>
+                <li>Truncate to the desired PIN length.</li>
+                <li>Offset = customer PIN &minus; natural PIN (digit-wise mod 10).</li>
+            </ol>
+
+            <div class="info-card note">
+                <div class="info-card-title">Custom decimalisation</div>
+                <p>Custom decimalisation tables let issuers prevent specific natural PINs (a known IBM 3624 attack). The tool exposes the table directly so you can match issuer configuration.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="tips">
+            <h2>Tips</h2>
+            <ul>
+                <li>If the host rejects your PIN block, verify the format on both sides &mdash; ISO-0 and ISO-3 look identical at a glance but produce different blocks.</li>
+                <li>For PVV / Offset workflows, capture both the customer PIN <em>and</em> the verification value at the same time. Comparing recomputed values to known-good ones is the fastest way to find a misconfigured key.</li>
+                <li>When testing DUKPT-protected PIN flows, derive the working key first (DUKPT Tools), then use it here. The activity log shows both the input PIN block and the decrypted clear PIN for cross-checking.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../blogs/" class="footer-link">Blog</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

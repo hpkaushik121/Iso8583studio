@@ -386,9 +386,10 @@ object ThalesWireBuilder {
     }
 
     /**
-     * M1 / M3 response layout (PayShield):
-     * - CBC: `[Error_2H][IV_16H][DataLen_4H][Data_nH]`
-     * - ECB: `[Error_2H][DataLen_4H][Data_nH]` (no IV)
+     * M1 / M3 / M5 response layout (PayShield):
+     * - CBC TDES: `[Error_2H][IV_16H][DataLen_4H][Data_nH]`
+     * - CBC AES:  `[Error_2H][IV_32H][DataLen_4H][Data_nH]`
+     * - ECB:      `[Error_2H][DataLen_4H][Data_nH]` (no IV)
      * [DataLen_4H] is the hex character count of [Data_nH].
      */
     private fun parseM1M3DataBlockResponse(
@@ -417,26 +418,19 @@ object ThalesWireBuilder {
             return buildOrdered()
         }
 
-        // CBC path: fixed 16H IV + 4H length + data
-        if (payloadLen >= 20) {
-            val lenHex = ascii.substring(20, 24)
-            val n = lenHex.toIntOrNull(16) ?: -1
-            if (n >= 0 && 20 + n == payloadLen) {
-                map[ivField.id] = ascii.substring(4, 20)
+        // Try ECB (no IV), then CBC-TDES (16H IV), then CBC-AES (32H IV).
+        // The first layout whose length field validates against payloadLen wins.
+        for (ivLen in intArrayOf(0, 16, 32)) {
+            val lenStart = 4 + ivLen
+            if (payloadLen < ivLen + 4) continue
+            val lenHex = ascii.substring(lenStart, lenStart + 4)
+            val n = lenHex.toIntOrNull(16) ?: continue
+            if (n >= 0 && ivLen + 4 + n == payloadLen) {
+                map[ivField.id] = if (ivLen > 0) ascii.substring(4, 4 + ivLen) else ""
                 map[lenField.id] = lenHex
-                map[dataField.id] = ascii.substring(24, 24 + n)
+                map[dataField.id] = ascii.substring(lenStart + 4, lenStart + 4 + n)
                 return buildOrdered()
             }
-        }
-
-        // ECB path: 4H length + data (no IV)
-        val lenHex = ascii.substring(4, 8)
-        val n = lenHex.toIntOrNull(16) ?: return null
-        if (n >= 0 && 4 + n == payloadLen) {
-            map[ivField.id] = ""
-            map[lenField.id] = lenHex
-            map[dataField.id] = ascii.substring(8, 8 + n)
-            return buildOrdered()
         }
 
         return null

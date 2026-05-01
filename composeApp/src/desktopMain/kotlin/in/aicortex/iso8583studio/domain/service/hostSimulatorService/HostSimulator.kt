@@ -1178,6 +1178,14 @@ class HostSimulator : Simulator {
     }
 
     /**
+     * The [GatewayClient] currently executing a non-persistent (sync) raw send, if any.
+     * Tracked so [abortCurrentSend] can forcibly close its socket — the only way to
+     * unblock a thread sitting on a blocking `Socket.read()`.
+     */
+    @Volatile
+    private var currentSendClient: GatewayClient? = null
+
+    /**
      * Send raw bytes to the destination connection directly, bypassing ISO8583 parsing.
      * Opens a new connection on the IO thread, transmits the bytes, awaits the response,
      * then closes the connection. Used for SYNCHRONOUS CLIENT mode.
@@ -1185,6 +1193,7 @@ class HostSimulator : Simulator {
     suspend fun sendRawToConnection(rawBytes: ByteArray) = withContext(Dispatchers.IO) {
         try {
             val client = createClient()
+            currentSendClient = client
             client.sendRawMessage(rawBytes)
         } catch (e: Exception) {
             writeLog(
@@ -1193,7 +1202,25 @@ class HostSimulator : Simulator {
                     message = "Error sending raw message: ${e.message}"
                 )
             )
+        } finally {
+            currentSendClient = null
         }
+    }
+
+    /**
+     * Forcibly abort an in-flight Send Message request by closing the underlying socket.
+     * A blocking `Socket.read()` only unblocks when the socket itself is closed —
+     * cancelling the parent coroutine alone leaves the IO thread parked until
+     * [GatewayClient.timeOut] expires.
+     *
+     * For ASYNC mode this also tears down [persistentSendClient]; the caller should
+     * reflect the lost connection in the UI and prompt the user to reconnect.
+     */
+    fun abortCurrentSend() {
+        try { currentSendClient?.disconnectFromDestination() } catch (_: Exception) {}
+        currentSendClient = null
+        try { persistentSendClient?.disconnectFromDestination() } catch (_: Exception) {}
+        persistentSendClient = null
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

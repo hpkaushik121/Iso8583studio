@@ -7,15 +7,35 @@ import `in`.aicortex.iso8583studio.data.updateBit
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.ResponseField
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
 
 /**
- * Processes special placeholders in ISO8583 transaction fields
- * Supports [SV], [TIME], and [RAND] placeholders as defined in the FieldInformationDialog
+ * Processes special placeholders in ISO8583 transaction fields.
+ *
+ * Supported placeholders (length-aware, padded/truncated to fit field length):
+ *  - [SV]    Source value — copies the corresponding field from the request transaction
+ *  - [TIME]  Current timestamp (format depends on field length)
+ *  - [DATE]  Current date (MMDD / YYMMDD / YYYYMMDD by field length)
+ *  - [RAND]  Random numeric value
+ *  - [AUTO]  Auto-increment counter (process-wide, persistent for the JVM session)
+ *  - [GUID]  Random hex value (UUID-derived, length-aware)
  */
 object PlaceholderProcessor {
 
-    val holdersList = listOf("[SV]", "[TIME]", "[RAND]")
+    val holdersList = listOf("[SV]", "[TIME]", "[DATE]", "[RAND]", "[AUTO]", "[GUID]")
+
+    /** Process-wide auto-increment counter shared across all [AUTO] expansions. */
+    private val autoCounter = AtomicLong(0L)
+
+    /** Reset the [AUTO] counter — useful for tests or a fresh session. */
+    fun resetAutoCounter(start: Long = 0L) {
+        autoCounter.set(start)
+    }
+
+    /** Peek at the next [AUTO] value without advancing it. */
+    fun peekAutoCounter(): Long = autoCounter.get() + 1L
 
 
     /**
@@ -90,8 +110,17 @@ object PlaceholderProcessor {
             originalValue.equals("[TIME]", ignoreCase = true) -> {
                 processTimeValue(6)
             }
+            originalValue.equals("[DATE]", ignoreCase = true) -> {
+                processDateValue(6)
+            }
             originalValue.equals("[RAND]", ignoreCase = true) -> {
                 processRandomValue(12)
+            }
+            originalValue.equals("[AUTO]", ignoreCase = true) -> {
+                processAutoValue(6)
+            }
+            originalValue.equals("[GUID]", ignoreCase = true) -> {
+                processGuidValue(12)
             }
             else -> originalValue // No placeholder found, return original value
         }
@@ -114,8 +143,17 @@ object PlaceholderProcessor {
             originalValue.equals("[TIME]", ignoreCase = true) -> {
                 processTimeValue(maxLength)
             }
+            originalValue.equals("[DATE]", ignoreCase = true) -> {
+                processDateValue(maxLength)
+            }
             originalValue.equals("[RAND]", ignoreCase = true) -> {
                 processRandomValue(maxLength)
+            }
+            originalValue.equals("[AUTO]", ignoreCase = true) -> {
+                processAutoValue(maxLength)
+            }
+            originalValue.equals("[GUID]", ignoreCase = true) -> {
+                processGuidValue(maxLength)
             }
             else -> originalValue // No placeholder found, return original value
         }
@@ -207,5 +245,54 @@ object PlaceholderProcessor {
         }
 
         return result.toString()
+    }
+
+    /**
+     * Processes [DATE] placeholder — current date, formatted by field length.
+     * 4 → MMDD · 6 → YYMMDD · 8 → YYYYMMDD · 10/12/14 → datetime variants.
+     */
+    private fun processDateValue(maxLength: Int): String {
+        if (maxLength <= 0) return ""
+        val now = LocalDateTime.now()
+        return when (maxLength) {
+            4 -> now.format(DateTimeFormatter.ofPattern("MMdd"))
+            6 -> now.format(DateTimeFormatter.ofPattern("yyMMdd"))
+            8 -> now.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+            10 -> now.format(DateTimeFormatter.ofPattern("yyMMddHHmm"))
+            12 -> now.format(DateTimeFormatter.ofPattern("yyMMddHHmmss"))
+            14 -> now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+            else -> {
+                val full = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                if (maxLength > full.length) full.padEnd(maxLength, '0')
+                else full.take(maxLength)
+            }
+        }
+    }
+
+    /**
+     * Processes [AUTO] placeholder — process-wide autoincrement counter, zero-padded
+     * to the field length. Useful for STAN, RRN, sequence numbers.
+     */
+    private fun processAutoValue(maxLength: Int): String {
+        if (maxLength <= 0) return ""
+        val n = autoCounter.incrementAndGet()
+        val s = n.toString()
+        return when {
+            s.length >= maxLength -> s.takeLast(maxLength)
+            else -> s.padStart(maxLength, '0')
+        }
+    }
+
+    /**
+     * Processes [GUID] placeholder — random hex characters of the requested length.
+     * Backed by [UUID] for entropy; result is purely hex (no dashes).
+     */
+    private fun processGuidValue(maxLength: Int): String {
+        if (maxLength <= 0) return ""
+        val sb = StringBuilder(maxLength)
+        while (sb.length < maxLength) {
+            sb.append(UUID.randomUUID().toString().replace("-", "").uppercase())
+        }
+        return sb.toString().take(maxLength)
     }
 }

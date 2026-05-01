@@ -601,9 +601,21 @@
             z-index: 90;
         }
 
+        /* Mobile CTA inside sidebar */
+        .sidebar-cta-wrapper { display: none; padding: 0 24px 16px; margin-bottom: 8px; }
+        .sidebar-cta-wrapper .header-cta {
+            display: block; width: 100%; text-align: center;
+            padding: 12px 20px;
+            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.3);
+        }
+
         @media (max-width: 1024px) {
             .nav { display: none; }
             .mobile-menu-toggle { display: flex; }
+
+            /* Hide header download on mobile; surface it inside the sidebar instead */
+            .header > .header-container > .header-cta { display: none; }
+            .sidebar-cta-wrapper { display: block; }
 
             .sidebar {
                 transform: translateX(-100%);
@@ -664,6 +676,10 @@
     <aside class="sidebar" id="sidebar">
         <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
 
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
         <div class="sidebar-section">
             <div class="sidebar-title">Getting Started</div>
             <a href="#overview" class="sidebar-link active">Overview</a>
@@ -686,8 +702,8 @@
 
         <div class="sidebar-section">
             <div class="sidebar-title">Using the Simulator</div>
-            <a href="#host-handler" class="sidebar-link">Host Handler</a>
-            <a href="#transaction-rules" class="sidebar-link">Transaction Rules</a>
+            <a href="#host-handler" class="sidebar-link">ISO8583 Transaction Tab</a>
+            <a href="#transaction-rules" class="sidebar-link">Settings &amp; Responses</a>
             <a href="#placeholders" class="sidebar-link">Dynamic Placeholders</a>
             <a href="#rest-matching" class="sidebar-link">REST Matching</a>
             <a href="#iso8583-template" class="sidebar-link">ISO8583 Template</a>
@@ -763,14 +779,14 @@
                 <li><strong>Create a new simulator</strong> &mdash; From the Home screen, navigate to <code>Simulator &rarr; Host Simulator</code> and create a new configuration.</li>
                 <li><strong>Choose a Gateway Type</strong> &mdash; Select <strong>Server</strong> to accept incoming connections, <strong>Client</strong> to connect outward, or <strong>Proxy</strong> to bridge two sides.</li>
                 <li><strong>Configure Transmission Settings</strong> &mdash; Set the IP address, port, connection type (TCP/IP or REST), and message length type.</li>
-                <li><strong>Add Transaction Rules</strong> &mdash; In the <strong>Settings</strong> tab, add transactions with MTI, processing code, and the ISO8583 response fields you want to return.</li>
-                <li><strong>Configure the ISO8583 Template</strong> &mdash; Ensure the template matches your message specification (field formats, lengths, encoding).</li>
-                <li><strong>Start the Simulator</strong> &mdash; Open the <strong>Host Handler</strong> tab and click <strong>Start</strong>. The simulator will begin accepting connections and responding to requests.</li>
+                <li><strong>Configure the ISO8583 Template</strong> &mdash; Open the <strong>ISO8583 Template</strong> tab and import a YAML template via <strong>Upload YAML</strong>, or build the bit definitions manually. Save with the top-bar <strong>Save</strong> button.</li>
+                <li><strong>Add Transactions and Responses</strong> &mdash; In the <strong>Settings</strong> tab, click <strong>+</strong> in the transaction list to add a transaction (Description, MTI, Processing Code). Select it, then in the right panel use the <strong>Fields</strong> tab to set the response field values, the <strong>Config</strong> tab for transaction-level options, and the <strong>API</strong> tab for REST matching. Click <strong>Save All</strong> in the header.</li>
+                <li><strong>Start the Simulator</strong> &mdash; Open the <strong>ISO8583 Transaction</strong> tab and click <strong>Start</strong>. Incoming traffic appears live in the request / response split view.</li>
             </ol>
 
             <div class="info-card tip">
                 <div class="info-card-title">Tip</div>
-                <p>Use placeholders like <code>[SV]</code> in response fields to echo back request values. This is useful for fields like System Trace or RRN that must match the original request.</p>
+                <p>Use placeholders like <code>[SV]</code> in response field values to echo back request values. Useful for fields like System Trace or RRN that must match the original request.</p>
             </div>
         </section>
 
@@ -1001,8 +1017,8 @@
 
         <!-- Host Handler -->
         <section class="doc-section" id="host-handler">
-            <h2>Host Handler</h2>
-            <p>The Host Handler is the main runtime interface for controlling and monitoring the simulator.</p>
+            <h2>ISO8583 Transaction Tab</h2>
+            <p>The <strong>ISO8583 Transaction</strong> tab (visible for Server and Proxy gateway types) is the main runtime interface for controlling and monitoring the simulator.</p>
 
             <h3>Controls</h3>
             <ul>
@@ -1011,7 +1027,7 @@
             </ul>
 
             <h3>Live View</h3>
-            <p>The Host Handler provides real-time visibility into all traffic:</p>
+            <p>The transaction view provides real-time visibility into all traffic:</p>
             <ul>
                 <li><strong>Formatted View</strong> &mdash; Parsed ISO8583 fields shown in a readable table.</li>
                 <li><strong>Raw Hex View</strong> &mdash; Full hexadecimal dump of the message bytes.</li>
@@ -1021,24 +1037,39 @@
 
         <!-- Transaction Rules -->
         <section class="doc-section" id="transaction-rules">
-            <h2>Transaction Rules</h2>
-            <p>Transaction rules define how the simulator matches incoming requests and what responses to return. Configure these in the <strong>Settings</strong> tab.</p>
+            <h2>Transaction Rules (Settings Tab)</h2>
+            <p>Transaction rules define how the simulator matches incoming requests and what responses to return. Configure them in the <strong>Settings</strong> tab.</p>
 
-            <h3>Rule Structure</h3>
-            <p>Each transaction rule consists of:</p>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Field</th><th>Description</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><strong>MTI</strong></td><td>Message Type Indicator to match (e.g. <code>0100</code>, <code>0200</code>, <code>0800</code>).</td></tr>
-                        <tr><td><strong>Processing Code</strong></td><td>Field 3 value to match. Use <code>*</code> to match any processing code.</td></tr>
-                        <tr><td><strong>Description</strong></td><td>Human-readable label for the rule (e.g. "Balance Inquiry", "Purchase").</td></tr>
-                        <tr><td><strong>Response Fields</strong></td><td>List of ISO8583 bit fields and their values to include in the response.</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <h3>Settings Tab Layout</h3>
+            <ul>
+                <li><strong>Header bar</strong> &mdash; Field info, Export, Import, <strong>Save All</strong>, plus a <strong>Source / Destination</strong> toggle (Server simulators default to Source; Proxy mode lets you stage rules for either side).</li>
+                <li><strong>Left panel: Transaction list</strong> &mdash; Add, edit, duplicate, delete transactions. Click a row to select it.</li>
+                <li><strong>Right panel: Per-transaction tabs</strong> &mdash; <code>Fields</code>, <code>Config</code>, and (REST connections only) <code>API</code>.</li>
+            </ul>
+
+            <h3>Adding a Transaction</h3>
+            <ol class="steps">
+                <li>Click <strong>+</strong> at the top of the transaction list. The <em>Add Transaction</em> dialog opens.</li>
+                <li>Fill in <strong>Description *</strong> (e.g. <code>Purchase Transaction</code>).</li>
+                <li>Fill in <strong>MTI *</strong> (e.g. <code>0200</code>).</li>
+                <li>Fill in <strong>Processing Code *</strong> (e.g. <code>000000</code>; use <code>*</code> as a wildcard for any code).</li>
+                <li>Click <strong>Save</strong>. The new transaction appears in the list.</li>
+            </ol>
+
+            <h3>Setting up the Response (Fields tab)</h3>
+            <ol class="steps">
+                <li>Select the transaction in the left list.</li>
+                <li>Open the <strong>Fields</strong> tab on the right.</li>
+                <li>Click <strong>Add Fields</strong> to pick which ISO 8583 bits the response should contain.</li>
+                <li>For each added field, type its response value. Use placeholders &mdash; <code>[SV]</code> echoes the request value, <code>[TIME]</code> generates a timestamp, <code>[RAND]</code> generates random digits.</li>
+                <li>Click <strong>Save All</strong> in the header bar to persist the rules.</li>
+            </ol>
+
+            <h3>Per-Transaction Config &amp; API tabs</h3>
+            <ul>
+                <li><strong>Config tab</strong> &mdash; Transaction-level options such as response delay overrides and conditional logic.</li>
+                <li><strong>API tab (REST connections only)</strong> &mdash; <em>API Path</em>, request matchers (key path / operator / value), response mappers, and headers.</li>
+            </ul>
 
             <h3>Matching Logic</h3>
             <p>When a request arrives, the simulator evaluates rules in order:</p>
@@ -1054,11 +1085,11 @@
             </div>
 
             <h3>Example Rule</h3>
-            <pre><code>MTI:            0200
+            <pre><code>Description:     Purchase Transaction
+MTI:             0200
 Processing Code: 000000
-Description:    Purchase Transaction
 
-Response Fields:
+Response Fields (Fields tab):
   Field 39 (Response Code):     00
   Field 38 (Auth Code):         [RAND]
   Field 11 (System Trace):      [SV]
@@ -1151,15 +1182,32 @@ Response Fields:
 
         <!-- ISO8583 Template -->
         <section class="doc-section" id="iso8583-template">
-            <h2>ISO8583 Template</h2>
-            <p>The ISO8583 Template tab defines the message specification used for parsing and building messages.</p>
+            <h2>ISO8583 Template Tab</h2>
+            <p>The <strong>ISO8583 Template</strong> tab defines the message specification used for parsing and building messages.</p>
 
-            <h3>Template Configuration</h3>
+            <h3>Top-bar actions</h3>
             <ul>
-                <li><strong>Bit Definitions</strong> &mdash; Define each ISO8583 field (bit number, name, format, length, encoding).</li>
-                <li><strong>Message Format</strong> &mdash; Select the encoding format: ByteArray, JSON, XML, HEX, or PlainText.</li>
-                <li><strong>Format Mapping</strong> &mdash; Map ISO8583 fields to JSON keys, XML elements, or text delimiters for non-binary formats.</li>
-                <li><strong>TPDU / Header</strong> &mdash; Configure transaction protocol data unit and message header settings.</li>
+                <li><strong>Save</strong> &mdash; Persist template changes. Send Message and other tabs re-sync immediately.</li>
+                <li><strong>Upload YAML</strong> &mdash; Import a YAML template (the fastest way to bootstrap a known message spec).</li>
+                <li><strong>Download Template</strong> &mdash; Export the current template to YAML.</li>
+            </ul>
+
+            <h3>Per-Bit Editor</h3>
+            <p>Click any bit number to edit it in a side dialog with three required attributes:</p>
+            <ul>
+                <li><strong>Bit Length</strong> &mdash; Maximum length (in bytes or characters depending on type).</li>
+                <li><strong>Bit Type</strong> &mdash; Field type (numeric, alphanumeric, binary, etc.).</li>
+                <li><strong>Max Length</strong> &mdash; Used together with the length type (fixed, LLVAR, LLLVAR, LLLLVAR).</li>
+            </ul>
+            <p>Add or remove bits with the <strong>Add</strong> / <strong>Delete</strong> buttons.</p>
+
+            <h3>Template-level Options (toggles)</h3>
+            <ul>
+                <li><strong>Iso8583 use Ascii</strong> &mdash; Treat numeric fields as ASCII rather than packed BCD.</li>
+                <li><strong>Don&rsquo;t use TPDU Header</strong> &mdash; Skip the 5-byte TPDU prefix.</li>
+                <li><strong>Respond same message if unrecognized</strong> &mdash; Echo unmatched requests instead of returning an error.</li>
+                <li><strong>Metfone message</strong> &mdash; Enable Metfone-specific framing.</li>
+                <li><strong>Not update screen</strong> &mdash; Suppress UI updates for high-throughput tests.</li>
             </ul>
 
             <div class="info-card warning">
@@ -1217,7 +1265,7 @@ Response Fields:
         <!-- Tabs Reference -->
         <section class="doc-section" id="tabs-reference">
             <h2>Tabs Reference</h2>
-            <p>The runtime simulator screen has different tabs available depending on the gateway type.</p>
+            <p>The runtime simulator screen exposes a different subset of tabs depending on the gateway type.</p>
 
             <div class="table-wrapper">
                 <table>
@@ -1232,39 +1280,46 @@ Response Fields:
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>Host Handler</strong></td>
+                            <td><strong>ISO8583 Transaction</strong></td>
                             <td>&#10003;</td>
+                            <td>&mdash;</td>
                             <td>&#10003;</td>
-                            <td>&#10003;</td>
-                            <td>Start/stop, live request/response view, hold message control.</td>
+                            <td>Start / stop, live request / response view, hold message control.</td>
                         </tr>
                         <tr>
                             <td><strong>Logs</strong></td>
                             <td>&#10003;</td>
                             <td>&#10003;</td>
                             <td>&#10003;</td>
-                            <td>Transaction and connection logs, connection count, bytes in/out.</td>
+                            <td>Transaction and connection logs, connection count, bytes in / out.</td>
                         </tr>
                         <tr>
                             <td><strong>Settings</strong></td>
                             <td>&#10003;</td>
                             <td>&mdash;</td>
                             <td>&#10003;</td>
-                            <td>Transaction response rules configuration.</td>
+                            <td>Transaction list with Fields / Config / API tabs for each transaction.</td>
                         </tr>
                         <tr>
                             <td><strong>ISO8583 Template</strong></td>
                             <td>&#10003;</td>
                             <td>&#10003;</td>
                             <td>&#10003;</td>
-                            <td>Message specification, field definitions, format mapping.</td>
+                            <td>Message specification, bit definitions, YAML import / export, template-level toggles.</td>
                         </tr>
                         <tr>
                             <td><strong>Send Message</strong></td>
+                            <td>&#10003;</td>
+                            <td>&#10003;</td>
+                            <td>&mdash;</td>
+                            <td>Craft and send outbound ISO 8583 messages; inspect responses.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Load Test</strong></td>
                             <td>&mdash;</td>
                             <td>&#10003;</td>
-                            <td>&#10003;</td>
-                            <td>Craft and send unsolicited outbound messages.</td>
+                            <td>&mdash;</td>
+                            <td>Concurrency / throughput testing for client-mode integrations.</td>
                         </tr>
                         <tr>
                             <td><strong>Unsolicited Message</strong></td>

@@ -161,6 +161,9 @@ fun HostSimulator(
     var rawResponse by remember { mutableStateOf("") }
     var response by remember { mutableStateOf("") }
     val logText = remember { mutableStateListOf<LogEntry>() }
+    val lastResponseIso = remember { mutableStateOf<Iso8583Data?>(null) }
+    val lastResponseRawHex = remember { mutableStateOf("") }
+    val sendMsgHistory = remember { mutableStateListOf<TxHistoryEntry>() }
 
     var waitingRemain by remember { mutableStateOf("0") }
     var sendHoldMessage by remember { mutableStateOf(true) }
@@ -203,12 +206,18 @@ fun HostSimulator(
 
     gw.onReceiveFromDest { iso ->
         response = iso?.logFormat() ?: ""
-        rawResponse = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
+        val hex = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
+        rawResponse = hex
+        lastResponseIso.value = iso as? Iso8583Data
+        lastResponseRawHex.value = hex
     }
 
     gw.onSentToSource { iso ->
         response = iso?.logFormat() ?: ""
-        rawResponse = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
+        val hex = IsoUtil.bytesToHexString(iso?.rawMessage ?: byteArrayOf())
+        rawResponse = hex
+        lastResponseIso.value = iso as? Iso8583Data
+        lastResponseRawHex.value = hex
     }
 
     gw.onSentToDest { iso ->
@@ -482,6 +491,9 @@ fun HostSimulator(
                     lastPackedHexNormState = sendMsgLastPackedHexNorm,
                     selectedMessageState = sendMsgSelectedMessage,
                     isConnectedState = sendMsgIsConnected,
+                    lastResponseIsoState = lastResponseIso,
+                    lastResponseRawHexState = lastResponseRawHex,
+                    transactionHistory = sendMsgHistory,
                 )
 
 

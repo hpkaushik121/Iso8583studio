@@ -222,6 +222,9 @@ fun KeyManagementOverviewTab(
                 LmkDetailsSection(
                     loadedLmks = loadedLmks.liveLmks,
                     selectedSlot = selectedLmkSlot,
+                    features = remember(revision) {
+                        hsm.getHsm()?.getFeatures() as? `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures
+                    },
                     onBackClick = { selectedSection = KeySection.OVERVIEW },
                     onRegenerateClick = { showRegenerateDialog = true },
                     onAlgorithmChange = { slotId, algorithm ->
@@ -798,6 +801,7 @@ private fun QuickActionButton(
 private fun LmkDetailsSection(
     loadedLmks: Map<String, LmkSet>,
     selectedSlot: String?,
+    features: `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures?,
     onBackClick: () -> Unit,
     onRegenerateClick: () -> Unit,
     onAlgorithmChange: (String, String) -> Unit = { _, _ -> },
@@ -833,8 +837,11 @@ private fun LmkDetailsSection(
             onSchemeChange = { scheme -> onSchemeChange(slotData.identifier, scheme) }
         )
 
+        // KBPK Details Card (Key Block Protection Key)
+        KbpkDetailsCard(slotData = slotData, features = features)
+
         // LMK Pairs Display
-        LmkPairsCard(slotData = slotData)
+        LmkPairsCard(slotData = slotData, features = features)
     }
 }
 
@@ -1068,9 +1075,138 @@ private fun InfoRow(
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════
+// KBPK Details Card — shows Key Block Protection Key configuration for the slot
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun KbpkDetailsCard(
+    slotData: LmkSet,
+    features: `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures?
+) {
+    val lmkAlgo = slotData.lmkAlgorithm
+    val isAes = lmkAlgo.isAes
+    val kbVersion = if (isAes) "Version 1 (AES)" else "Version 0 (TDES)"
+    val kdfMethod = if (isAes) {
+        "NIST SP 800-108 CMAC-KDF (usage = 0x0002 KBPK)"
+    } else {
+        "TDES-ECB counter KDF with \"KBPK\" label"
+    }
+
+    val override = slotData.kbpkHex?.takeIf { it.isNotBlank() }
+    var copiedField by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(copiedField) {
+        if (copiedField != null) {
+            kotlinx.coroutines.delay(2000)
+            copiedField = null
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = 2.dp,
+        backgroundColor = MaterialTheme.colors.surface,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = HsmKeyTheme.SuccessGreen,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    "KBPK (Key Block Protection Key)",
+                    style = MaterialTheme.typography.subtitle1,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Chip(
+                    text = if (override != null) "OVERRIDE" else "DERIVED",
+                    color = if (override != null) HsmKeyTheme.WarningOrange else HsmKeyTheme.InfoCyan
+                )
+            }
+
+            Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f))
+
+            InfoRow("Key Block Version", kbVersion)
+            InfoRow("LMK Algorithm", lmkAlgo.display)
+            InfoRow("Derivation Method", kdfMethod)
+            InfoRow(
+                "Source",
+                if (override != null) "Configured KBPK override (used directly)"
+                else "Derived from each LMK pair on demand"
+            )
+
+            if (override != null) {
+                CopyableKeyValueDisplay(
+                    label = "Configured KBPK (${override.length * 4} bits)",
+                    value = override,
+                    color = HsmKeyTheme.SuccessGreen,
+                    isCopied = copiedField == "override",
+                    onCopy = {
+                        copyToClipboard(override)
+                        copiedField = "override"
+                    }
+                )
+            }
+
+            // Show worked example: derived KBPK from pair 0 (typical KBPK source for keyblock).
+            val examplePair = slotData.pairs.entries.minByOrNull { it.key }
+            if (override == null && examplePair != null && features != null) {
+                val (pairNum, pair) = examplePair
+                val derived = remember(slotData.identifier, slotData.algorithm, pairNum, pair) {
+                    computeDerivedKbpk(features, pair.getCombinedKey(), lmkAlgo)
+                }
+                if (derived != null) {
+                    CopyableKeyValueDisplay(
+                        label = "Example: KBPK derived from LMK pair #$pairNum (${derived.length * 4} bits)",
+                        value = derived,
+                        color = HsmKeyTheme.SuccessGreen,
+                        isCopied = copiedField == "example",
+                        onCopy = {
+                            copyToClipboard(derived)
+                            copiedField = "example"
+                        }
+                    )
+                }
+            }
+
+            Text(
+                "Each S-block (KeyBlock) wrap derives a fresh KBPK from the LMK pair that maps to the wrapped key's usage. Expand any pair below to see its derived KBPK.",
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+private fun computeDerivedKbpk(
+    features: `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures,
+    lmkPairKey: ByteArray,
+    lmkAlgo: LmkAlgorithm,
+): String? = try {
+    val derived = if (lmkAlgo.isAes) {
+        features.deriveLmkToKbpkV1Public(lmkPairKey, lmkAlgo)
+    } else {
+        features.deriveLmkToKbpkV0Public(lmkPairKey, lmkAlgo)
+    }
+    IsoUtil.bytesToHex(derived)
+} catch (_: Exception) {
+    null
+}
+
 @Composable
 private fun LmkPairsCard(
-    slotData: LmkSet
+    slotData: LmkSet,
+    features: `in`.aicortex.iso8583studio.hsm.payshield10k.PayShield10KFeatures? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1112,11 +1248,15 @@ private fun LmkPairsCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(slotData.pairs.entries.sortedBy { it.key }.toList()) { (pairNum, pair) ->
+                    val derivedKbpk = remember(slotData.identifier, slotData.algorithm, pairNum, pair) {
+                        features?.let { computeDerivedKbpk(it, pair.getCombinedKey(), slotData.lmkAlgorithm) }
+                    }
                     LmkPairItem(
                         pairNumber = "$pairNum",
                         leftKey = IsoUtil.bytesToHex(pair.leftKey),
                         rightKey = IsoUtil.bytesToHex(pair.rightKey),
-                        combinedKey = IsoUtil.bytesToHex(pair.getCombinedKey())
+                        combinedKey = IsoUtil.bytesToHex(pair.getCombinedKey()),
+                        derivedKbpk = derivedKbpk
                     )
                 }
             }
@@ -1134,7 +1274,8 @@ private fun LmkPairItem(
     pairNumber: String,
     leftKey: String,
     combinedKey: String,
-    rightKey: String
+    rightKey: String,
+    derivedKbpk: String? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     var copiedField by remember { mutableStateOf<String?>(null) }
@@ -1258,6 +1399,19 @@ private fun LmkPairItem(
                             copiedField = "combined"
                         }
                     )
+
+                    if (!derivedKbpk.isNullOrBlank()) {
+                        CopyableKeyValueDisplay(
+                            label = "Derived KBPK (this pair as KBPK source)",
+                            value = derivedKbpk,
+                            color = HsmKeyTheme.SuccessGreen,
+                            isCopied = copiedField == "kbpk",
+                            onCopy = {
+                                copyToClipboard(derivedKbpk)
+                                copiedField = "kbpk"
+                            }
+                        )
+                    }
 
                     // Copy All button for this pair
                     Row(

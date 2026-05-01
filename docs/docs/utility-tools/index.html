@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utility Tools Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio Utility Tools documentation - ISO 8583 bitmap calculator, MDC hash, ZKA encryption, AS2805 helpers, and other miscellaneous payment utilities.">
+    <meta name="keywords" content="ISO 8583 bitmap calculator, MDC hash, MDC-2, MDC-4, ZKA, AS2805 calculator, terminal key set, payment utility tools">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/utility-tools/">
+    <link rel="stylesheet" href="../_shared.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../" class="nav-link">Documentation</a>
+            <a href="../../blogs/" class="nav-link">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Overview</div>
+            <a href="#overview" class="sidebar-link active">Introduction</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Tools</div>
+            <a href="#bitmap" class="sidebar-link">ISO 8583 Bitmap</a>
+            <a href="#mdc" class="sidebar-link">MDC Hash</a>
+            <a href="#zka" class="sidebar-link">ZKA Encryption</a>
+            <a href="#as2805" class="sidebar-link">AS2805 Calculator</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#tips" class="sidebar-link">Tips</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="../">Documentation</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>Utility Tools</span>
+        </div>
+
+        <h1 class="page-title">Utility Tools</h1>
+        <p class="page-description">A grab-bag of payment helpers &mdash; the ISO 8583 bitmap calculator, MDC hash, ZKA encryption, and the AS 2805 multi-tab calculator. Small, focused tools that close gaps left by the larger calculators.</p>
+
+        <section class="doc-section" id="overview">
+            <h2>Introduction</h2>
+            <p>These utilities are organised under <code>Tools &rarr; Payments</code>. Most are single-purpose and self-explanatory, but the AS 2805 Calculator bundles several Australian payment-system primitives into a single tabbed interface.</p>
+        </section>
+
+        <section class="doc-section" id="bitmap">
+            <h2>ISO 8583 Bitmap Calculator</h2>
+            <p>Visual editor for ISO 8583 primary and secondary bitmaps. Toggle each bit to mark which fields are present in a message; the tool produces the corresponding 8-byte (primary) or 16-byte (primary + secondary) hex bitmap.</p>
+
+            <h3>Two-way operation</h3>
+            <ul>
+                <li><strong>Bits &rarr; Hex</strong> &mdash; Click bits 1&ndash;128 in a 16&times;8 grid; the hex bitmap updates live.</li>
+                <li><strong>Hex &rarr; Bits</strong> &mdash; Paste a hex bitmap and the tool highlights each set bit.</li>
+            </ul>
+
+            <h3>Indicators</h3>
+            <ul>
+                <li>Bit 1 indicates the secondary bitmap (bits 65&ndash;128). The tool turns it on automatically when a high bit is selected.</li>
+                <li>Each bit shows its number on hover, plus the standard ISO 8583-1987 / -1993 / -2003 field name when available.</li>
+            </ul>
+
+            <h3>Example</h3>
+            <pre><code>Selected bits: 2, 3, 4, 7, 11, 12, 13, 41, 42, 49, 64
+
+Primary Bitmap (hex): 7220000003800001</code></pre>
+        </section>
+
+        <section class="doc-section" id="mdc">
+            <h2>MDC Hash Calculator</h2>
+            <p>Computes Modification Detection Code hashes (MDC-2, MDC-4) over hex data. Used in some legacy authentication and integrity protocols.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Variant</strong> &mdash; MDC-2 (one DES pass) or MDC-4 (two DES passes for stronger collision resistance).</li>
+                <li><strong>Data</strong> &mdash; Hex input.</li>
+            </ul>
+
+            <h3>Output</h3>
+            <ul>
+                <li>16-byte hash for both MDC-2 and MDC-4 (the difference is internal rounds).</li>
+                <li>Intermediate digests shown for educational use.</li>
+            </ul>
+
+            <div class="info-card warning">
+                <div class="info-card-title">Heads-up</div>
+                <p>MDC-2 / MDC-4 are largely obsolete. Use SHA-2 or SHA-3 for new designs (in the HMAC tool).</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="zka">
+            <h2>ZKA Encryption Tool</h2>
+            <p>Implements the Zentraler Kreditausschuss (ZKA) crypto profile used by the German banking ecosystem.</p>
+
+            <h3>Operations</h3>
+            <ul>
+                <li><strong>ZKA Encrypt</strong> &mdash; Encrypt data under a ZKA-derived working key.</li>
+                <li><strong>ZKA Decrypt</strong> &mdash; Reverse the operation.</li>
+                <li><strong>Key Derivation</strong> &mdash; Derive ZKA session keys from master material.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="as2805">
+            <h2>AS2805 Calculator</h2>
+            <p>A multi-tab tool covering the most commonly needed primitives from the Australian Standard AS 2805 payment-systems suite.</p>
+
+            <h3>Tabs</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Tab</th><th>Purpose</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Generate Terminal Key Set</strong></td><td>Build a full terminal key set (KEKs, PEK, MAK, DEK) from master inputs.</td></tr>
+                        <tr><td><strong>Translate PIN Block</strong></td><td>Translate a PIN block from a source key (often DUKPT-derived) to a destination ZPK.</td></tr>
+                        <tr><td><strong>MAC</strong></td><td>Compute an AS 2805.4 MAC over arbitrary message data.</td></tr>
+                        <tr><td><strong>OWF</strong></td><td>One-Way Function transforms used in AS 2805 key handling.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Generate Terminal Key Set Walk-through</h3>
+            <ol class="steps">
+                <li>Open the AS2805 Calculator.</li>
+                <li>Switch to the <strong>Generate Terminal Key Set</strong> tab.</li>
+                <li>Enter the master keys provided by the acquirer (typically a TMK-equivalent and randomness sources).</li>
+                <li>Click <strong>Generate</strong>. The tool returns each working key and its KCV.</li>
+                <li>Use the resulting MAK in the <strong>MAC</strong> tab to test message integrity, or use the PEK in the <strong>Translate PIN Block</strong> tab.</li>
+            </ol>
+
+            <div class="info-card tip">
+                <div class="info-card-title">Tip</div>
+                <p>AS 2805 PIN translation pairs naturally with the DUKPT ISO 9797 tool: derive the source DUKPT PEK there, then plug the result into the AS 2805 PIN translation tab.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="tips">
+            <h2>Tips</h2>
+            <ul>
+                <li>The Bitmap Calculator is the fastest sanity check when an ISO 8583 host complains "field not present" &mdash; toggle the bit you expect and confirm the hex matches what you sent on the wire.</li>
+                <li>Combine the Bitmap Calculator with the Host Simulator: copy the hex bitmap into the simulator&rsquo;s message inspector to isolate parsing issues.</li>
+                <li>The activity logs in each tool persist until you clear them &mdash; useful for capturing a sequence of intermediate values to share with a vendor support ticket.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../blogs/" class="footer-link">Blog</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

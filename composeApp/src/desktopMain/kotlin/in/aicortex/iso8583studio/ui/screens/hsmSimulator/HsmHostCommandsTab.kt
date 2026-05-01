@@ -1573,8 +1573,19 @@ private fun formatHostResponse(cmd: HostCommand, raw: String): String {
                 appendLine("  Decrypted Data      : $dec")
             }
             "M4", "M5" -> {
-                val len  = body.take(4)
-                val data = body.drop(4)
+                // Layout depends on destination mode:
+                //   ECB:     [Len_4H][Data_nH]
+                //   CBC TDES:[IV_16H][Len_4H][Data_nH]
+                //   CBC AES: [IV_32H][Len_4H][Data_nH]
+                val ivLen = listOf(0, 16, 32).firstOrNull { off ->
+                    body.length >= off + 4 &&
+                        body.substring(off, off + 4).toIntOrNull(16)?.let { off + 4 + it == body.length } == true
+                } ?: 0
+                if (ivLen > 0) {
+                    appendLine("  Output IV           : ${body.take(ivLen)}")
+                }
+                val len  = body.drop(ivLen).take(4)
+                val data = body.drop(ivLen + 4)
                 appendLine("  Translated Length   : $len bytes")
                 appendLine("  Translated Data     : $data")
             }

@@ -557,9 +557,20 @@
             z-index: 90;
         }
 
+        /* Mobile CTA inside sidebar */
+        .sidebar-cta-wrapper { display: none; padding: 0 24px 16px; margin-bottom: 8px; }
+        .sidebar-cta-wrapper .header-cta {
+            display: block; width: 100%; text-align: center;
+            padding: 12px 20px;
+            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.3);
+        }
+
         @media (max-width: 1024px) {
             .nav { display: none; }
             .mobile-menu-toggle { display: flex; }
+            /* Hide header download on mobile; surface it inside the sidebar instead */
+            .header > .header-container > .header-cta { display: none; }
+            .sidebar-cta-wrapper { display: block; }
             .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
             .sidebar.open { transform: translateX(0); }
             .sidebar-close { display: flex; }
@@ -608,6 +619,10 @@
 <div class="page-wrapper">
     <aside class="sidebar" id="sidebar">
         <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
 
         <div class="sidebar-section">
             <div class="sidebar-title">Getting Started</div>

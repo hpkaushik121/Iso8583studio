@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Validation Tools Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio Card Validation tools documentation - Generate and validate Visa CVV/CVV2, MasterCard CVC2/CVC3, and American Express CSC card security codes.">
+    <meta name="keywords" content="CVV calculator, CVV2, CVC2, CVC3, MasterCard CVC, AMEX CSC, card security code, card verification value, payment validation, dynamic CVC3">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/card-validation/">
+    <link rel="stylesheet" href="../_shared.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../" class="nav-link">Documentation</a>
+            <a href="../../blogs/" class="nav-link">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Overview</div>
+            <a href="#overview" class="sidebar-link active">Introduction</a>
+            <a href="#concepts" class="sidebar-link">Key Concepts</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Calculators</div>
+            <a href="#cvv" class="sidebar-link">Visa CVV / CVV2</a>
+            <a href="#cvc-mc" class="sidebar-link">MasterCard CVC2 / CVC3</a>
+            <a href="#amex" class="sidebar-link">AMEX CSC</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#service-codes" class="sidebar-link">Service Codes</a>
+            <a href="#tips" class="sidebar-link">Tips</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="../">Documentation</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>Card Validation</span>
+        </div>
+
+        <h1 class="page-title">Card Validation Tools</h1>
+        <p class="page-description">Generate and validate the card security codes used by Visa, MasterCard, and American Express &mdash; CVV, CVV2, CVC, CVC2, CVC3, and CSC.</p>
+
+        <section class="doc-section" id="overview">
+            <h2>Introduction</h2>
+            <p>Card security codes are short numeric values printed on a card or computed dynamically that prove the cardholder physically possesses the card or a valid token. They&rsquo;re the first line of defence in card-not-present transactions and are checked on every authorisation alongside expiry date and address verification.</p>
+            <p>ISO8583Studio includes dedicated calculators per scheme so you can simulate issuer behaviour without an HSM and validate codes returned by your authorisation pipeline.</p>
+        </section>
+
+        <section class="doc-section" id="concepts">
+            <h2>Key Concepts</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Code</th><th>Scheme</th><th>Where it lives</th><th>Length</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>CVV</strong></td><td>Visa</td><td>Magstripe (track 1 / 2)</td><td>3 digits</td></tr>
+                        <tr><td><strong>CVV2</strong></td><td>Visa</td><td>Card back (signature panel)</td><td>3 digits</td></tr>
+                        <tr><td><strong>iCVV</strong></td><td>Visa</td><td>EMV chip</td><td>3 digits (computed with service code 999)</td></tr>
+                        <tr><td><strong>CVC</strong></td><td>MasterCard</td><td>Magstripe</td><td>3 digits</td></tr>
+                        <tr><td><strong>CVC2</strong></td><td>MasterCard</td><td>Card back</td><td>3 digits</td></tr>
+                        <tr><td><strong>CVC3</strong></td><td>MasterCard PayPass</td><td>Computed dynamically per tap</td><td>3 digits</td></tr>
+                        <tr><td><strong>CSC</strong></td><td>American Express</td><td>Card front</td><td>4 digits</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="doc-section" id="cvv">
+            <h2>Visa CVV / CVV2 Calculator</h2>
+            <p>A two-tab tool: <strong>Generate</strong> and <strong>Validate</strong>.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>PAN</strong> &mdash; Up to 19 digits.</li>
+                <li><strong>Expiration Date</strong> &mdash; YYMM format.</li>
+                <li><strong>Service Code</strong> &mdash; 3-digit value. Use <code>000</code> for CVV2, the actual service code for magstripe CVV, or <code>999</code> for iCVV.</li>
+                <li><strong>CVK / CVV Key</strong> &mdash; 32 hex chars (2-key 3DES).</li>
+            </ul>
+
+            <h3>Generate Tab</h3>
+            <ol class="steps">
+                <li>Enter PAN, expiration, and service code.</li>
+                <li>Enter the CVK.</li>
+                <li>Click <strong>Generate</strong>. A 3-digit CVV is produced.</li>
+            </ol>
+
+            <h3>Validate Tab</h3>
+            <p>Enter the same parameters plus the CVV value to check. The tool re-computes and compares.</p>
+
+            <div class="info-card tip">
+                <div class="info-card-title">CVV / CVV2 / iCVV by service code</div>
+                <p>The same algorithm produces all three Visa codes &mdash; what differs is the service code input: real service code for CVV, <code>000</code> for CVV2, <code>999</code> for iCVV. One key, three values.</p>
+            </div>
+
+            <h3>Example</h3>
+            <pre><code>PAN:        4111111111111111
+Exp:        2812
+Service:    000          (CVV2)
+CVK:        0123456789ABCDEFFEDCBA9876543210
+
+CVV2:       123</code></pre>
+        </section>
+
+        <section class="doc-section" id="cvc-mc">
+            <h2>MasterCard CVC Calculator</h2>
+            <p>The MasterCard CVC tool covers static CVC2 and dynamic CVC3 (PayPass).</p>
+
+            <h3>Static CVC2</h3>
+            <p>Algorithmically equivalent to the Visa CVV with MasterCard&rsquo;s key arrangement. Inputs:</p>
+            <ul>
+                <li><strong>PAN</strong></li>
+                <li><strong>Expiration</strong> (YYMM)</li>
+                <li><strong>Service Code</strong> &mdash; <code>000</code> for CVC2.</li>
+                <li><strong>CVC Key</strong> &mdash; 32 hex chars.</li>
+            </ul>
+
+            <h3>Dynamic CVC3 (PayPass)</h3>
+            <p>CVC3 is computed for each contactless transaction by combining a CVC3 master key, the unpredictable number from the terminal, and the Application Transaction Counter (ATC).</p>
+
+            <ul>
+                <li><strong>UN</strong> &mdash; 8-digit unpredictable number from the terminal.</li>
+                <li><strong>ATC</strong> &mdash; 4-hex-char application transaction counter.</li>
+                <li><strong>Track Data</strong> &mdash; Track 1 / Track 2 template.</li>
+                <li><strong>CVC3 Master Key</strong> &mdash; 32 hex chars.</li>
+            </ul>
+
+            <div class="info-card note">
+                <div class="info-card-title">CVC3 placement</div>
+                <p>The 3-digit CVC3 replaces the discretionary data positions in the magstripe-equivalent track output the contactless card emits. Combined with the ATC, every tap produces a unique track 2.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="amex">
+            <h2>AMEX CSC Calculator</h2>
+            <p>American Express uses a 4-digit Card Security Code (CSC), printed on the card front above the embossed PAN.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>PAN</strong> &mdash; 15 digits.</li>
+                <li><strong>Expiration Date</strong> &mdash; YYMM.</li>
+                <li><strong>CSC Key</strong> &mdash; 32 hex chars.</li>
+                <li><strong>CSC Position</strong> &mdash; Some processors expect leading zeros padded; the tool exposes both 4-digit raw and zero-padded outputs.</li>
+            </ul>
+
+            <h3>Operations</h3>
+            <ul>
+                <li><strong>Generate</strong> &mdash; Produce the CSC for a given PAN + expiration.</li>
+                <li><strong>Validate</strong> &mdash; Check a presented CSC against the expected value.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="service-codes">
+            <h2>Service Codes</h2>
+            <p>The 3-digit service code is fed into CVV/CVC algorithms. Each digit has independent meaning:</p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Position</th><th>Common Values</th><th>Meaning</th></tr></thead>
+                    <tbody>
+                        <tr><td>1st digit</td><td>1, 2, 5, 6, 7, 9</td><td>Interchange and technology (international, EMV, etc.).</td></tr>
+                        <tr><td>2nd digit</td><td>0, 2, 4</td><td>Authorisation processing (online, offline, by issuer).</td></tr>
+                        <tr><td>3rd digit</td><td>0&ndash;7</td><td>Range of services and PIN requirement.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <ul>
+                <li><strong>101</strong> &mdash; International, normal authorisation, no restrictions.</li>
+                <li><strong>201</strong> &mdash; Same but EMV-capable.</li>
+                <li><strong>120</strong> &mdash; Online authorisation only, PIN required.</li>
+                <li><strong>999</strong> &mdash; Special value used by Visa for iCVV computation.</li>
+                <li><strong>000</strong> &mdash; Special value for CVV2 / CVC2.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="tips">
+            <h2>Tips</h2>
+            <ul>
+                <li>Use the same CVK / CVC key for CVV, CVV2, and iCVV &mdash; only the service code changes.</li>
+                <li>If your CVV2 doesn&rsquo;t match across systems, check whether the integrator strips the trailing PAN check digit before computation. Different specs handle that differently.</li>
+                <li>For CVC3 testing, capture the UN and ATC from your terminal log alongside the track data &mdash; off-by-one ATC is a common error.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../blogs/" class="footer-link">Blog</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

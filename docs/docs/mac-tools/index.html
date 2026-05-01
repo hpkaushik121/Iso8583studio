@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAC Tools Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio MAC Tools documentation - HMAC, CMAC, ISO 9797 MAC, ANSI X9.19 MAC, Retail MAC, AS2805 MAC, and TDES CBC-MAC calculators for payment integrity testing.">
+    <meta name="keywords" content="MAC calculator, HMAC, CMAC, ISO 9797-1, ANSI X9.19, retail MAC, AS2805 MAC, TDES CBC MAC, message authentication code, payment integrity">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/mac-tools/">
+    <link rel="stylesheet" href="../_shared.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../" class="nav-link">Documentation</a>
+            <a href="../../blogs/" class="nav-link">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Overview</div>
+            <a href="#overview" class="sidebar-link active">Introduction</a>
+            <a href="#choosing" class="sidebar-link">Choosing a MAC</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Hash-based MACs</div>
+            <a href="#hmac" class="sidebar-link">HMAC</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Block-cipher MACs</div>
+            <a href="#cmac" class="sidebar-link">CMAC</a>
+            <a href="#tdes-cbc" class="sidebar-link">TDES CBC-MAC</a>
+            <a href="#ansi-mac" class="sidebar-link">ANSI X9.19 MAC</a>
+            <a href="#iso9797" class="sidebar-link">ISO 9797 MAC</a>
+            <a href="#retail" class="sidebar-link">Retail MAC</a>
+            <a href="#as2805" class="sidebar-link">AS2805 MAC</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#padding" class="sidebar-link">Padding Methods</a>
+            <a href="#tips" class="sidebar-link">Tips</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="../">Documentation</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>MAC Tools</span>
+        </div>
+
+        <h1 class="page-title">MAC Tools</h1>
+        <p class="page-description">Generate and verify Message Authentication Codes used across payment systems &mdash; HMAC, CMAC, ISO 9797 variants, ANSI X9.19, Retail MAC, AS2805 MAC, and TDES CBC-MAC. Each tool offers hex inputs, configurable padding, and a step-by-step audit log.</p>
+
+        <section class="doc-section" id="overview">
+            <h2>Introduction</h2>
+            <p>A Message Authentication Code (MAC) is a short tag computed from a message and a secret key. It lets a receiver verify that a message has not been altered and that it came from someone holding the same key. Payment networks rely on MACs heavily &mdash; on ISO 8583 messages, on terminal-host links, and on PIN-translation pipelines.</p>
+            <p>ISO8583Studio includes calculators for every MAC algorithm commonly seen in payment specifications, organised into two families: hash-based (HMAC) and block-cipher-based (CMAC, CBC-MAC and its variants).</p>
+        </section>
+
+        <section class="doc-section" id="choosing">
+            <h2>Choosing a MAC</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Algorithm</th><th>Standard</th><th>Block / Cipher</th><th>Common Use</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>HMAC</strong></td><td>RFC 2104, FIPS 198-1</td><td>Hash (SHA-256, etc.)</td><td>API authentication, JWS, payment APIs.</td></tr>
+                        <tr><td><strong>CMAC</strong></td><td>NIST SP 800-38B</td><td>AES / TDES</td><td>EMV-like cryptograms, modern PIN translation.</td></tr>
+                        <tr><td><strong>TDES CBC-MAC</strong></td><td>ANSI X9.9 (legacy)</td><td>3DES</td><td>Older banking integrations.</td></tr>
+                        <tr><td><strong>ANSI X9.19 MAC</strong></td><td>ANSI X9.19</td><td>Single DES + 3DES finalize</td><td>U.S. retail / banking ISO 8583.</td></tr>
+                        <tr><td><strong>ISO 9797 MAC</strong></td><td>ISO/IEC 9797-1</td><td>DES / 3DES / AES</td><td>Cross-network ISO 8583 MACs.</td></tr>
+                        <tr><td><strong>Retail MAC</strong></td><td>ISO 9797-1 Algorithm 3</td><td>3DES</td><td>European retail payments.</td></tr>
+                        <tr><td><strong>AS2805 MAC</strong></td><td>AS 2805.4</td><td>3DES</td><td>Australian payment systems.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="doc-section" id="hmac">
+            <h2>HMAC Calculator</h2>
+            <p>Hash-based MAC defined by RFC 2104.</p>
+
+            <h3>Inputs</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Hash Type</strong></td><td>Drop-down: <code>MD5</code>, <code>SHA-1</code>, <code>SHA-224</code>, <code>SHA-256</code>, <code>SHA-384</code>, <code>SHA-512</code>, <code>RIPEMD-160</code>.</td></tr>
+                        <tr><td><strong>Key Input</strong></td><td>Drop-down: <code>ASCII</code> or <code>Hexadecimal</code>.</td></tr>
+                        <tr><td><strong>HMAC Key</strong></td><td>Single-line text in the chosen format.</td></tr>
+                        <tr><td><strong>Data Input</strong></td><td>Drop-down: <code>ASCII</code> or <code>Hexadecimal</code>.</td></tr>
+                        <tr><td><strong>Data</strong></td><td>Multi-line text in the chosen format.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Walk-through</h3>
+            <ol class="steps">
+                <li><strong>Pick Hash Type</strong> &mdash; <code>SHA-256</code> is a safe default for new work.</li>
+                <li><strong>Pick Key Input</strong> &mdash; <code>ASCII</code> or <code>Hexadecimal</code>.</li>
+                <li><strong>Enter HMAC Key</strong> in the format you selected.</li>
+                <li><strong>Pick Data Input</strong> &mdash; <code>ASCII</code> or <code>Hexadecimal</code>.</li>
+                <li><strong>Enter Data</strong>.</li>
+                <li><strong>Click <code>Generate HMAC</code></strong> &mdash; Output is hex of the digest length (32 bytes for SHA-256, 64 for SHA-512, etc.) and is appended to the activity log.</li>
+            </ol>
+
+            <pre><code>Hash Type:  SHA-256
+Key Input:  Hexadecimal
+HMAC Key:   4A656665
+Data Input: ASCII
+Data:       what do ya want for nothing?
+
+Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</code></pre>
+
+            <div class="info-card note">
+                <div class="info-card-title">No SHA-3 / SM3</div>
+                <p>The current build does not expose SHA-3 or SM3. Use the supported algorithms above.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="cmac">
+            <h2>CMAC Calculator</h2>
+            <p>Cipher-based MAC (NIST SP 800-38B). Uses AES or TDES as the underlying block cipher with subkey derivation to handle final-block padding cleanly.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Cipher</strong> &mdash; AES-128, AES-192, AES-256, or TDES (2-key / 3-key).</li>
+                <li><strong>Key</strong> &mdash; Hex key matching the chosen cipher.</li>
+                <li><strong>Message</strong> &mdash; Hex data of any length (including zero-length).</li>
+                <li><strong>MAC Length</strong> &mdash; Truncation length; defaults to full block size.</li>
+            </ul>
+
+            <div class="info-card tip">
+                <div class="info-card-title">When to use CMAC</div>
+                <p>CMAC handles arbitrary-length messages correctly without padding ambiguities. Prefer it over plain CBC-MAC for new designs.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="tdes-cbc">
+            <h2>TDES CBC-MAC Calculator</h2>
+            <p>Triple-DES CBC-MAC: encrypt the message under TDES in CBC mode and take the last block as the MAC. Common in legacy ISO 8583 implementations.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Key</strong> &mdash; 32 or 48 hex chars (2-key or 3-key 3DES).</li>
+                <li><strong>IV</strong> &mdash; 16 hex chars; usually all zeros.</li>
+                <li><strong>Message</strong> &mdash; Hex; pad to an 8-byte multiple if required.</li>
+                <li><strong>Padding</strong> &mdash; None, Zero, or ISO/IEC 9797-1 Padding Method 1 / 2.</li>
+            </ul>
+
+            <div class="info-card warning">
+                <div class="info-card-title">Security note</div>
+                <p>Pure CBC-MAC is vulnerable to length-extension when the message length is variable. For variable-length messages, use ISO 9797-1 Algorithm 3 (Retail MAC) instead.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="ansi-mac">
+            <h2>ANSI X9.19 MAC Calculator</h2>
+            <p>ANSI X9.19 (financial institution retail message authentication) uses single-DES CBC-MAC across the message, with a final 3DES "finalize" step over the last block. Equivalent to ISO 9797-1 Algorithm 3 with a specific key arrangement.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>MAC Key (KL / KR)</strong> &mdash; Two 8-byte halves of a 3DES key, in hex.</li>
+                <li><strong>Initial Vector</strong> &mdash; 16 hex chars; commonly zeros.</li>
+                <li><strong>Message Data</strong> &mdash; Hex; padded with zeros to an 8-byte boundary if needed.</li>
+            </ul>
+
+            <h3>Algorithm Summary</h3>
+            <ol>
+                <li>Split message into 8-byte blocks.</li>
+                <li>CBC-encrypt each block under <code>KL</code> (single DES), feeding output into the next block.</li>
+                <li>Decrypt the final intermediate value with <code>KR</code>.</li>
+                <li>Encrypt that result with <code>KL</code> again. The output is the MAC.</li>
+            </ol>
+        </section>
+
+        <section class="doc-section" id="iso9797">
+            <h2>ISO 9797 MAC Calculator</h2>
+            <p>ISO/IEC 9797-1 standardises six MAC algorithms over block ciphers. The calculator exposes each variant by tab.</p>
+
+            <h3>Algorithms</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Variant</th><th>Description</th><th>Typical Cipher</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Algorithm 1</strong></td><td>Plain CBC-MAC. Single key. Last block is the MAC.</td><td>DES / 3DES / AES</td></tr>
+                        <tr><td><strong>Algorithm 2</strong></td><td>Last-block encrypted with a derived key (<code>K&prime;</code>).</td><td>DES</td></tr>
+                        <tr><td><strong>Algorithm 3</strong></td><td>Retail MAC: single DES CBC-MAC, then 3DES finalize. Equivalent to ANSI X9.19.</td><td>DES + 3DES</td></tr>
+                        <tr><td><strong>Algorithm 4</strong></td><td>CBC-MAC with two parallel CBC-MAC chains XOR-combined.</td><td>DES / 3DES</td></tr>
+                        <tr><td><strong>Algorithm 5</strong></td><td>EMAC: CBC-MAC re-encrypted with a second key.</td><td>AES</td></tr>
+                        <tr><td><strong>Algorithm 6</strong></td><td>MAC double-CBC encryption with separate keys.</td><td>AES</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Algorithm</strong> &mdash; Pick 1 through 6.</li>
+                <li><strong>Cipher</strong> &mdash; DES, 3DES, or AES (where applicable).</li>
+                <li><strong>Key 1 / Key 2</strong> &mdash; Hex keys; algorithm-dependent.</li>
+                <li><strong>Padding Method</strong> &mdash; ISO Method 1 (zeros), Method 2 (0x80 + zeros), or Method 3 (length prefix + zeros).</li>
+                <li><strong>Message</strong> &mdash; Hex.</li>
+            </ul>
+
+            <div class="info-card note">
+                <div class="info-card-title">Most common in payments</div>
+                <p>Algorithm 1 with TDES is widespread for ISO 8583 MAC fields (bit 64 / 128). Algorithm 3 (Retail MAC) is the European retail standard.</p>
+            </div>
+
+            <h3>Example: Algorithm 1, TDES, Method 2 padding</h3>
+            <pre><code>Key:    0123456789ABCDEFFEDCBA9876543210
+IV:     0000000000000000
+Method: 2 (0x80 followed by zero bytes)
+Data:   48656C6C6F     (ASCII "Hello")
+
+Padded: 48656C6C6F800000
+Output: B11FFC78A4FB1B5A</code></pre>
+        </section>
+
+        <section class="doc-section" id="retail">
+            <h2>Retail MAC Calculator</h2>
+            <p>A dedicated tab for ISO 9797-1 Algorithm 3 with the conventional retail-banking key arrangement. Equivalent to ANSI X9.19 in practice.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Key A / Key B</strong> &mdash; Two 8-byte hex halves forming the 3DES key.</li>
+                <li><strong>IV</strong> &mdash; 16 hex chars.</li>
+                <li><strong>Padding</strong> &mdash; Method 1 or Method 2.</li>
+                <li><strong>Message</strong> &mdash; Hex.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="as2805">
+            <h2>AS2805 MAC Calculator</h2>
+            <p>The Australian Standard AS 2805.4 specifies its own MAC variant for inter-bank messaging. The calculator implements the "MAC" portion of AS 2805 with the expected key splits.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>MAC Key</strong> &mdash; 32 hex chars (2-key 3DES).</li>
+                <li><strong>Message</strong> &mdash; Hex transaction data.</li>
+                <li><strong>Padding</strong> &mdash; AS 2805 specifies its own padding rules; the tool applies them automatically.</li>
+            </ul>
+
+            <div class="info-card tip">
+                <div class="info-card-title">AS2805 stack</div>
+                <p>For end-to-end AS 2805 testing, use the AS2805 Calculator under the Utility Tools section &mdash; it bundles MAC, OWF, PIN translation, and terminal key set generation.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="padding">
+            <h2>Padding Methods (ISO 9797-1)</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Method</th><th>Rule</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Method 1</strong></td><td>Append <code>00</code> bytes to next block boundary.</td><td>Simple but ambiguous &mdash; cannot distinguish trailing zeros in plaintext.</td></tr>
+                        <tr><td><strong>Method 2</strong></td><td>Append a single <code>80</code> byte, then <code>00</code> bytes.</td><td>Self-describing and unambiguous. Recommended.</td></tr>
+                        <tr><td><strong>Method 3</strong></td><td>Prefix message with its length, then pad with <code>00</code>.</td><td>Used in some legacy systems; rare in payments.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="doc-section" id="tips">
+            <h2>Tips</h2>
+            <ul>
+                <li>Always confirm the IV the host expects &mdash; many hosts default to all zeros, but some use the previous transaction&rsquo;s MAC as a chaining vector.</li>
+                <li>Match the padding method to your host spec. A wrong padding method produces a deterministic but wrong MAC, which is one of the most common debugging traps.</li>
+                <li>For DUKPT-derived MAC keys, generate the session key in the DUKPT Tools first, then plug the result into the corresponding MAC calculator.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../blogs/" class="footer-link">Blog</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

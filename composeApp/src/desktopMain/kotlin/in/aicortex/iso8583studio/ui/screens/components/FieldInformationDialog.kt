@@ -166,6 +166,50 @@ fun FieldInformationDialog(
                         usage = "Generates unique values for fields like STAN, RRN, or Authorization codes during testing."
                     )
 
+                    // [DATE] Placeholder
+                    SpecialValueCard(
+                        placeholder = "[DATE]",
+                        title = "Current Date",
+                        description = "Generates the current date, formatted to match the field's expected length",
+                        color = PrimaryBlue,
+                        icon = Icons.Default.DateRange,
+                        examples = listOf(
+                            "Field 13 (4 digits): [DATE] → 1204 (MMDD)",
+                            "Field 17 (6 digits): [DATE] → 251204 (YYMMDD)",
+                            "Custom (8 digits): [DATE] → 20251204 (YYYYMMDD)"
+                        ),
+                        usage = "Use for date-only fields like Local Transaction Date or Capture Date."
+                    )
+
+                    // [AUTO] Placeholder
+                    SpecialValueCard(
+                        placeholder = "[AUTO]",
+                        title = "Auto-increment Counter",
+                        description = "Process-wide counter that increments on every send and is zero-padded to the field length",
+                        color = SuccessGreen,
+                        icon = Icons.Default.PlusOne,
+                        examples = listOf(
+                            "Field 11 (6 digits): [AUTO] → 000001, then 000002, 000003 …",
+                            "Field 37 (12 digits): [AUTO] → 000000000001, …",
+                            "Counter persists for the JVM session"
+                        ),
+                        usage = "Use for STAN, RRN, or sequence numbers when you need monotonic, predictable values."
+                    )
+
+                    // [GUID] Placeholder
+                    SpecialValueCard(
+                        placeholder = "[GUID]",
+                        title = "Random Hex (UUID-derived)",
+                        description = "Random hex characters of the requested field length, derived from UUIDs",
+                        color = WarningYellow,
+                        icon = Icons.Default.Fingerprint,
+                        examples = listOf(
+                            "Field 37 (12 digits): [GUID] → A1B2C3D4E5F6",
+                            "Field 48 (n digits): [GUID] → high-entropy filler"
+                        ),
+                        usage = "Use for token-like fields where you want strong randomness rather than digits-only."
+                    )
+
                     // Usage Guidelines
                     Card(
                         modifier = Modifier.fillMaxWidth(),

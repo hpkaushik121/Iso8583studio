@@ -480,6 +480,8 @@
         @media (max-width: 1024px) {
             .nav { display: none; }
             .mobile-menu-toggle { display: flex; }
+            /* Hide header download on mobile; the dropdown menu has its own copy */
+            .header > .header-container > .header-cta { display: none; }
         }
 
         @media (max-width: 768px) {
@@ -573,6 +575,183 @@
                     <span class="topic-tag">PIN Translation</span>
                     <span class="topic-tag">Encryption</span>
                     <span class="topic-tag">LMK Storage</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./apdu-simulator/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon purple">💳</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">APDU Simulator</div>
+                <div class="doc-card-description">Simulate EMV smart card sessions, monitor APDU command/response traffic, parse TLV structures, and analyze transaction flows.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">EMV</span>
+                    <span class="topic-tag">Smart Cards</span>
+                    <span class="topic-tag">APDU</span>
+                    <span class="topic-tag">TLV Parser</span>
+                    <span class="topic-tag">PC/SC &amp; NFC</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Cryptographic Tools -->
+    <div class="docs-category">
+        <div class="category-header">
+            <div class="category-icon sim"></div>
+            <span class="category-title">Cryptographic Tools</span>
+        </div>
+
+        <div class="docs-grid">
+            <a href="./cipher-tools/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon blue">🔒</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">Cipher Tools</div>
+                <div class="doc-card-description">Symmetric and asymmetric encryption calculators: AES, DES/3DES, RSA, ECDSA, and Format-Preserving Encryption (FPE).</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">AES</span>
+                    <span class="topic-tag">DES / 3DES</span>
+                    <span class="topic-tag">RSA</span>
+                    <span class="topic-tag">ECDSA</span>
+                    <span class="topic-tag">FPE</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./mac-tools/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon teal">📝</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">MAC Tools</div>
+                <div class="doc-card-description">Message Authentication Code calculators including HMAC, CMAC, ISO 9797 MAC variants, ANSI X9.19, Retail MAC, and AS2805.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">HMAC</span>
+                    <span class="topic-tag">CMAC</span>
+                    <span class="topic-tag">ISO 9797</span>
+                    <span class="topic-tag">ANSI X9.19</span>
+                    <span class="topic-tag">Retail MAC</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./dukpt-tools/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon orange">🔑</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">DUKPT Tools</div>
+                <div class="doc-card-description">Derived Unique Key Per Transaction tools for AES (ANSI X9.24-3) and ISO 9797 (ANSI X9.24-1) variants. Derive transaction keys from BDK and KSN.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">DUKPT AES</span>
+                    <span class="topic-tag">DUKPT ISO 9797</span>
+                    <span class="topic-tag">BDK / KSN</span>
+                    <span class="topic-tag">X9.24</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./pin-tools/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon purple">🔢</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">PIN Tools</div>
+                <div class="doc-card-description">PIN block calculators (ISO 9564 formats 0–4, OEM variants), AES PIN blocks, IBM 3624 PIN offset, and VISA PVV calculation.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">PIN Block</span>
+                    <span class="topic-tag">ISO 9564</span>
+                    <span class="topic-tag">PVV</span>
+                    <span class="topic-tag">IBM 3624</span>
+                    <span class="topic-tag">AES PIN</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./card-validation/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon green">💳</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">Card Validation</div>
+                <div class="doc-card-description">Generate and validate card security codes &mdash; Visa CVV/CVV2, MasterCard CVC2/CVC3, and American Express CSC.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">CVV / CVV2</span>
+                    <span class="topic-tag">CVC2 / CVC3</span>
+                    <span class="topic-tag">AMEX CSC</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./key-tools/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon orange">🗝️</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">Key Management Tools</div>
+                <div class="doc-card-description">DEA/3DES key utilities, key block generation (TR-31 &amp; Thales), HSM-vendor key calculators (Thales, Futurex, Atalla, Safenet), keyshare splitting, and SSL certificate workflows.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">TR-31</span>
+                    <span class="topic-tag">Key Blocks</span>
+                    <span class="topic-tag">Thales / Futurex</span>
+                    <span class="topic-tag">Keyshare</span>
+                    <span class="topic-tag">SSL / X.509</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./emv-tools/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon blue">🏦</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">EMV Tools</div>
+                <div class="doc-card-description">EMV ATR parser, tag dictionary, data parser, APDU response decoder, SDA/DDA verification, application cryptogram generation, and CAP token computation.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">ATR Parser</span>
+                    <span class="topic-tag">Tag Dictionary</span>
+                    <span class="topic-tag">SDA / DDA</span>
+                    <span class="topic-tag">App Cryptogram</span>
+                    <span class="topic-tag">CAP Token</span>
+                </div>
+                <div class="doc-card-footer">
+                    Read documentation <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            <a href="./utility-tools/" class="doc-card">
+                <div class="doc-card-header">
+                    <div class="doc-card-icon teal">🛠️</div>
+                    <span class="doc-card-badge badge-available">Available</span>
+                </div>
+                <div class="doc-card-title">Utility Tools</div>
+                <div class="doc-card-description">ISO 8583 bitmap calculator, MDC hash, ZKA, AS2805 utilities, and other miscellaneous payment helpers.</div>
+                <div class="doc-card-topics">
+                    <span class="topic-tag">ISO 8583 Bitmap</span>
+                    <span class="topic-tag">MDC Hash</span>
+                    <span class="topic-tag">ZKA</span>
+                    <span class="topic-tag">AS2805</span>
                 </div>
                 <div class="doc-card-footer">
                     Read documentation <span class="arrow">&rarr;</span>

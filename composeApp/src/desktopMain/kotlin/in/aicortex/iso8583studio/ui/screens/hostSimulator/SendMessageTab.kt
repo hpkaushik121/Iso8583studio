@@ -87,6 +87,7 @@ import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
+import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.PlaceholderProcessor
 import ai.cortex.core.IsoUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
@@ -100,11 +101,47 @@ import java.io.File
 import java.util.UUID
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
+import `in`.aicortex.iso8583studio.ui.screens.components.FieldInformationDialog
 import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
 import `in`.aicortex.iso8583studio.ui.screens.components.FixedTextField
 
 internal fun normalizeSendTabHex(s: String): String =
     s.replace("\\s".toRegex(), "").lowercase()
+
+/**
+ * One paired request/response captured by the Send Message tab.
+ * Lives only in memory for the lifetime of the screen — not persisted.
+ */
+class TxHistoryEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val timestamp: Long = System.currentTimeMillis(),
+    val requestRawHex: String,
+    val requestMti: String,
+    val requestFields: List<Triple<Int, String, String>>, // bit, value, description
+    val responseRawHex: String?,
+    val responseMti: String?,
+    val responseFields: List<Triple<Int, String, String>>?,
+    val error: String? = null,
+)
+
+private fun copyToClipboard(text: String) {
+    try {
+        val selection = java.awt.datatransfer.StringSelection(text)
+        java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, selection)
+    } catch (_: Exception) { }
+}
+
+private fun captureFieldSnapshot(message: Iso8583Data?): List<Triple<Int, String, String>> {
+    if (message == null) return emptyList()
+    val out = mutableListOf<Triple<Int, String, String>>()
+    message.bitAttributes.forEachIndexed { idx, attr ->
+        if (attr.isSet) {
+            val value = attr.getValue() ?: attr.getString()
+            out += Triple(idx + 1, value, attr.description)
+        }
+    }
+    return out
+}
 
 /**
  * Send unsolicited ISO8583 messages: wire hex, structured field editor, saved library, activity log.
@@ -125,6 +162,10 @@ internal fun SendMessageTab(
     lastPackedHexNormState: MutableState<String>,
     selectedMessageState: MutableState<Transaction?>,
     isConnectedState: MutableState<Boolean> = mutableStateOf(false),
+    lastResponseIsoState: MutableState<Iso8583Data?> = mutableStateOf(null),
+    lastResponseRawHexState: MutableState<String> = mutableStateOf(""),
+    transactionHistory: androidx.compose.runtime.snapshots.SnapshotStateList<TxHistoryEntry> =
+        androidx.compose.runtime.mutableStateListOf(),
 ) {
     // Delegate to hoisted state so variable names throughout the function body are unchanged
     var liveMessage: Iso8583Data by liveMessageState
@@ -148,6 +189,7 @@ internal fun SendMessageTab(
     var showImportDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
+    var showPlaceholdersDialog by remember { mutableStateOf(false) }
 
     var rightSideTab by remember { mutableIntStateOf(0) }
     var isSending by remember { mutableStateOf(false) }
@@ -445,9 +487,16 @@ internal fun SendMessageTab(
                             if (isSending) {
                                 OutlinedButton(
                                     onClick = {
+                                        // Closing the underlying socket is the only way to unblock
+                                        // a thread parked in Socket.read(); coroutine cancellation
+                                        // alone would wait for the GatewayClient timeout to fire.
+                                        gw.abortCurrentSend()
                                         sendJob?.cancel()
                                         sendJob = null
                                         isSending = false
+                                        if (isAsyncClient) {
+                                            isConnected = false
+                                        }
                                     },
                                     shape = RoundedCornerShape(6.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(
@@ -465,7 +514,44 @@ internal fun SendMessageTab(
                         // Send button (always on the right)
                         Button(
                             onClick = {
-                                val norm = normalizeSendTabHex(rawMessageString)
+                                // Resolve any [TIME]/[RAND]/[AUTO]/[DATE]/[GUID] placeholders in
+                                // the live message before sending. If none of the fields contain
+                                // a placeholder, this is a no-op and we send the existing hex.
+                                val hasPlaceholders = liveMessage.bitAttributes.any { attr ->
+                                    attr.isSet && attr.getValue()
+                                        ?.let { PlaceholderProcessor.holdersList.contains(it) } == true
+                                }
+
+                                val sendHex = if (hasPlaceholders) {
+                                    try {
+                                        val resolvedAttrs = PlaceholderProcessor.processPlaceholders(
+                                            liveMessage.bitAttributes,
+                                            requestTransaction = null
+                                        )
+                                        val resolved = Iso8583Data(
+                                            template = resolvedAttrs,
+                                            config = gw.configuration,
+                                            isFirst = false
+                                        )
+                                        resolved.messageType = liveMessage.messageType
+                                        resolved.tpduHeader.rawTPDU = liveMessage.tpduHeader.rawTPDU
+                                        IsoUtil.bcdToString(resolved.pack()).also { hex ->
+                                            // Reflect resolved hex in the wire preview so the user
+                                            // sees what actually went out.
+                                            rawMessageString = hex
+                                            lastPackedHexNorm = normalizeSendTabHex(hex)
+                                        }
+                                    } catch (e: Exception) {
+                                        gw.resultDialogInterface?.onError {
+                                            Text("Placeholder substitution failed: ${e.message}")
+                                        }
+                                        return@Button
+                                    }
+                                } else {
+                                    rawMessageString
+                                }
+
+                                val norm = normalizeSendTabHex(sendHex)
                                 if (norm.isEmpty()) return@Button
                                 if (norm.length % 2 != 0) {
                                     gw.resultDialogInterface?.onError { Text("Invalid hex length") }
@@ -473,7 +559,21 @@ internal fun SendMessageTab(
                                 }
                                 isSending = true
                                 rightSideTab = 1
+                                // Snapshot request data BEFORE sending — the live message may be
+                                // mutated by the response callback or the user before we get to
+                                // building the history entry.
+                                val requestSnapshot = run {
+                                    try {
+                                        val bytes = IsoUtil.stringToBcd(norm, norm.length / 2)
+                                        Iso8583Data(gw.configuration, isFirst = false).also { it.unpackByteArray(bytes) }
+                                    } catch (_: Exception) { null }
+                                }
+                                val requestMtiSnapshot = requestSnapshot?.messageType
+                                    ?: liveMessage.messageType
+                                val requestFieldsSnapshot = captureFieldSnapshot(requestSnapshot ?: liveMessage)
+                                val requestHexSnapshot = norm.uppercase()
                                 sendJob = coroutineScope.launch {
+                                    var sendError: String? = null
                                     try {
                                         val bytes = IsoUtil.stringToBcd(norm, norm.length / 2)
                                         if (isAsyncClient) {
@@ -483,7 +583,27 @@ internal fun SendMessageTab(
                                         }
                                     } catch (e: Exception) {
                                         e.printStackTrace()
+                                        sendError = e.message ?: e.javaClass.simpleName
                                     } finally {
+                                        // Pair request with whatever the parent captured as the
+                                        // most recent response. If no response arrived (timeout
+                                        // or fire-and-forget) the response fields will be null.
+                                        val respIso = lastResponseIsoState.value
+                                        val respHex = lastResponseRawHexState.value.takeIf { it.isNotBlank() }
+                                        val entry = TxHistoryEntry(
+                                            requestRawHex = requestHexSnapshot,
+                                            requestMti = requestMtiSnapshot,
+                                            requestFields = requestFieldsSnapshot,
+                                            responseRawHex = respHex?.uppercase(),
+                                            responseMti = respIso?.messageType,
+                                            responseFields = respIso?.let { captureFieldSnapshot(it) },
+                                            error = sendError,
+                                        )
+                                        transactionHistory.add(0, entry)
+                                        // Cap at 200 entries to avoid unbounded growth.
+                                        while (transactionHistory.size > 200) {
+                                            transactionHistory.removeAt(transactionHistory.lastIndex)
+                                        }
                                         isSending = false
                                         sendJob = null
                                     }
@@ -584,6 +704,15 @@ internal fun SendMessageTab(
                                         if (showDecodedLog) "Hide decoded log"
                                         else "Show decoded log"
                                     )
+                                }
+                                TextButton(onClick = { showPlaceholdersDialog = true }) {
+                                    Icon(
+                                        Icons.Default.Code,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Placeholders")
                                 }
                             }
                             AnimatedVisibility(visible = showDecodedLog) {
@@ -747,6 +876,17 @@ internal fun SendMessageTab(
                                 )
                             }
                         )
+                        Tab(
+                            selected = rightSideTab == 2,
+                            onClick = { rightSideTab = 2 },
+                            text = {
+                                Text(
+                                    if (transactionHistory.isEmpty()) "History"
+                                    else "History (${transactionHistory.size})",
+                                    fontWeight = if (rightSideTab == 2) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            }
+                        )
                     }
                     Box(
                         modifier = Modifier
@@ -798,6 +938,12 @@ internal fun SendMessageTab(
                                     onBack = { rightSideTab = 0 }
                                 )
                             }
+
+                            2 -> TransactionHistoryPanel(
+                                history = transactionHistory,
+                                onClear = { transactionHistory.clear() },
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
                     }
                 }
@@ -850,6 +996,12 @@ internal fun SendMessageTab(
         if (showInfoDialog) {
             InformationDialog(
                 onDismiss = { showInfoDialog = false }
+            )
+        }
+
+        if (showPlaceholdersDialog) {
+            FieldInformationDialog(
+                onCloseRequest = { showPlaceholdersDialog = false }
             )
         }
 
@@ -1478,6 +1630,18 @@ fun InformationDialog(
                         title = "Send",
                         description = "Sends the current wire hex to connected clients. Activity tab shows the log."
                     )
+
+                    InformationItem(
+                        icon = Icons.Default.Code,
+                        title = "Field placeholders",
+                        description = "Type one of these tokens as a field value to substitute it at send time:\n" +
+                            "• [TIME] — current time, formatted to field length (HHMMSS / MMDDHHMMSS / …)\n" +
+                            "• [DATE] — current date (MMDD / YYMMDD / YYYYMMDD)\n" +
+                            "• [RAND] — random numeric value of field length\n" +
+                            "• [AUTO] — auto-increment counter, zero-padded to field length\n" +
+                            "• [GUID] — random hex characters of field length\n" +
+                            "After Send, the wire preview updates to show the resolved value."
+                    )
                 }
 
                 Text(
@@ -1912,5 +2076,361 @@ private fun HexPasteDecodeDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TransactionHistoryPanel(
+    history: List<TxHistoryEntry>,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expandedId by remember { mutableStateOf<String?>(null) }
+    var copiedKey by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(copiedKey) {
+        if (copiedKey != null) {
+            delay(1200)
+            copiedKey = null
+        }
+    }
+
+    fun copy(key: String, value: String) {
+        copyToClipboard(value)
+        copiedKey = key
+    }
+
+    Panel(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colors.primary.copy(alpha = 0.1f))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (history.isEmpty()) "No transactions yet"
+                    else "${history.size} transaction${if (history.size == 1) "" else "s"}",
+                    style = MaterialTheme.typography.caption,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.75f),
+                    fontWeight = FontWeight.Medium,
+                )
+                if (history.isNotEmpty()) {
+                    TextButton(
+                        onClick = onClear,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                        modifier = Modifier.height(28.dp),
+                    ) {
+                        Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Clear", fontSize = 11.sp)
+                    }
+                }
+            }
+
+            if (history.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colors.onSurface.copy(alpha = 0.25f),
+                            modifier = Modifier.size(36.dp),
+                        )
+                        Text(
+                            text = "Send a message to populate history",
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.55f),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(history.size) { idx ->
+                        val entry = history[idx]
+                        TransactionHistoryItem(
+                            entry = entry,
+                            expanded = expandedId == entry.id,
+                            onToggle = {
+                                expandedId = if (expandedId == entry.id) null else entry.id
+                            },
+                            copiedKey = copiedKey,
+                            onCopy = ::copy,
+                        )
+                        if (idx < history.size - 1) {
+                            Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.06f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransactionHistoryItem(
+    entry: TxHistoryEntry,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    copiedKey: String?,
+    onCopy: (key: String, value: String) -> Unit,
+) {
+    val timeStr = remember(entry.timestamp) {
+        val sdf = java.text.SimpleDateFormat("HH:mm:ss")
+        sdf.format(java.util.Date(entry.timestamp))
+    }
+    val statusColor = when {
+        entry.error != null -> MaterialTheme.colors.error
+        entry.responseRawHex != null -> Color(0xFF2E7D32)
+        else -> Color(0xFFF57F17)
+    }
+    val statusLabel = when {
+        entry.error != null -> "ERROR"
+        entry.responseRawHex != null -> "OK"
+        else -> "NO RESP"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() }
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = statusColor.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f)),
+            ) {
+                Text(
+                    text = statusLabel,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = statusColor,
+                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                )
+            }
+            Text(
+                text = entry.requestMti,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colors.primary,
+            )
+            Text(
+                text = entry.responseMti?.let { "→ $it" } ?: "",
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.55f),
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = timeStr,
+                fontSize = 10.sp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                fontFamily = FontFamily.Monospace,
+            )
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (entry.error != null) {
+                    Text(
+                        text = "Error: ${entry.error}",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.error,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colors.error.copy(alpha = 0.08f),
+                                RoundedCornerShape(4.dp),
+                            )
+                            .padding(6.dp),
+                    )
+                }
+
+                HistorySection(
+                    title = "Request",
+                    titleColor = MaterialTheme.colors.primary,
+                    rawHex = entry.requestRawHex,
+                    rawHexCopyKey = "${entry.id}-req-raw",
+                    fields = entry.requestFields,
+                    fieldsCopyPrefix = "${entry.id}-req-f",
+                    copiedKey = copiedKey,
+                    onCopy = onCopy,
+                )
+
+                HistorySection(
+                    title = "Response",
+                    titleColor = Color(0xFF2E7D32),
+                    rawHex = entry.responseRawHex ?: "",
+                    rawHexCopyKey = "${entry.id}-resp-raw",
+                    fields = entry.responseFields ?: emptyList(),
+                    fieldsCopyPrefix = "${entry.id}-resp-f",
+                    copiedKey = copiedKey,
+                    onCopy = onCopy,
+                    emptyText = if (entry.responseRawHex == null)
+                        "No response received"
+                    else null,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistorySection(
+    title: String,
+    titleColor: Color,
+    rawHex: String,
+    rawHexCopyKey: String,
+    fields: List<Triple<Int, String, String>>,
+    fieldsCopyPrefix: String,
+    copiedKey: String?,
+    onCopy: (key: String, value: String) -> Unit,
+    emptyText: String? = null,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colors.background.copy(alpha = 0.5f),
+                RoundedCornerShape(6.dp),
+            )
+            .border(
+                BorderStroke(1.dp, titleColor.copy(alpha = 0.2f)),
+                RoundedCornerShape(6.dp),
+            )
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.caption,
+            fontWeight = FontWeight.Bold,
+            color = titleColor,
+        )
+
+        if (emptyText != null) {
+            Text(
+                text = emptyText,
+                fontSize = 11.sp,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+            )
+            return@Column
+        }
+
+        // Raw hex row with copy
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "raw",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colors.onSurface.copy(alpha = 0.06f),
+                        RoundedCornerShape(3.dp),
+                    )
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+            Text(
+                text = rawHex,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 10.sp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.85f),
+                modifier = Modifier.weight(1f),
+            )
+            CopyChip(
+                copied = copiedKey == rawHexCopyKey,
+                onClick = { onCopy(rawHexCopyKey, rawHex) },
+            )
+        }
+
+        if (fields.isNotEmpty()) {
+            Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.06f))
+            fields.forEach { (bit, value, desc) ->
+                val key = "$fieldsCopyPrefix-$bit"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = "F${bit.toString().padStart(3, '0')}",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = titleColor,
+                        modifier = Modifier
+                            .background(
+                                titleColor.copy(alpha = 0.1f),
+                                RoundedCornerShape(3.dp),
+                            )
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (desc.isNotBlank()) {
+                            Text(
+                                text = desc,
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Text(
+                            text = value,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.9f),
+                        )
+                    }
+                    CopyChip(
+                        copied = copiedKey == key,
+                        onClick = { onCopy(key, value) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CopyChip(copied: Boolean, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(22.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.ContentCopy,
+            contentDescription = "Copy",
+            tint = if (copied) Color(0xFF2E7D32)
+            else MaterialTheme.colors.onSurface.copy(alpha = 0.55f),
+            modifier = Modifier.size(13.dp),
+        )
     }
 }

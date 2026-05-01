@@ -148,16 +148,18 @@ data class Iso8583Data(
     fun packBit(bitNumber: Int, dataString: String) {
         val index = bitNumber - 1
         var value = dataString
+        val isPlaceholder = PlaceholderProcessor.holdersList.contains(dataString)
         when (m_BitAttributes[index].typeAtribute) {
             BitType.AN -> {
                 m_BitAttributes[index].length =
                     if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
                         value.length
                     } else {
-                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        if (!isPlaceholder) value = value.padStart(m_BitAttributes[index].maxLength, '0')
                         m_BitAttributes[index].maxLength
                     }
-                m_BitAttributes[index].data = IsoUtil.stringToAN(value)
+                m_BitAttributes[index].data =
+                    if (isPlaceholder) IsoUtil.stringToAsc(value) else IsoUtil.stringToAN(value)
             }
 
             BitType.ANS -> {
@@ -165,7 +167,7 @@ data class Iso8583Data(
                     if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
                         value.length
                     } else {
-                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        if (!isPlaceholder) value = value.padStart(m_BitAttributes[index].maxLength, '0')
                         m_BitAttributes[index].maxLength
                     }
                 m_BitAttributes[index].data = IsoUtil.stringToAsc(value)
@@ -176,23 +178,29 @@ data class Iso8583Data(
                     if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
                         value.length
                     } else {
-                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        if (!isPlaceholder) value = value.padStart(m_BitAttributes[index].maxLength, '0')
                         m_BitAttributes[index].maxLength
                     }
-                m_BitAttributes[index].data =
+                m_BitAttributes[index].data = if (isPlaceholder) {
+                    IsoUtil.stringToAsc(value)
+                } else {
                     IsoUtil.stringToBCD(value, (m_BitAttributes[index].length + 1) / 2)
+                }
             }
 
             BitType.BINARY -> {
                 m_BitAttributes[index].length =
                     if (m_BitAttributes[index].lengthAttribute != BitLength.FIXED) {
-                        (value.length + 1) / 2
+                        if (isPlaceholder) value.length else (value.length + 1) / 2
                     } else {
-                        value = value.padStart(m_BitAttributes[index].maxLength, '0')
+                        if (!isPlaceholder) value = value.padStart(m_BitAttributes[index].maxLength, '0')
                         m_BitAttributes[index].maxLength
                     }
-                m_BitAttributes[index].data =
+                m_BitAttributes[index].data = if (isPlaceholder) {
+                    IsoUtil.stringToAsc(value)
+                } else {
                     IsoUtil.stringToBCD(value, m_BitAttributes[index].length)
+                }
             }
 
             else -> {}

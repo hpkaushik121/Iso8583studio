@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APDU Simulator Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio APDU Simulator documentation - Simulate EMV smart card sessions, monitor APDU command/response traffic, parse TLV data, and analyze transaction flows for contact, contactless, and MIFARE cards.">
+    <meta name="keywords" content="APDU simulator, EMV smart card simulator, ISO 7816, PC/SC, NFC card simulator, MIFARE simulator, APDU monitor, TLV parser, smart card testing, EMV transaction flow analysis, ATR analysis, AID selection, contactless card testing">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/apdu-simulator/">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="APDU Simulator Documentation - ISO8583Studio">
+    <meta property="og:description" content="Complete guide to simulating EMV smart card sessions, monitoring APDU traffic, and parsing TLV data.">
+    <link rel="stylesheet" href="../_shared.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../" class="nav-link">Documentation</a>
+            <a href="../../blogs/" class="nav-link">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Getting Started</div>
+            <a href="#overview" class="sidebar-link active">Overview</a>
+            <a href="#quick-start" class="sidebar-link">Quick Start</a>
+            <a href="#card-types" class="sidebar-link">Supported Card Types</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Tabs</div>
+            <a href="#card-session" class="sidebar-link">Card Session</a>
+            <a href="#apdu-monitor" class="sidebar-link">APDU Monitor</a>
+            <a href="#tlv-parser" class="sidebar-link">TLV Parser</a>
+            <a href="#flow-analysis" class="sidebar-link">Flow Analysis</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#interfaces" class="sidebar-link">Reader Interfaces</a>
+            <a href="#response-modes" class="sidebar-link">Response Modes</a>
+            <a href="#status-words" class="sidebar-link">Common Status Words</a>
+            <a href="#tips" class="sidebar-link">Tips &amp; Troubleshooting</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="../">Documentation</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>APDU Simulator</span>
+        </div>
+
+        <h1 class="page-title">APDU Simulator</h1>
+        <p class="page-description">Simulate EMV smart card sessions and analyze APDU command/response exchanges. Useful for terminal development, kernel testing, and reverse-engineering card behavior without physical hardware.</p>
+
+        <section class="doc-section" id="overview">
+            <h2>Overview</h2>
+            <p>The APDU Simulator emulates a smart card endpoint that responds to ISO 7816-4 APDU commands. It can either drive a connected reader (PC/SC, NFC) using a virtual or real card, or run in pure mock mode for offline development.</p>
+
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <div class="feature-item-icon">💳</div>
+                    <h4>Card Session</h4>
+                    <p>Open and manage card sessions. Supports EMV contact, contactless, and MIFARE-style cards.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">📡</div>
+                    <h4>APDU Monitor</h4>
+                    <p>Real-time view of every C-APDU and R-APDU pair with annotated CLA / INS / P1 / P2 / Lc / Le and status word.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">🌳</div>
+                    <h4>TLV Parser</h4>
+                    <p>Parse BER-TLV / EMV templates, expand nested tags, and inspect tag definitions and lengths.</p>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-item-icon">📈</div>
+                    <h4>Flow Analysis</h4>
+                    <p>Visualize transaction flow phases (SELECT, GPO, READ RECORD, GENERATE AC) with timing statistics.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="doc-section" id="quick-start">
+            <h2>Quick Start</h2>
+            <ol class="steps">
+                <li><strong>Open the APDU Simulator</strong> &mdash; From the home screen, choose <code>Simulator &rarr; APDU Simulator</code>.</li>
+                <li><strong>Pick a card type</strong> &mdash; Select <strong>EMV Contact</strong>, <strong>EMV Contactless</strong>, or <strong>MIFARE</strong> in the Card Session tab.</li>
+                <li><strong>Choose an interface</strong> &mdash; Select <code>PC/SC</code>, <code>NFC</code>, or <code>Mock/USB</code> depending on your hardware (or no hardware).</li>
+                <li><strong>Set the AID</strong> &mdash; Enter the application identifier (e.g. <code>A0000000031010</code> for Visa Credit, <code>A0000000041010</code> for MasterCard).</li>
+                <li><strong>Start the session</strong> &mdash; Click <strong>Start</strong>. The simulator will perform <code>SELECT AID</code> and wait for further commands.</li>
+                <li><strong>Send commands or watch traffic</strong> &mdash; Use the APDU Monitor tab to send manual commands, or let the connected terminal drive the flow.</li>
+            </ol>
+
+            <div class="info-card tip">
+                <div class="info-card-title">Tip</div>
+                <p>If you don&rsquo;t have a physical reader, use the <strong>Mock/USB</strong> interface to script the entire transaction in the app and replay APDUs.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="card-types">
+            <h2>Supported Card Types</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Card Type</th><th>Protocol</th><th>Typical Use</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="badge badge-blue">EMV Contact</span></td><td>ISO 7816 T=0 / T=1</td><td>Chip-and-PIN credit and debit cards.</td></tr>
+                        <tr><td><span class="badge badge-teal">EMV Contactless</span></td><td>ISO 14443 / EMV CL kernels</td><td>Tap-to-pay payment cards and mobile wallets.</td></tr>
+                        <tr><td><span class="badge badge-yellow">MIFARE</span></td><td>ISO 14443 Type A</td><td>Transit, access control, and loyalty cards.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="doc-section" id="card-session">
+            <h2>Card Session Tab</h2>
+            <p>The Card Session tab is the control surface for opening, configuring, and ending a smart card session.</p>
+
+            <h3>Configuration</h3>
+            <ul>
+                <li><strong>Card Type</strong> &mdash; EMV Contact, EMV Contactless, or MIFARE.</li>
+                <li><strong>Interface</strong> &mdash; PC/SC, NFC, or Mock/USB.</li>
+                <li><strong>AID</strong> &mdash; Application Identifier to select on session start.</li>
+                <li><strong>ATR</strong> &mdash; Static or dynamic ATR returned to the reader on power-up.</li>
+                <li><strong>Reader Name</strong> &mdash; The PC/SC reader to use when multiple are connected.</li>
+            </ul>
+
+            <h3>Session Controls</h3>
+            <ul>
+                <li><strong>Start</strong> &mdash; Powers the virtual card and waits for APDUs.</li>
+                <li><strong>Reset</strong> &mdash; Re-issues an ATR and clears session state.</li>
+                <li><strong>Stop</strong> &mdash; Closes the session.</li>
+            </ul>
+
+            <h3>Live Statistics</h3>
+            <p>While the session is active, the panel displays:</p>
+            <ul>
+                <li>Total APDU exchanges</li>
+                <li>Average processing time per command (ms)</li>
+                <li>Distribution of status words returned</li>
+                <li>Last error / exception</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="apdu-monitor">
+            <h2>APDU Monitor Tab</h2>
+            <p>The APDU Monitor displays every command exchange as a row showing the request, the response, and timing.</p>
+
+            <h3>Sending Manual Commands</h3>
+            <p>Use the command builder to construct an APDU:</p>
+            <pre><code>CLA: 00     INS: A4     P1: 04     P2: 00
+Lc:  07     Data: A0 00 00 00 03 10 10
+Le:  00</code></pre>
+
+            <p>This issues a <code>SELECT AID</code> for Visa Credit. The response is decoded into:</p>
+            <ul>
+                <li><strong>SW1 SW2</strong> &mdash; Two-byte status word.</li>
+                <li><strong>Response Data</strong> &mdash; Optional FCI template for SELECT, parsed via the TLV parser.</li>
+                <li><strong>Timing</strong> &mdash; Processing time in milliseconds.</li>
+            </ul>
+
+            <h3>Error Injection</h3>
+            <p>Force the simulator to return specific error status words to test terminal error handling:</p>
+            <ul>
+                <li><code>6982</code> &mdash; Security status not satisfied</li>
+                <li><code>6985</code> &mdash; Conditions of use not satisfied</li>
+                <li><code>6A82</code> &mdash; File not found</li>
+                <li><code>6A86</code> &mdash; Incorrect P1 P2</li>
+                <li><code>6300</code> &mdash; Authentication failed (with retry counter)</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="tlv-parser">
+            <h2>TLV Parser Tab</h2>
+            <p>Parse BER-TLV and EMV-TLV encoded data. Paste any hex blob (FCI template, AFL, response data) and the parser will recursively expand nested tags.</p>
+
+            <h3>Example</h3>
+            <p>Input:</p>
+            <pre><code>6F 1A 84 07 A0 00 00 00 03 10 10
+A5 0F 50 0A 56 49 53 41 20 43 52 45 44 49 54
+9F 38 03 9F 33 02</code></pre>
+
+            <p>Output (annotated):</p>
+            <pre><code>6F (FCI Template) [26 bytes]
+&#9492; 84 (DF Name)            A0 00 00 00 03 10 10
+&#9492; A5 (FCI Proprietary)
+   &#9492; 50 (Application Label)  "VISA CREDIT"
+   &#9492; 9F 38 (PDOL)             9F 33 02</code></pre>
+
+            <div class="info-card note">
+                <div class="info-card-title">Note</div>
+                <p>The TLV parser uses the EMV Tag Dictionary in the background &mdash; tags are annotated with their EMV book reference and template ownership.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="flow-analysis">
+            <h2>Flow Analysis Tab</h2>
+            <p>The Flow Analysis tab groups APDU exchanges into EMV transaction phases for at-a-glance review.</p>
+
+            <h3>Phases Tracked</h3>
+            <ol>
+                <li><strong>Selection</strong> &mdash; PSE / PPSE selection, AID selection, FCI return.</li>
+                <li><strong>GPO</strong> &mdash; <code>GET PROCESSING OPTIONS</code> with PDOL data, AIP / AFL response.</li>
+                <li><strong>Read Records</strong> &mdash; Each <code>READ RECORD</code> call iterating through the AFL.</li>
+                <li><strong>Offline Authentication</strong> &mdash; SDA / DDA / CDA verification calls.</li>
+                <li><strong>Cardholder Verification</strong> &mdash; <code>VERIFY</code> commands (online / offline PIN, signature).</li>
+                <li><strong>Transaction</strong> &mdash; <code>GENERATE AC</code> first generate, optional second generate, AAC / TC / ARQC.</li>
+                <li><strong>Script Processing</strong> &mdash; Issuer scripts after online authorization.</li>
+            </ol>
+
+            <p>Each phase row shows the number of APDUs, the cumulative time, and the resulting status. Click into any phase to drill down to individual APDU exchanges.</p>
+        </section>
+
+        <section class="doc-section" id="interfaces">
+            <h2>Reader Interfaces</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Interface</th><th>Connection</th><th>Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="badge badge-blue">PC/SC</span></td><td>USB chip reader (e.g. ACR38, Identiv SCR3310)</td><td>Standard contact reader API; works with any PC/SC-compatible reader.</td></tr>
+                        <tr><td><span class="badge badge-teal">NFC</span></td><td>Contactless reader (ACR122U, PN532)</td><td>For ISO 14443 contactless cards and emulated wallets.</td></tr>
+                        <tr><td><span class="badge badge-yellow">Mock / USB</span></td><td>None &mdash; pure software</td><td>Run without hardware. Useful for unit-style testing of terminal logic against scripted card responses.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="doc-section" id="response-modes">
+            <h2>Response Modes</h2>
+            <p>Choose how the simulator answers incoming APDUs:</p>
+            <ul>
+                <li><strong>Automatic</strong> &mdash; Returns canned responses from the active EMV profile (typical for a Visa or MasterCard card).</li>
+                <li><strong>Manual</strong> &mdash; Pauses on each request and lets you craft the response by hand. Useful for reproducing edge cases.</li>
+                <li><strong>Script-based</strong> &mdash; Loads a script defining responses for a sequence of APDUs. Replays them in order regardless of input variation.</li>
+            </ul>
+
+            <div class="info-card warning">
+                <div class="info-card-title">Heads-up</div>
+                <p>In <strong>Manual</strong> mode the connected terminal will time out unless you respond promptly. Increase the terminal timeout if you need extra inspection time.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="status-words">
+            <h2>Common Status Words</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>SW1 SW2</th><th>Meaning</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>9000</code></td><td>Success.</td></tr>
+                        <tr><td><code>61xx</code></td><td>Response available; <code>xx</code> bytes remain. Issue <code>GET RESPONSE</code>.</td></tr>
+                        <tr><td><code>6Cxx</code></td><td>Wrong Le; correct Le is <code>xx</code>.</td></tr>
+                        <tr><td><code>6300</code></td><td>Authentication failed (PIN verification with no retry counter).</td></tr>
+                        <tr><td><code>63Cx</code></td><td>PIN verification failed; <code>x</code> tries remaining.</td></tr>
+                        <tr><td><code>6700</code></td><td>Wrong length.</td></tr>
+                        <tr><td><code>6982</code></td><td>Security status not satisfied.</td></tr>
+                        <tr><td><code>6985</code></td><td>Conditions of use not satisfied.</td></tr>
+                        <tr><td><code>6A82</code></td><td>File or application not found.</td></tr>
+                        <tr><td><code>6A86</code></td><td>Incorrect P1 / P2.</td></tr>
+                        <tr><td><code>6D00</code></td><td>Instruction code not supported.</td></tr>
+                        <tr><td><code>6E00</code></td><td>Class not supported.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="doc-section" id="tips">
+            <h2>Tips &amp; Troubleshooting</h2>
+            <ul>
+                <li><strong>Reader not detected</strong> &mdash; Check that the PC/SC service is running and the reader is exclusively held by ISO8583Studio (close other smartcard apps).</li>
+                <li><strong>ATR mismatch</strong> &mdash; Some terminals validate the ATR against a list. Override the simulator&rsquo;s ATR to match your expected card profile.</li>
+                <li><strong>Slow contactless</strong> &mdash; Reduce the response delay in mock mode; contactless kernels often time out at ~500&nbsp;ms.</li>
+                <li><strong>TLV parse errors</strong> &mdash; Verify the input is valid hex (no <code>0x</code> prefix, no commas) and that nested templates are length-correct.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../blogs/" class="footer-link">Blog</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMV Tools Documentation - ISO8583Studio</title>
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio EMV Tools documentation - ATR parser, EMV tag dictionary, EMV data parser, APDU response decoder, SDA/DDA verification, application cryptogram generation, secure messaging, and CAP token computation.">
+    <meta name="keywords" content="EMV tools, ATR parser, EMV tag dictionary, EMV TLV parser, APDU response decoder, SDA, DDA, CDA, application cryptogram, ARQC, TC, AAC, CAP token, EMV secure messaging, ICC dynamic number">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://iso8583.studio/docs/emv-tools/">
+    <link rel="stylesheet" href="../_shared.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-container">
+        <a href="../../" class="logo">
+            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
+            ISO8583Studio
+        </a>
+        <nav class="nav">
+            <a href="../../" class="nav-link">Home</a>
+            <a href="../" class="nav-link">Documentation</a>
+            <a href="../../blogs/" class="nav-link">Blog</a>
+        </nav>
+        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
+    </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="page-wrapper">
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+
+        <div class="sidebar-cta-wrapper">
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Overview</div>
+            <a href="#overview" class="sidebar-link active">Introduction</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Parsers &amp; References</div>
+            <a href="#atr" class="sidebar-link">ATR Parser</a>
+            <a href="#tag-dict" class="sidebar-link">Tag Dictionary</a>
+            <a href="#data-parser" class="sidebar-link">EMV Data Parser</a>
+            <a href="#apdu-resp" class="sidebar-link">APDU Response Query</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Authentication</div>
+            <a href="#sda" class="sidebar-link">SDA Verification</a>
+            <a href="#dda" class="sidebar-link">DDA Verification</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Cryptograms</div>
+            <a href="#app-crypto" class="sidebar-link">Application Cryptogram</a>
+            <a href="#secure-msg" class="sidebar-link">Secure Messaging</a>
+            <a href="#icc-dyn" class="sidebar-link">ICC Dynamic Number</a>
+            <a href="#ds-key" class="sidebar-link">DS Partial Key</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Token / HCE</div>
+            <a href="#cap" class="sidebar-link">CAP Token</a>
+            <a href="#hce" class="sidebar-link">HCE</a>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-title">Reference</div>
+            <a href="#tips" class="sidebar-link">Tips</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="breadcrumb">
+            <a href="../../">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="../">Documentation</a>
+            <span class="breadcrumb-sep">/</span>
+            <span>EMV Tools</span>
+        </div>
+
+        <h1 class="page-title">EMV Tools</h1>
+        <p class="page-description">A complete suite for working with EMV smart card data &mdash; parsers, lookup references, offline authentication verifiers, and cryptogram generators. Each tool is hex-driven, with annotated outputs and an audit log.</p>
+
+        <section class="doc-section" id="overview">
+            <h2>Introduction</h2>
+            <p>EMV tools live under <code>Tools &rarr; EMV</code>. They&rsquo;re organised by transaction phase: parsers and references for inspecting card data, then authentication and cryptogram tools for the cryptographic stages of an EMV flow.</p>
+            <p>If you&rsquo;re unsure which tool you need, start with the <strong>EMV Data Parser</strong> &mdash; paste a captured response, and the parser will name the tags involved and link out to per-tag documentation.</p>
+        </section>
+
+        <section class="doc-section" id="atr">
+            <h2>ATR Parser</h2>
+            <p>Decodes the Answer To Reset (ATR) returned by a contact smart card.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>ATR</strong> &mdash; Hex bytes returned during card power-up (e.g. <code>3B 7F 96 00 00 80 31 80 65 B0 84 12 11 84 80 0F 90 00</code>).</li>
+            </ul>
+
+            <h3>Output</h3>
+            <p>The parser breaks the ATR into:</p>
+            <ul>
+                <li><strong>TS</strong> &mdash; Initial character (direct vs inverse convention).</li>
+                <li><strong>T0</strong> &mdash; Format byte; indicates the presence of TA1, TB1, TC1, TD1.</li>
+                <li><strong>TA<sub>i</sub> / TB<sub>i</sub> / TC<sub>i</sub> / TD<sub>i</sub></strong> &mdash; Interface bytes describing protocol parameters.</li>
+                <li><strong>Historical Bytes</strong> &mdash; Often contain a Card Issuer Identifier or pre-issuing data.</li>
+                <li><strong>TCK</strong> &mdash; Optional check byte.</li>
+            </ul>
+
+            <div class="info-card tip">
+                <div class="info-card-title">Tip</div>
+                <p>If your reader expects T=0 but the card advertises T=1 (or vice versa), the protocol negotiation will fail. The ATR parser highlights the offered protocols so you can rule this out quickly.</p>
+            </div>
+        </section>
+
+        <section class="doc-section" id="tag-dict">
+            <h2>EMV Tag Dictionary</h2>
+            <p>A searchable database of EMV tags drawn from EMV Books 1&ndash;4 plus scheme-specific kernels (Visa, MasterCard, JCB, AMEX, Discover).</p>
+
+            <h3>Search</h3>
+            <ul>
+                <li><strong>Tag</strong> &mdash; Search by hex tag (e.g. <code>9F26</code>).</li>
+                <li><strong>Name</strong> &mdash; Search by tag name (e.g. <code>cryptogram</code>).</li>
+                <li><strong>Kernel</strong> &mdash; Filter by Visa, MasterCard, JCB, AMEX, etc.</li>
+                <li><strong>Source</strong> &mdash; Limit to tags originating from the ICC, terminal, or both.</li>
+            </ul>
+
+            <h3>Per-Tag Information</h3>
+            <ul>
+                <li>Tag, name, scope (template), and book reference.</li>
+                <li>Format (binary, numeric, alphanumeric, compressed numeric, etc.).</li>
+                <li>Length range.</li>
+                <li>Description and usage notes.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="data-parser">
+            <h2>EMV Data Parser</h2>
+            <p>Paste raw EMV transaction data (hex) and the parser splits it into BER-TLV tags, recursively expanding nested templates.</p>
+
+            <h3>Sample</h3>
+            <pre><code>Input:
+9F1A 02 0840 9F35 01 22 9F33 03 E0F8C8 9F40 05 F000F0A001
+
+Output:
+9F1A (Terminal Country Code)        0840         (United States)
+9F35 (Terminal Type)                22           (Attended, online-only)
+9F33 (Terminal Capabilities)        E0F8C8       (Manual, magstripe, IC; offline + online; no PIN)
+9F40 (Additional Terminal Capab.)   F000F0A001   (cash, goods, services, transfer; voice, alpha)</code></pre>
+
+            <p>Each parsed tag is clickable &mdash; opening it reveals the tag&rsquo;s full description from the Tag Dictionary in a side panel.</p>
+        </section>
+
+        <section class="doc-section" id="apdu-resp">
+            <h2>APDU Response Query</h2>
+            <p>Look up the meaning of a 2-byte SW1/SW2 status word.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>SW1 SW2</strong> &mdash; e.g. <code>9000</code>, <code>6982</code>, <code>6A82</code>.</li>
+            </ul>
+
+            <h3>Output</h3>
+            <ul>
+                <li>Friendly name and meaning.</li>
+                <li>ISO 7816-4 reference.</li>
+                <li>Common causes and recommended terminal action.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="sda">
+            <h2>SDA Verification</h2>
+            <p>Static Data Authentication: the terminal verifies issuer-signed static data against a CA public key.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>CA Public Key</strong> &mdash; Modulus + exponent from the Visa / MasterCard CA hierarchy.</li>
+                <li><strong>Issuer Public Key Certificate</strong> &mdash; Tag <code>90</code>.</li>
+                <li><strong>Issuer Public Key Remainder</strong> &mdash; Tag <code>92</code> (optional).</li>
+                <li><strong>Issuer Public Key Exponent</strong> &mdash; Tag <code>9F32</code>.</li>
+                <li><strong>Signed Static Application Data</strong> &mdash; Tag <code>93</code>.</li>
+                <li><strong>Static Data to be Authenticated</strong> &mdash; Built from AFL records.</li>
+            </ul>
+
+            <h3>Walk-through</h3>
+            <ol class="steps">
+                <li>Provide the CA public key for the matching CA index.</li>
+                <li>Provide the issuer public key certificate, remainder, and exponent.</li>
+                <li>Provide the signed static data.</li>
+                <li>Click <strong>Verify</strong>. The tool recovers the issuer public key, then verifies the signed static data and reports the recovered hash and SDA result.</li>
+            </ol>
+        </section>
+
+        <section class="doc-section" id="dda">
+            <h2>DDA Verification</h2>
+            <p>Dynamic Data Authentication: the card signs terminal-supplied dynamic data, proving possession of the ICC private key.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>CA Public Key</strong></li>
+                <li><strong>Issuer Public Key Certificate</strong> (as in SDA)</li>
+                <li><strong>ICC Public Key Certificate</strong> &mdash; Tag <code>9F46</code>.</li>
+                <li><strong>ICC Public Key Remainder</strong> &mdash; Tag <code>9F48</code>.</li>
+                <li><strong>ICC Public Key Exponent</strong> &mdash; Tag <code>9F47</code>.</li>
+                <li><strong>Signed Dynamic Application Data</strong> &mdash; Tag <code>9F4B</code> (returned by INTERNAL AUTHENTICATE).</li>
+                <li><strong>Dynamic Data</strong> &mdash; Terminal-supplied UN and ICC Dynamic Number.</li>
+            </ul>
+
+            <p>The tool produces a verification result and shows the recovered hash for inspection. CDA (Combined DDA / GENERATE AC) is supported in the same tab via a flag.</p>
+        </section>
+
+        <section class="doc-section" id="app-crypto">
+            <h2>Application Cryptogram</h2>
+            <p>Generates ARQC, TC, AAC values for online and offline authorisation. Separate sub-tools cover EMV 4.1, EMV 4.2, MasterCard, and Visa Smart Debit/Credit (VSDC) variants.</p>
+
+            <h3>Inputs (typical)</h3>
+            <ul>
+                <li><strong>Master Key (MK<sub>AC</sub>)</strong> &mdash; Issuer master cryptogram key.</li>
+                <li><strong>PAN, PAN Sequence</strong> &mdash; To derive the ICC master key.</li>
+                <li><strong>ATC</strong> &mdash; Application Transaction Counter.</li>
+                <li><strong>UN, ARQC Data</strong> &mdash; Built from the CDOL or DOL.</li>
+                <li><strong>Cryptogram Version Number (CVN)</strong> &mdash; Selects the derivation tree.</li>
+            </ul>
+
+            <h3>Output</h3>
+            <ul>
+                <li>Derived ICC master key.</li>
+                <li>Session key (when applicable).</li>
+                <li>ARQC / TC / AAC value.</li>
+                <li>ARPC and ARC for the host response, when supplied.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="secure-msg">
+            <h2>Secure Messaging</h2>
+            <p>Generates and verifies EMV Secure Messaging for Confidentiality (SMC) and Integrity (SMI) on issuer scripts.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Master Keys</strong> &mdash; MK<sub>SMC</sub> for confidentiality, MK<sub>SMI</sub> for integrity.</li>
+                <li><strong>PAN / PAN SEQ / ATC</strong> &mdash; To derive session keys.</li>
+                <li><strong>Plain Script Command</strong> &mdash; APDU to wrap.</li>
+            </ul>
+
+            <h3>Output</h3>
+            <ul>
+                <li>Wrapped script command with MAC and (optionally) encrypted payload.</li>
+                <li>Session keys used.</li>
+            </ul>
+        </section>
+
+        <section class="doc-section" id="icc-dyn">
+            <h2>ICC Dynamic Number Generator</h2>
+            <p>Computes the ICC Dynamic Number used during DDA / CDA. Useful for stub testing of card-side cryptography.</p>
+        </section>
+
+        <section class="doc-section" id="ds-key">
+            <h2>DS Partial Key</h2>
+            <p>Helpers for the Data Storage Partial Key operations introduced in MasterCard / Mobile MasterCard kernels.</p>
+        </section>
+
+        <section class="doc-section" id="cap">
+            <h2>CAP Token Computation</h2>
+            <p>Computes Chip Authentication Programme (CAP) tokens used by some banks for online banking 2FA.</p>
+
+            <h3>Inputs</h3>
+            <ul>
+                <li><strong>Card data</strong> &mdash; Track 2 equivalent data, ATC.</li>
+                <li><strong>IPB / CAP Token Mask</strong> &mdash; Issuer-defined masking.</li>
+                <li><strong>Master Key</strong> &mdash; Issuer master AC key.</li>
+            </ul>
+
+            <p>Output is the typed-on-screen CAP code (typically 8 digits) the customer would key into the banking website.</p>
+        </section>
+
+        <section class="doc-section" id="hce">
+            <h2>HCE (Host Card Emulation)</h2>
+            <p>Helpers for HCE token-based contactless flows. Generates Limited-Use Keys (LUKs) and Single Use Keys (SUKs) used by mobile wallet implementations following EMVCo Tokenisation.</p>
+        </section>
+
+        <section class="doc-section" id="tips">
+            <h2>Tips</h2>
+            <ul>
+                <li>For SDA / DDA work, double-check the CA public key index in tag <code>8F</code> matches the CA you supply &mdash; mismatched indices is the most common SDA failure.</li>
+                <li>Cryptogram versions vary by issuer. Use the EMV Data Parser to extract the IAD (tag <code>9F10</code>) &mdash; the CVN is encoded inside it.</li>
+                <li>The EMV Tag Dictionary is exposed inside other tools as a side panel; you don&rsquo;t need to keep a separate window open.</li>
+            </ul>
+        </section>
+    </main>
+</div>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-links">
+            <a href="../" class="footer-link">Documentation</a>
+            <a href="../../blogs/" class="footer-link">Blog</a>
+            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
+            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
+            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
+        </div>
+    </div>
+</footer>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.sidebar-link');
+        const sections = document.querySelectorAll('.doc-section');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    links.forEach(l => l.classList.remove('active'));
+                    const id = entry.target.getAttribute('id');
+                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+        sections.forEach(s => observer.observe(s));
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 1024) toggleSidebar();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
