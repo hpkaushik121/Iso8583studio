@@ -18,3 +18,5 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 !composeApp/*.txt
 gradle
+/composeApp/*.json
+/composeApp/logs.txt
