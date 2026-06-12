@@ -150,7 +150,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
     fun executeViewRevision(): HsmCommandResult {
         val versionInfo = """
             payShield 10K Console Version: 1.8a
-            HSM Software: 1.0.12
+            HSM Software: 1.0.14
             Bootstrap Version: 1.1.40
             Licenses: Premium Package
             - Premium Key Management

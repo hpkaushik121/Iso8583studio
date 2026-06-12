@@ -376,8 +376,8 @@ class PayShieldStringCommandProcessor(
      */
     private fun executeVR(cmd: ParsedCommand): HsmCommandResult {
         return HsmCommandResult.Success(
-            response = "PayShield 10K Simulator v1.0.12",
-            data = mapOf("version" to "1.0.12")
+            response = "PayShield 10K Simulator v1.0.14",
+            data = mapOf("version" to "1.0.14")
         )
     }
 
@@ -2333,30 +2333,20 @@ class PayShieldStringCommandProcessor(
             hsmLogsListener.log("[M4] Step 11: Decrypting - mode=${if (srcMode == "01") "CBC" else "ECB"} algo=$srcAlgo key=${IsoUtil.bytesToHexString(srcClearKey)}")
 
             val eng = engine()
-            val decData = try {
-                eng.encryptionEngine.decrypt(
-                    algorithm = srcAlgo,
-                    decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                        data = msgBlock,
-                        key = srcClearKey,
-                        iv = if (srcMode == "01") srcIvBytes else null,
-                        mode = srcCipherMode,
-                        padding = PaddingMethods.PKCS5
-                    )
+            // Translate Data Block is length-preserving: the data is pre-formatted and
+            // block-aligned, so NO padding is applied on either the decrypt or the re-encrypt.
+            // (The real payShield does not append a PKCS#7 padding block to already
+            // block-aligned data; doing so would emit an extra cipher block in the response.)
+            val decData = eng.encryptionEngine.decrypt(
+                algorithm = srcAlgo,
+                decryptionEngineParameters = SymmetricDecryptionEngineParameters(
+                    data = msgBlock,
+                    key = srcClearKey,
+                    iv = if (srcMode == "01") srcIvBytes else null,
+                    mode = srcCipherMode,
+                    padding = PaddingMethods.NONE
                 )
-            } catch (_: Exception) {
-                hsmLogsListener.log("[M4] PKCS5 padding invalid on source decrypt, falling back to NoPadding")
-                eng.encryptionEngine.decrypt(
-                    algorithm = srcAlgo,
-                    decryptionEngineParameters = SymmetricDecryptionEngineParameters(
-                        data = msgBlock,
-                        key = srcClearKey,
-                        iv = if (srcMode == "01") srcIvBytes else null,
-                        mode = srcCipherMode,
-                        padding = PaddingMethods.NONE
-                    )
-                )
-            }
+            )
             hsmLogsListener.log("[M4] Step 12: Decrypted plaintext = ${IsoUtil.bytesToHexString(decData)}")
 
             // ── Step 4: Re-encrypt under destination key ──
@@ -2372,20 +2362,26 @@ class PayShieldStringCommandProcessor(
                     key = dstClearKey,
                     iv = if (dstMode == "01") dstIvBytes else null,
                     mode = dstCipherMode,
-                    padding = PaddingMethods.PKCS5
+                    padding = PaddingMethods.NONE
                 )
             )
             val encHex = IsoUtil.bytesToHexString(encData)
             // Output length is hex-char count (matches input convention)
             val outLen = encHex.length.toString(16).padStart(4, '0').uppercase()
 
-            // Output IV: last cipher block of ciphertext, only emitted for non-ECB destination modes.
-            // 8 bytes (16H) for TDES, 16 bytes (32H) for AES — matches the chaining block size.
-            val outIvHex = if (dstMode != "00" && encData.isNotEmpty()) {
-                val blockBytes = if (dstAlgo == CryptoAlgorithm.AES) 16 else 8
-                if (encData.size >= blockBytes) {
-                    IsoUtil.bytesToHexString(encData.copyOfRange(encData.size - blockBytes, encData.size))
-                } else ""
+            // Output IV: the CBC chaining continuation for BOTH sides, emitted only for non-ECB
+            // destination modes. It is the last cipher block of the SOURCE (input) data followed
+            // by the last cipher block of the DESTINATION (output) data, so a multi-part translate
+            // can resume chaining on each side. For TDES (8-byte block) this is 8B + 8B = 16B (32H);
+            // for AES (16-byte block) it is 16B + 16B = 32B (64H).
+            val outIvHex = if (dstMode != "00" && encData.isNotEmpty() && msgBlock.isNotEmpty()) {
+                val srcBlk = if (srcAlgo == CryptoAlgorithm.AES) 16 else 8
+                val dstBlk = if (dstAlgo == CryptoAlgorithm.AES) 16 else 8
+                val srcLast = if (msgBlock.size >= srcBlk)
+                    IsoUtil.bytesToHexString(msgBlock.copyOfRange(msgBlock.size - srcBlk, msgBlock.size)) else ""
+                val dstLast = if (encData.size >= dstBlk)
+                    IsoUtil.bytesToHexString(encData.copyOfRange(encData.size - dstBlk, encData.size)) else ""
+                srcLast + dstLast
             } else ""
 
             hsmLogsListener.log("[M4] Step 14: Encrypted result = $encHex (${encData.size} bytes)")
