@@ -27,6 +27,7 @@ import `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging.MastercardSecu
 import `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging.VisaSecureMessagingScreen
 import `in`.aicortex.iso8583studio.ui.screens.HomeScreenViewModel
 import `in`.aicortex.iso8583studio.ui.screens.apduSimulator.APDUSimulatorScreen
+import `in`.aicortex.iso8583studio.ui.screens.apduSimulator.v2.ApduSimulatorV2Screen
 import `in`.aicortex.iso8583studio.ui.screens.Emv.ApduResponseQueryScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.AesCalculatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.cipher.DesCalculatorScreen
@@ -814,14 +815,12 @@ sealed class Destination : Screen {
         @Composable
         override fun Content() {
             val navigationController = rememberNavigationController(LocalNavigator.currentOrThrow)
-            appState.value.window?.let {
-                APDUSimulatorScreen(
-                    window = it,
-                    config = appState.value.currentConfig(SimulatorType.APDU) as APDUSimulatorConfig,
+            val cfg = appState.value.currentConfig(SimulatorType.APDU) as? APDUSimulatorConfig
+            if (cfg != null) {
+                ApduSimulatorV2Screen(
+                    config = cfg,
                     onBack = { navigationController.goBack() },
                     onSaveClick = { appState.value.save() },
-                    onError = appState.value.resultDialogInterface,
-                    navigationController = navigationController
                 )
             }
         }

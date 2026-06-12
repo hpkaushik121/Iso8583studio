@@ -1117,7 +1117,8 @@ private fun StepFieldEditor(
             val isM2 = def.code == "M2"
             val isM4 = def.code == "M4"
             val visibleFields = def.requestFields.filter {
-                ThalesWireBuilder.isFieldVisible(it, snapshot) &&
+                !it.hiddenInUi &&
+                    ThalesWireBuilder.isFieldVisible(it, snapshot) &&
                     !(isM0 && it.id == "msgLength") &&
                     !(isM2 && it.id == "encryptedMessageLength") &&
                     !(isM4 && it.id == "msgLength")

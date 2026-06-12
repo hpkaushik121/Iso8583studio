@@ -31,10 +31,12 @@ import `in`.aicortex.iso8583studio.ui.Studio.appState
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
 import `in`.aicortex.iso8583studio.ui.navigation.Destination
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.APDUSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.screens.components.StatusBadge
 import `in`.aicortex.iso8583studio.ui.screens.about.AboutDialog
+import `in`.aicortex.iso8583studio.ui.screens.apduSimulator.v2.ApduSimulatorV2Screen
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.HostSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.hsmSimulator.HsmSimulatorScreen
 import `in`.aicortex.iso8583studio.ui.screens.posTerminal.POSTerminalSimulatorScreen
@@ -532,6 +534,15 @@ private fun SessionContent(
                 config = config,
                 onBack = onBack,
                 onSaveClick = { appState.value.save() }
+            )
+        }
+
+        SimulatorType.APDU -> {
+            val config = session.config as APDUSimulatorConfig
+            ApduSimulatorV2Screen(
+                config = config,
+                onBack = onBack,
+                onSaveClick = { appState.value.save() },
             )
         }
 

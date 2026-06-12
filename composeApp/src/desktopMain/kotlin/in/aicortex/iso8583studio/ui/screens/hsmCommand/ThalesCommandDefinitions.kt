@@ -284,6 +284,13 @@ private val reservedZeroOptions = listOf(
     CodeOption("1", "1"),
 )
 
+/** Pad an ASCII string with trailing '0' chars to the next multiple-of-8 byte length. */
+private fun padToMultOf8(s: String): String {
+    if (s.isEmpty()) return s
+    val rem = s.length % 8
+    return if (rem == 0) s else s + "0".repeat(8 - rem)
+}
+
 private fun f(
     id: String,
     name: String,
@@ -296,7 +303,9 @@ private fun f(
     cond: FieldCondition? = null,
     conds: List<FieldCondition> = emptyList(),
     omitWireIfBlank: Boolean = false,
-) = ThalesCommandField(id, name, type, length, req, default, desc, options, cond, conds, omitWireIfBlank)
+    derive: ((Map<String, String>) -> String)? = null,
+    hiddenInUi: Boolean = false,
+) = ThalesCommandField(id, name, type, length, req, default, desc, options, cond, conds, omitWireIfBlank, derive, hiddenInUi)
 
 val thalesCommandDefinitions: List<ThalesCommandDefinition> = listOf(
 
@@ -1899,8 +1908,13 @@ val thalesCommandDefinitions: List<ThalesCommandDefinition> = listOf(
             f("macKey", "MAC Key", FieldType.HEX, 0, desc = "MAC key under LMK (S-block or variant+hex)"),
             f("iv", "IV / OCD", FieldType.HEX, 16, req = FieldRequirement.OPTIONAL, default = "0000000000000000",
                 cond = FieldCondition("modeFlag", setOf("1", "2", "3"))),
-            f("msgLength", "Message Length", FieldType.HEX, 4),
-            f("messageBlock", "Message Block", FieldType.HEX, 0),
+            f("msgLength", "Message Length", FieldType.HEX, 4,
+                desc = "Auto-computed (hidden) — 4H byte count of Message Block (halved when Input Format Flag = 1).",
+                hiddenInUi = true,
+                derive = { values -> computeM0MessageLengthField(values["messageBlock"].orEmpty(), values["inputFormatFlag"].orEmpty()) }),
+            f("messageBlock", "Message Block", FieldType.HEX, 0,
+                desc = "Message data to MAC. Format depends on Input Format Flag: 0=binary as hex, 1=hex-encoded binary (recommended), 2=text. " +
+                       "HSM handles padding per the Padding Method field — no manual padding needed."),
             f("delimiter", "Delimiter", FieldType.FLAG, 0, req = FieldRequirement.OPTIONAL, default = "%"),
             f("lmkIdentifier", "LMK Identifier", FieldType.ASCII, 2, req = FieldRequirement.OPTIONAL,
                 default = "00", cond = FieldCondition("delimiter", setOf("%"))),
@@ -1934,8 +1948,12 @@ val thalesCommandDefinitions: List<ThalesCommandDefinition> = listOf(
                 CodeOption("2", "2 - ISO 9797 Method 2"))),
             f("keyType", "Key Type", FieldType.CODE, 3, default = "FFF", options = keyTypeOptions),
             f("macKey", "MAC Key", FieldType.HEX, 0, desc = "MAC key under LMK (S-block or hex)"),
-            f("msgLength", "Message Length", FieldType.HEX, 4),
-            f("messageBlock", "Message Block", FieldType.HEX, 0),
+            f("msgLength", "Message Length", FieldType.HEX, 4,
+                desc = "Auto-computed (hidden) — 4H byte count of Message Block (halved when Input Format Flag = 1).",
+                hiddenInUi = true,
+                derive = { values -> computeM0MessageLengthField(values["messageBlock"].orEmpty(), values["inputFormatFlag"].orEmpty()) }),
+            f("messageBlock", "Message Block", FieldType.HEX, 0,
+                desc = "Message data. Length auto-computed and padding handled by the HSM per Padding Method."),
             f("mac", "MAC to Verify", FieldType.HEX, 0),
             f("lmkIdentifier", "LMK Identifier", FieldType.CODE, 0, req = FieldRequirement.OPTIONAL, options = lmkIdentifierOptions),
         ),
@@ -1998,20 +2016,38 @@ val thalesCommandDefinitions: List<ThalesCommandDefinition> = listOf(
         description = "Generate or verify a MAC using 3DES DUKPT MAC key",
         category = CommandCategory.DUKPT,
         requestFields = listOf(
-            f("macMode", "MAC Mode", FieldType.CODE, 1, default = "1", options = listOf(
-                CodeOption("0", "0 - Verify"), CodeOption("1", "1 - Generate"))),
+            f("macMode", "MAC Mode", FieldType.CODE, 1, default = "4", options = listOf(
+                CodeOption("1", "1 - Verify 8 byte MAC"),
+                CodeOption("2", "2 - Verify 4 leftmost bytes of MAC"),
+                CodeOption("3", "3 - Verify 4 rightmost bytes of MAC"),
+                CodeOption("4", "4 - Generate 8 byte MAC"),
+                CodeOption("5", "5 - Generate 4 leftmost bytes of MAC"),
+                CodeOption("6", "6 - Generate 4 rightmost bytes of MAC"),
+                CodeOption("A", "A - Verify 8 byte MAC (BDK2)"),
+                CodeOption("B", "B - Verify 4 leftmost bytes of MAC (BDK2)"),
+                CodeOption("C", "C - Verify 4 rightmost bytes of MAC (BDK2)"),
+                CodeOption("D", "D - Generate 8 byte MAC (BDK2)"),
+                CodeOption("E", "E - Generate 4 leftmost bytes of MAC (BDK2)"),
+                CodeOption("F", "F - Generate 4 rightmost bytes of MAC (BDK2)")),
+                desc = "Codes 1-6 use the primary BDK; codes A-F use BDK2 (second BDK slot). 'Verify' modes require the MAC field; 'Generate' modes return the computed MAC."),
             f("macMethod", "MAC Method", FieldType.CODE, 1, default = "1", options = listOf(
-                CodeOption("1", "1 - Method 1"), CodeOption("2", "2 - Method 2"),
-                CodeOption("3", "3 - Method 3"), CodeOption("4", "4 - Method 4"))),
+                CodeOption("1", "1 - Binary data input"))),
             f("bdk", "BDK", FieldType.HEX, 0),
-            f("ksnDescriptor", "KSN Descriptor", FieldType.HEX, 3),
+            f("ksnDescriptor", "KSN Descriptor", FieldType.HEX, 3, default = "609"),
             f("ksn", "KSN", FieldType.HEX, 0),
             f("mac", "MAC", FieldType.HEX, 0, FieldRequirement.OPTIONAL,
-                cond = FieldCondition("macMode", setOf("0")),
-                desc = "MAC to verify (only when macMode=0)"),
-            f("messageDataLengthBytes", "Message Data Length (bytes)", FieldType.HEX, 4),
-            f("messageData", "Message Data", FieldType.HEX, 0),
-            f("lmkIdentifier", "LMK Identifier", FieldType.CODE, 0, req = FieldRequirement.OPTIONAL, options = lmkIdentifierOptions),
+                cond = FieldCondition("macMode", setOf("1", "2", "3", "A", "B", "C")),
+                desc = "MAC to verify (required for verify modes 1/2/3/A/B/C; omit for generate modes)."),
+            f("messageDataLengthBytes", "Message Data Length (bytes)", FieldType.DEC, 4,
+                desc = "Auto-computed (hidden) — 4-digit decimal byte count of padded Message Data.",
+                hiddenInUi = true,
+                derive = { values -> "%04d".format(padToMultOf8(values["messageData"].orEmpty()).length.coerceIn(0, 9999)) }),
+            f("messageData", "Message Data", FieldType.ASCII, 0,
+                desc = "Plain text — sent on the wire as ASCII bytes (do NOT hex-encode). " +
+                       "Automatically padded with trailing '0' characters to a multiple of 8 bytes for X9.19.",
+                derive = { values -> padToMultOf8(values["messageData"].orEmpty()) }),
+            f("lmkIdentifier", "LMK Identifier", FieldType.CODE, 0, req = FieldRequirement.OPTIONAL,
+                options = lmkIdentifierOptions, default = "%03"),
         ),
         responseFields = listOf(
             f("errorCode", "Error Code", FieldType.DEC, 2),

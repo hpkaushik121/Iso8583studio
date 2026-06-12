@@ -602,7 +602,8 @@ private fun StructuredBuilderPanel(
                 // Snapshot read: force recomposition when any field value changes
                 val snapshot = fieldValues.toMap()
                 val visibleFields = definition.requestFields.filter {
-                    ThalesWireBuilder.isFieldVisible(it, snapshot) &&
+                    !it.hiddenInUi &&
+                        ThalesWireBuilder.isFieldVisible(it, snapshot) &&
                         !(isM0 && it.id == "msgLength") &&
                         !(isM2 && it.id == "encryptedMessageLength") &&
                         !(isM4 && it.id == "msgLength")

@@ -68,6 +68,18 @@ kotlin {
             implementation("net.java.dev.jna:jna-platform:5.16.0")
         }
     }
+
+    // PC/SC transport (PcscTransport / PcscReaders) uses the JDK's `java.smartcardio` module,
+    // which lives outside `java.base` and so needs to be explicitly added to the module graph.
+    targets.named("desktop") {
+        compilations.named("main") {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.addAll("-Xadd-modules=java.smartcardio")
+                }
+            }
+        }
+    }
 }
 
 

@@ -220,6 +220,7 @@ class PayShieldStringCommandProcessor(
             "M6" -> executeM6(cmd)
             "M8" -> executeM8(cmd)
             "MY" -> executeMY(cmd)
+            "GW" -> executeGW(cmd)
 
             // ── Hash ─────────────────────────────────────────────────────────
             "GM" -> executeGM(cmd)
@@ -2569,6 +2570,172 @@ class PayShieldStringCommandProcessor(
 
         } catch (e: Exception) {
             HsmCommandResult.Error("15", "M6 failed: ${e.message}")
+        }
+    }
+
+    // ====================================================================================================
+    // GW — Generate / Verify a MAC using a 3DES DUKPT MAC key
+    //
+    // Command format:
+    //   GW [MAC Mode 1] [MAC Method 1] [BDK (scheme+key)] [KSN Descriptor 3H] [KSN 20H]
+    //      [MAC 16H?]            ← present only for verify modes (1/2/3/A/B/C)
+    //      [Message Data Length 4N]  ← decimal byte count of the (padded) message data
+    //      [Message Data nA]    ← plain ASCII bytes, padded to a multiple of 8
+    //      %[LMK id]
+    //
+    // MAC Mode:  1 verify-8B  2 verify-L4  3 verify-R4  4 gen-8B  5 gen-L4  6 gen-R4
+    //            A-F = same as 1-6 but using the secondary BDK (BDK2)
+    // MAC Method: 1 = binary data input
+    //
+    // Derivation:  BDK → (decrypt under LMK) → IPEK (BDK+KSN) → session key (IPEK+counter)
+    //              → MAC key (session key XOR DUKPT MAC variant)  → MAC over message (ISO 9797-1 Alg 3)
+    //
+    // Response: GX [Error Code 2N] [MAC]   (MAC omitted for verify modes)
+    //
+    // All intermediate values (decrypted BDK, IPEK, counter, session key, MAC key, computed MAC)
+    // are written to hsmListener.log via hsmLogsListener.log() for step-by-step debugging.
+    // ====================================================================================================
+    private suspend fun executeGW(cmd: ParsedCommand): HsmCommandResult {
+        return try {
+            var pos = 0
+            val data = cmd.data
+
+            // ── Step 1: Parse mode / method ───────────────────────────────────────────────
+            val macMode   = data[pos]; pos++
+            val macMethod = data[pos]; pos++
+
+            val isVerify   = macMode in setOf('1', '2', '3', 'A', 'B', 'C')
+            val isBdk2      = macMode in setOf('A', 'B', 'C', 'D', 'E', 'F')
+            // MAC length: 8 bytes for full (4/D and 1/A), 4 bytes for L4/R4 variants
+            val macSizeBytes = when (macMode) {
+                '1', '4', 'A', 'D' -> 8
+                else               -> 4
+            }
+            // Which half of the 8-byte MAC for the 4-byte variants
+            val takeRightmost = macMode in setOf('3', '6', 'C', 'F')
+
+            val modeDesc = when (macMode) {
+                '1' -> "Verify 8-byte MAC";            '2' -> "Verify 4 leftmost bytes"
+                '3' -> "Verify 4 rightmost bytes";     '4' -> "Generate 8-byte MAC"
+                '5' -> "Generate 4 leftmost bytes";    '6' -> "Generate 4 rightmost bytes"
+                'A' -> "Verify 8-byte MAC (BDK2)";     'B' -> "Verify 4 leftmost bytes (BDK2)"
+                'C' -> "Verify 4 rightmost bytes (BDK2)"; 'D' -> "Generate 8-byte MAC (BDK2)"
+                'E' -> "Generate 4 leftmost bytes (BDK2)"; 'F' -> "Generate 4 rightmost bytes (BDK2)"
+                else -> "Unknown"
+            }
+
+            hsmLogsListener.log("► GW  [1/8]  Parsing request  (LMK slot: ${cmd.lmkId})")
+            hsmLogsListener.log("          MAC Mode    = [$macMode] $modeDesc  → ${if (isVerify) "VERIFY" else "GENERATE"} ${macSizeBytes}B${if (macSizeBytes == 4) if (takeRightmost) " (rightmost)" else " (leftmost)" else ""}")
+            hsmLogsListener.log("          MAC Method  = [$macMethod] ${if (macMethod == '1') "Binary data input" else "Unknown"}")
+
+            // ── Step 2: BDK key (S-block or variant+hex) ──────────────────────────────────
+            val (bdkWithScheme, keyLen) = extractSchemeKey(data, pos); pos += keyLen
+            val isKeyBlock = bdkWithScheme.firstOrNull()?.uppercaseChar() == 'S'
+            val keyUsageFromBlock = if (isKeyBlock && bdkWithScheme.length >= 8)
+                bdkWithScheme.substring(6, 8) else ""
+            hsmLogsListener.log("► GW  [2/8]  BDK key      : $bdkWithScheme")
+            if (isKeyBlock) hsmLogsListener.log("             Key Block Usage = [$keyUsageFromBlock]  (BDK2 requested: $isBdk2)")
+
+            // ── Step 3: KSN descriptor + KSN ──────────────────────────────────────────────
+            val ksnDescriptor = data.substring(pos, pos + 3); pos += 3
+            val ksnHex        = data.substring(pos, pos + 20); pos += 20
+            val counterBits   = PayShield10KCommandProcessor.parseKsnDescriptorCounterBits(ksnDescriptor)
+            hsmLogsListener.log("► GW  [3/8]  KSN Descriptor = $ksnDescriptor  (counter bits: $counterBits)")
+            hsmLogsListener.log("             KSN            = $ksnHex")
+
+            // ── Step 4: (verify modes only) the MAC to check ──────────────────────────────
+            var providedMacHex = ""
+            if (isVerify) {
+                val macHexLen = macSizeBytes * 2
+                providedMacHex = data.substring(pos, pos + macHexLen); pos += macHexLen
+                hsmLogsListener.log("► GW  [4/8]  MAC to verify  = $providedMacHex")
+            } else {
+                hsmLogsListener.log("► GW  [4/8]  Generate mode — no MAC supplied in request")
+            }
+
+            // ── Step 5: Message data (decimal length + ASCII bytes) ───────────────────────
+            val msgLen     = data.substring(pos, pos + 4).toIntOrNull() ?: 0; pos += 4
+            val messageStr = data.substring(pos, minOf(pos + msgLen, data.length)); pos += messageStr.length
+            val message    = messageStr.toByteArray(Charsets.US_ASCII)
+            hsmLogsListener.log("► GW  [5/8]  Message length = ${"%04d".format(msgLen)} bytes")
+            hsmLogsListener.log("             Message data   = $messageStr")
+            hsmLogsListener.log("             Message (hex)  = ${IsoUtil.bytesToHexString(message)}")
+
+            hsmLogsListener.onFormattedRequest(buildString {
+                appendLine("GW - Generate/Verify MAC (DUKPT) Request")
+                appendLine("MAC Mode................. = [$macMode] $modeDesc")
+                appendLine("MAC Method............... = [$macMethod]")
+                appendLine("BDK...................... = [$bdkWithScheme]")
+                if (isKeyBlock) appendLine("  Key Block Usage....... = [$keyUsageFromBlock]")
+                appendLine("KSN Descriptor........... = [$ksnDescriptor]")
+                appendLine("Key Serial Number........ = [$ksnHex]")
+                if (isVerify) appendLine("MAC (to verify).......... = [$providedMacHex]")
+                appendLine("Message Length........... = [${"%04d".format(msgLen)}]")
+                appendLine("Message Data............. = [$messageStr]")
+            })
+
+            // ── Step 6: Decrypt BDK under LMK, derive IPEK + DUKPT session key ─────────────
+            val lmkPairNumber = if (isKeyBlock)
+                A0GenerateKeyCommand.lmkPairFromKeyUsage(keyUsageFromBlock)
+            else
+                PayShield10KCommandProcessor.LMK_PAIR_BDK
+            hsmLogsListener.log("► GW  [6/8]  Decrypting BDK under LMK pair $lmkPairNumber")
+            val clearBdk = decryptSchemeKeyUnderLmk(bdkWithScheme, cmd.lmkId, lmkPairNumber)
+            hsmLogsListener.log("             BDK (clear)    = ${IsoUtil.bytesToHexString(clearBdk)}")
+
+            val ipek = PayShield10KCommandProcessor.deriveInitialKey(clearBdk, ksnHex, counterBits)
+            hsmLogsListener.log("             IPEK           = ${IsoUtil.bytesToHexString(ipek)}")
+
+            val ksnBytes = IsoUtil.hexToBytes(ksnHex)
+            val counter  = PayShield10KCommandProcessor.extractDukptCounter(ksnBytes, counterBits)
+            hsmLogsListener.log("► GW  [7/8]  DUKPT counter  = $counter  (0x${counter.toString(16).uppercase()})")
+
+            val sessionKey = commandProcessor.deriveDukptSessionKey(ipek, ksnHex, counter, counterBits)
+            hsmLogsListener.log("             Session key    = ${IsoUtil.bytesToHexString(sessionKey)}")
+
+            // MAC request variant per ANSI X9.24: session key XOR MAC variant
+            val macKey = DukptEngine.xorBytes(sessionKey, DukptEngine.MAC_VARIANT)
+            hsmLogsListener.log("             MAC key (var)  = ${IsoUtil.bytesToHexString(macKey)}")
+
+            // ── Step 8: Compute MAC (ISO 9797-1 Algorithm 3 / ANSI X9.19) ─────────────────
+            // Compute the full 8-byte MAC, then slice to the requested size/half.
+            val macResult = commandProcessor.executeGenerateMac(
+                data          = message,
+                tak           = macKey,
+                algorithm     = "ISO9797_ALG3",
+                paddingMethod = 1,
+                macSizeBytes  = 8
+            )
+            if (macResult !is HsmCommandResult.Success) return macResult
+            val fullMacHex = (macResult.data["mac"] as? String ?: macResult.response)
+            val computedMacHex = when {
+                macSizeBytes == 8 -> fullMacHex
+                takeRightmost     -> fullMacHex.takeLast(8)   // rightmost 4 bytes
+                else              -> fullMacHex.take(8)        // leftmost 4 bytes
+            }
+            hsmLogsListener.log("► GW  [8/8]  Computed full MAC = $fullMacHex  →  result MAC = $computedMacHex")
+
+            if (isVerify) {
+                val ok = computedMacHex.equals(providedMacHex, ignoreCase = true)
+                hsmLogsListener.log(if (ok) "◄ GW  MAC verification OK" else "✗ GW  MAC verification FAILED (computed=$computedMacHex provided=$providedMacHex)")
+                hsmLogsListener.onFormattedResponse(buildString {
+                    appendLine("GX - Verify MAC (DUKPT) Response")
+                    appendLine("Error Code............... = [${if (ok) "00" else "01"}] ${if (ok) "MAC verified" else "MAC verification failed"}")
+                })
+                if (ok) HsmCommandResult.Success(response = "", data = mapOf("verified" to "true"))
+                else HsmCommandResult.Error("01", "MAC verification failed")
+            } else {
+                hsmLogsListener.log("◄ GW  MAC generated = $computedMacHex")
+                hsmLogsListener.onFormattedResponse(buildString {
+                    appendLine("GX - Generate MAC (DUKPT) Response")
+                    appendLine("Error Code............... = [00]")
+                    appendLine("MAC...................... = [$computedMacHex]")
+                })
+                HsmCommandResult.Success(response = computedMacHex, data = mapOf("mac" to computedMacHex))
+            }
+        } catch (e: Exception) {
+            hsmLogsListener.log("✗ GW  Exception: ${e.message}")
+            HsmCommandResult.Error("15", "GW failed: ${e.message}")
         }
     }
 

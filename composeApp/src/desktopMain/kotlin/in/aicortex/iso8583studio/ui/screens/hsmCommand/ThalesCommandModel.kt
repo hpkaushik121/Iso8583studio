@@ -37,6 +37,14 @@ data class ThalesCommandField(
     val conditions: List<FieldCondition> = emptyList(),
     /** When true, this field is omitted from the wire string if its value is blank (cleared in the UI). */
     val omitFromWireWhenBlank: Boolean = false,
+    /**
+     * When non-null, this field's value is automatically computed from other field values
+     * each time the wire is built. The UI should render it as read-only and display the
+     * derived value. The lambda receives the current map of all field values.
+     */
+    val derive: ((Map<String, String>) -> String)? = null,
+    /** When true, this field is not shown in the UI. It is still serialized to the wire (typically via [derive]). */
+    val hiddenInUi: Boolean = false,
 )
 
 data class ThalesCommandDefinition(
@@ -320,7 +328,7 @@ object ThalesWireBuilder {
 
         for (field in definition.requestFields) {
             if (!isFieldVisible(field, fieldValues)) continue
-            val raw = fieldValues[field.id].orEmpty()
+            val raw = field.derive?.invoke(fieldValues) ?: fieldValues[field.id].orEmpty()
             if (raw.isBlank() && field.requirement == FieldRequirement.OPTIONAL) continue
             if (raw.isBlank() && field.omitFromWireWhenBlank) continue
             sb.append(raw)

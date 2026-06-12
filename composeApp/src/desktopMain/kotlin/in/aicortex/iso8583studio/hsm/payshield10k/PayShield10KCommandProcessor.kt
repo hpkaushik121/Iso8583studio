@@ -1491,7 +1491,7 @@ class PayShield10KCommandProcessor(
     }
 
     internal suspend fun encryptPinBlock(pinBlock: ByteArray, key: ByteArray): ByteArray {
-        return engine().encryptionEngine.encrypt(
+        val out = engine().encryptionEngine.encrypt(
             algorithm = CryptoAlgorithm.TDES,
             encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                 key = key,
@@ -1499,10 +1499,12 @@ class PayShield10KCommandProcessor(
                 mode = ai.cortex.core.types.CipherMode.ECB
             )
         )
+        logWorkingKeyOp("ENCRYPT PIN block", key, pinBlock, out)
+        return out
     }
 
     internal suspend fun decryptPinBlock(encryptedPinBlock: ByteArray, key: ByteArray): ByteArray {
-        return engine().encryptionEngine.decrypt(
+        val out = engine().encryptionEngine.decrypt(
             algorithm = CryptoAlgorithm.TDES,
             decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                 key = key,
@@ -1510,6 +1512,22 @@ class PayShield10KCommandProcessor(
                 mode = ai.cortex.core.types.CipherMode.ECB
             )
         )
+        logWorkingKeyOp("DECRYPT PIN block", key, encryptedPinBlock, out)
+        return out
+    }
+
+    /**
+     * Emit a step-by-step crypto trace line to hsmListener.log for a working-key (TDES/ECB)
+     * operation: which clear key was used (KCV), the input, and the output. Written via
+     * [HsmLogsListener.log] so it lands in hsmListener.log, not the formatted request/response panels.
+     */
+    private fun logWorkingKeyOp(op: String, key: ByteArray, input: ByteArray, output: ByteArray) {
+        val kcv = try { simulator.calculateKeyCheckValue(key) } catch (e: Exception) { "??????" }
+        hsmLongListener.log(buildString {
+            append("     [WK $op]  TDES/ECB  key-KCV=").append(kcv)
+            append("\n               in  : ").append(IsoUtil.bytesToHex(input))
+            append("\n               out : ").append(IsoUtil.bytesToHex(output))
+        })
     }
 
     /** Delegates to the companion object's [deriveInitialKey]. */

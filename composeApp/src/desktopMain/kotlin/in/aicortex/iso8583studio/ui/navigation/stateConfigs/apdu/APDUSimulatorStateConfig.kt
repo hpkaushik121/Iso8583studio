@@ -1,6 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu
 
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
+import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.terminal.BehaviorRule
+import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.terminal.TerminalProfile
+import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.terminal.TerminalProfiles
 import `in`.aicortex.iso8583studio.domain.utils.ApduUtil
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import kotlinx.serialization.Serializable
@@ -53,6 +56,21 @@ data class APDUSimulatorConfig(
     val blockOnTransactionLimit: Boolean = false,
     override val serverAddress: String = "",
     override val serverPort: Int = 8080,
+
+    // v2 fields. Defaults preserve compatibility with previously-saved configs.
+    val transportMode: String = "LOOPBACK",   // LOOPBACK | PCSC | SERIAL
+    val pcscReaderName: String = "",
+    val serialPortName: String = "",
+    val serialBaudRate: Int = 115200,
+    val activeProfileId: String = "",          // CardProfile.id from ProfileStore
+
+    // v2.1 — host-simulator parity: terminal-side configuration + behavior rules + plan settings.
+    val terminalProfile: TerminalProfile = TerminalProfiles.attendedRetailIN(),
+    val behaviorRules: List<BehaviorRule> = emptyList(),
+    val enabledTestPlanIds: List<String> = emptyList(),
+    val autoRunPlanId: String? = null,
+    /** Optional override for where custom JSON test plans live. Empty = ~/.iso8583studio/test-plans. */
+    val customTestPlanDir: String = "",
 ) : SimulatorConfig
 
 enum class ConnectionInterface {

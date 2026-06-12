@@ -99,7 +99,7 @@ enum class StudioTool(
     // EMV TOOLS
     APDU_SIMULATOR(
         "APDU Simulator",
-        "Smart card APDU commands",
+        "Profile-driven EMV card simulator with hardware modes (loopback / PC/SC / STM32)",
         Icons.Default.CreditCard,
         isPopular = true,
         screen = Destination.ApduSimulatorConfig

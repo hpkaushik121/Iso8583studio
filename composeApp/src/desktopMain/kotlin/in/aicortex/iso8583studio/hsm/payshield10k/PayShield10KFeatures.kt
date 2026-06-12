@@ -538,8 +538,10 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
      * Encrypt data under LMK — algorithm is determined by the LmkSet's algorithm field.
      */
     suspend fun encryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
-        val lmk = lmkStorage.getLmk(lmkId) ?: return data
-        val pair = lmk.getPair(pairNumber) ?: return data
+        val lmk = lmkStorage.getLmk(lmkId)
+        if (lmk == null) { logLmkOp("ENCRYPT", lmkId, pairNumber, null, data, data, "LMK slot $lmkId not loaded — returning data unchanged"); return data }
+        val pair = lmk.getPair(pairNumber)
+        if (pair == null) { logLmkOp("ENCRYPT", lmkId, pairNumber, null, data, data, "LMK pair $pairNumber not present — returning data unchanged"); return data }
         val combined = pair.getCombinedKey()
         val lmkAlgo = lmk.lmkAlgorithm
 
@@ -553,7 +555,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
 
         return try {
             val padded = padToBlock(data, lmkAlgo.blockSize)
-            engine().encryptionEngine.encrypt(
+            val out = engine().encryptionEngine.encrypt(
                 algorithm = cryptoAlgo,
                 encryptionEngineParameters = SymmetricEncryptionEngineParameters(
                     key = key,
@@ -561,17 +563,49 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
                     mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
+            logLmkOp("ENCRYPT", lmkId, pairNumber, key, padded, out, "$cryptoAlgo/ECB  (${lmkAlgo.name})")
+            out
         } catch (e: Exception) {
+            logLmkOp("ENCRYPT", lmkId, pairNumber, key, data, data, "FAILED: ${e.message} — returning data unchanged")
             data
         }
+    }
+
+    /**
+     * Emit a step-by-step crypto trace line to hsmListener.log so HSM operations can be debugged:
+     * which LMK pair/key was used, what was the input, what came out, and which algorithm/mode.
+     * This is intentionally written via [HsmLogsListener.log] (NOT onFormattedRequest/Response),
+     * so it lands in hsmListener.log rather than the formatted request/response panels.
+     */
+    private fun logLmkOp(
+        op: String,
+        lmkId: String,
+        pairNumber: Int,
+        key: ByteArray?,
+        input: ByteArray,
+        output: ByteArray,
+        note: String
+    ) {
+        val kcv = key?.let {
+            try { calculateKeyCheckValue(it) } catch (e: Exception) { "??????" }
+        } ?: "--"
+        hsmLogsListener.log(buildString {
+            append("     [LMK $op]  slot=$lmkId pair=").append(pairNumber.toString().padStart(2, '0'))
+            append("  LMK-KCV=").append(kcv)
+            append("  algo=").append(note)
+            append("\n               in  : ").append(bytesToHex(input))
+            append("\n               out : ").append(bytesToHex(output))
+        })
     }
 
     /**
      * Decrypt data under LMK — algorithm is determined by the LmkSet's algorithm field.
      */
     suspend fun decryptUnderLmk(data: ByteArray, lmkId: String, pairNumber: Int): ByteArray {
-        val lmk = lmkStorage.getLmk(lmkId) ?: return data
-        val pair = lmk.getPair(pairNumber) ?: return data
+        val lmk = lmkStorage.getLmk(lmkId)
+        if (lmk == null) { logLmkOp("DECRYPT", lmkId, pairNumber, null, data, data, "LMK slot $lmkId not loaded — returning data unchanged"); return data }
+        val pair = lmk.getPair(pairNumber)
+        if (pair == null) { logLmkOp("DECRYPT", lmkId, pairNumber, null, data, data, "LMK pair $pairNumber not present — returning data unchanged"); return data }
         val combined = pair.getCombinedKey()
         val lmkAlgo = lmk.lmkAlgorithm
 
@@ -585,7 +619,7 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
 
         return try {
             val padded = padToBlock(data, lmkAlgo.blockSize)
-            engine().encryptionEngine.decrypt(
+            val out = engine().encryptionEngine.decrypt(
                 algorithm = cryptoAlgo,
                 decryptionEngineParameters = SymmetricDecryptionEngineParameters(
                     key = key,
@@ -593,7 +627,10 @@ class PayShield10KFeatures(val hsmConfig: HsmConfig,val hsmLogsListener: HsmLogs
                     mode = ai.cortex.core.types.CipherMode.ECB
                 )
             )
+            logLmkOp("DECRYPT", lmkId, pairNumber, key, padded, out, "$cryptoAlgo/ECB  (${lmkAlgo.name})  result-KCV=${try { calculateKeyCheckValue(out.copyOf(if (out.size >= 16) 16 else 8)) } catch (e: Exception) { "??????" }}")
+            out
         } catch (e: Exception) {
+            logLmkOp("DECRYPT", lmkId, pairNumber, key, data, data, "FAILED: ${e.message} — returning data unchanged")
             data
         }
     }
