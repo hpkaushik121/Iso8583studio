@@ -34,7 +34,6 @@ import androidx.compose.ui.window.PopupProperties
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.ConnectionState
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.HsmCommandClientService
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
-import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HeaderFormat
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmCommandConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.SavedScenario
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.SavedScenarioStep
@@ -2000,12 +1999,7 @@ private suspend fun executeScenario(
     // Index = step index (0-based), Value = map of field code → value
     val stepResponses = mutableListOf<Map<String, String>>() // index-aligned with session.steps
 
-    val tcpFrameBytes = when (service.config.hsmVendor.headerFormat) {
-        HeaderFormat.TWO_BYTE_LENGTH -> if (service.config.tcpLengthHeaderEnabled) 2 else 0
-        HeaderFormat.FOUR_BYTE_ASCII_LENGTH -> 4
-        else -> 0
-    }
-    val msgHeaderBytes = service.config.headerValue.length
+    val framing = service.framing()
 
     for ((index, step) in session.steps.withIndex()) {
         val codes = buildResponseFieldCodes(step.definition)
@@ -2035,12 +2029,16 @@ private suspend fun executeScenario(
         try {
             val result = service.sendCommand(commandText)
 
+            val request = ParsedHsmMessage(
+                commandCode = step.definition.code,
+                commandName = step.definition.name,
+                fields = step.definition.requestFields.mapNotNull { field ->
+                    resolvedValues[field.id]?.let { field to it }
+                },
+                formatted = result.formattedRequest,
+            )
             val parsed = try {
-                ThalesWireBuilder.parseResponseFields(
-                    step.definition, result.rawResponse,
-                    tcpFrameBytes + msgHeaderBytes,
-                    requestFieldValues = resolvedValues,
-                )
+                service.parser.parseResponse(result.rawResponse, framing, request).fields
             } catch (_: Exception) { emptyList() }
 
             // Build code→value map for this step's response

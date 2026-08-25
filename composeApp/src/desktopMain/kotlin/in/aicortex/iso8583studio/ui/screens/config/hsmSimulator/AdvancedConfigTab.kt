@@ -26,8 +26,8 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.AdvancedOption
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.CustomCommandHandler
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.DatabaseIntegration
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.DebugConfig
-import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ErrorInjectionConfig
-import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ErrorInjectionType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ErrorInjectionConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ErrorInjectionType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.EventHookConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.EventHookType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ExternalIntegrationConfig
@@ -40,8 +40,8 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.LogLevel
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.MockResponseConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.MockResponseType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.PluginConfig
-import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ResponseDelayConfig
-import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.ResponseDelayType
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ResponseDelayConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ResponseDelayType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.RestApiIntegration
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.TestDataGenerationConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.TestDataType

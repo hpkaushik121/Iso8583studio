@@ -25,6 +25,12 @@ data class HsmCommandConfig(
     val trailerValue: String = "",
     val tcpLengthHeaderEnabled: Boolean = true,
     val messageHeaderLength: Int = 4,
+    /**
+     * Wire framing actually used, independent of [hsmVendor]. Selecting a vendor seeds this from
+     * [HsmVendorType.headerFormat], but it stays editable so a host with non-standard framing can
+     * still be driven.
+     */
+    val headerFormat: HeaderFormat = HeaderFormat.TWO_BYTE_LENGTH,
 
     val hsmVendor: HsmVendorType = HsmVendorType.THALES_PAYSHIELD,
 

@@ -58,6 +58,7 @@ import `in`.aicortex.iso8583studio.domain.utils.ExportResult
 import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.domain.utils.concatPathAndQuery
 import `in`.aicortex.iso8583studio.domain.utils.parsePathAndQuery
+import `in`.aicortex.iso8583studio.ui.WarningYellow
 import `in`.aicortex.iso8583studio.ui.screens.components.FieldInformationDialog
 import `in`.aicortex.iso8583studio.ui.screens.components.LabeledSwitch
 import kotlinx.coroutines.delay
@@ -146,6 +147,10 @@ fun ISO8583SettingsScreen(
     var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
     var selectedTab by remember { mutableStateOf(0) }
 
+    // Mirrors gw.configuration.simulation so the header button's active state redraws on Apply.
+    var simulationConfig by remember { mutableStateOf(gw.configuration.simulation) }
+    var showSimulationDialog by remember { mutableStateOf(false) }
+
     // FIX 1: Add recomposition trigger for field changes
     var fieldChangeCounter by remember { mutableIntStateOf(0) }
 
@@ -187,7 +192,12 @@ fun ISO8583SettingsScreen(
             onToggle = {
                 isFirst = it
             },
-            isFirst = isFirst
+            isFirst = isFirst,
+            // Simulated impairments only make sense when this gateway originates the responses.
+            onSimulationClick = if (gw.configuration.gatewayType == GatewayType.SERVER) {
+                { showSimulationDialog = true }
+            } else null,
+            simulationActive = simulationConfig.anyActive
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -250,6 +260,22 @@ fun ISO8583SettingsScreen(
     if (showFieldInfoDialog) {
         FieldInformationDialog(
             onCloseRequest = { showFieldInfoDialog = false }
+        )
+    }
+
+    if (showSimulationDialog) {
+        SimulationSettingsDialog(
+            simulation = simulationConfig,
+            onDismiss = { showSimulationDialog = false },
+            onApply = { updated ->
+                // Live: GatewayConfig is shared by reference, so the socket path picks this up on
+                // the very next response.
+                gw.configuration.simulation = updated
+                simulationConfig = updated
+                // Durable: reuses the screen's existing persistence.
+                onSaveClick()
+                showSimulationDialog = false
+            }
         )
     }
 
@@ -414,6 +440,8 @@ private fun EnhancedHeader(
     onSaveClick: () -> Unit,
     onToggle:(Boolean) -> Unit,
     isFirst:Boolean,
+    onSimulationClick: (() -> Unit)? = null,
+    simulationActive: Boolean = false,
 ) {
     Card(
         elevation = 4.dp,
@@ -464,6 +492,16 @@ private fun EnhancedHeader(
                     }
 
 
+                    // Only offered in SERVER mode, where this gateway originates the responses.
+                    if (onSimulationClick != null) {
+                        ActionButton(
+                            icon = Icons.Default.Tune,
+                            text = if (simulationActive) "Simulation ●" else "Simulation",
+                            onClick = onSimulationClick,
+                            tint = if (simulationActive) WarningYellow else null
+                        )
+                    }
+
                     ActionButton(
                         icon = Icons.Default.Info,
                         text = "Field Info",
@@ -500,11 +538,16 @@ private fun EnhancedHeader(
 private fun ActionButton(
     icon: ImageVector,
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    tint: Color? = null
 ) {
     OutlinedButton(
-        onClick = onClick
-
+        onClick = onClick,
+        colors = if (tint != null) {
+            ButtonDefaults.outlinedButtonColors(contentColor = tint)
+        } else {
+            ButtonDefaults.outlinedButtonColors()
+        }
     ) {
         Icon(
             icon,

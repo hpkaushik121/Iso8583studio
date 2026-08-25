@@ -20,6 +20,7 @@ import `in`.aicortex.iso8583studio.data.model.TransmissionType
 import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.HostSimulator
+import `in`.aicortex.iso8583studio.domain.service.simulation.ResponseDecision
 import ai.cortex.core.IsoUtil.bcdToBin
 import ai.cortex.core.IsoUtil.bcdToString
 import `in`.aicortex.iso8583studio.domain.service.hostSimulatorService.SimulatedResponse
@@ -852,6 +853,100 @@ class GatewayClient {
         eResponseData?.locationID = eRequestData?.locationID ?: ""
     }
 
+    /**
+     * Simulated write throttle in bytes per second; 0 = unthrottled. Set from the connection-chaos
+     * settings so a response can be made to trickle out rather than arrive at once.
+     */
+    var slowWriteBytesPerSecond: Int = 0
+
+    /** Drops the inbound peer connection, so the client sees a reset rather than a response. */
+    private fun closeSourceConnection() {
+        try { firstConnection?.close() } catch (_: Exception) { }
+    }
+
+    /**
+     * Writes [payload] in one-tenth-of-a-second slices so it leaves at roughly
+     * [slowWriteBytesPerSecond], simulating a congested link. Each slice is flushed so the peer
+     * actually sees the trickle.
+     */
+    private suspend fun writeThrottled(
+        stream: java.io.OutputStream,
+        payload: ByteArray,
+        bytesPerSecond: Int,
+    ) {
+        val chunkSize = (bytesPerSecond / 10).coerceAtLeast(1)
+        var offset = 0
+        while (offset < payload.size) {
+            val n = minOf(chunkSize, payload.size - offset)
+            stream.write(payload, offset, n)
+            stream.flush()
+            offset += n
+            if (offset < payload.size) {
+                kotlinx.coroutines.delay(n * 1000L / bytesPerSecond)
+            }
+        }
+    }
+
+    /**
+     * Applies the configured simulated impairments to an outgoing response — the latency delay
+     * happens inside the engine — and reports whether the caller should still write.
+     *
+     * Returns false when the response is dropped or the connection is reset. Only active in SERVER
+     * mode, and skipped while `holdMessage` is on so the manual hold-and-release feature is never
+     * compounded with a simulated delay.
+     */
+    private suspend fun applyResponseSimulation(): Boolean {
+        val handler = gatewayHandler as? HostSimulator ?: return true
+        val config = handler.configuration
+        if (config.gatewayType != GatewayType.SERVER) return true
+        if (!config.simulation.enabled) return true
+        if (handler.holdMessage) return true
+
+        // Refreshed per response, so a throttle switched on mid-test reaches open connections.
+        slowWriteBytesPerSecond =
+            if (config.simulation.connection.enabled) {
+                config.simulation.connection.slowWriteBytesPerSecond
+            } else {
+                0
+            }
+
+        val decision = handler.simulationEngine.beforeResponse(
+            // Only used for per-command error-code overrides, which the host does not use —
+            // its errors come from the [SIMRC] placeholder instead.
+            commandCode = "",
+            activeConnections = handler.getConnectionCount(),
+        )
+        return when (decision) {
+            is ResponseDecision.Send -> true
+
+            is ResponseDecision.Drop -> {
+                writeServerLog(
+                    createLogEntry(
+                        type = LogType.ERROR,
+                        message = "SIMULATION — response withheld (${decision.reason})"
+                    )
+                )
+                // The read loop stays alive, so the client is left waiting — that is the point.
+                if (decision.closeConnection) closeSourceConnection()
+                false
+            }
+
+            is ResponseDecision.ResetConnection -> {
+                writeServerLog(
+                    createLogEntry(
+                        type = LogType.ERROR,
+                        message = "SIMULATION — connection reset before responding (${decision.reason})"
+                    )
+                )
+                closeSourceConnection()
+                false
+            }
+
+            // Host errors come from the [SIMRC] placeholder, not from rewriting the packed message.
+            is ResponseDecision.SubstituteError -> true
+        }
+    }
+
     suspend fun send(input: ByteArray?, isFirst: Boolean) {
 
         if (input == null || input.isEmpty()) {
@@ -862,6 +957,11 @@ class GatewayClient {
         }
 
         if (isFirst) {
+            // Simulated impairments apply to responses this simulator originates, so only on the
+            // way back to the source and only in SERVER mode. Returns false when the response is
+            // to be withheld entirely.
+            if (!applyResponseSimulation()) return
+
             writeServerLog(createLogEntry(type = LogType.INFO,"====================SENT TO SOURCE======================"))
             val gType = gatewayHandler?.configuration?.gatewayType
             val incomingIso = parseData(input,
@@ -883,8 +983,14 @@ class GatewayClient {
 
             when (gatewayHandler?.configuration?.serverConnectionType) {
                 ConnectionType.TCP_IP -> {
-                    firstConnection?.getOutputStream()?.write(modifiedInput, 0, modifiedInput!!.size)
-                    firstConnection?.getOutputStream()?.flush()
+                    val out = firstConnection?.getOutputStream()
+                    val throttle = slowWriteBytesPerSecond
+                    if (out != null && throttle > 0 && modifiedInput != null) {
+                        writeThrottled(out, modifiedInput, throttle)
+                    } else {
+                        out?.write(modifiedInput, 0, modifiedInput!!.size)
+                        out?.flush()
+                    }
                 }
 
                 ConnectionType.REST -> {
@@ -2085,6 +2191,10 @@ class GatewayClient {
         }
 
     suspend fun sendFormatedData() {
+        // The encrypted / asynchronous response path bypasses send(), so simulation is applied here
+        // too — otherwise it would silently not apply in those modes.
+        if (!applyResponseSimulation()) return
+
         if (eRequestData?.messageType == GatewayMessageType.ADMIN_REQUEST && onAdminResponse != null) {
             val customResponseBytes = ByteArray(1)
             val response = onAdminResponse?.invoke(this, customResponseBytes)

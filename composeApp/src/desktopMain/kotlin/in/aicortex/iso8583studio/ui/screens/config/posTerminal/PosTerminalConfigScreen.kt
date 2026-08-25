@@ -11,6 +11,7 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorCo
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.UnifiedSimulatorState
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.DevelopmentStatus
 import `in`.aicortex.iso8583studio.ui.screens.config.ConfigTab
 import `in`.aicortex.iso8583studio.ui.screens.config.ContainerConfig
 import `in`.aicortex.iso8583studio.ui.screens.config.SimulatorConfigLayout
@@ -21,72 +22,25 @@ fun PosTerminalConfigScreen(
     navigationController: NavigationController,
     appState: UnifiedSimulatorState,
 ) {
-    val currentConfig = appState.currentConfig(SimulatorType.POS) as POSSimulatorConfig?
+    // Re-read on every recomposition rather than capturing once, matching
+    // ApduSimulatorConfigScreen. The container re-invokes tab content after each edit.
+    fun current(): POSSimulatorConfig? = appState.currentConfig(SimulatorType.POS) as POSSimulatorConfig?
+
+    // Every tab receives the config it produced and persists THAT. The previous form discarded the
+    // emitted config and re-saved the old one with only a new timestamp, so nothing the user
+    // changed was ever written.
+    val save: (POSSimulatorConfig) -> Unit = { updated ->
+        appState.updateConfig(updated.copy(modifiedDate = System.currentTimeMillis()))
+    }
+
+    // Labels name what each tab now holds. The composables keep their original file names so the
+    // diff stays reviewable; only their contents changed from display strings to real settings.
     val tabs = listOf(
-        ConfigTab(
-            label = "Hardware",
-            content = {
-                currentConfig?.let {
-                    HardwareTab(
-                        it,
-                    ) {
-                        appState.updateConfig(
-                            currentConfig.copy(
-                                modifiedDate = System.currentTimeMillis()
-                            )
-                        )
-                    }
-                }
-            }
-        ),
-        ConfigTab(
-            label = "Transaction",
-            content = {
-                currentConfig?.let {
-                    TransactionTab(
-                        it,
-                    ) {
-                        appState.updateConfig(
-                            currentConfig.copy(
-                                modifiedDate = System.currentTimeMillis()
-                            )
-                        )
-                    }
-                }
-            }
-        ),
-        ConfigTab(
-            label = "Security",
-            content = {
-                currentConfig?.let {
-                    SecurityTab(
-                        it,
-                    ) {
-                        appState.updateConfig(
-                            currentConfig.copy(
-                                modifiedDate = System.currentTimeMillis()
-                            )
-                        )
-                    }
-                }
-            }
-        ),
-        ConfigTab(
-            label = "Network & SW",
-            content = {
-                currentConfig?.let {
-                    NetworkSoftwareTab(
-                        it,
-                    ) {
-                        appState.updateConfig(
-                            currentConfig.copy(
-                                modifiedDate = System.currentTimeMillis()
-                            )
-                        )
-                    }
-                }
-            }
-        ),
+        ConfigTab(label = "Device") { current()?.let { DeviceTab(it, save) } },
+        ConfigTab(label = "Hardware") { current()?.let { HardwareTab(it, save) } },
+        ConfigTab(label = "Peripherals") { current()?.let { SecurityTab(it, save) } },
+        ConfigTab(label = "System & Boot") { current()?.let { NetworkSoftwareTab(it, save) } },
+        ConfigTab(label = "Card & Host") { current()?.let { TransactionTab(it, save) } },
     )
     Scaffold(
         topBar = {
@@ -105,14 +59,16 @@ fun PosTerminalConfigScreen(
                     appState.currentConfig(SimulatorType.POS) as POSSimulatorConfig?
                 },
                 simulatorConfigs = appState.posConfigs.value,
-                icon = Icons.Default.PhoneAndroid
+                icon = Icons.Default.PhoneAndroid,
+                containerStatus = DevelopmentStatus.EXPERIMENTAL,
             ),
             onSelectConfig = { appState.selectConfig(it.id) },
             createNewConfig = {
                 appState.addConfig(
                     POSSimulatorConfig(
                         id = appState.generateConfigId(),
-                        name = "POS - ${appState.hostConfigs.value.size + 1}",
+                        // Was hostConfigs — a copy-paste that numbered POS configs off the host list.
+                        name = "POS - ${appState.posConfigs.value.size + 1}",
                         description = "",
                         createdDate = System.currentTimeMillis(),
                         modifiedDate = System.currentTimeMillis(),

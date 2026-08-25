@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 
 enum class HsmCommandTabs(val title: String, val icon: ImageVector) {
     COMMAND_CONSOLE("Console", Icons.Default.Terminal),
+    MESSAGE_PARSER("Parser", Icons.Default.ContentPaste),
     SCENARIO_BUILDER("Scenario", Icons.Default.AccountTree),
     LOAD_TESTER("Load Test", Icons.Default.Speed),
     LOGS("Logs", Icons.Default.Article),
@@ -102,6 +103,7 @@ private fun HsmCommandContent(
     val tabList = HsmCommandTabs.entries.toList()
     val vendorCommands = remember(service.config.hsmVendor) { getVendorCommands(service.config.hsmVendor) }
     val commandConsoleSession = remember { CommandConsoleSessionState() }
+    val messageParserSession = remember { MessageParserSessionState() }
     val scenarioSession = remember { ScenarioSessionState() }
     var savedScenarios by remember { mutableStateOf(service.config.scenarios) }
 
@@ -144,6 +146,10 @@ private fun HsmCommandContent(
                         session = commandConsoleSession,
                         exchangeLog = logText,
                         logFileSessionName = service.config.name,
+                    )
+                    HsmCommandTabs.MESSAGE_PARSER -> HsmMessageParserTab(
+                        service = service,
+                        session = messageParserSession,
                     )
                     HsmCommandTabs.SCENARIO_BUILDER -> ScenarioBuilderTab(
                         service = service,

@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.HsmServiceImpl
+import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.toHsmAdvanced
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
@@ -50,6 +51,7 @@ fun HsmSimulatorScreen(
     config: HSMSimulatorConfig,
     onBack: () -> Unit,
     service: HsmServiceImpl? = null,
+    onSaveConfig: ((HSMSimulatorConfig) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     // Use the injected service when available (session tab), otherwise own it locally.
@@ -81,6 +83,8 @@ fun HsmSimulatorScreen(
     ) { paddingValues ->
         HsmSimulator(
             hsm = hsmService,
+            config = config,
+            onSaveConfig = onSaveConfig,
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -88,8 +92,15 @@ fun HsmSimulatorScreen(
 
 @OptIn(ExperimentalAtomicApi::class)
 @Composable
-fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
+fun HsmSimulator(
+    hsm: HsmServiceImpl,
+    config: HSMSimulatorConfig? = null,
+    onSaveConfig: ((HSMSimulatorConfig) -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     var selectedTabIndex by remember { mutableStateOf(0) }
+    var showSimulationSettings by remember { mutableStateOf(false) }
+    val simulationSettings by hsm.simulation.collectAsState()
     val tabList = HsmSimulatorTabs.values().toList()
     val hsmState = hsm.hsmState.collectAsState()
     var rawRequest by remember { mutableStateOf("") }
@@ -253,7 +264,9 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                             rawRequest = rawRequest,
                             response = formattedResponse,
                             rawResponse = rawResponse,
-                            connectedClients = hsmState.value.activeClients.size
+                            connectedClients = hsmState.value.activeClients.size,
+                            onSettingsClick = { showSimulationSettings = true },
+                            simulationActive = simulationSettings.anyActive
                         )
 
                         HsmSimulatorTabs.KEY_MANAGEMENT -> KeyManagementOverviewTab(hsm = hsm)
@@ -271,6 +284,26 @@ fun HsmSimulator(hsm: HsmServiceImpl, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+
+    if (showSimulationSettings) {
+        SimulationSettingsDialog(
+            initial = simulationSettings,
+            onDismiss = { showSimulationSettings = false },
+            onApply = { updated ->
+                // Live first: the running service re-reads this per request, so the very next
+                // response is already impaired.
+                hsm.simulation.value = updated
+                // Then durable. Only the `advanced` subtree is written, so a config edited on the
+                // Configuration screen since this session launched is not clobbered.
+                config?.let { current ->
+                    onSaveConfig?.invoke(
+                        current.copy(advanced = updated.toHsmAdvanced(current.advanced)),
+                    )
+                }
+                showSimulationSettings = false
+            },
+        )
     }
 }
 

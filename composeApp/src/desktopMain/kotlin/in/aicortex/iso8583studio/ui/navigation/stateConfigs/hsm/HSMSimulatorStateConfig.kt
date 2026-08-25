@@ -1,5 +1,10 @@
 package `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm
 
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ConnectionChaosConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ErrorInjectionConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ResponseDelayConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.ResponseRampConfig
+import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.simulation.TimeoutSimulationConfig
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Cloud
@@ -666,29 +671,7 @@ data class KeyManagementConfiguration(
 
 
 // Advanced Options Data Classes
-@Serializable
-enum class ResponseDelayType(val displayName: String, val description: String) {
-    NONE("No Delay", "Respond immediately without any delay"),
-    FIXED("Fixed Delay", "Fixed delay for all responses"),
-    RANDOM("Random Delay", "Random delay within specified range"),
-    PROGRESSIVE("Progressive Delay", "Increasing delay based on load"),
-    REALISTIC("Realistic Simulation", "Realistic network and processing delays"),
-    CUSTOM("Custom Pattern", "Custom delay patterns based on message type")
-}
 
-@Serializable
-enum class ErrorInjectionType(val displayName: String, val description: String) {
-    NETWORK_TIMEOUT("Network Timeout", "Simulate network timeout errors"),
-    CONNECTION_FAILURE("Connection Failure", "Simulate connection failures"),
-    MALFORMED_RESPONSE("Malformed Response", "Send invalid or corrupted responses"),
-    AUTHENTICATION_FAILURE("Authentication Failure", "Simulate authentication errors"),
-    INSUFFICIENT_FUNDS("Insufficient Funds", "Simulate transaction decline scenarios"),
-    SYSTEM_ERROR("System Error", "Simulate internal system errors"),
-    CARD_BLOCKED("Card Blocked", "Simulate blocked card scenarios"),
-    INVALID_PIN("Invalid PIN", "Simulate PIN verification failures"),
-    EXPIRED_CARD("Expired Card", "Simulate expired card scenarios"),
-    CUSTOM_ERROR("Custom Error", "User-defined error scenarios")
-}
 
 @Serializable
 enum class LoadTestingPattern(val displayName: String) {
@@ -787,28 +770,6 @@ enum class MockResponseType(val displayName: String,val description: String) {
     CUSTOM("Custom", "User-defined responses")
 }
 
-@Serializable
-data class ResponseDelayConfig(
-    val delayType: ResponseDelayType = ResponseDelayType.NONE,
-    val fixedDelayMs: Int = 100,
-    val minDelayMs: Int = 50,
-    val maxDelayMs: Int = 500,
-    val networkLatencyMs: Int = 20,
-    val processingDelayMs: Int = 80,
-    val enableJitter: Boolean = false,
-    val jitterPercentage: Int = 10
-)
-
-@Serializable
-data class ErrorInjectionConfig(
-    val enableErrorInjection: Boolean = false,
-    val enabledErrorTypes: Set<ErrorInjectionType> = emptySet(),
-    val errorRate: Double = 0.05, // 5% error rate
-    val errorBurstMode: Boolean = false,
-    val errorBurstDuration: Int = 30, // seconds
-    val errorBurstRate: Double = 0.5, // 50% during burst
-    val customErrorCodes: Map<String, String> = emptyMap()
-)
 
 @Serializable
 data class LoadTestingConfig(
@@ -959,6 +920,17 @@ data class MockResponseConfig(
 
 @Serializable
 data class AdvancedOptionsConfiguration(
+    /**
+     * Master kill switch for every simulated impairment. When false the simulator answers as fast as
+     * it can regardless of the sections below, so a test can be returned to a clean baseline with one
+     * toggle.
+     */
+    val simulationEnabled: Boolean = false,
+    /** Non-zero makes the simulated randomness reproducible across runs. */
+    val randomSeed: Long = 0,
+    val rampConfig: ResponseRampConfig = ResponseRampConfig(),
+    val timeoutConfig: TimeoutSimulationConfig = TimeoutSimulationConfig(),
+    val connectionChaosConfig: ConnectionChaosConfig = ConnectionChaosConfig(),
     val responseDelayConfig: ResponseDelayConfig = ResponseDelayConfig(),
     val errorInjectionConfig: ErrorInjectionConfig = ErrorInjectionConfig(),
     val loadTestingConfig: LoadTestingConfig = LoadTestingConfig(),

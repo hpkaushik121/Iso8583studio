@@ -17,9 +17,12 @@ class SimulatedResponse(
 
         val transaction = getMatchedSimulatedTransaction()
         transaction?.let {
+            // The simulation section decides how often [SIMRC] resolves to a decline; the template
+            // decides which field carries it.
             val processedTransaction = PlaceholderProcessor.processPlaceholders(
                 it.fields!!.toTypedArray(),
-                dataRequest?.bitAttributes
+                dataRequest?.bitAttributes,
+                simulation = config.simulation.responseCode
             )
             val response = Iso8583Data(
                 template = processedTransaction,
@@ -30,7 +33,8 @@ class SimulatedResponse(
             if(it.responseMapping.enabled){
                 response.otherKAttributes = PlaceholderProcessor.processPlaceholders(
                     requestTransaction = dataRequest?.otherKAttributes,
-                    responseFields = it.responseMapping.responseFields
+                    responseFields = it.responseMapping.responseFields,
+                    simulation = config.simulation.responseCode
                 )
             }
             response.messageType =

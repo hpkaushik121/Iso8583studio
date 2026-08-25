@@ -1695,7 +1695,7 @@ footer{border-top:1px solid #ddd;padding-top:16px;margin-top:40px;text-align:cen
         appendLine("<div class=\"meta\">")
         appendLine("<div class=\"meta-item\"><span class=\"k\">HSM Vendor</span><span class=\"v\">${h(cfg.hsmVendor.displayName)}</span></div>")
         appendLine("<div class=\"meta-item\"><span class=\"k\">Host</span><span class=\"v\">${h(cfg.ipAddress)}:${cfg.port}</span></div>")
-        appendLine("<div class=\"meta-item\"><span class=\"k\">Header Format</span><span class=\"v\">${cfg.hsmVendor.headerFormat}</span></div>")
+        appendLine("<div class=\"meta-item\"><span class=\"k\">Header Format</span><span class=\"v\">${cfg.headerFormat}</span></div>")
         appendLine("<div class=\"meta-item\"><span class=\"k\">Message Header</span><span class=\"v\">${h(cfg.headerValue.ifBlank { "\u2014" })}</span></div>")
         appendLine("<div class=\"meta-item\"><span class=\"k\">SSL/TLS</span><span class=\"v\">${if (cfg.sslConfig.enabled) "Enabled" else "Disabled"}</span></div>")
         appendLine("<div class=\"meta-item\"><span class=\"k\">TCP Length Header</span><span class=\"v\">${if (cfg.tcpLengthHeaderEnabled) "Yes" else "No"}</span></div>")

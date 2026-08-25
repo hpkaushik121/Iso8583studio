@@ -66,6 +66,12 @@ data class GatewayConfig(
     var keyExpireAfter: Int = 0,
     var addNewClientWhenLoadKEK: Boolean = false,
     var advancedOptions: AdvancedOptions? = null,
+    /**
+     * Simulated impairments applied to responses in SERVER mode. Hung directly off the config rather
+     * than nested in [advancedOptions] because that class has no `equals`, so anything inside it is
+     * compared by identity and would never register as changed.
+     */
+    var simulation: HostSimulationConfig = HostSimulationConfig(),
     var restConfiguration: RestConfiguration? = null,
     var codeFormatDest: CodeFormat? = null,
     var codeFormatSource: CodeFormat? = null,
@@ -397,6 +403,7 @@ data class GatewayConfig(
         if (hashAlgorithm != other.hashAlgorithm) return false
         if (!gwBitTemplateSource.contentEquals(other.gwBitTemplateSource)) return false
         if (advancedOptions != other.advancedOptions) return false
+        if (simulation != other.simulation) return false
         if (_logFileName != other._logFileName) return false
         if (destinationConnectionType != other.destinationConnectionType) return false
         if (serverConnectionType != other.serverConnectionType) return false
@@ -478,6 +485,7 @@ data class GatewayConfig(
         result = 31 * result + hashAlgorithm.hashCode()
         result = 31 * result + (gwBitTemplateSource?.contentHashCode() ?: 0)
         result = 31 * result + (advancedOptions?.hashCode() ?: 0)
+        result = 31 * result + simulation.hashCode()
         result = 31 * result + _logFileName.hashCode()
         result = 31 * result + destinationConnectionType.hashCode()
         result = 31 * result + serverConnectionType.hashCode()

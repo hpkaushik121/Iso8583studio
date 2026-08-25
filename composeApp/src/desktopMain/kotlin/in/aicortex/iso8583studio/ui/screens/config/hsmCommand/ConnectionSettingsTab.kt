@@ -99,6 +99,7 @@ fun ConnectionSettingsTab(
                                 onConfigChange(config.copy(
                                     hsmVendor = vendor,
                                     port = vendor.defaultPort,
+                                    headerFormat = vendor.headerFormat,
                                     tcpLengthHeaderEnabled = vendor.headerFormat == HeaderFormat.TWO_BYTE_LENGTH ||
                                             vendor.headerFormat == HeaderFormat.FOUR_BYTE_ASCII_LENGTH
                                 ))
@@ -177,7 +178,7 @@ fun ConnectionSettingsTab(
                 val headerFormatDensity = LocalDensity.current
                 Box(modifier = Modifier.fillMaxWidth()) {
                     FixedOutlinedTextField(
-                        value = config.hsmVendor.headerFormat.displayName,
+                        value = config.headerFormat.displayName,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Header Format") },
@@ -204,9 +205,7 @@ fun ConnectionSettingsTab(
                     ) {
                         HeaderFormat.entries.forEach { fmt ->
                             DropdownMenuItem(onClick = {
-                                onConfigChange(config.copy(
-                                    hsmVendor = config.hsmVendor,
-                                ))
+                                onConfigChange(config.copy(headerFormat = fmt))
                                 headerFormatExpanded = false
                             }) {
                                 Text(fmt.displayName)

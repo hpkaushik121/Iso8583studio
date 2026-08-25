@@ -41,7 +41,12 @@ fun SimulatorHandlerTab(
     response: String,
     rawResponse: String,
     isServer: Boolean = true,
-    connectedClients: Int = 0
+    connectedClients: Int = 0,
+    /** When non-null a settings gear is shown in the control panel. Simulators that have no runtime
+     *  settings (e.g. the Host Simulator) leave this null and the toolbar is unchanged. */
+    onSettingsClick: (() -> Unit)? = null,
+    /** Highlights the gear and shows a SIM badge, so a simulator that is degrading traffic says so. */
+    simulationActive: Boolean = false,
 ) {
     // Minimize states for each quadrant (both vertical and horizontal)
     var isFormattedRequestMinimized by remember { mutableStateOf(false) }
@@ -77,7 +82,9 @@ fun SimulatorHandlerTab(
             waitingRemain = waitingRemain,
             onSendClick = onSendClick,
             gatewayStarted = simulator.isStarted(),
-            connectedClients = connectedClients
+            connectedClients = connectedClients,
+            onSettingsClick = onSettingsClick,
+            simulationActive = simulationActive
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -351,7 +358,9 @@ private fun CompactControlPanel(
     waitingRemain: String,
     onSendClick: () -> Unit,
     gatewayStarted: Boolean,
-    connectedClients: Int = 0
+    connectedClients: Int = 0,
+    onSettingsClick: (() -> Unit)? = null,
+    simulationActive: Boolean = false
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -411,6 +420,36 @@ private fun CompactControlPanel(
                         "Clear",
                         style = MaterialTheme.typography.caption
                     )
+                }
+
+                if (onSettingsClick != null) {
+                    val gearTint = if (simulationActive) WarningYellow
+                    else MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Simulation settings",
+                            modifier = Modifier.size(18.dp),
+                            tint = gearTint
+                        )
+                    }
+                    if (simulationActive) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = WarningYellow.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                "SIM",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.overline,
+                                fontWeight = FontWeight.Bold,
+                                color = WarningYellow
+                            )
+                        }
+                    }
                 }
 
                 if (!gatewayStarted) {

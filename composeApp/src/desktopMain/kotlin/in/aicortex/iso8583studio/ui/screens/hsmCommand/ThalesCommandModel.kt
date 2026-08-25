@@ -354,7 +354,18 @@ object ThalesWireBuilder {
             (responseBytes.size - headerLengthBytes).coerceAtLeast(0),
             Charsets.US_ASCII,
         )
+        return parseResponseFields(definition, ascii, requestFieldValues)
+    }
 
+    /**
+     * Same as [parseResponseFields], but for a response body whose TCP framing and message
+     * header have already been stripped — i.e. [ascii] starts at the 2-char response code.
+     */
+    fun parseResponseFields(
+        definition: ThalesCommandDefinition,
+        ascii: String,
+        requestFieldValues: Map<String, String> = emptyMap(),
+    ): List<Pair<ThalesCommandField, String>> {
         if (ascii.length >= 2) {
             val responseCode = ascii.substring(0, 2)
             if ((definition.code == "M0" && responseCode == "M1") ||
@@ -365,15 +376,43 @@ object ThalesWireBuilder {
             }
         }
 
-        val result = mutableListOf<Pair<ThalesCommandField, String>>()
-        var pos = 2 // skip 2-char response code (e.g. "A1", "ND")
-        val responseValues = mutableMapOf<String, String>()
         // Merge request field values so response field conditions can reference request fields (e.g. "mode")
-        responseValues.putAll(requestFieldValues)
-        val fields = definition.responseFields
+        return splitFields(
+            fields = definition.responseFields,
+            ascii = ascii,
+            startPos = 2, // skip 2-char response code (e.g. "A1", "ND")
+            seedValues = requestFieldValues,
+        )
+    }
+
+    /**
+     * Splits an outbound command string (the inverse of [buildPlainTextCommand]) back into its
+     * request fields, so a hand-typed command can be shown field by field.
+     */
+    fun parseRequestFields(
+        definition: ThalesCommandDefinition,
+        ascii: String,
+    ): List<Pair<ThalesCommandField, String>> =
+        splitFields(definition.requestFields, ascii, startPos = definition.code.length)
+
+    /**
+     * Walks [fields] left to right over [ascii] starting at [startPos], consuming each field's
+     * declared length (or a detected length for variable fields). [seedValues] pre-populates the
+     * value map used to evaluate field visibility conditions.
+     */
+    private fun splitFields(
+        fields: List<ThalesCommandField>,
+        ascii: String,
+        startPos: Int,
+        seedValues: Map<String, String> = emptyMap(),
+    ): List<Pair<ThalesCommandField, String>> {
+        val result = mutableListOf<Pair<ThalesCommandField, String>>()
+        var pos = startPos
+        val values = mutableMapOf<String, String>()
+        values.putAll(seedValues)
 
         for ((idx, field) in fields.withIndex()) {
-            if (!isFieldVisible(field, responseValues)) continue
+            if (!isFieldVisible(field, values)) continue
             if (pos >= ascii.length) break
 
             val charLen = if (field.length > 0) {
@@ -386,7 +425,7 @@ object ThalesWireBuilder {
             val endPos = minOf(pos + charLen, ascii.length)
             val value = ascii.substring(pos, endPos)
 
-            responseValues[field.id] = value
+            values[field.id] = value
             result.add(field to value)
             pos = endPos
         }

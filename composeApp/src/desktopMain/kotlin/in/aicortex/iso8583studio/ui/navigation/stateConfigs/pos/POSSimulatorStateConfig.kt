@@ -1,6 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos
 
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
+import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.device.AvdSpec
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.SimulatorType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.apdu.CardType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.Transaction
@@ -53,6 +54,28 @@ data class POSSimulatorConfig(
     var osType: String = "Proprietary OS",
     override val serverAddress: String = "localhost",
     override val serverPort: Int = 8080,
+
+    // ---------------------------------------------------------------------------------------
+    // v2 — Android device emulation. Defaults preserve compatibility with previously-saved
+    // configs: UnifiedSimulatorState reads with `ignoreUnknownKeys = true`, so this block must
+    // stay purely additive. Never rename or remove a field above.
+    // ---------------------------------------------------------------------------------------
+
+    /** `"<modelId>:<variantId>"` into the terminal catalog, e.g. `pax-a910s:5p5in`. */
+    val terminalProfileId: String = "pax-a910s:5in",
+    val avd: AvdSpec = AvdSpec(),
+
+    /** Card source. Field names deliberately match APDUSimulatorConfig so the two are learnable. */
+    val transportMode: String = "LOOPBACK",
+    val pcscReaderName: String = "",
+    val serialPortName: String = "",
+    val serialBaudRate: Int = 115200,
+    /** Id of the CardProfile served in LOOPBACK mode. */
+    val activeProfileId: String = "",
+
+    /** The payment APK installed into the emulator, and the package auto-launched after boot. */
+    val payloadApkPath: String = "",
+    val autoLaunchPackage: String = "",
 ) : SimulatorConfig
 
 
