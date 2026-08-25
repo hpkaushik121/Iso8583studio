@@ -37,7 +37,6 @@ import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.HsmCommandRe
 import `in`.aicortex.iso8583studio.ui.PrimaryBlue
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
-import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HeaderFormat
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmVendorType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.Dispatchers
@@ -163,6 +162,9 @@ fun CommandConsoleTab(
                 val result = service.sendCommand(commandText)
                 session.lastResult = result
 
+                // The request is rendered from the values actually typed rather than re-parsed
+                // off the wire; the response goes through the vendor parser, seeded with those
+                // values so conditional response fields resolve.
                 session.bpFormattedRequest = try {
                     ThalesWireBuilder.formatRequestBpStyle(
                         def, fieldValues, result.rawRequest,
@@ -171,28 +173,20 @@ fun CommandConsoleTab(
                     )
                 } catch (_: Exception) { "" }
 
-                val tcpFrameBytes = when (service.config.hsmVendor.headerFormat) {
-                    HeaderFormat.TWO_BYTE_LENGTH ->
-                        if (service.config.tcpLengthHeaderEnabled) 2 else 0
-                    HeaderFormat.FOUR_BYTE_ASCII_LENGTH -> 4
-                    else -> 0
-                }
-                val msgHeaderBytes = service.config.headerValue.length
+                val request = ParsedHsmMessage(
+                    commandCode = def.code,
+                    commandName = def.name,
+                    fields = def.requestFields.mapNotNull { field ->
+                        fieldValues[field.id]?.let { field to it }
+                    },
+                    formatted = session.bpFormattedRequest,
+                )
+                val response = try {
+                    service.parser.parseResponse(result.rawResponse, service.framing(), request)
+                } catch (_: Exception) { null }
 
-                session.parsedResponse = try {
-                    ThalesWireBuilder.parseResponseFields(
-                        def, result.rawResponse, tcpFrameBytes + msgHeaderBytes,
-                        requestFieldValues = fieldValues,
-                    )
-                } catch (_: Exception) { emptyList() }
-
-                session.bpFormattedResponse = try {
-                    ThalesWireBuilder.formatResponseBpStyle(
-                        def, session.parsedResponse, result.rawResponse,
-                        service.config.tcpLengthHeaderEnabled,
-                        service.config.headerValue,
-                    )
-                } catch (_: Exception) { "" }
+                session.parsedResponse = response?.fields.orEmpty()
+                session.bpFormattedResponse = response?.formatted.orEmpty()
                 recordExchangeInLogsAndFile()
             } catch (e: Exception) {
                 exchangeLog.add(
@@ -207,10 +201,23 @@ fun CommandConsoleTab(
         isSending = true
         scope.launch {
             try {
-                session.lastResult = service.sendCommand(commandInput)
-                session.parsedResponse = emptyList()
-                session.bpFormattedRequest = ""
-                session.bpFormattedResponse = ""
+                val result = service.sendCommand(commandInput)
+                session.lastResult = result
+
+                // No structured builder was used, so decode both directions off the wire with
+                // the parser for the configured vendor.
+                val parser = HsmVendorParsers.forVendor(service.config.hsmVendor)
+                val framing = service.framing()
+                val request = try {
+                    parser.parseRequest(result.rawRequest, framing)
+                } catch (_: Exception) { null }
+                val response = try {
+                    parser.parseResponse(result.rawResponse, framing, request)
+                } catch (_: Exception) { null }
+
+                session.bpFormattedRequest = request?.formatted.orEmpty()
+                session.bpFormattedResponse = response?.formatted.orEmpty()
+                session.parsedResponse = response?.fields.orEmpty()
                 recordExchangeInLogsAndFile()
             } catch (e: Exception) {
                 exchangeLog.add(
@@ -1030,7 +1037,7 @@ internal fun AutoHideTooltip(
 // ─────────────────────────────────────────────────────────
 
 @Composable
-private fun MonospacePanel(
+internal fun MonospacePanel(
     label: String,
     icon: ImageVector,
     accentColor: Color,
@@ -1072,7 +1079,7 @@ private fun MonospacePanel(
 }
 
 @Composable
-private fun ParsedFieldsView(
+internal fun ParsedFieldsView(
     parsedFields: List<Pair<ThalesCommandField, String>>,
     modifier: Modifier = Modifier,
 ) {
@@ -1472,7 +1479,7 @@ private fun StatusBadge(result: HsmCommandResult) {
 }
 
 @Composable
-private fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onClick),
         shape = RoundedCornerShape(4.dp),

@@ -4,7 +4,9 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.*
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.SSLTLSVersion
-import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.ThalesErrorCodes
+import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.HsmFraming
+import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.HsmVendorParser
+import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.HsmVendorParsers
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +77,24 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
     val loadTestStats: StateFlow<LoadTestStats> = _loadTestStats.asStateFlow()
 
     private val _commandLogs = java.util.concurrent.ConcurrentLinkedQueue<LoadTestCommandLog>()
+
+    /** Decoder for the configured vendor's request/response wire format. */
+    val parser: HsmVendorParser = HsmVendorParsers.forVendor(config.hsmVendor)
+
+    /** The framing this service wraps commands in, so [parser] can strip it back off. */
+    fun framing(): HsmFraming = HsmFraming(
+        headerFormat = config.headerFormat,
+        tcpLengthEnabled = config.tcpLengthHeaderEnabled,
+        messageHeader = config.headerValue,
+        messageHeaderLength = config.messageHeaderLength,
+        trailer = config.trailerValue,
+    )
+
+    /**
+     * Characters a message header occupies in an inbound payload. The device echoes a header of
+     * the configured length, which is not necessarily the header value this end sends.
+     */
+    private val responseHeaderLength: Int get() = config.messageHeaderLength.coerceAtLeast(0)
 
     /** Retrieve and clear all command logs collected during the last load test. */
     fun drainCommandLogs(): List<LoadTestCommandLog> {
@@ -183,16 +203,17 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
                 val responsePayload = extractPayload(responseBytes)
                 writeLog(createLogEntry(LogType.MESSAGE, "RECV ${responseBytes.size} bytes in ${elapsed}ms"))
 
-                val headerLen = config.headerValue.length
+                val headerLen = responseHeaderLength
                 val bodyForCheck = if (headerLen > 0 && responsePayload.size > headerLen)
                     responsePayload.copyOfRange(headerLen, responsePayload.size)
                 else responsePayload
 
-                val hsmErrorCode = if (bodyForCheck.size >= 4)
-                    String(bodyForCheck, 2, 2, Charsets.US_ASCII) else null
-                val hsmSuccess = hsmErrorCode == null || ThalesErrorCodes.isSuccess(hsmErrorCode)
-                val hsmErrorMsg = if (!hsmSuccess && hsmErrorCode != null)
-                    "HSM Error $hsmErrorCode: ${ThalesErrorCodes.getDescription(hsmErrorCode)}" else null
+                // Only vendors whose status encoding is known can report a failure; for the rest
+                // the exchange counts as successful once a response came back.
+                val status = parser.statusOf(String(bodyForCheck, Charsets.US_ASCII))
+                val hsmSuccess = status?.success ?: true
+                val hsmErrorMsg = if (status != null && !status.success)
+                    "HSM Error ${status.code}: ${status.description}" else null
 
                 HsmCommandResult(
                     success = hsmSuccess,
@@ -419,7 +440,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         val trailer = if (config.trailerValue.isNotBlank()) config.trailerValue.toByteArray(Charsets.US_ASCII) else ByteArray(0)
         val body = header + payload + trailer
 
-        return when (config.hsmVendor.headerFormat) {
+        return when (config.headerFormat) {
             HeaderFormat.TWO_BYTE_LENGTH -> {
                 if (config.tcpLengthHeaderEnabled) {
                     val len = body.size
@@ -438,7 +459,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
     }
 
     private fun readResponse(stream: InputStream): ByteArray {
-        return when (config.hsmVendor.headerFormat) {
+        return when (config.headerFormat) {
             HeaderFormat.TWO_BYTE_LENGTH -> {
                 if (config.tcpLengthHeaderEnabled) {
                     val lenBuf = ByteArray(2)
@@ -472,7 +493,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
     }
 
     private fun extractPayload(raw: ByteArray): ByteArray {
-        return when (config.hsmVendor.headerFormat) {
+        return when (config.headerFormat) {
             HeaderFormat.TWO_BYTE_LENGTH -> if (config.tcpLengthHeaderEnabled && raw.size > 2) raw.copyOfRange(2, raw.size) else raw
             HeaderFormat.FOUR_BYTE_ASCII_LENGTH -> if (raw.size > 4) raw.copyOfRange(4, raw.size) else raw
             else -> raw
@@ -503,7 +524,7 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
     fun extractOutboundCommandBytes(frame: ByteArray): ByteArray {
         if (frame.isEmpty()) return frame
         var rest = frame
-        when (config.hsmVendor.headerFormat) {
+        when (config.headerFormat) {
             HeaderFormat.TWO_BYTE_LENGTH -> {
                 if (config.tcpLengthHeaderEnabled && rest.size >= 2) {
                     rest = rest.copyOfRange(2, rest.size)
@@ -542,24 +563,15 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         return formatCommand(extractOutboundCommandBytes(frame))
     }
 
+    /**
+     * [payload] is the bare command text: framing, message header and trailer are already gone,
+     * both at the send site and via [extractOutboundCommandBytes].
+     */
     fun formatCommand(payload: ByteArray): String {
         if (payload.isEmpty()) return "(empty)"
-        val headerLen = config.headerValue.length
         val sb = StringBuilder()
 
-        if (headerLen > 0 && payload.size > headerLen) {
-            sb.appendLine("Header: ${String(payload, 0, headerLen, Charsets.US_ASCII)}")
-            val cmdBody = payload.copyOfRange(headerLen, payload.size)
-            if (cmdBody.size >= 2) {
-                val cmdCode = String(cmdBody, 0, 2, Charsets.US_ASCII)
-                sb.appendLine("Command Code: $cmdCode")
-                if (cmdBody.size > 2) {
-                    sb.appendLine("Data: ${String(cmdBody, 2, cmdBody.size - 2, Charsets.US_ASCII)}")
-                }
-            } else {
-                sb.appendLine("Data: ${String(cmdBody, Charsets.US_ASCII)}")
-            }
-        } else if (payload.size >= 2) {
+        if (payload.size >= 2) {
             val cmdCode = String(payload, 0, 2, Charsets.US_ASCII)
             sb.appendLine("Command Code: $cmdCode")
             if (payload.size > 2) {
@@ -571,9 +583,10 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         return sb.toString().trimEnd()
     }
 
+    /** [payload] still carries the message header — only the length/STX framing has been removed. */
     fun formatResponse(payload: ByteArray): String {
         if (payload.isEmpty()) return "(empty)"
-        val headerLen = config.headerValue.length
+        val headerLen = responseHeaderLength
         val sb = StringBuilder()
 
         val body = if (headerLen > 0 && payload.size > headerLen) {
@@ -584,15 +597,14 @@ class HsmCommandClientService(val config: HsmCommandConfig) {
         if (body.size >= 2) {
             val respCode = String(body, 0, 2, Charsets.US_ASCII)
             sb.appendLine("Response Code: $respCode")
-            if (body.size >= 4) {
-                val errorCode = String(body, 2, 2, Charsets.US_ASCII)
-                val errorDesc = ThalesErrorCodes.getDescription(errorCode)
-                sb.appendLine("Error Code: $errorCode ($errorDesc)")
-                if (body.size > 4) {
-                    sb.appendLine("Data: ${String(body, 4, body.size - 4, Charsets.US_ASCII)}")
-                }
-            } else if (body.size > 2) {
-                sb.appendLine("Data: ${String(body, 2, body.size - 2, Charsets.US_ASCII)}")
+            // Only render an error-code line for vendors whose status encoding is known.
+            val status = parser.statusOf(String(body, Charsets.US_ASCII))
+            val dataStart = if (status != null) 4 else 2
+            if (status != null) {
+                sb.appendLine("Error Code: ${status.code} (${status.description})")
+            }
+            if (body.size > dataStart) {
+                sb.appendLine("Data: ${String(body, dataStart, body.size - dataStart, Charsets.US_ASCII)}")
             }
         } else {
             sb.appendLine("Data: ${String(body, Charsets.US_ASCII)}")

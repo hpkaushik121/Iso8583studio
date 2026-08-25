@@ -18,6 +18,7 @@ import androidx.compose.ui.window.rememberWindowState
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.avd.ProcessRegistry
 import `in`.aicortex.iso8583studio.data.ExceptionHandler
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
@@ -74,6 +75,11 @@ class ISO8583Studio {
             try {
                 javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName())
             } catch (_: Throwable) { }
+
+            // Reap long-lived child processes on exit. `onCloseRequest = ::exitApplication` does no
+            // cleanup, and an Android emulator started from a POS session outlives its parent by
+            // default — leaving a CPU core and ~2 GB of RAM held after the app is gone.
+            ProcessRegistry.installShutdownHook()
 
             application {
 
@@ -508,7 +514,8 @@ private fun SessionContent(
             HsmSimulatorScreen(
                 config = config,
                 onBack = onBack,
-                service = session.hsmService  // reuse session-owned service; closeSession() stops it
+                service = session.hsmService,  // reuse session-owned service; closeSession() stops it
+                onSaveConfig = { updated -> appState.value.updateConfig(updated) }
             )
         }
 
@@ -533,7 +540,8 @@ private fun SessionContent(
                 window = window as androidx.compose.ui.awt.ComposeWindow,
                 config = config,
                 onBack = onBack,
-                onSaveClick = { appState.value.save() }
+                onSaveClick = { appState.value.save() },
+                service = session.posService,
             )
         }
 

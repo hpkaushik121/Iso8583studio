@@ -50,6 +50,9 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.charset.Charset
+import `in`.aicortex.iso8583studio.data.model.toSimulationSettings
+import `in`.aicortex.iso8583studio.domain.service.simulation.ConnectionDecision
+import `in`.aicortex.iso8583studio.domain.service.simulation.SimulationBehaviorEngine
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
@@ -116,6 +119,12 @@ class HostSimulator : Simulator {
         }
 
     private val coroutineScope = IsoCoroutine(this)
+
+    /**
+     * Simulated impairments for this gateway. Shared per config id rather than owned per instance —
+     * see [simulationEngineFor].
+     */
+    val simulationEngine: SimulationBehaviorEngine get() = simulationEngineFor(configuration)
 
     // Callback lists
     private var errorCallbacks: (() -> @Composable () -> Unit)? = null
@@ -219,6 +228,9 @@ class HostSimulator : Simulator {
 
         // Setup permanent connections
         setupPermanentConnections()
+
+        // t=0 for the simulation ramp is "this test began", so it resets on every start.
+        simulationEngine.onSimulatorStarted()
 
         // Start server thread based on connection type
         started.store(true)
@@ -620,6 +632,20 @@ class HostSimulator : Simulator {
                 val socket = withContext(Dispatchers.IO) {
                     serverSocket?.accept()
                 } ?: continue
+
+                // Simulated connection chaos runs before the client is registered, so a refused
+                // connection never reaches the counter or the active-client list.
+                val connectionDecision = simulationEngine.onConnectionAccepted()
+                if (connectionDecision is ConnectionDecision.Refuse) {
+                    writeLog(
+                        createLogEntry(
+                            type = LogType.CONNECTION,
+                            message = "SIMULATION — refused connection (${connectionDecision.reason})"
+                        )
+                    )
+                    try { socket.close() } catch (_: Exception) { }
+                    continue
+                }
 
                 val clientSocket = Socket()
                 clientSocket.soTimeout = 0
@@ -1522,6 +1548,27 @@ class HostSimulator : Simulator {
     }
 
     companion object {
+        /**
+         * Simulation engines, one per config id.
+         *
+         * Deliberately not an instance field: `HostSimulatorScreen` constructs a fresh
+         * `HostSimulator` on every recomposition (its `gw` is a plain local, not `remember`ed), so an
+         * instance-owned engine would have its ramp clock reset constantly. Keying by config id gives
+         * the engine the lifetime the *simulator* has rather than the lifetime of a composition.
+         */
+        private val simulationEngines = ConcurrentHashMap<String, SimulationBehaviorEngine>()
+
+        fun simulationEngineFor(config: GatewayConfig): SimulationBehaviorEngine =
+            simulationEngines.getOrPut(config.id) {
+                SimulationBehaviorEngine(
+                    settingsProvider = {
+                        // Read through the live config object — it is shared by reference, so the
+                        // Settings tab's in-place edit is visible on the very next request.
+                        config.simulation.toSimulationSettings()
+                    },
+                )
+            }
+
         /**
          * About information
          */

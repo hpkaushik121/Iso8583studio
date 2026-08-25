@@ -24,6 +24,13 @@ class HsmClient(var gatewayHandler: Simulator) {
     val clientID: String = UUID.randomUUID().toString()
     var hsmClientListener: HsmClientListener? = null
     var tcpLengthHeaderEnabled: Boolean = false
+
+    /**
+     * Simulated write throttle in bytes per second; 0 = unthrottled. Set from the HSM simulator's
+     * connection-chaos settings so a response can be made to trickle out rather than arrive at once.
+     */
+    var slowWriteBytesPerSecond: Int = 0
+
     private var m_Buffer: ByteArray = ByteArray(10048)
 
     // ── FIX: Track the processing coroutine so we can cancel it on close ──
@@ -117,7 +124,9 @@ class HsmClient(var gatewayHandler: Simulator) {
                 } else {
                     respBytes
                 }
-                incomingConnection!!.getOutputStream().write(output)
+                val stream = incomingConnection!!.getOutputStream()
+                val throttle = slowWriteBytesPerSecond
+                if (throttle > 0) writeThrottled(stream, output, throttle) else stream.write(output)
             }
             hsmClientListener?.onSentToSource(response)
         } catch (ex: Exception) {
@@ -126,6 +135,28 @@ class HsmClient(var gatewayHandler: Simulator) {
                 "CONNECTION MAY BE CLOSED BY REMOTE COMPUTER/TERMINAL ",
                 VerificationError.DISCONNECTED_FROM_SOURCE
             )
+        }
+    }
+
+    /**
+     * Writes [payload] in one-tenth-of-a-second slices so it leaves at roughly [bytesPerSecond],
+     * simulating a congested link. Each slice is flushed so the peer actually sees the trickle.
+     */
+    private suspend fun writeThrottled(
+        stream: java.io.OutputStream,
+        payload: ByteArray,
+        bytesPerSecond: Int,
+    ) {
+        val chunkSize = (bytesPerSecond / 10).coerceAtLeast(1)
+        var offset = 0
+        while (offset < payload.size) {
+            val n = minOf(chunkSize, payload.size - offset)
+            stream.write(payload, offset, n)
+            stream.flush()
+            offset += n
+            if (offset < payload.size) {
+                kotlinx.coroutines.delay(n * 1000L / bytesPerSecond)
+            }
         }
     }
 

@@ -3,6 +3,7 @@ package `in`.aicortex.iso8583studio.ui.session
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import cafe.adriel.voyager.core.screen.Screen
+import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.POSSimulatorService
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.StudioTool
@@ -47,6 +48,7 @@ data class SimulatorSession(
     val launchedAt: LocalDateTime = LocalDateTime.now(),
     val hsmService: HsmServiceImpl? = null,
     val hsmCommandService: HsmCommandClientService? = null,
+    val posService: POSSimulatorService? = null,
     /** Non-null for TOOL-type sessions — the Voyager Screen to render inside this tab. */
     val toolScreen: Screen? = null,
     /** The StudioTool this tab represents (for TOOL sessions). */
@@ -147,7 +149,10 @@ object SimulatorSessionManager {
                 id = sessionId,
                 config = config,
                 simulatorType = SimulatorType.POS,
-                displayName = displayName
+                displayName = displayName,
+                // Owned by the session, not the screen, so the emulator survives tab switches and
+                // is stopped exactly once when the session closes.
+                posService = POSSimulatorService(config),
             )
 
             is HsmCommandConfig -> SimulatorSession(
@@ -191,6 +196,10 @@ object SimulatorSessionManager {
         }
         session.hsmCommandService?.let { svc ->
             CoroutineScope(Dispatchers.IO).launch { svc.disconnect() }
+        }
+        session.posService?.let { svc ->
+            // Synchronous: an emulator must not outlive the tab that started it.
+            runCatching { svc.stop() }
         }
 
         poppedOutSessionIds.remove(sessionId)

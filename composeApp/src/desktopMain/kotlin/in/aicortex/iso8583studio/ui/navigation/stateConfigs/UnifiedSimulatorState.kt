@@ -78,6 +78,10 @@ data class UnifiedSimulatorState(
     // JSON configuration with polymorphic serialization
     private val json = Json {
         prettyPrint = true
+        // A config written by a newer build must still load here: an unknown key would otherwise
+        // throw, import() would swallow it, and the next save() would overwrite every config with
+        // an empty list.
+        ignoreUnknownKeys = true
         serializersModule = SerializersModule {
             polymorphic(SimulatorConfig::class) {
                 subclass(GatewayConfig::class)

@@ -1,6 +1,7 @@
 package `in`.aicortex.iso8583studio.domain.service.hostSimulatorService
 
 import `in`.aicortex.iso8583studio.data.BitAttribute
+import `in`.aicortex.iso8583studio.data.model.ResponseCodeSimulationConfig
 import `in`.aicortex.iso8583studio.data.clone
 import `in`.aicortex.iso8583studio.data.getValue
 import `in`.aicortex.iso8583studio.data.updateBit
@@ -21,10 +22,20 @@ import kotlin.random.Random
  *  - [RAND]  Random numeric value
  *  - [AUTO]  Auto-increment counter (process-wide, persistent for the JVM session)
  *  - [GUID]  Random hex value (UUID-derived, length-aware)
+ *  - [SIMRC] Simulated response code — success or a weighted decline, per the Host Simulator's
+ *            Settings-tab simulation section. Put it on DE 39 to get a realistic approve/decline
+ *            mix during a load test.
  */
 object PlaceholderProcessor {
 
-    val holdersList = listOf("[SV]", "[TIME]", "[DATE]", "[RAND]", "[AUTO]", "[GUID]")
+    /**
+     * Every recognised token. This list is load-bearing beyond the dispatch below: `Iso8583Data`
+     * consults it to skip length validation on placeholder values, and the transaction editor uses
+     * it to accept a token in a fixed-length field. A token missing from here is treated as literal
+     * field data and rejected.
+     */
+    val holdersList =
+        listOf("[SV]", "[TIME]", "[DATE]", "[RAND]", "[AUTO]", "[GUID]", "[SIMRC]")
 
     /** Process-wide auto-increment counter shared across all [AUTO] expansions. */
     private val autoCounter = AtomicLong(0L)
@@ -46,7 +57,8 @@ object PlaceholderProcessor {
      */
     fun processPlaceholders(
         responseFields: List<ResponseField>,
-        requestTransaction: MutableMap<String?, String?>? = null
+        requestTransaction: MutableMap<String?, String?>? = null,
+        simulation: ResponseCodeSimulationConfig? = null
     ): MutableMap<String?, String?> {
 
         val processedFields = mutableMapOf<String?, String?>()
@@ -55,7 +67,7 @@ object PlaceholderProcessor {
             // Create a deep copy of the field
             val requestField = requestTransaction?.get(field.targetKey)
             val processedValue = processFieldValue(source = requestField ?: "<Error: No value>",
-                originalValue = field.value)
+                originalValue = field.value, simulation = simulation)
             processedFields.put(field.targetKey, processedValue ?: field.value)
         }
 
@@ -67,7 +79,8 @@ object PlaceholderProcessor {
      */
     fun processPlaceholders(
         transactionFields: Array<BitAttribute>,
-        requestTransaction: Array<BitAttribute>? = null
+        requestTransaction: Array<BitAttribute>? = null,
+        simulation: ResponseCodeSimulationConfig? = null
     ): Array<BitAttribute> {
 
         return transactionFields.mapIndexed { index, field ->
@@ -81,7 +94,8 @@ object PlaceholderProcessor {
                     originalValue = originalValue,
                     fieldIndex = index,
                     maxLength = fieldCopy.maxLength,
-                    requestTransaction = requestField
+                    requestTransaction = requestField,
+                    simulation = simulation
                 )
 
                 processedValue?.let { fieldCopy.updateBit(it,processedValue.length) } ?: run {
@@ -102,6 +116,7 @@ object PlaceholderProcessor {
     private fun processFieldValue(
         source: String,
         originalValue: String,
+        simulation: ResponseCodeSimulationConfig? = null,
     ): String? {
         return when {
             originalValue.equals("[SV]", ignoreCase = true) -> {
@@ -122,6 +137,9 @@ object PlaceholderProcessor {
             originalValue.equals("[GUID]", ignoreCase = true) -> {
                 processGuidValue(12)
             }
+            originalValue.equals("[SIMRC]", ignoreCase = true) -> {
+                processSimulatedResponseCode(simulation)
+            }
             else -> originalValue // No placeholder found, return original value
         }
     }
@@ -134,7 +152,8 @@ object PlaceholderProcessor {
         originalValue: String,
         fieldIndex: Int,
         maxLength: Int,
-        requestTransaction: BitAttribute?
+        requestTransaction: BitAttribute?,
+        simulation: ResponseCodeSimulationConfig? = null
     ): String? {
         return when {
             originalValue.equals("[SV]", ignoreCase = true) -> {
@@ -155,8 +174,39 @@ object PlaceholderProcessor {
             originalValue.equals("[GUID]", ignoreCase = true) -> {
                 processGuidValue(maxLength)
             }
+            originalValue.equals("[SIMRC]", ignoreCase = true) -> {
+                processSimulatedResponseCode(simulation)
+            }
             else -> originalValue // No placeholder found, return original value
         }
+    }
+
+    /**
+     * Resolves `[SIMRC]` to a response code.
+     *
+     * Returns [ResponseCodeSimulationConfig.successCode] unless simulation is on and this draw falls
+     * inside the configured error rate, in which case a decline code is picked from the pool by
+     * weight. With no config, or the section disabled, it always approves — so a template carrying
+     * the token behaves normally until simulation is switched on.
+     */
+    internal fun processSimulatedResponseCode(
+        simulation: ResponseCodeSimulationConfig?,
+        random: Random = Random.Default,
+    ): String {
+        val config = simulation ?: return ResponseCodeSimulationConfig().successCode
+        if (!config.enabled || config.errorRate <= 0.0) return config.successCode
+        if (random.nextDouble() >= config.errorRate) return config.successCode
+
+        val pool = config.errorCodes.filter { it.weight > 0 }
+        if (pool.isEmpty()) return config.successCode
+
+        val totalWeight = pool.sumOf { it.weight }
+        var pick = random.nextInt(totalWeight)
+        for (entry in pool) {
+            pick -= entry.weight
+            if (pick < 0) return entry.code
+        }
+        return pool.last().code
     }
 
     /**

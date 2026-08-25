@@ -36,6 +36,11 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.coroutines.coroutineContext
+import `in`.aicortex.iso8583studio.ui.screens.hsmCommand.ThalesErrorCodes
+import `in`.aicortex.iso8583studio.domain.service.simulation.ConnectionDecision
+import `in`.aicortex.iso8583studio.domain.service.simulation.ResponseDecision
+import `in`.aicortex.iso8583studio.domain.service.simulation.SimulationBehaviorEngine
+import `in`.aicortex.iso8583studio.domain.service.simulation.SimulationSettings
 
 // Main HSM Service Implementation
 class HsmServiceImpl(
@@ -56,6 +61,21 @@ class HsmServiceImpl(
     var sentToSourceFormatted: (String?) -> Unit = {}
     var holdMessage: Boolean = false
     var sendHoldMessageCallback: (suspend () -> Unit)? = null
+
+    /**
+     * Live simulation impairments, seeded from the config this service was constructed with.
+     *
+     * The running service owns a config *snapshot* (the session captures it at launch), so later
+     * `updateConfig` calls are never seen here. The HSM Handler settings dialog swaps this value
+     * instead, and the socket path re-reads it per request — which is what makes a change take
+     * effect on live traffic without a restart.
+     */
+    val simulation = MutableStateFlow(SimulationSettings.fromHsmAdvanced(configuration.advanced))
+
+    private val simulationEngine = SimulationBehaviorEngine(
+        settingsProvider = { simulation.value },
+        errorCodeSelector = HsmErrorInjection::errorCodeFor,
+    )
 
     private var startTime: LocalDateTime? = null
     private var stopTime: LocalDateTime? = null
@@ -242,6 +262,9 @@ class HsmServiceImpl(
         // Set start time
         startTime = LocalDateTime.now()
 
+        // t=0 for the simulation ramp is "this test began", so it resets on every start.
+        simulationEngine.onSimulatorStarted()
+
         // Start server thread based on connection type
         _hsmState.value = _hsmState.value.copy(started = true)
 
@@ -304,6 +327,20 @@ class HsmServiceImpl(
                 val socket = withContext(Dispatchers.IO) {
                     serverSocket?.accept()
                 } ?: continue
+
+                // Simulated connection-level chaos runs before the client is registered, so a
+                // refused connection never reaches the counter or the active-client list.
+                val connectionDecision = simulationEngine.onConnectionAccepted()
+                if (connectionDecision is ConnectionDecision.Refuse) {
+                    writeLog(
+                        createLogEntry(
+                            type = LogType.CONNECTION,
+                            message = "SIMULATION — refused connection (${connectionDecision.reason})",
+                        )
+                    )
+                    try { socket.close() } catch (_: Exception) { }
+                    continue
+                }
 
                 client.incomingConnection = socket
 
@@ -733,16 +770,81 @@ class HsmServiceImpl(
                 message = "► [TCP] CMD $cmdCode  →  $raw"
             )
         )
+        // Fire-and-forget per request: a simulated delay here suspends only this response, never
+        // the accept loop, the client's read loop, or any other client.
         CoroutineScope(Dispatchers.IO).launch {
             receivedFromSource(data)
             val response = activeHsm?.getProcessor()?.processCommand(raw)
             if (!holdMessage) {
-                hsmClient?.send(response)
+                // Hold-message is the user timing a response by hand; simulation stays out of its
+                // way so the two can never compound.
+                applySimulationAndSend(cmdCode, response, hsmClient)
             } else {
                 sendHoldMessageCallback = {
                     hsmClient?.send(response)
                     sendHoldMessageCallback = null
                 }
+            }
+        }
+    }
+
+    /**
+     * Runs [response] past the simulation engine — which applies any latency itself — and then sends,
+     * drops, corrupts or resets according to what it decides.
+     */
+    private suspend fun applySimulationAndSend(
+        commandCode: String,
+        response: String?,
+        hsmClient: HsmClient?,
+    ) {
+        val settings = simulation.value
+        // Refreshed per response rather than at connect time, so a throttle switched on mid-test
+        // applies to connections that are already open.
+        hsmClient?.slowWriteBytesPerSecond =
+            if (settings.enabled && settings.connection.enabled) {
+                settings.connection.slowWriteBytesPerSecond
+            } else {
+                0
+            }
+
+        val decision = simulationEngine.beforeResponse(
+            commandCode = commandCode,
+            activeConnections = _hsmState.value.activeClients.size,
+        )
+        when (decision) {
+            is ResponseDecision.Send -> hsmClient?.send(response)
+
+            is ResponseDecision.Drop -> {
+                writeLog(
+                    createLogEntry(
+                        type = LogType.ERROR,
+                        message = "SIMULATION — response withheld for $commandCode (${decision.reason})",
+                    )
+                )
+                // The read loop stays alive, so the client is left waiting — that is the point.
+                if (decision.closeConnection) hsmClient?.close()
+            }
+
+            is ResponseDecision.ResetConnection -> {
+                writeLog(
+                    createLogEntry(
+                        type = LogType.ERROR,
+                        message = "SIMULATION — connection reset before responding to $commandCode (${decision.reason})",
+                    )
+                )
+                hsmClient?.close()
+            }
+
+            is ResponseDecision.SubstituteError -> {
+                val substituted = HsmErrorInjection.applyErrorCode(response, decision.errorCode)
+                writeLog(
+                    createLogEntry(
+                        type = LogType.ERROR,
+                        message = "SIMULATION — $commandCode answered with error ${decision.errorCode} " +
+                                "(${ThalesErrorCodes.getDescription(decision.errorCode)}) — ${decision.reason}",
+                    )
+                )
+                hsmClient?.send(substituted)
             }
         }
     }
