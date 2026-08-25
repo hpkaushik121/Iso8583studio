@@ -28,8 +28,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
@@ -125,6 +128,42 @@ private object DeaKeysCryptoService {
             result = result.xor(it.toBigInteger(16))
         }
         return result.toString(16).uppercase().padStart(maxLength, '0')
+    }
+
+    /**
+     * TDES KCV = first 3 bytes (6 hex) of DESede-ECB encryption of 8 zero bytes.
+     * Accepts 16 hex (single), 32 hex (double) and 48 hex (triple length) keys.
+     * Returns "" for empty input and "??????" for malformed input.
+     */
+    fun calculateTdesKcv(hexKey: String): String {
+        if (hexKey.isEmpty()) return ""
+        return try {
+            if (hexKey.length % 2 != 0 || hexKey.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
+                return "??????"
+            }
+            val bytes = hexKey.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            val expanded = when (bytes.size) {
+                8 -> bytes + bytes + bytes                     // single length -> triple
+                16 -> bytes + bytes.copyOf(8)                  // double length -> triple
+                24 -> bytes                                     // triple length
+                else -> return "??????"
+            }
+            val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expanded, "DESede"))
+            cipher.doFinal(ByteArray(8)).joinToString("") { "%02X".format(it) }.take(6)
+        } catch (_: Exception) {
+            "??????"
+        }
+    }
+}
+
+private enum class TdesKeyLength(val label: String, val hexLen: Int) {
+    SINGLE("Single length (8B / 16H)", 16),
+    DOUBLE("Double length (16B / 32H)", 32),
+    TRIPLE("Triple length (24B / 48H)", 48);
+
+    companion object {
+        fun fromLabel(label: String): TdesKeyLength = values().first { it.label == label }
     }
 }
 
@@ -231,21 +270,71 @@ private fun KeyGeneratorTab() {
 private fun KeyCombinationTab() {
     val keyComponents = remember { mutableStateListOf("", "", "", "", "", "", "", "", "") }
     var isLoading by remember { mutableStateOf(false) }
+    var keyLength by remember { mutableStateOf(TdesKeyLength.DOUBLE) }
+    var combinedKey by remember { mutableStateOf("") }
+    var combinedKcv by remember { mutableStateOf("") }
 
     val validKeys = keyComponents.filter { it.isNotBlank() }
-    val isFormValid = validKeys.isNotEmpty() && validKeys.all { DeaKeysValidationUtils.validateHex(it).state == ValidationState.VALID }
+    val expectedLen = keyLength.hexLen
+    val isFormValid = validKeys.isNotEmpty() &&
+        validKeys.all {
+            DeaKeysValidationUtils.validateHex(it).state == ValidationState.VALID && it.length == expectedLen
+        }
 
-    ModernCryptoCard(title = "Key Combination", subtitle = "Combine key components via XOR", icon = Icons.Default.CallMerge) {
+    // Recompute KCV whenever inputs or length change; clears any stale result on edit.
+    LaunchedEffect(keyLength) {
+        combinedKey = ""
+        combinedKcv = ""
+    }
+
+    ModernCryptoCard(
+        title = "Key Combination",
+        subtitle = "Combine TDES key components via XOR (KCV shown per component and for the result)",
+        icon = Icons.Default.CallMerge
+    ) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            ModernDropdownField(
+                label = "Key Type / Length",
+                value = "TDES — ${keyLength.label}",
+                options = TdesKeyLength.values().map { "TDES — ${it.label}" },
+                onSelectionChanged = { idx ->
+                    keyLength = TdesKeyLength.values()[idx]
+                    // Clear stale result when length changes
+                    combinedKey = ""
+                    combinedKcv = ""
+                }
+            )
+
+            Divider(Modifier.padding(vertical = 4.dp))
+
             (0..8).forEach { index ->
-                EnhancedTextField(
-                    value = keyComponents[index],
-                    onValueChange = { keyComponents[index] = it.uppercase() },
-                    label = "Key #${index + 1} (Hex)",
-                    validation = DeaKeysValidationUtils.validateHex(keyComponents[index])
-                )
+                val comp = keyComponents[index]
+                val validation = DeaKeysValidationUtils.validateHex(comp)
+                val lengthOk = comp.isEmpty() || comp.length == expectedLen
+                val kcv = if (comp.isNotEmpty() && validation.state == ValidationState.VALID && lengthOk) {
+                    DeaKeysCryptoService.calculateTdesKcv(comp)
+                } else ""
+
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        EnhancedTextField(
+                            value = comp,
+                            onValueChange = {
+                                keyComponents[index] = it.filterNot { ch -> ch.isWhitespace() }.uppercase()
+                                combinedKey = ""
+                                combinedKcv = ""
+                            },
+                            label = "Key #${index + 1} (Hex, ${expectedLen}H)",
+                            validation = if (!lengthOk)
+                                ValidationResult(ValidationState.ERROR, "Expected ${expectedLen} hex chars.")
+                            else validation
+                        )
+                    }
+                    KcvBadge(kcv, modifier = Modifier.padding(top = 8.dp))
+                }
             }
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.height(4.dp))
             ModernButton(
                 text = "Combine",
                 onClick = {
@@ -254,11 +343,77 @@ private fun KeyCombinationTab() {
                     GlobalScope.launch {
                         delay(200)
                         val result = DeaKeysCryptoService.combineKeys(validKeys)
-                        DeaKeysLogManager.logOperation("Key Combination", inputs, "Combined Key: $result", executionTime = 205)
+                        val kcv = DeaKeysCryptoService.calculateTdesKcv(result)
+                        combinedKey = result
+                        combinedKcv = kcv
+                        DeaKeysLogManager.logOperation(
+                            "Key Combination",
+                            inputs + mapOf("Type" to "TDES", "Length" to keyLength.label),
+                            "Combined Key: $result\nKCV: $kcv",
+                            executionTime = 205
+                        )
                         isLoading = false
                     }
                 },
                 isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.Link, modifier = Modifier.fillMaxWidth()
+            )
+
+            if (combinedKey.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colors.primary.copy(alpha = 0.08f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "Combined Key",
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                combinedKey,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            KcvBadge(combinedKcv)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KcvBadge(kcv: String, modifier: Modifier = Modifier) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+        Text(
+            "KCV",
+            style = MaterialTheme.typography.overline,
+            color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+        )
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = if (kcv.isNotEmpty() && kcv != "??????")
+                MaterialTheme.colors.primary.copy(alpha = 0.10f)
+            else MaterialTheme.colors.onSurface.copy(alpha = 0.04f),
+            modifier = Modifier.width(80.dp)
+        ) {
+            Text(
+                text = kcv.ifEmpty { "------" },
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.body2,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Medium,
+                color = when {
+                    kcv.isEmpty() -> MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                    kcv == "??????" -> MaterialTheme.colors.error
+                    else -> MaterialTheme.colors.primary
+                }
             )
         }
     }
@@ -274,7 +429,7 @@ private fun ParityEnforcementTab() {
 
     ModernCryptoCard(title = "Parity Enforcement", subtitle = "Apply odd or even parity to a key", icon = Icons.Default.Security) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            EnhancedTextField(value = key, onValueChange = { key = it.uppercase() }, label = "Key (Hex)", validation = DeaKeysValidationUtils.validateHex(key), maxLines = 4)
+            EnhancedTextField(value = key, onValueChange = { key = it.filterNot { ch -> ch.isWhitespace() }.uppercase() }, label = "Key (Hex)", validation = DeaKeysValidationUtils.validateHex(key), maxLines = 4)
             ModernDropdownField(label = "Key Parity", value = keyParity, options = listOf("Odd", "Even"), onSelectionChanged = { keyParity = listOf("Odd", "Even")[it] })
             Spacer(Modifier.height(8.dp))
             ModernButton(
@@ -304,7 +459,7 @@ private fun KeyValidationTab() {
 
     ModernCryptoCard(title = "Key Validation", subtitle = "Validate a key's properties", icon = Icons.Default.VerifiedUser) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            EnhancedTextField(value = key, onValueChange = { key = it.uppercase() }, label = "Key (Hex)", validation = DeaKeysValidationUtils.validateHex(key), maxLines = 4)
+            EnhancedTextField(value = key, onValueChange = { key = it.filterNot { ch -> ch.isWhitespace() }.uppercase() }, label = "Key (Hex)", validation = DeaKeysValidationUtils.validateHex(key), maxLines = 4)
             Spacer(Modifier.height(8.dp))
             ModernButton(
                 text = "Validate",

@@ -1003,6 +1003,59 @@ fun BitPropertyRow(
 }
 
 /**
+ * Returns a dialect hint for the field currently being edited, or null if there is
+ * nothing noteworthy about it.
+ *
+ * These exist because the same three traps catch everyone wiring up an ASCII dialect
+ * (BASE24, Visa BASE I, AS2805) against the stock ISO 8583 template: binary fields that
+ * actually travel as hex ASCII, F41 being 16 bytes instead of 8, and private fields whose
+ * layout is defined by the host rather than by the standard. Each one produces a message
+ * that packs without error but misaligns every field after it.
+ */
+fun bitDialectHint(bitNumber: Int, bitType: BitType, maxLength: Int): String? = when {
+    bitType == BitType.BINARY ->
+        "BINARY writes raw bytes — $maxLength byte(s) on the wire. ASCII dialects such as " +
+        "BASE24 send binary fields as hex ASCII instead, so 8 bytes becomes 16 characters. " +
+        "If your host expects hex ASCII (typical for F52 PIN, F64/F128 MAC), declare this " +
+        "field as AN with double the length and enter the value as hex text."
+
+    bitNumber == 41 && maxLength == 8 ->
+        "ISO 8583 defines F41 as 8 bytes, but BASE24 uses 16. If you are talking to a BASE24 " +
+        "host and leave this at 8, every field after F41 will misalign."
+
+    bitNumber in 60..63 || bitNumber in 120..127 ->
+        "Private/reserved field — its layout is defined by the host, not by ISO 8583. BASE24 " +
+        "assigns specific meanings here (S-121 POS auth indicators, S-123 cryptographic " +
+        "service message, and so on) and each deployment may differ. Confirm the subfield " +
+        "layout with your counterparty."
+
+    else -> null
+}
+
+/**
+ * Inline callout used to surface dialect hints. Matches the info-card styling used
+ * elsewhere in this screen.
+ */
+@Composable
+fun DialectHintCard(text: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.1f)
+    ) {
+        Row(modifier = Modifier.padding(8.dp)) {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colors.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = text, style = MaterialTheme.typography.caption)
+        }
+    }
+}
+
+/**
  * Dialog for editing bit properties
  */
 @OptIn(ExperimentalMaterialApi::class)
@@ -1012,7 +1065,10 @@ fun BitEditDialog(
     onDismiss: () -> Unit,
     onSave: (BitSpecific) -> Unit
 ) {
-    var editedBit = remember { bit.copy() }
+    val bitNumber = bit.bitNumber.toInt().absoluteValue
+    var bitLength by remember { mutableStateOf(bit.bitLength) }
+    var bitType by remember { mutableStateOf(bit.bitType) }
+    var maxLength by remember { mutableStateOf(bit.maxLength.toString()) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -1043,7 +1099,7 @@ fun BitEditDialog(
                 ) {
                     TextField(
                         readOnly = true,
-                        value = editedBit.bitLength.name,
+                        value = bitLength.name,
                         onValueChange = { },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bitLengthExpanded) },
                         modifier = Modifier.fillMaxWidth()
@@ -1057,7 +1113,7 @@ fun BitEditDialog(
                             DropdownMenuItem(
                                 text = { Text(option.name) },
                                 onClick = {
-                                    editedBit.bitLength = option
+                                    bitLength = option
                                     bitLengthExpanded = false
                                 }
                             )
@@ -1076,7 +1132,7 @@ fun BitEditDialog(
                 ) {
                     TextField(
                         readOnly = true,
-                        value = editedBit.bitType.name,
+                        value = bitType.name,
                         onValueChange = { },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bitTypeExpanded) },
                         modifier = Modifier.fillMaxWidth()
@@ -1090,7 +1146,7 @@ fun BitEditDialog(
                             DropdownMenuItem(
                                 text = { Text(option.name) },
                                 onClick = {
-                                    editedBit.bitType = option
+                                    bitType = option
                                     bitTypeExpanded = false
                                 }
                             )
@@ -1102,17 +1158,17 @@ fun BitEditDialog(
 
                 // Max Length field
                 Text("Max Length", fontWeight = FontWeight.Medium)
-                var maxLength by remember { mutableStateOf(editedBit.maxLength.toString()) }
                 FixedTextField(
                     value = maxLength,
-                    onValueChange = {
-                        maxLength = it
-                        editedBit = editedBit.copy(
-                            maxLength = it.toIntOrNull() ?: 0
-                        )
-                    },
+                    onValueChange = { maxLength = it },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // Dialect hint for this field, if any
+                bitDialectHint(bitNumber, bitType, maxLength.toIntOrNull() ?: 0)?.let { hint ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    DialectHintCard(hint)
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -1125,7 +1181,15 @@ fun BitEditDialog(
                         Text("Cancel")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = { onSave(editedBit) }) {
+                    Button(onClick = {
+                        onSave(
+                            bit.copy(
+                                bitLength = bitLength,
+                                bitType = bitType,
+                                maxLength = maxLength.toIntOrNull() ?: 0
+                            )
+                        )
+                    }) {
                         Text("Save")
                     }
                 }
@@ -1183,6 +1247,15 @@ fun AdvancedOptionsCard(
                 )
                 Text("Iso8583 use Ascii")
             }
+            Text(
+                text = "Sends LLVAR/LLLVAR length prefixes as ASCII digits (\"16\") instead of " +
+                        "packed BCD (0x16). Required by ASCII dialects such as BASE24 and Visa BASE I. " +
+                        "Note this does not change how BINARY fields are written — see the hint on " +
+                        "those fields.",
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.padding(start = 48.dp, bottom = 8.dp)
+            )
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
