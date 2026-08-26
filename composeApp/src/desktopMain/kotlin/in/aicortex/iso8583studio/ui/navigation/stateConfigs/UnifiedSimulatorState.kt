@@ -16,6 +16,7 @@ import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsmCommand.HsmComm
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.pos.POSSimulatorConfig
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
@@ -561,6 +562,128 @@ data class UnifiedSimulatorState(
     }
 
     /**
+     * Serialize a single configuration to a self-describing envelope.
+     *
+     * Unlike [export] (whole workspace) and [exportByType] (every profile of one type),
+     * this produces exactly one profile. The envelope records the simulator type so that
+     * [importProfile] can route it back without the user having to say where it belongs.
+     */
+    fun exportProfile(config: SimulatorConfig): ProfileTransferResult {
+        return try {
+            val profile = when (config) {
+                is GatewayConfig -> json.encodeToJsonElement(GatewayConfig.serializer(), config)
+                is HSMSimulatorConfig -> json.encodeToJsonElement(HSMSimulatorConfig.serializer(), config)
+                is APDUSimulatorConfig -> json.encodeToJsonElement(APDUSimulatorConfig.serializer(), config)
+                is POSSimulatorConfig -> json.encodeToJsonElement(POSSimulatorConfig.serializer(), config)
+                is HsmCommandConfig -> json.encodeToJsonElement(HsmCommandConfig.serializer(), config)
+                else -> return ProfileTransferResult.Error(
+                    "${config.simulatorType.displayName} profiles cannot be exported yet."
+                )
+            }
+            val envelope = SimulatorProfileExport(
+                simulatorType = config.simulatorType,
+                profileName = config.name,
+                exportedAt = System.currentTimeMillis(),
+                version = PROFILE_EXPORT_VERSION,
+                profile = profile
+            )
+            ProfileTransferResult.Success(
+                content = json.encodeToString(SimulatorProfileExport.serializer(), envelope),
+                profileName = config.name,
+                simulatorType = config.simulatorType
+            )
+        } catch (e: Throwable) {
+            // Throwable, not Exception: kotlinx-serialization resolves the generated child
+            // serializers lazily, so a stale or mismatched build surfaces as NoClassDefFoundError
+            // (an Error). Letting that escape kills the AWT event thread and terminates the app.
+            ProfileTransferResult.Error(describeTransferFailure("export", e))
+        }
+    }
+
+    /**
+     * Import a single profile previously written by [exportProfile].
+     *
+     * The profile is *added* rather than replacing the existing list, and is given a fresh
+     * id plus a de-duplicated name so that importing a profile twice — or importing one that
+     * originated on this machine — cannot collide with or silently overwrite what is already there.
+     */
+    fun importProfile(file: File): ProfileTransferResult {
+        return try {
+            if (!file.exists()) return ProfileTransferResult.Error("The selected file does not exist.")
+
+            val envelope = json.decodeFromString(
+                SimulatorProfileExport.serializer(),
+                String(Files.readAllBytes(file.toPath()))
+            )
+            val name = uniqueProfileName(envelope.simulatorType, envelope.profileName)
+            val imported: SimulatorConfig = when (envelope.simulatorType) {
+                SimulatorType.HOST ->
+                    json.decodeFromJsonElement(GatewayConfig.serializer(), envelope.profile)
+                        .copy(id = generateConfigId(), name = name, modifiedDate = System.currentTimeMillis())
+
+                SimulatorType.HSM ->
+                    json.decodeFromJsonElement(HSMSimulatorConfig.serializer(), envelope.profile)
+                        .copy(id = generateConfigId(), name = name, modifiedDate = System.currentTimeMillis())
+
+                SimulatorType.APDU ->
+                    json.decodeFromJsonElement(APDUSimulatorConfig.serializer(), envelope.profile)
+                        .copy(id = generateConfigId(), name = name, modifiedDate = System.currentTimeMillis())
+
+                SimulatorType.POS ->
+                    json.decodeFromJsonElement(POSSimulatorConfig.serializer(), envelope.profile)
+                        .copy(id = generateConfigId(), name = name, modifiedDate = System.currentTimeMillis())
+
+                SimulatorType.HSM_COMMAND ->
+                    json.decodeFromJsonElement(HsmCommandConfig.serializer(), envelope.profile)
+                        .copy(id = generateConfigId(), name = name, modifiedDate = System.currentTimeMillis())
+
+                else -> return ProfileTransferResult.Error(
+                    "${envelope.simulatorType.displayName} profiles cannot be imported yet."
+                )
+            }
+
+            addConfig(imported)
+            save()
+            ProfileTransferResult.Success(
+                content = "",
+                profileName = imported.name,
+                simulatorType = envelope.simulatorType
+            )
+        } catch (e: Throwable) {
+            ProfileTransferResult.Error(describeTransferFailure("import", e))
+        }
+    }
+
+    /**
+     * Builds a message the user can act on.
+     *
+     * [LinkageError] here means the running build is inconsistent with the compiled serializers
+     * rather than the file being wrong, and saying "not a valid file" would send the user off
+     * editing perfectly good JSON.
+     */
+    private fun describeTransferFailure(action: String, e: Throwable): String = when (e) {
+        is LinkageError -> "Could not $action this profile because the application build is out " +
+                "of date (${e.javaClass.simpleName}: ${e.message}). Rebuild and restart, e.g. " +
+                "./gradlew clean :composeApp:run"
+
+        else -> if (action == "import")
+            "Not a valid single-profile file. ${e.message ?: e.javaClass.simpleName}".trim()
+        else
+            e.message ?: "Unable to $action profile"
+    }
+
+    /**
+     * Returns [desired] if unused for this simulator type, otherwise appends a counter.
+     */
+    private fun uniqueProfileName(type: SimulatorType, desired: String): String {
+        val taken = getConfigsByType(type).map { it.name }.toSet()
+        if (desired !in taken) return desired
+        var suffix = 2
+        while ("$desired ($suffix)" in taken) suffix++
+        return "$desired ($suffix)"
+    }
+
+    /**
      * Load configurations from file
      */
     fun load() {
@@ -766,6 +889,42 @@ data class SimulatorConfigCollection(
     val exportedAt: Long,
     val version: String
 )
+
+/** Schema version for single-profile export files. */
+const val PROFILE_EXPORT_VERSION = "1.0"
+
+/**
+ * Envelope for a single exported simulator profile.
+ *
+ * The payload is kept as a raw [JsonElement] rather than a typed field so that one envelope
+ * shape serves every simulator, and so an envelope produced by a newer build still parses far
+ * enough to report a useful error instead of failing opaquely.
+ */
+@Serializable
+data class SimulatorProfileExport(
+    val simulatorType: SimulatorType,
+    val profileName: String,
+    val exportedAt: Long,
+    val version: String = PROFILE_EXPORT_VERSION,
+    val profile: JsonElement
+)
+
+/**
+ * Outcome of a single-profile export or import.
+ *
+ * Deliberately a sealed type rather than a bare String: the older [UnifiedSimulatorState.export]
+ * returns its error text in place of the payload, which means a failed export silently writes the
+ * error message into the user's .json file.
+ */
+sealed class ProfileTransferResult {
+    data class Success(
+        val content: String,
+        val profileName: String,
+        val simulatorType: SimulatorType
+    ) : ProfileTransferResult()
+
+    data class Error(val message: String) : ProfileTransferResult()
+}
 
 /**
  * Configuration statistics for dashboard/overview
