@@ -103,6 +103,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
           } @else {
             <p class="pf-hint" id="hint-amount">
               <b>Higher amount → higher priority</b> in the early-access queue.
+              GST is added at checkout.
             </p>
           }
         </div>

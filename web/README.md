@@ -47,10 +47,15 @@ shipping a button that fails.
 
 Still needed before it can take a payment:
 
-- [ ] A unit SKU published in the tenant's `browser_checkout_price_points`, and
+- [x] A unit SKU published in the tenant's `browser_checkout_price_points`, and
       set in `PAYMENTS_PRICE_POINTS` with its price in `PAYMENTS_UNIT_RUPEES`
+      — `pp_pro_initial`, confirmed at 100 paise per unit
 - [ ] `browser_max_quantity` raised to the largest amount offered — ₹100,000 at
-      a ₹1 unit needs 100000, against a default of 10
+      a ₹1 unit needs 100000. **Still at the default 10**, so ₹10 is currently
+      the largest payment the form can take
+- [ ] Decide whether the typed amount is inclusive of GST. The price point adds
+      18% on top today, so ₹250 typed is ₹295 charged. A tax-inclusive price
+      point would make the two agree; until then the form says GST is added
 - [ ] `checkout:create` on the credential — not granted by default
 - [ ] `https://iso8583.studio` in `cors_allowed_origins`
 - [ ] `https://iso8583.studio/pro` in `allowed_redirect_origins`
