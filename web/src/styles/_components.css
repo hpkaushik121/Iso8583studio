@@ -140,7 +140,11 @@ ui-card > .card { height: 100%; }
     width: 100%;
     max-width: var(--prose-max);
     height: auto;
-    margin: 0 auto var(--sp-8);
+    /* Symmetric, so the image reads as its own band between the header and
+       the article rather than as the tail of one or the head of the other.
+       It sat flush against the header before: .blog-body has no top padding
+       and the image had no top margin. */
+    margin: var(--sp-10) auto;
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
     background: var(--card-deep);
