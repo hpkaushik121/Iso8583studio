@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-ecr-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-ecr-simulator' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -30,14 +32,12 @@ import { SitePage } from './site-page';
             </div>
         </div>
 
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The ECR Simulator will model the cash-register side of an ECR&harr;POS integration: it issues transaction requests (sale, void, refund, settlement) to a connected terminal and consumes the results, over serial (RS232) or TCP links.</p>
 
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="planned">
-            <h2>Planned Capabilities</h2>
+        <ui-section anchor="planned" heading="Planned Capabilities">
             <ul>
                 <li>Sale, void, refund, pre-auth and settlement request messages</li>
                 <li>ECR &harr; POS integration over RS232 serial and TCP/IP</li>
@@ -46,12 +46,11 @@ import { SitePage } from './site-page';
                 <li>Response handling and receipt data capture</li>
             </ul>
             <div class="info-card note"><div class="info-card-title">Note</div><p>Scope is indicative and may change as the feature is built. Follow the <a href="https://github.com/users/hpkaushik121/projects/1">roadmap</a> for status.</p></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="fit">
-            <h2>Where It Fits</h2>
+        <ui-section anchor="fit" heading="Where It Fits">
             <p>The ECR drives the <a href="/docs/pos-simulator">POS Simulator</a> from the merchant application side, completing the register &rarr; terminal &rarr; host chain.</p>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

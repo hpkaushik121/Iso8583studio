@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-contributing',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-contributing' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -19,8 +21,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">How to Contribute</h1>
         <p class="page-description">ISO8583Studio is Apache-licensed and built in the open. Bug fixes, new tools, simulator work and docs are all welcome.</p>
 
-        <section class="doc-section" id="prereqs">
-            <h2>Prerequisites (Kotlin Multiplatform)</h2>
+        <ui-section anchor="prereqs" heading="Prerequisites (Kotlin Multiplatform)">
             <div class="table-wrapper"><table>
                 <thead><tr><th>Tool</th><th>Version</th><th>Purpose</th></tr></thead>
                 <tbody>
@@ -30,10 +31,9 @@ import { SitePage } from './site-page';
                     <tr><td><strong>Gradle</strong></td><td>bundled wrapper</td><td>No separate install — use <code>./gradlew</code>.</td></tr>
                 </tbody>
             </table></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="setup">
-            <h2>Development Setup</h2>
+        <ui-section anchor="setup" heading="Development Setup">
             <pre><code>git clone https://github.com/hpkaushik121/Iso8583studio.git
 cd Iso8583studio
 ./gradlew build     # compile everything + run tests
@@ -46,19 +46,17 @@ cd Iso8583studio
                 <div class="spec-row"><div class="k">cryptocalc/</div><div class="v">Cryptography calculators module.</div></div>
                 <div class="spec-row"><div class="k">docs/</div><div class="v">This website.</div></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="style">
-            <h2>Code Style</h2>
+        <ui-section anchor="style" heading="Code Style">
             <p>Follow standard Kotlin conventions:</p>
             <pre><code>class GatewayConfiguration        // classes: PascalCase
 fun processTransaction()          // functions: camelCase
 const val DEFAULT_TIMEOUT = 30    // constants: UPPER_SNAKE_CASE
 val connectionManager = ...       // variables: camelCase</code></pre>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="pr">
-            <h2>Submitting Changes</h2>
+        <ui-section anchor="pr" heading="Submitting Changes">
             <ol class="steps">
                 <li><strong>Fork</strong> the repository on GitHub.</li>
                 <li><strong>Branch</strong> — <code>git checkout -b feature/new-feature</code>.</li>
@@ -66,10 +64,9 @@ val connectionManager = ...       // variables: camelCase</code></pre>
                 <li><strong>Commit</strong> with a descriptive message — e.g. <code>git commit -m "Add REST API support"</code>.</li>
                 <li><strong>Push &amp; open a Pull Request</strong> — <code>git push origin feature/new-feature</code>, then open the PR against <code>main</code>.</li>
             </ol>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="issues">
-            <h2>Reporting Issues</h2>
+        <ui-section anchor="issues" heading="Reporting Issues">
             <p>Open a <a href="https://github.com/hpkaushik121/Iso8583studio/issues">GitHub issue</a> and include:</p>
             <ul>
                 <li><strong>Environment</strong> — OS, Java version, app version.</li>
@@ -77,7 +74,7 @@ val connectionManager = ...       // variables: camelCase</code></pre>
                 <li><strong>Expected vs actual behaviour</strong> — plus logs, configuration files or screenshots.</li>
             </ul>
             <div class="info-card tip"><div class="info-card-title">Tip</div><p>Not sure where to start? Questions and ideas are welcome in <a href="https://github.com/hpkaushik121/Iso8583studio/discussions">Discussions</a>, or reach us via the <a href="/contact">contact page</a>.</p></div>
-        </section>
+        </ui-section>
 
 </main>`,
 })

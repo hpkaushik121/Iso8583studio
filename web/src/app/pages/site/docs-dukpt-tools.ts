@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-dukpt-tools',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-dukpt-tools' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,18 +23,16 @@ import { SitePage } from './site-page';
         <h1 class="page-title">DUKPT Tools</h1>
         <p class="page-description">Derived Unique Key Per Transaction (DUKPT) is the standard mechanism for protecting card data and PINs at the point of sale. ISO8583Studio includes calculators for both DUKPT AES (ANSI X9.24-3) and DUKPT ISO 9797 / 3DES (ANSI X9.24-1).</p>
 
-        <section class="doc-section" id="overview">
-            <h2>What is DUKPT?</h2>
+        <ui-section anchor="overview" heading="What is DUKPT?">
             <p>DUKPT generates a unique cryptographic key for every transaction without ever transmitting that key. The terminal stores a single Initial PIN Encryption Key (IPEK) derived from a Base Derivation Key (BDK) and a Key Serial Number (KSN). For each transaction the terminal advances the KSN counter and derives a fresh transaction key. The host, knowing only the BDK and the KSN it received, derives the same transaction key independently.</p>
 
             <div class="info-card note">
                 <div class="info-card-title">Why use DUKPT?</div>
                 <p>If a terminal is compromised, only future transaction keys can be derived (forward secrecy is built in). Past transactions remain protected because the terminal never stored the keys it used.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="variants">
-            <h2>DUKPT Variants</h2>
+        <ui-section anchor="variants" heading="DUKPT Variants">
             <div class="table-wrapper">
                 <table>
                     <thead><tr><th>Variant</th><th>Standard</th><th>Cipher</th><th>BDK Length</th><th>KSN Length</th></tr></thead>
@@ -44,10 +44,9 @@ import { SitePage } from './site-page';
             </div>
 
             <p>If you&rsquo;re working with legacy 3DES terminals, use the ISO 9797 variant. New deployments should use AES DUKPT.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="concepts">
-            <h2>Key Concepts</h2>
+        <ui-section anchor="concepts" heading="Key Concepts">
             <ul>
                 <li><strong>BDK (Base Derivation Key)</strong> &mdash; A master key shared between terminal manufacturer / acquirer and the host. Never used directly to encrypt data.</li>
                 <li><strong>KSN (Key Serial Number)</strong> &mdash; A unique identifier for a terminal + transaction counter. Increments with every transaction.</li>
@@ -55,10 +54,9 @@ import { SitePage } from './site-page';
                 <li><strong>Transaction Key</strong> &mdash; The key actually used for a single transaction; derived from the IPEK and the current KSN counter.</li>
                 <li><strong>Working Keys</strong> &mdash; Purpose-bound keys (PIN, MAC, Data) derived by applying variant XOR masks to the transaction key.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="iso9797-overview">
-            <h2>DUKPT ISO 9797 (3DES) Tool</h2>
+        <ui-section anchor="iso9797-overview" heading="DUKPT ISO 9797 (3DES) Tool">
             <p>The DUKPT ISO 9797 calculator implements ANSI X9.24-1 with 3DES. It is split across <strong>five tabs</strong> &mdash; two derivation tabs that produce working keys, and three operation tabs that consume those keys.</p>
 
             <h3>Tabs (5)</h3>
@@ -74,10 +72,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Two-step workflow</div>
                 <p>The tool deliberately separates derivation from use: derive the working key in <em>PEK Derivation</em> or <em>DEK Derivation</em> first, then paste the result into the <em>DUKPT PIN</em> / <em>MAC</em> / <em>Data</em> tab. This mirrors how a host-side stack stages keys.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="iso9797-pek">
-            <h2>PEK Derivation Tab</h2>
+        <ui-section anchor="iso9797-pek" heading="PEK Derivation Tab">
 
             <div class="shot-grid">
                 <figure class="shot-fig" data-shot="iso9797-pek" data-alt="DUKPT Utilities on the PEK Derivation tab with BDK selected as the input key designation and empty BDK and KSN fields, beside the activity log" style="--shot-w:1512px">
@@ -105,10 +102,9 @@ import { SitePage } from './site-page';
                 <li><strong>Enter KSN</strong> &mdash; 20 hex chars (rightmost 21 bits are the transaction counter).</li>
                 <li><strong>Click <code>Derive PEK</code></strong> &mdash; The activity log shows the resulting PIN Encryption Key. Copy it for the operation tabs.</li>
             </ol>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="iso9797-dek">
-            <h2>DEK Derivation Tab</h2>
+        <ui-section anchor="iso9797-dek" heading="DEK Derivation Tab">
             <p>Identical fields and flow to <em>PEK Derivation</em> &mdash; the only difference is the variant applied to produce a Data Encryption Key.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -128,10 +124,9 @@ import { SitePage } from './site-page';
                 <p>Button: <strong>Derive DEK</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="iso9797-pin">
-            <h2>DUKPT PIN Tab</h2>
+        <ui-section anchor="iso9797-pin" heading="DUKPT PIN Tab">
             <p>Encrypt or decrypt a PIN block using a working key you derived in <em>PEK Derivation</em>.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -150,10 +145,9 @@ import { SitePage } from './site-page';
                 <p>Buttons: <strong>Encrypt</strong>, <strong>Decrypt</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="iso9797-mac">
-            <h2>DUKPT MAC Tab</h2>
+        <ui-section anchor="iso9797-mac" heading="DUKPT MAC Tab">
             <p>Compute a MAC over hex data with a previously derived working key.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -173,10 +167,9 @@ import { SitePage } from './site-page';
                 <p>Button: <strong>Generate MAC</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="iso9797-data">
-            <h2>DUKPT Data Tab</h2>
+        <ui-section anchor="iso9797-data" heading="DUKPT Data Tab">
             <p>Encrypt or decrypt sensitive data fields (track 2, EMV data) with a derived key.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -198,10 +191,9 @@ import { SitePage } from './site-page';
                 <p>Buttons: <strong>Encrypt</strong>, <strong>Decrypt</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="aes-overview">
-            <h2>DUKPT AES Tool</h2>
+        <ui-section anchor="aes-overview" heading="DUKPT AES Tool">
             <p>Implements ANSI X9.24-3 with AES. Four tabs split derivation from operations.</p>
 
             <h3>Tabs (4)</h3>
@@ -211,10 +203,9 @@ import { SitePage } from './site-page';
                 <li><strong>DUKPT MAC</strong> &mdash; MAC generation.</li>
                 <li><strong>DUKPT Data</strong> &mdash; Data encrypt / decrypt.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="aes-derive">
-            <h2>Key Derivation Tab</h2>
+        <ui-section anchor="aes-derive" heading="Key Derivation Tab">
 
             <div class="shot-grid">
                 <figure class="shot-fig" data-shot="aes-derive" data-alt="DUKPT AES Utilities on the Key Derivation tab with BDK as the input key designation, AES-128 initial and working key types, and BDK / IK and KSN fields, beside the activity log" style="--shot-w:1510px">
@@ -249,10 +240,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Counter Field</div>
                 <p>The 32-bit counter only uses values with at most 16 set bits to allow efficient forward derivation. The tool flags invalid counters.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="ksn-format">
-            <h2>KSN Structure</h2>
+        <ui-section anchor="ksn-format" heading="KSN Structure">
 
             <h3>3DES KSN (10 bytes)</h3>
             <pre><code>| 5-byte BDK ID + Device ID  |   2-byte counter (high)   | 21-bit Tx Counter |
@@ -263,17 +253,16 @@ import { SitePage } from './site-page';
             <pre><code>| 4-byte BDK ID | 4-byte Derivation ID | 4-byte Transaction Counter |</code></pre>
 
             <p>Increment the counter by one for every transaction. After exhausting the counter space, the device must be re-keyed.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips &amp; Pitfalls</h2>
+        <ui-section anchor="tips" heading="Tips &amp; Pitfalls">
             <ul>
                 <li>The KSN you receive in field 53 / 60 of an ISO 8583 message is what the host uses to derive the same key. Keep them in sync &mdash; off-by-one is the most common bug.</li>
                 <li>For PIN translation tests, capture the PIN block at the same instant as the KSN. Re-using a KSN with a different PIN block will fail.</li>
                 <li>If you suddenly start getting wrong MACs, check whether your terminal advanced the counter without you advancing yours. Use the increment button to re-sync.</li>
                 <li>Keep BDKs out of source control. The activity log persists keys in memory during the session but never writes them to disk.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>`,
 })
 export class DocsDukptToolsPage {}

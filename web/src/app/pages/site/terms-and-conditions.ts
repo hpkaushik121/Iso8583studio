@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-terms-and-conditions',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-terms-and-conditions' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -55,8 +57,7 @@ import { SitePage } from './site-page';
             </ol>
         </nav>
 
-        <section class="doc-section">
-            <h2 id="agreement">Open source software agreement</h2>
+        <ui-section anchor="agreement" heading="Open source software agreement">
             <p>This Open Source Software Agreement ("Agreement") governs your use of ISO8583Studio desktop application software ("Software"), which is free and open source software provided by AiCortext Solutions Pvt. Ltd. ("we," "us," or "our") under the Apache License 2.0.</p>
 
             <div class="info-card tip">
@@ -68,10 +69,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Important</div>
                 <p>This is free, open source software distributed under Apache 2.0. There are no purchase requirements, no refunds (as the software is free), and no warranties or obligations from the developers regarding its performance or suitability for any purpose.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="license">Apache License 2.0 grant</h2>
+        <ui-section anchor="license" heading="Apache License 2.0 grant">
 
             <h3>Open source license</h3>
             <p>ISO8583Studio is distributed under the Apache License 2.0, which grants you the following rights:</p>
@@ -107,10 +107,9 @@ import { SitePage } from './site-page';
                 <li><strong>State changes:</strong> include a NOTICE file documenting significant changes you made</li>
                 <li><strong>No trademark use:</strong> do not use the names, trademarks, or logos without permission</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="usage">Permitted usage</h2>
+        <ui-section anchor="usage" heading="Permitted usage">
             <p>As open source software under the Apache 2.0 License, you may use ISO8583Studio for any purpose, including:</p>
 
             <h3>Financial transaction processing</h3>
@@ -145,10 +144,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Apache 2.0 advantages</div>
                 <p>The Apache License 2.0 provides explicit patent protection and clear contribution guidelines, making it particularly suitable for enterprise and commercial use while maintaining open source principles.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="limitations">No warranties or guarantees</h2>
+        <ui-section anchor="limitations" heading="No warranties or guarantees">
 
             <h3>Apache License 2.0 disclaimer</h3>
             <div class="info-card danger">
@@ -200,10 +198,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">At your own risk</div>
                 <p><strong>You use this software entirely at your own risk. You are responsible for evaluating the software's suitability for your intended use and for all consequences of its use.</strong></p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="support">Community support</h2>
+        <ui-section anchor="support" heading="Community support">
 
             <h3>Open source support model</h3>
             <p>As open source software, support is primarily community-driven:</p>
@@ -234,10 +231,9 @@ import { SitePage } from './site-page';
                 <li><strong>Report bugs:</strong> submit bug reports through the project's issue tracker</li>
                 <li><strong>Contribute:</strong> contribute fixes and improvements back to the project</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="contact">Community and contact</h2>
+        <ui-section anchor="contact" heading="Community and contact">
             <p>ISO8583Studio is open source software. Support comes from the community, and contributions are welcome from everyone.</p>
 
             <div class="hub-grid">
@@ -264,7 +260,7 @@ import { SitePage } from './site-page';
                 <p><strong>Terms version</strong> 1.0 (Open Source) &nbsp;·&nbsp; <strong>Effective date</strong> 9 June 2025 &nbsp;·&nbsp; <strong>Last revised</strong> 9 June 2025</p>
                 <p>See also the <a href="/privacy-policy">Privacy Policy</a>.</p>
             </div>
-        </section>
+        </ui-section>
 </main>`,
 })
 export class TermsAndConditionsPage {}

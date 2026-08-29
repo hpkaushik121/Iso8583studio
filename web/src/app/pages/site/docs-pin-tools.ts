@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-pin-tools',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-pin-tools' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,8 +23,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Payment Utilities</h1>
         <p class="page-description">The PIN half of the Payment Utilities group &mdash; PIN block encoding across the ISO 9564 formats and OEM variants, AES-encrypted PIN blocks, TPK-to-ZPK translation and DUKPT PIN encryption. Each tool validates inputs in real time and logs every operation for audit.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Introduction</h2>
+        <ui-section anchor="overview" heading="Introduction">
             <p>A PIN block is a fixed-format encoding of a cardholder PIN designed to be encrypted under a key (TPK, ZPK, or DUKPT-derived) and transmitted across a payment network. ISO 9564 defines the canonical formats; vendors and legacy networks add a few non-standard variants you may still encounter.</p>
 
             <p>The PIN calculators live in <code>Tools &rarr; Payment Utilities</code>, alongside the card-verification, DUKPT and MAC tools. Two of them are dedicated PIN tools &mdash; <strong>PIN Block Calculator</strong> and <strong>PIN Block (AES)</strong> &mdash; and two more tools in the group carry PIN block operations of their own, covered in <a href="/docs/pin-tools#translate">PIN Block Translation</a> and <a href="/docs/pin-tools#dukpt-pin">DUKPT PIN</a> below.</p>
@@ -35,10 +36,9 @@ import { SitePage } from './site-page';
                     <figcaption class="shot-cap"><span class="mono">pin-tools</span> Payment Utilities hub</figcaption>
                 </figure>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="all-tools">
-            <h2>All tools</h2>
+        <ui-section anchor="all-tools" heading="All tools">
             <p>Every tool in this category &mdash; each card links to the detailed reference below.</p>
             <div class="hub-grid">
                 <div class="hub-card">
@@ -84,10 +84,9 @@ import { SitePage } from './site-page';
                     </div>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="formats">
-            <h2>PIN Block Formats</h2>
+        <ui-section anchor="formats" heading="PIN Block Formats">
             <div class="table-wrapper">
                 <table>
                     <thead><tr><th>Format</th><th>Source</th><th>PAN-bound?</th><th>Notes</th></tr></thead>
@@ -107,10 +106,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Use ISO-4 for new work</div>
                 <p>If you have flexibility, target ISO Format 4 with AES &mdash; it&rsquo;s the only format approved for new PCI-PIN evaluations.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="pin-block">
-            <h2>PIN Block Calculator</h2>
+        <ui-section anchor="pin-block" heading="PIN Block Calculator">
             <p>The PIN Block Calculator builds a formatted PIN block, or recovers the PIN from one. The format is picked once from the <strong>PIN block format</strong> drop-down at the top of the screen; <strong>Encode</strong> and <strong>Decode</strong> sit below it as a tab pair, so the same format applies in both directions.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -147,10 +145,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Formatting and encryption are separate steps</div>
                 <p>This tool produces the <em>formatted</em> PIN block. To encrypt it under a working key, take the block into the <a href="/docs/cipher-tools">DES / 3DES or AES calculator</a>, or use <a href="/docs/pin-tools#dukpt-pin">DUKPT PIN</a> when the key comes from a DUKPT derivation.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="format-walkthroughs">
-            <h2>Format Walk-throughs</h2>
+        <ui-section anchor="format-walkthroughs" heading="Format Walk-throughs">
 
             <h3>ISO-0 / ANSI X9.8</h3>
             <pre><code>Step 1 (PIN block):  04 12 34 FF FF FF FF FF
@@ -175,10 +172,9 @@ Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
 
             <h3>OEM-1 / ECI</h3>
             <p>Reserved for compatibility with legacy ATM and POS networks. The exact layout differs per vendor; the calculator labels each tab with the vendor name.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="aes-pin">
-            <h2>AES PIN Block (ISO-4) Calculator</h2>
+        <ui-section anchor="aes-pin" heading="AES PIN Block (ISO-4) Calculator">
             <p>The PIN Block (AES) tool focuses on the modern ISO Format 4 design. One form covers both directions &mdash; <strong>Encode</strong> and <strong>Decode</strong> are buttons rather than tabs, and the middle field changes meaning between them.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -211,10 +207,9 @@ Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
                 <div class="info-card-title">DUKPT-AES</div>
                 <p>For DUKPT AES PIN translation, derive the AES PIN working key in the DUKPT Tools first, then plug it in here.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="translate">
-            <h2>PIN Block Translation (AS2805)</h2>
+        <ui-section anchor="translate" heading="PIN Block Translation (AS2805)">
             <p>Translation re-encrypts a PIN block from one key to another without ever exposing the clear PIN &mdash; the acquiring step that moves a PIN from the terminal key (TPK) it arrived under to the zone key (ZPK) shared with the next node. The <strong>AS2805 Calculator</strong> carries it on its <em>Translate PIN Block</em> tab, and can change the PIN block format in the same operation.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -243,10 +238,9 @@ Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
                 <div class="info-card-title">Where it lives</div>
                 <p>Open <code>Tools &rarr; Payment Utilities &rarr; AS2805 Calculator</code> and pick the <strong>Translate PIN Block</strong> tab. The same tool also generates terminal key sets and computes AS2805 MACs and one-way functions.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="dukpt-pin">
-            <h2>DUKPT PIN</h2>
+        <ui-section anchor="dukpt-pin" heading="DUKPT PIN">
             <p>Under DUKPT, the PIN is encrypted with a PIN Entry Key (PEK) derived per transaction rather than a static TPK. The <strong>DUKPT PIN</strong> tab takes a PEK you have already derived and encrypts or decrypts a PIN block with it.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -270,15 +264,14 @@ Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
                 <div class="info-card-title">Two-step flow</div>
                 <p>Build the block in the <a href="/docs/pin-tools#pin-block">PIN Block Calculator</a>, then encrypt it here under the derived PEK. Key derivation itself &mdash; PEK, DEK, and the AES variants &mdash; is covered in <a href="/docs/dukpt-tools">DUKPT Tools</a>.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips</h2>
+        <ui-section anchor="tips" heading="Tips">
             <ul>
                 <li>If the host rejects your PIN block, verify the format on both sides &mdash; ISO-0 and ISO-3 look identical at a glance but produce different blocks.</li>
                 <li>When testing DUKPT-protected PIN flows, derive the working key first (<a href="/docs/dukpt-tools">DUKPT Tools</a>), then encrypt or decrypt with it under <a href="/docs/pin-tools#dukpt-pin">DUKPT PIN</a>. The activity log shows both the input PIN block and the decrypted clear PIN for cross-checking.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

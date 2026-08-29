@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-apdu-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-apdu-simulator' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,8 +23,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">APDU Simulator</h1>
         <p class="page-description">Play the card. Run an EMV card profile in-process, drive a real card through a PC/SC reader, or push responses to STM32 firmware so an external POS terminal reads your card off a pinboard &mdash; with every APDU exchange traced, replayable as a test plan, and exportable as an L3 report.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The APDU Simulator is the card side of the network. It runs an EMV card profile &mdash; scheme, ATR, applications, records, issuer keys &mdash; and answers ISO 7816-4 APDUs from whatever is asking, whether that is Studio itself, a physical reader, or a real POS terminal talking to emulator firmware.</p>
 
             <div class="shot-grid">
@@ -40,10 +41,9 @@ import { SitePage } from './site-page';
                 <div class="feature-item"><div class="feature-item-icon">📈</div><h4>Wire Sniff</h4><p>Line a logic-analyzer capture up against the exchange log to check what the firmware really put on the wire.</p></div>
                 <div class="feature-item"><div class="feature-item-icon">🔧</div><h4>Firmware</h4><p>Build and flash the stm32-card firmware without leaving the app.</p></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="quick-start">
-            <h2>Quick Start</h2>
+        <ui-section anchor="quick-start" heading="Quick Start">
             <ol class="steps">
                 <li><strong>Create a configuration</strong> &mdash; Open <code>APDU Simulator</code> and add one.</li>
                 <li><strong>Pick the mode</strong> &mdash; On <strong>Mode &amp; Transport</strong> choose Loopback to start; it needs no hardware.</li>
@@ -55,10 +55,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Tip</div>
                 <p>Develop test plans and personalisation in Loopback first &mdash; the EMV runtime is the same one the hardware modes drive, so a plan that passes there is ready for the pinboard.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="modes">
-            <h2>Mode &amp; Transport</h2>
+        <ui-section anchor="modes" heading="Mode &amp; Transport">
             <p>The operating mode decides which role the simulator plays; the transport section below it adapts to that choice.</p>
 
             <div class="shot-grid">
@@ -107,10 +106,9 @@ import { SitePage } from './site-page';
                 <div class="spec-row"><div class="k">Baud rate</div><div class="v">Default <code>115200</code>. The firmware framing is binary, so baud affects throughput, not protocol.</div></div>
                 <div class="spec-row"><div class="k">ATR override</div><div class="v">Hex ATR presented to the terminal. Leave blank to use the card profile&rsquo;s own ATR.</div></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="card-profile">
-            <h2>Card Profile</h2>
+        <ui-section anchor="card-profile" heading="Card Profile">
             <p>The card the simulator emulates while running. Pick a profile, then <strong>Edit profile</strong> for the full editor, <strong>Clone &amp; personalize</strong> to derive a new card from it, or <strong>New blank</strong> to start from nothing.</p>
 
             <div class="shot-grid">
@@ -134,19 +132,17 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Note</div>
                 <p>In <strong>Reader (PC/SC)</strong> mode the profile is informational only. The physical card answers, not this.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="config-tabs">
-            <h2>The Other Configuration Tabs</h2>
+        <ui-section anchor="config-tabs" heading="The Other Configuration Tabs">
             <div class="spec-list">
                 <div class="spec-row"><div class="k">Terminal Profile</div><div class="v">The terminal side of the exchange &mdash; what the simulated reader claims about itself when loopback drives a transaction.</div></div>
                 <div class="spec-row"><div class="k">Risk &amp; Behavior</div><div class="v">How the card decides, and where it misbehaves on purpose.</div></div>
                 <div class="spec-row"><div class="k">Test Plans</div><div class="v">Which plans are available to the runtime&rsquo;s Test Plans tab.</div></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="runtime">
-            <h2>The Simulator Window</h2>
+        <ui-section anchor="runtime" heading="The Simulator Window">
             <p>Seven tabs, all live.</p>
             <div class="table-wrapper">
                 <table>
@@ -175,10 +171,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Two things are still landing</div>
                 <p><strong>Hold next APDU</strong> in a passive session is a UI placeholder until the firmware-side interception ships, and <strong>Wire Sniff</strong> imports captures but is not yet a full overlay. <strong>L3 Report</strong> covers Visa VCPS and Mastercard M/Chip; other schemes can run plans but skip the certified export until their templates are in.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="status-words">
-            <h2>Common Status Words</h2>
+        <ui-section anchor="status-words" heading="Common Status Words">
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -200,10 +195,9 @@ import { SitePage } from './site-page';
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips &amp; Troubleshooting</h2>
+        <ui-section anchor="tips" heading="Tips &amp; Troubleshooting">
             <ul>
                 <li><strong>No serial port listed</strong> &mdash; The firmware has to boot before the device appears. Wait for <code>/dev/cu.usbmodemXXXX</code>, then press <strong>Rescan</strong>.</li>
                 <li><strong>No PC/SC readers detected</strong> &mdash; Check the PC/SC service is running and no other smartcard application is holding the reader exclusively.</li>
@@ -211,7 +205,7 @@ import { SitePage } from './site-page';
                 <li><strong>Terminal times out</strong> &mdash; A passive session answers as fast as the firmware relays it; if the terminal still gives up, check the wire capture rather than the runtime.</li>
                 <li><strong>Plan passes in loopback but fails on hardware</strong> &mdash; Loopback and the hardware modes share the EMV runtime, so the difference is on the wire. Wire Sniff is the tab for that.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

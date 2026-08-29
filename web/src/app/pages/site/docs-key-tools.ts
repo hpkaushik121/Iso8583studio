@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-key-tools',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-key-tools' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,8 +23,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Key Management Tools</h1>
         <p class="page-description">Generate, validate, wrap, share, and verify cryptographic keys used across payment systems &mdash; from raw 3DES key generation and parity enforcement to TR-31 / Thales key blocks, vendor HSM-specific calculators, keyshare splitting, and X.509 certificate workflows.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Introduction</h2>
+        <ui-section anchor="overview" heading="Introduction">
             <p>Key Management Tools cluster around four jobs:</p>
 
             <div class="shot-grid">
@@ -40,10 +41,9 @@ import { SitePage } from './site-page';
                 <li><strong>Compute key check values</strong> &mdash; for vendor HSMs and operational sign-off.</li>
             </ul>
             <p>SSL / X.509 certificate handling is also grouped here for projects that need terminal or host-to-host TLS.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="all-tools">
-            <h2>All tools</h2>
+        <ui-section anchor="all-tools" heading="All tools">
             <p>Every tool in this category &mdash; each card links to the detailed reference below.</p>
             <div class="hub-grid">
                 <div class="hub-card">
@@ -110,10 +110,9 @@ import { SitePage } from './site-page';
                     </div>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="dea">
-            <h2>DEA Keys (DES / 3DES Utility)</h2>
+        <ui-section anchor="dea" heading="DEA Keys (DES / 3DES Utility)">
             <p>A multi-tab tool focused on raw 3DES key material.</p>
 
             <div class="shot-grid">
@@ -178,10 +177,9 @@ import { SitePage } from './site-page';
     <p>Button: <strong>Lookup Key</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="keyshare">
-            <h2>Keyshare Generator</h2>
+        <ui-section anchor="keyshare" heading="Keyshare Generator">
             <p>Splits a single key into <em>n</em> shares such that all <em>n</em> are required to reconstruct the key (XOR-based component scheme). Useful for multi-custodian key loading.</p>
 
             <div class="shot-grid">
@@ -212,10 +210,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Custody</div>
                 <p>Components must be transported and stored separately under the control of different custodians. Recombining shares brings them under the control of a single trustee, so do this only inside the HSM during loading.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tr31">
-            <h2>TR-31 Key Block</h2>
+        <ui-section anchor="tr31" heading="TR-31 Key Block">
             <p>ASC X9.143 (formerly TR-31) defines a key block format that binds a key to its allowable usage, algorithm, mode, and exportability. A TR-31 block is opaque to anything outside the issuing HSM but lets two HSMs exchange keys without losing metadata.</p>
 
             <div class="shot-grid">
@@ -248,10 +245,9 @@ import { SitePage } from './site-page';
             <p>An ASCII key block string starting with the version (<code>A</code>, <code>B</code>, <code>C</code>, <code>D</code>) plus encrypted key, MAC, and optional optional blocks.</p>
 
             <pre><code>A0072P0TE00E0000ABC...   (D variant TR-31 block)</code></pre>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="thales-block">
-            <h2>Thales Key Block</h2>
+        <ui-section anchor="thales-block" heading="Thales Key Block">
             <p>The Thales-specific key block format used by PayShield HSMs. Similar in concept to TR-31 but with Thales&rsquo; own header and key usage codes.</p>
 
             <div class="shot-grid">
@@ -275,10 +271,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Tip</div>
                 <p>Use this when you have a clear key and want to import it under the HSM Simulator&rsquo;s LMK without typing it through the console.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="thales-keys">
-            <h2>Thales Key Calculator</h2>
+        <ui-section anchor="thales-keys" heading="Thales Key Calculator">
             <p>Vendor-aware calculations matching Thales PayShield host commands.</p>
 
             <div class="shot-grid">
@@ -297,10 +292,9 @@ import { SitePage } from './site-page';
                 <li><strong>KCV Computation</strong> &mdash; Match Thales-style 6-digit KCVs for operational sign-off.</li>
                 <li><strong>Variant Application</strong> &mdash; Apply LMK and ZMK variants used during key wrapping.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="atalla">
-            <h2>Atalla Key Calculator</h2>
+        <ui-section anchor="atalla" heading="Atalla Key Calculator">
             <p>Atalla / Utimaco AKB-style key block helpers, in both directions: build a key block from a clear key, or take one apart.</p>
 
             <div class="shot-grid">
@@ -338,10 +332,9 @@ import { SitePage } from './site-page';
     <p>Button: <strong>Decode AKB</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="safenet">
-            <h2>Safenet Key Calculator</h2>
+        <ui-section anchor="safenet" heading="Safenet Key Calculator">
             <p>Safenet / Thales Luna key calculations for legacy and modern formats.</p>
 
             <div class="shot-grid">
@@ -352,10 +345,9 @@ import { SitePage } from './site-page';
                     <figcaption class="shot-cap"><span class="mono">key-tools</span> Safenet Key Calculator</figcaption>
                 </figure>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="ssl">
-            <h2>SSL / X.509 Certificate Tool</h2>
+        <ui-section anchor="ssl" heading="SSL / X.509 Certificate Tool">
             <p>An end-to-end certificate workflow tool for terminal-host TLS.</p>
 
             <div class="shot-grid">
@@ -386,10 +378,9 @@ import { SitePage } from './site-page';
             </ul>
 
             <p>Outputs are displayed as PEM and as parsed fields side-by-side, with a copy button per artifact.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="rsa-der">
-            <h2>RSA DER Public Key Tool</h2>
+        <ui-section anchor="rsa-der" heading="RSA DER Public Key Tool">
             <p>An RSA public key is a modulus and an exponent, but what a host expects on the wire is those two numbers wrapped in DER. This encoder does that wrapping, and is the tool to reach for when a certificate library rejects a key you know is correct.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -409,17 +400,16 @@ import { SitePage } from './site-page';
                     <p>Button: <strong>Encode Key</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips</h2>
+        <ui-section anchor="tips" heading="Tips">
             <ul>
                 <li>Always verify the KCV after combining shares or unwrapping a key block. A wrong KCV almost always means a typo in one share.</li>
                 <li>For TR-31, watch out for case sensitivity in the header &mdash; the key usage and mode codes are uppercase.</li>
                 <li>If your HSM rejects an imported key, compare the version byte (<code>A</code> vs <code>B</code> vs <code>C</code> vs <code>D</code>) &mdash; older HSMs may only accept specific versions.</li>
                 <li>For SSL, generate the key first, then the CSR, then the cert &mdash; the tool will pre-fill DN parameters from a previous CSR if you stay on the same session.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-payment-simulators',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-payment-simulators' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -19,7 +21,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Payment Simulators</h1>
         <p class="page-description">Nine simulators covering every party in a payment network — from the card and the terminal to the switch, the HSM and the issuer. Each card links to that simulator's full documentation.</p>
 
-        <section class="doc-section" id="simulators">
+        <ui-section anchor="simulators">
             <div class="hub-grid">
                 <div class="hub-card">
                     <div class="hub-body">
@@ -86,7 +88,7 @@ import { SitePage } from './site-page';
                 </div>
             </div>
             <div class="info-card note"><div class="info-card-title">Status</div><p><span class="badge badge-teal">Available</span> ships in the current release · <span class="badge badge-purple">Beta</span> is usable and evolving · <span class="badge badge-yellow">In development</span> is scaffolded in the app — follow the <a href="https://github.com/users/hpkaushik121/projects/1">roadmap</a>.</p></div>
-        </section>
+        </ui-section>
 </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

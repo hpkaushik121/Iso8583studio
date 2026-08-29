@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-hsm-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-hsm-simulator' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -22,8 +24,7 @@ import { SitePage } from './site-page';
         <p class="page-description">Emulate a payment Hardware Security Module for host application development. Device profiles cover six HSM vendors and their models, with a Thales payShield command engine behind them &mdash; key management, PIN operations, encryption, MAC generation, and more.</p>
 
         <!-- Overview -->
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The HSM Simulator in ISO8583Studio stands in for a payment Hardware Security Module, so you can develop and test host applications that need HSM integration without physical hardware. Each simulator is a <strong>profile</strong> &mdash; a named device with its own vendor, model, serial number and network settings &mdash; and you can keep as many profiles as you need side by side.</p>
             <p>Six vendor profiles are selectable, covering Thales, SafeNet, Utimaco, Futurex, nCipher and a generic device. The command engine behind them implements the <strong>Thales payShield</strong> host command set, which is what the rest of this page documents.</p>
 
@@ -65,11 +66,10 @@ import { SitePage } from './site-page';
                     <p>Multiple LMK slots, persistent key storage, and full LMK lifecycle management.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Profiles -->
-        <section class="doc-section" id="profile">
-            <h2>Device Profiles</h2>
+        <ui-section anchor="profile" heading="Device Profiles">
             <p>The <strong>Profile</strong> tab of the HSM Simulator Configuration screen describes the device the simulator presents. The left rail lists every profile you have created, with buttons to add, import, export and delete; <strong>Launch HSM Simulator</strong> starts the selected one.</p>
 
             <div class="shot-grid">
@@ -120,11 +120,10 @@ import { SitePage } from './site-page';
                 <li><strong>Save All Configurations</strong> &mdash; Persists every profile in the list.</li>
                 <li><strong>Launch HSM Simulator</strong> &mdash; Opens the selected profile&rsquo;s simulator, with the HSM Handler, Key Management, Host Commands, Secure Commands and Logs tabs.</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- Quick Start -->
-        <section class="doc-section" id="quick-start">
-            <h2>Quick Start Guide</h2>
+        <ui-section anchor="quick-start" heading="Quick Start Guide">
 
             <ol class="steps">
                 <li><strong>Create an HSM configuration</strong> &mdash; From the Home screen, create a new HSM Simulator configuration. Set the profile name and device details.</li>
@@ -138,11 +137,10 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Tip</div>
                 <p>Start with the <code>NC</code> (Diagnostic Test) command to verify the simulator is running and LMK is loaded. A response of <code>ND00</code> confirms everything is healthy.</p>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Protocol -->
-        <section class="doc-section" id="protocol">
-            <h2>Message Protocol</h2>
+        <ui-section anchor="protocol" heading="Message Protocol">
             <p>The HSM Simulator uses the standard Thales PayShield host command protocol over TCP/IP.</p>
 
             <div class="shot-grid">
@@ -183,11 +181,10 @@ Response: 0000A100U1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF</code></pre>
 
             <h3>Encoding</h3>
             <p>All messages use <strong>ISO-8859-1</strong> encoding. Keys are represented as hexadecimal strings in the protocol.</p>
-        </section>
+        </ui-section>
 
         <!-- Network Settings -->
-        <section class="doc-section" id="network">
-            <h2>Network Settings</h2>
+        <ui-section anchor="network" heading="Network Settings">
 
             <div class="shot-grid">
                 <figure class="shot-fig" style="--shot-w:936px"><image-slot><img src="/images/docs/hsm-simulator/network.png" alt="Connection Configuration on the Network tab with TCP_IP selected, port 9090, the TCP/IP length header enabled with a 4-byte message header, and SSL/TLS off" width="1872" height="1232" loading="lazy"></image-slot>
@@ -216,11 +213,10 @@ Response: 0000A100U1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF</code></pre>
                 <li><strong>REST API</strong> &mdash; HTTP endpoint for HSM commands.</li>
                 <li><strong>WebSocket</strong> &mdash; Real-time bidirectional HSM communication.</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- LMK Storage -->
-        <section class="doc-section" id="lmk">
-            <h2>LMK Storage</h2>
+        <ui-section anchor="lmk" heading="LMK Storage">
             <p>The Local Master Key (LMK) is the foundation of HSM security. All working keys are encrypted under LMK pairs.</p>
 
             <div class="shot-grid">
@@ -257,11 +253,10 @@ Response: 0000A100U1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF</code></pre>
 
             <h3>Persistence</h3>
             <p>LMK data is stored in <code>payShield10k_lmkStorage.json</code> and within the simulator configuration JSON. Keys persist across restarts.</p>
-        </section>
+        </ui-section>
 
         <!-- Commands: Diagnostics -->
-        <section class="doc-section" id="cmd-diagnostics">
-            <h2>Diagnostics &amp; Info Commands</h2>
+        <ui-section anchor="cmd-diagnostics" heading="Diagnostics &amp; Info Commands">
 
             <div class="table-wrapper">
                 <table>
@@ -283,11 +278,10 @@ Response: 0000A100U1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF</code></pre>
 Response: 0000ND00
 
 Error code 00 = HSM is healthy, LMK loaded.</code></pre>
-        </section>
+        </ui-section>
 
         <!-- Commands: Key Management -->
-        <section class="doc-section" id="cmd-key-mgmt">
-            <h2>Key Management Commands</h2>
+        <ui-section anchor="cmd-key-mgmt" heading="Key Management Commands">
 
             <div class="table-wrapper">
                 <table>
@@ -317,11 +311,10 @@ Response: 0000A100U&lt;key-under-LMK&gt;&lt;key-under-ZMK&gt;&lt;KCV&gt;</code><
             <h3>Example: Generate KCV</h3>
             <pre><code>Request:  0000BU0U&lt;key-under-LMK&gt;
 Response: 0000BV00&lt;6-char-KCV&gt;</code></pre>
-        </section>
+        </ui-section>
 
         <!-- Commands: PIN Block -->
-        <section class="doc-section" id="cmd-pin-block">
-            <h2>PIN Block Operations</h2>
+        <ui-section anchor="cmd-pin-block" heading="PIN Block Operations">
 
             <div class="table-wrapper">
                 <table>
@@ -350,11 +343,10 @@ Response: 0000CB00&lt;pin-length&gt;&lt;translated-pin-block&gt;</code></pre>
                 <div class="info-card-title">Note</div>
                 <p>The <code>CA</code> command is the most commonly used PIN translation in payment processing. It converts a PIN block received from the terminal (encrypted under TPK) into a block suitable for sending to the card issuer (encrypted under ZPK).</p>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Commands: PIN Verification -->
-        <section class="doc-section" id="cmd-pin-verify">
-            <h2>PIN Verification Commands</h2>
+        <ui-section anchor="cmd-pin-verify" heading="PIN Verification Commands">
 
             <div class="table-wrapper">
                 <table>
@@ -372,11 +364,10 @@ Response: 0000CB00&lt;pin-length&gt;&lt;translated-pin-block&gt;</code></pre>
             <pre><code>Request:  0000DC&lt;ZPK&gt;01&lt;pin-block&gt;&lt;account-number&gt;&lt;PVK-pair&gt;&lt;PVV&gt;
 Response: 0000DD00   (00 = PIN verified successfully)
 Response: 0000DD01   (01 = PIN verification failed)</code></pre>
-        </section>
+        </ui-section>
 
         <!-- Commands: PIN Generation -->
-        <section class="doc-section" id="cmd-pin-gen">
-            <h2>PIN Generation Commands</h2>
+        <ui-section anchor="cmd-pin-gen" heading="PIN Generation Commands">
 
             <div class="table-wrapper">
                 <table>
@@ -390,11 +381,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Commands: Encryption -->
-        <section class="doc-section" id="cmd-encrypt">
-            <h2>Data Encryption / Decryption Commands</h2>
+        <ui-section anchor="cmd-encrypt" heading="Data Encryption / Decryption Commands">
 
             <div class="table-wrapper">
                 <table>
@@ -414,11 +404,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                 <li><strong>ECB</strong> (Electronic Codebook) &mdash; Each block encrypted independently. Simpler but less secure for repetitive data.</li>
                 <li><strong>CBC</strong> (Cipher Block Chaining) &mdash; Each block XORed with the previous ciphertext block. Requires an IV (Initialization Vector).</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- Commands: MAC -->
-        <section class="doc-section" id="cmd-mac">
-            <h2>MAC Operations</h2>
+        <ui-section anchor="cmd-mac" heading="MAC Operations">
 
             <div class="table-wrapper">
                 <table>
@@ -438,11 +427,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                 <li><strong>ISO 9797 Algorithm 1</strong> &mdash; Single DES CBC-MAC. Standard for most payment applications.</li>
                 <li><strong>ISO 9797 Algorithm 3</strong> &mdash; Retail MAC (DES CBC-MAC with final 3DES step). Provides stronger security.</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- Commands: Hash -->
-        <section class="doc-section" id="cmd-hash">
-            <h2>Hashing Commands</h2>
+        <ui-section anchor="cmd-hash" heading="Hashing Commands">
 
             <div class="table-wrapper">
                 <table>
@@ -461,11 +449,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                 <li>SHA-256</li>
                 <li>MD5</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- Commands: RSA -->
-        <section class="doc-section" id="cmd-rsa">
-            <h2>RSA / Asymmetric Commands</h2>
+        <ui-section anchor="cmd-rsa" heading="RSA / Asymmetric Commands">
 
             <div class="table-wrapper">
                 <table>
@@ -480,11 +467,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Commands: CVV -->
-        <section class="doc-section" id="cmd-cvv">
-            <h2>Dynamic CVV/CVC</h2>
+        <ui-section anchor="cmd-cvv" heading="Dynamic CVV/CVC">
 
             <div class="table-wrapper">
                 <table>
@@ -496,11 +482,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Commands: Storage -->
-        <section class="doc-section" id="cmd-storage">
-            <h2>User Storage Commands</h2>
+        <ui-section anchor="cmd-storage" heading="User Storage Commands">
             <p>Store, retrieve, and delete keys or data in indexed user storage slots (000&ndash;FFF).</p>
 
             <div class="table-wrapper">
@@ -515,11 +500,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Key Types -->
-        <section class="doc-section" id="key-types">
-            <h2>Key Types &amp; Schemes</h2>
+        <ui-section anchor="key-types" heading="Key Types &amp; Schemes">
 
             <h3>Key Types</h3>
             <div class="table-wrapper">
@@ -554,11 +538,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- PIN Block Formats -->
-        <section class="doc-section" id="pin-formats">
-            <h2>PIN Block Formats</h2>
+        <ui-section anchor="pin-formats" heading="PIN Block Formats">
 
             <div class="table-wrapper">
                 <table>
@@ -577,11 +560,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Error Codes -->
-        <section class="doc-section" id="error-codes">
-            <h2>Error Codes</h2>
+        <ui-section anchor="error-codes" heading="Error Codes">
             <p>Every HSM response includes a 2-character error code. <code>00</code> indicates success.</p>
 
             <div class="table-wrapper">
@@ -616,11 +598,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Tabs Reference -->
-        <section class="doc-section" id="tabs-reference">
-            <h2>UI Tabs Reference</h2>
+        <ui-section anchor="tabs-reference" heading="UI Tabs Reference">
 
             <div class="table-wrapper">
                 <table>
@@ -636,11 +617,10 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Secure Commands -->
-        <section class="doc-section" id="secure-commands">
-            <h2>Secure Commands</h2>
+        <ui-section anchor="secure-commands" heading="Secure Commands">
             <p>Certain operations require console authorization before they can be executed, simulating the real PayShield security model.</p>
 
             <h3>Authorization Flow</h3>
@@ -680,7 +660,7 @@ Response: 0000DD01   (01 = PIN verification failed)</code></pre>
                 <div class="info-card-title">Important</div>
                 <p>Attempting to run a secure command without authorization will return error code <code>A1</code> (Console not authorized). Always grant authorization before executing these operations.</p>
             </div>
-        </section>
+        </ui-section>
 
     </main>
 

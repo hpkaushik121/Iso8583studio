@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-hsm-command-console',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-hsm-command-console' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -22,8 +24,7 @@ import { SitePage } from './site-page';
         </div>
         <p class="page-description">A host-command client for hardware security modules. Connect to a real or simulated HSM, fire individual host commands, chain them into repeatable scenarios, and drive them under load &mdash; all over TCP/IP with optional TLS. Inside the app it is titled <strong>HSM Host Console</strong>.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The HSM Command Console acts as a <strong>client</strong> that talks to an HSM's host interface. It packs your command payload with the vendor's framing (length header, STX/ETX, etc.), sends it over the socket, and shows the raw request/response exchange. Point it at ISO8583Studio's own <a href="/docs/hsm-simulator">HSM Simulator</a> or at a physical device on your bench.</p>
 
             <div class="shot-grid">
@@ -39,10 +40,9 @@ import { SitePage } from './site-page';
                 <div class="feature-item"><div class="feature-item-icon">🔒</div><h4>TLS Transport</h4><p>Optional mutual TLS with configurable version, cipher suites, CA verification, and PKCS#12 client certificates.</p></div>
                 <div class="feature-item"><div class="feature-item-icon">📜</div><h4>Exchange Log</h4><p>Every command and response is timestamped and captured in the Logs tab for review and export.</p></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="quick-start">
-            <h2>Quick Start</h2>
+        <ui-section anchor="quick-start" heading="Quick Start">
             <ol class="steps">
                 <li><strong>Create a console configuration</strong> &mdash; From the Home screen open <code>HSM Host Console</code> and add a new configuration.</li>
                 <li><strong>Pick your HSM vendor</strong> &mdash; In <strong>Connection Settings</strong>, choose the HSM Type. The port and framing default to that vendor (e.g. Thales payShield &rarr; port <code>1500</code>, 2-byte binary length).</li>
@@ -52,10 +52,9 @@ import { SitePage } from './site-page';
                 <li><strong>Send a command</strong> &mdash; In the <strong>Console</strong> tab select a command from the vendor set, fill its fields, and send. The response appears in the exchange log.</li>
             </ol>
             <div class="info-card tip"><div class="info-card-title">Tip</div><p>No physical HSM? Start the <a href="/docs/hsm-simulator">HSM Simulator</a> as a server on the same machine and point the console at <code>127.0.0.1:1500</code> for a fully local key-management loop.</p></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="vendors">
-            <h2>Supported HSM Vendors</h2>
+        <ui-section anchor="vendors" heading="Supported HSM Vendors">
             <p>Selecting a vendor sets its default port and message framing automatically. All vendors are driven over the same socket client.</p>
             <div class="table-wrapper"><table>
                 <thead><tr><th>Vendor</th><th>Model family</th><th>Default Port</th><th>Framing</th></tr></thead>
@@ -69,10 +68,9 @@ import { SitePage } from './site-page';
                     <tr><td><strong>Generic HSM</strong></td><td>Custom / other</td><td><code>1500</code></td><td>Configurable</td></tr>
                 </tbody>
             </table></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="connection">
-            <h2>Connection Settings</h2>
+        <ui-section anchor="connection" heading="Connection Settings">
             <p>The <strong>Connection Settings</strong> configuration tab defines the transport to the HSM.</p>
 
             <div class="shot-grid">
@@ -86,10 +84,9 @@ import { SitePage } from './site-page';
                 <div class="spec-row"><div class="k">Timeout</div><div class="v">Connection / response timeout in seconds. Default <code>30</code>.</div></div>
                 <div class="spec-row"><div class="k">Name &amp; Description</div><div class="v">Identifiers for the saved configuration.</div></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="framing">
-            <h2>Message Framing</h2>
+        <ui-section anchor="framing" heading="Message Framing">
             <p>HSMs delimit messages differently. The console supports the common framing schemes; the correct one is selected when you pick a vendor, and can be overridden.</p>
 
             <div class="shot-grid">
@@ -108,10 +105,9 @@ import { SitePage } from './site-page';
                 </tbody>
             </table></div>
             <p>Additional framing fields: <strong>TCP Length Header Enabled</strong> toggle, <strong>Message Header</strong> (hex, e.g. <code>0000</code>), <strong>Message Trailer</strong> (hex, optional), and <strong>Message Header Length</strong>.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="ssl">
-            <h2>SSL / TLS Configuration</h2>
+        <ui-section anchor="ssl" heading="SSL / TLS Configuration">
             <p>Enable encrypted transport to the HSM in the <strong>SSL/TLS Configuration</strong> tab.</p>
 
             <div class="shot-grid">
@@ -133,10 +129,9 @@ import { SitePage } from './site-page';
                     <tr><td><strong>Key material</strong></td><td>CA authority path, client public certificate, client private key.</td></tr>
                 </tbody>
             </table></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="console">
-            <h2>Command Console Tab</h2>
+        <ui-section anchor="console" heading="Command Console Tab">
             <p>The <strong>Console</strong> tab is the interactive workspace. Pick a host command from the active vendor's command set, populate its parameter fields, and send it. The request and the decoded response are appended to the exchange log with response codes and timing.</p>
 
             <div class="shot-grid">
@@ -149,10 +144,9 @@ import { SitePage } from './site-page';
                 <li><strong>Field editor</strong> &mdash; each command exposes its parameters as labelled inputs so you don't hand-assemble the payload.</li>
                 <li><strong>Send &amp; inspect</strong> &mdash; responses are shown raw and parsed; errors surface the HSM's response/error code.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="scenario">
-            <h2>Scenario Builder Tab</h2>
+        <ui-section anchor="scenario" heading="Scenario Builder Tab">
             <p>A <strong>scenario</strong> is an ordered list of command steps &mdash; each step captures a <code>commandCode</code> and its field values. Build a sequence (for example: generate a key, export it under a ZMK, then translate a PIN block), name it, and save it into the configuration for reuse.</p>
 
             <div class="shot-grid">
@@ -165,10 +159,9 @@ import { SitePage } from './site-page';
                 <li><strong>Saved scenarios</strong> &mdash; persisted with the configuration and available to both the console and the load tester.</li>
                 <li><strong>Playlists</strong> &mdash; group custom text, single commands, and whole scenarios into a runnable playlist with optional auto-advance.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="load-test">
-            <h2>Load Testing Tab</h2>
+        <ui-section anchor="load-test" heading="Load Testing Tab">
             <p>Drive a saved scenario against the HSM to measure throughput and stability. Configure it in the <strong>Load Test Settings</strong> tab and run it from the <strong>Load Test</strong> tab.</p>
 
             <div class="shot-grid">
@@ -185,10 +178,9 @@ import { SitePage } from './site-page';
                     <tr><td>Pattern</td><td>Constant Rate, Ramp Up, Spike Test, or Burst Pattern.</td><td>Constant</td></tr>
                 </tbody>
             </table></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="logs">
-            <h2>Logs Tab</h2>
+        <ui-section anchor="logs" heading="Logs Tab">
             <p>The <strong>Logs</strong> tab streams every exchange &mdash; request, response, connection events &mdash; with timestamps. Clear the buffer, and see live connection count and byte counters. Global logging can be toggled in app settings.</p>
 
             <div class="shot-grid">
@@ -196,10 +188,9 @@ import { SitePage } from './site-page';
                     <figcaption class="shot-cap"><span class="mono">hsm-command-console</span> Logs Tab</figcaption>
                 </figure>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tabs-reference">
-            <h2>Tabs Reference</h2>
+        <ui-section anchor="tabs-reference" heading="Tabs Reference">
             <div class="table-wrapper"><table>
                 <thead><tr><th>Tab</th><th>Purpose</th></tr></thead>
                 <tbody>
@@ -210,7 +201,7 @@ import { SitePage } from './site-page';
                 </tbody>
             </table></div>
             <div class="info-card note"><div class="info-card-title">Related</div><p>Pair this with the <a href="/docs/hsm-simulator">HSM Simulator</a> (the server side) for a complete, self-contained key-management test rig.</p></div>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

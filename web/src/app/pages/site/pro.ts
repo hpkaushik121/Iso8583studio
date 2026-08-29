@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-pro',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-pro' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -18,8 +20,7 @@ import { SitePage } from './site-page';
     <div class="page-title-row"><h1 class="page-title">ISO8583Studio Pro</h1><span class="badge badge-purple">Early access</span></div>
     <p class="page-description">The studio stays free. Pro raises the ceiling: higher cryptographic throughput, the full algorithm set, deeper tuning of every simulator — plus hosted endpoints, certification-grade test packs and an engineer to call when a cryptogram won't verify.</p>
 
-    <section class="doc-section" id="what">
-        <h2>What Pro adds</h2>
+    <ui-section anchor="what" heading="What Pro adds">
         <div class="feature-grid">
             <div class="feature-item"><h4>Higher cryptographic throughput</h4><p>Raised CPS ceiling — the free build throttles cryptographic operations per second; Pro runs multi-threaded across cores for load and soak testing at production-like rates.</p></div>
             <div class="feature-item"><h4>Full algorithm set</h4><p>Beyond the free 3DES/AES basics: RSA and ECC key operations, SHA-3, FPE (FF1/FF3-1), Poly1305, ChaCha20, DUKPT AES, and vendor-specific key derivations.</p></div>
@@ -36,10 +37,9 @@ import { SitePage } from './site-page';
             <div class="spec-row"><div class="k">Free</div><div class="v">All 9 simulators, all 64 tools, standard algorithms, throttled cryptographic throughput, local configs, manual test runs, community support on GitHub.</div></div>
             <div class="spec-row"><div class="k">Pro</div><div class="v">Everything in Free, plus a raised CPS ceiling, the full algorithm set, deep per-simulator tweaks, hosted endpoints, certification packs, scripted suites in CI, config sync, extended HSM coverage and priority support.</div></div>
         </div>
-    </section>
+    </ui-section>
 
-    <section class="doc-section" id="register">
-        <h2>Register for Pro</h2>
+    <ui-section anchor="register" heading="Register for Pro">
         <p>Tell us who you are and what you're certifying. We provision your workspace and send credentials by email.</p>
 
         <form class="pro-form" id="proForm" novalidate>
@@ -69,13 +69,12 @@ import { SitePage } from './site-page';
             </div>
             <p class="pf-done" id="proDone" hidden></p>
         </form>
-    </section>
+    </ui-section>
 
-    <section class="doc-section" id="faq">
-        <h2>Questions</h2>
+    <ui-section anchor="faq" heading="Questions">
         <div class="info-card"><div class="info-card-title">Does the free studio change?</div><p>No. Every simulator and tool that is free today stays free, offline and unrestricted. Pro is additive.</p></div>
         <div class="info-card note"><div class="info-card-title">Need an invoice, PO or annual contract?</div><p>Write to <a href="mailto:admin@iso8583.studio">admin@iso8583.studio</a> and we'll bill your organisation directly instead.</p></div>
-    </section>
+    </ui-section>
 </main>`,
 })
 export class ProPage {}

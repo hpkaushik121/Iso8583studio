@@ -252,7 +252,16 @@ ui-card > .card { height: 100%; }
 
 /* ---- ui-section -------------------------------------------------------- */
 
-.doc-section { margin-bottom: 52px; }
+/* A custom element is inline by default, and this one wraps block content. */
+ui-section { display: block; }
+
+/* The anchor a table of contents links to is the section, since that is where
+   ui-section puts its id — so the offset that clears the fixed nav belongs
+   here and not only on the heading. */
+.doc-section {
+    margin-bottom: 52px;
+    scroll-margin-top: calc(var(--nav-h) + var(--sp-5));
+}
 
 /* The primitive styles the heading, but a section is mostly body copy — these
    were lost when .doc-section became a component and are what set the reading

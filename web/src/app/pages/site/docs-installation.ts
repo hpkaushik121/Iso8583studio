@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-installation',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-installation' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -19,8 +21,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Installation</h1>
         <p class="page-description">ISO8583Studio is a Kotlin Multiplatform / Compose Desktop app shipped as a single JAR — the same file runs on Windows, macOS and Linux on top of a Java runtime.</p>
 
-        <section class="doc-section" id="prerequisites">
-            <h2>Prerequisites</h2>
+        <ui-section anchor="prerequisites" heading="Prerequisites">
             <div class="table-wrapper"><table>
                 <thead><tr><th>Requirement</th><th>Minimum</th><th>Notes</th></tr></thead>
                 <tbody>
@@ -33,39 +34,35 @@ import { SitePage } from './site-page';
             <p>Check your Java version first:</p>
             <pre><code>java -version
 # openjdk version "17.0.x" — anything 11+ is fine</code></pre>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="windows">
-            <h2>Windows</h2>
+        <ui-section anchor="windows" heading="Windows">
             <ol class="steps">
                 <li><strong>Install Java 11+</strong> — download <a href="https://adoptium.net/">Eclipse Temurin</a> (or run <code>winget install EclipseAdoptium.Temurin.17.JRE</code>).</li>
                 <li><strong>Download the JAR</strong> — grab <code>ISO8583Studio.jar</code> from the <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">latest release</a>.</li>
                 <li><strong>Run it</strong> — double-click the JAR, or from PowerShell: <code>java -jar ISO8583Studio.jar</code>.</li>
                 <li><strong>Allow networking</strong> — approve the Windows Firewall prompt so simulators can open server ports.</li>
             </ol>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="macos">
-            <h2>macOS</h2>
+        <ui-section anchor="macos" heading="macOS">
             <ol class="steps">
                 <li><strong>Install Java 11+</strong> — <code>brew install --cask temurin</code> (or download from Adoptium).</li>
                 <li><strong>Download the JAR</strong> — from the <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">latest release</a>.</li>
                 <li><strong>Run it</strong> — <code>java -jar ISO8583Studio.jar</code> from Terminal.</li>
                 <li><strong>Gatekeeper</strong> — if macOS blocks the first launch, allow it under <em>System Settings → Privacy &amp; Security</em>.</li>
             </ol>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="linux">
-            <h2>Linux</h2>
+        <ui-section anchor="linux" heading="Linux">
             <ol class="steps">
                 <li><strong>Install Java 11+</strong> — Debian/Ubuntu: <code>sudo apt install openjdk-17-jre</code> · Fedora: <code>sudo dnf install java-17-openjdk</code>.</li>
                 <li><strong>Download the JAR</strong> — <code>wget https://github.com/hpkaushik121/Iso8583studio/releases/latest/download/ISO8583Studio.jar</code></li>
                 <li><strong>Run it</strong> — <code>java -jar ISO8583Studio.jar</code>.</li>
             </ol>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="source">
-            <h2>Build from Source (Kotlin Multiplatform)</h2>
+        <ui-section anchor="source" heading="Build from Source (Kotlin Multiplatform)">
             <p>The project builds with the Gradle wrapper — no IDE required. You need <strong>JDK 11+</strong> and Git.</p>
             <pre><code>git clone https://github.com/hpkaushik121/Iso8583studio.git
 cd Iso8583studio
@@ -84,10 +81,9 @@ java -jar composeApp/build/compose/jars/ISO8583Studio-*.jar</code></pre>
 # output: composeApp/build/compose/binaries/main/
 #   Windows → .msi · macOS → .dmg · Linux → .deb</code></pre>
             <div class="info-card tip"><div class="info-card-title">Tip</div><p>On Windows use <code>gradlew.bat</code> instead of <code>./gradlew</code>. For development, IntelliJ IDEA opens the project directly — see <a href="/docs/contributing">How to Contribute</a>.</p></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="troubleshooting">
-            <h2>Troubleshooting</h2>
+        <ui-section anchor="troubleshooting" heading="Troubleshooting">
             <div class="table-wrapper"><table>
                 <thead><tr><th>Symptom</th><th>Fix</th></tr></thead>
                 <tbody>
@@ -96,7 +92,7 @@ java -jar composeApp/build/compose/jars/ISO8583Studio-*.jar</code></pre>
                     <tr><td>"Connection refused" in simulators</td><td>Port in use or blocked by firewall — change the port in Transmission Settings.</td></tr>
                 </tbody>
             </table></div>
-        </section>
+        </ui-section>
 
 </main>
 

@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-mac-tools',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-mac-tools' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,15 +23,13 @@ import { SitePage } from './site-page';
         <h1 class="page-title">MAC Tools</h1>
         <p class="page-description">Generate and verify Message Authentication Codes used across payment systems &mdash; HMAC, the six ISO/IEC 9797-1 algorithms, ANSI X9.9 / X9.19, and TDES CBC-MAC. Each tool offers hex inputs, configurable padding, a truncation length, and a step-by-step audit log.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Introduction</h2>
+        <ui-section anchor="overview" heading="Introduction">
             <p>A Message Authentication Code (MAC) is a short tag computed from a message and a secret key. It lets a receiver verify that a message has not been altered and that it came from someone holding the same key. Payment networks rely on MACs heavily &mdash; on ISO 8583 messages, on terminal-host links, and on PIN-translation pipelines.</p>
 
             <p>ISO8583Studio includes calculators for every MAC algorithm commonly seen in payment specifications, organised into two families: hash-based (HMAC) and block-cipher-based (CMAC, CBC-MAC and its variants).</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="choosing">
-            <h2>Choosing a MAC</h2>
+        <ui-section anchor="choosing" heading="Choosing a MAC">
             <div class="table-wrapper">
                 <table>
                     <thead><tr><th>Algorithm</th><th>Standard</th><th>Block / Cipher</th><th>Common Use</th></tr></thead>
@@ -44,10 +44,9 @@ import { SitePage } from './site-page';
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="hmac">
-            <h2>HMAC Calculator</h2>
+        <ui-section anchor="hmac" heading="HMAC Calculator">
             <p>Hash-based MAC defined by RFC 2104.</p>
 
             <div class="shot-grid">
@@ -95,10 +94,9 @@ Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</co
                 <div class="info-card-title">No SHA-3 / SM3</div>
                 <p>The current build does not expose SHA-3 or SM3. Use the supported algorithms above.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tdes-cbc">
-            <h2>TDES CBC-MAC Calculator</h2>
+        <ui-section anchor="tdes-cbc" heading="TDES CBC-MAC Calculator">
             <p>Triple-DES CBC-MAC: encrypt the message under TDES in CBC mode and take the last block as the MAC. Common in legacy ISO 8583 implementations.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -125,10 +123,9 @@ Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</co
                 <div class="info-card-title">Security note</div>
                 <p>Pure CBC-MAC is vulnerable to length-extension when the message length is variable. For variable-length messages, use ISO 9797-1 Algorithm 3 (Retail MAC) instead.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="ansi-mac">
-            <h2>ANSI X9.9 / X9.19 MAC Calculator</h2>
+        <ui-section anchor="ansi-mac" heading="ANSI X9.9 / X9.19 MAC Calculator">
             <p>One tool covers both ANSI schemes: <strong>X9.9</strong> (wholesale) and <strong>X9.19</strong> (retail), selected from the MAC Algorithm drop-down. X9.19 runs single-DES CBC-MAC across the message with a final 3DES &ldquo;finalize&rdquo; step over the last block, which makes it equivalent to ISO 9797-1 Algorithm 3.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -157,10 +154,9 @@ Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</co
                 <li>Decrypt the final intermediate value with <code>KR</code>.</li>
                 <li>Encrypt that result with <code>KL</code> again. The output is the MAC.</li>
             </ol>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="iso9797">
-            <h2>ISO 9797 MAC Calculator</h2>
+        <ui-section anchor="iso9797" heading="ISO 9797 MAC Calculator">
             <p>ISO/IEC 9797-1 standardises six MAC algorithms over block ciphers. The calculator exposes each variant by tab.</p>
 
             <div class="shot-grid">
@@ -210,10 +206,9 @@ Data:   48656C6C6F     (ASCII "Hello")
 
 Padded: 48656C6C6F800000
 Output: B11FFC78A4FB1B5A</code></pre>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="padding">
-            <h2>Padding Methods (ISO 9797-1)</h2>
+        <ui-section anchor="padding" heading="Padding Methods (ISO 9797-1)">
             <div class="table-wrapper">
                 <table>
                     <thead><tr><th>Method</th><th>Rule</th><th>Notes</th></tr></thead>
@@ -224,16 +219,15 @@ Output: B11FFC78A4FB1B5A</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips</h2>
+        <ui-section anchor="tips" heading="Tips">
             <ul>
                 <li>Always confirm the IV the host expects &mdash; many hosts default to all zeros, but some use the previous transaction&rsquo;s MAC as a chaining vector.</li>
                 <li>Match the padding method to your host spec. A wrong padding method produces a deterministic but wrong MAC, which is one of the most common debugging traps.</li>
                 <li>For DUKPT-derived MAC keys, generate the session key in the DUKPT Tools first, then plug the result into the corresponding MAC calculator.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>`,
 })
 export class DocsMacToolsPage {}

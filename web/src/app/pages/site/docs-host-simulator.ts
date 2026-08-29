@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-host-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-host-simulator' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -22,8 +24,7 @@ import { SitePage } from './site-page';
         <p class="page-description">Simulate acquirer and issuer host responses for payment terminals, ATMs, and client applications. Test your ISO8583 integrations without a production host.</p>
 
         <!-- Overview -->
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The Host Simulator in ISO8583Studio acts as a payment host simulator for development and testing. It accepts incoming connections from POS terminals, ATMs, or other financial clients and returns configurable responses based on matching rules. This eliminates the need for a real host environment during development and QA testing.</p>
 
             <div class="shot-grid">
@@ -65,12 +66,11 @@ import { SitePage } from './site-page';
                     <p>Real-time transaction monitoring with request/response inspection and hex dump views.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
 
         <!-- Quick Start -->
-        <section class="doc-section" id="quick-start">
-            <h2>Quick Start Guide</h2>
+        <ui-section anchor="quick-start" heading="Quick Start Guide">
             <p>Follow these steps to get a basic host simulator up and running:</p>
 
             <ol class="steps">
@@ -86,11 +86,10 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Tip</div>
                 <p>Use placeholders like <code>[SV]</code> in response field values to echo back request values. Useful for fields like System Trace or RRN that must match the original request.</p>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Gateway Types -->
-        <section class="doc-section" id="gateway-types">
-            <h2>Gateway Types</h2>
+        <ui-section anchor="gateway-types" heading="Gateway Types">
             <p>The host simulator supports three gateway modes, each suited to different testing scenarios:</p>
 
             <div class="shot-grid">
@@ -137,11 +136,10 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Note</div>
                 <p>For <strong>Server</strong> and <strong>Proxy</strong> modes, you can choose between <strong>Synchronous</strong> (one request at a time per connection) and <strong>Asynchronous</strong> (multiple concurrent requests) transmission modes.</p>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Gateway Configuration -->
-        <section class="doc-section" id="gateway-config">
-            <h2>Gateway Configuration</h2>
+        <ui-section anchor="gateway-config" heading="Gateway Configuration">
             <p>The Gateway Type tab provides the core configuration for your simulator instance.</p>
 
             <div class="shot-grid">
@@ -187,11 +185,10 @@ import { SitePage } from './site-page';
                 <li><strong>Max Concurrent Transactions</strong> &mdash; Limit the number of simultaneous transactions the simulator will process.</li>
                 <li><strong>Detailed Logging</strong> &mdash; Enable verbose logging for debugging purposes.</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- Transmission Settings -->
-        <section class="doc-section" id="transmission">
-            <h2>Transmission Settings</h2>
+        <ui-section anchor="transmission" heading="Transmission Settings">
             <p>Configure how the simulator communicates over the network. Settings differ based on your gateway type.</p>
 
             <div class="shot-grid">
@@ -234,11 +231,10 @@ import { SitePage } from './site-page';
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Connection Types -->
-        <section class="doc-section" id="connection-types">
-            <h2>Connection Types</h2>
+        <ui-section anchor="connection-types" heading="Connection Types">
             <p>The simulator supports multiple connection protocols for maximum flexibility:</p>
 
             <div class="table-wrapper">
@@ -274,11 +270,10 @@ import { SitePage } from './site-page';
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Message Formats -->
-        <section class="doc-section" id="message-formats">
-            <h2>Message Formats</h2>
+        <ui-section anchor="message-formats" heading="Message Formats">
             <p>The simulator can handle multiple message encoding formats for both source and destination.</p>
 
             <h3>ISO8583 Formats</h3>
@@ -310,11 +305,10 @@ import { SitePage } from './site-page';
 
             <h3>Format Mapping</h3>
             <p>For non-binary formats (JSON, XML, PlainText), use the <strong>Format Mapping Config</strong> in the ISO8583 Template tab to map ISO8583 fields to JSON keys, XML elements, or delimited fields.</p>
-        </section>
+        </ui-section>
 
         <!-- Log Settings -->
-        <section class="doc-section" id="log-settings">
-            <h2>Log Settings</h2>
+        <ui-section anchor="log-settings" heading="Log Settings">
             <p>Configure how the simulator logs transactions and connections.</p>
 
             <div class="shot-grid">
@@ -339,11 +333,10 @@ import { SitePage } from './site-page';
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Host Handler -->
-        <section class="doc-section" id="host-handler">
-            <h2>ISO8583 Transaction Tab</h2>
+        <ui-section anchor="host-handler" heading="ISO8583 Transaction Tab">
             <p>The <strong>ISO8583 Transaction</strong> tab (visible for Server and Proxy gateway types) is the main runtime interface for controlling and monitoring the simulator.</p>
 
             <div class="shot-grid shot-row" style="--row-w:1400px">
@@ -370,11 +363,10 @@ import { SitePage } from './site-page';
                 <li><strong>Raw Hex View</strong> &mdash; Full hexadecimal dump of the message bytes.</li>
                 <li><strong>Request / Response Split</strong> &mdash; Side-by-side view of incoming request and outgoing response.</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- Transaction Rules -->
-        <section class="doc-section" id="transaction-rules">
-            <h2>Transaction Rules (Settings Tab)</h2>
+        <ui-section anchor="transaction-rules" heading="Transaction Rules (Settings Tab)">
             <p>Transaction rules define how the simulator matches incoming requests and what responses to return. Configure them in the <strong>Settings</strong> tab.</p>
 
             <div class="shot-grid">
@@ -440,11 +432,10 @@ Response Fields (Fields tab):
   Field 37 (RRN):               [SV]
   Field 12 (Local Time):        [TIME]
   Field 13 (Local Date):        [TIME]</code></pre>
-        </section>
+        </ui-section>
 
         <!-- Placeholders -->
-        <section class="doc-section" id="placeholders">
-            <h2>Dynamic Placeholders</h2>
+        <ui-section anchor="placeholders" heading="Dynamic Placeholders">
             <p>Use placeholders in response field values to generate dynamic content at runtime instead of static values.</p>
 
             <div class="ph-grid">
@@ -496,11 +487,10 @@ Response Fields (Fields tab):
                 <div class="info-card-title">Note</div>
                 <p>Placeholders can be combined with static text. Any field value that does not contain a placeholder is sent as a literal static value.</p>
             </div>
-        </section>
+        </ui-section>
 
         <!-- REST Matching -->
-        <section class="doc-section" id="rest-matching">
-            <h2>REST API Matching</h2>
+        <ui-section anchor="rest-matching" heading="REST API Matching">
             <p>When using REST connections, the simulator provides advanced request matching beyond MTI/processing code.</p>
 
             <h3>Match Criteria</h3>
@@ -539,11 +529,10 @@ Response Fields (Fields tab):
                 <li><strong>value</strong> &mdash; Static value or placeholder (<code>[SV]</code>, <code>[TIME]</code>, <code>[RAND]</code>).</li>
                 <li><strong>targetHeader</strong> &mdash; Set a response HTTP header instead of a body field.</li>
             </ul>
-        </section>
+        </ui-section>
 
         <!-- ISO8583 Template -->
-        <section class="doc-section" id="iso8583-template">
-            <h2>ISO8583 Template Tab</h2>
+        <ui-section anchor="iso8583-template" heading="ISO8583 Template Tab">
             <p>The <strong>ISO8583 Template</strong> tab defines the message specification used for parsing and building messages.</p>
 
             <div class="shot-grid">
@@ -582,11 +571,10 @@ Response Fields (Fields tab):
                 <div class="info-card-title">Important</div>
                 <p>The template must match the message specification used by the connecting client. Mismatched templates will cause parsing errors. Ensure field lengths, formats, and encoding match your ISO8583 specification.</p>
             </div>
-        </section>
+        </ui-section>
 
         <!-- Unsolicited Messages -->
-        <section class="doc-section" id="unsolicited">
-            <h2>Unsolicited Messages</h2>
+        <ui-section anchor="unsolicited" heading="Unsolicited Messages">
             <p>Unsolicited messages are messages sent outside the normal request-response flow, typically for network management, notifications, or terminal updates.</p>
 
             <div class="shot-grid">
@@ -601,11 +589,10 @@ Response Fields (Fields tab):
 
             <h3>Receive Unsolicited (Server / Proxy)</h3>
             <p>In <strong>Server</strong> and <strong>Proxy</strong> modes, incoming unsolicited messages from clients are displayed in the Unsolicited Message tab. Messages are parsed using the active ISO8583 template.</p>
-        </section>
+        </ui-section>
 
         <!-- Security -->
-        <section class="doc-section" id="security">
-            <h2>Security Options</h2>
+        <ui-section anchor="security" heading="Security Options">
             <p>The simulator supports several security features for testing encrypted and authenticated connections.</p>
 
             <h3>Cipher Types</h3>
@@ -635,11 +622,10 @@ Response Fields (Fields tab):
 
             <h3>SSL/TLS</h3>
             <p>Enable SSL for both the server listener and REST API client connections for encrypted transport.</p>
-        </section>
+        </ui-section>
 
         <!-- Tabs Reference -->
-        <section class="doc-section" id="tabs-reference">
-            <h2>Tabs Reference</h2>
+        <ui-section anchor="tabs-reference" heading="Tabs Reference">
             <p>The runtime simulator screen exposes a different subset of tabs depending on the gateway type.</p>
 
             <div class="table-wrapper">
@@ -706,7 +692,7 @@ Response Fields (Fields tab):
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
     </main>
 

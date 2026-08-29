@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-issuer-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-issuer-simulator' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -30,14 +32,12 @@ import { SitePage } from './site-page';
             </div>
         </div>
 
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The Issuer System will represent the card issuer at the far end of the network. It will authorize or decline requests against card/account state, verify online PINs and ARQCs, apply limits, and return <code>0210</code> responses with the right field 39 codes.</p>
 
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="planned">
-            <h2>Planned Capabilities</h2>
+        <ui-section anchor="planned" heading="Planned Capabilities">
             <ul>
                 <li>Authorization decisioning against configurable card / account records</li>
                 <li>Online PIN and ARQC (cryptogram) verification</li>
@@ -46,12 +46,11 @@ import { SitePage } from './site-page';
                 <li>Configurable approval / decline response-code scenarios</li>
             </ul>
             <div class="info-card note"><div class="info-card-title">Note</div><p>Scope is indicative and may change as the feature is built. Follow the <a href="https://github.com/users/hpkaushik121/projects/1">roadmap</a> for status.</p></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="fit">
-            <h2>Where It Fits</h2>
+        <ui-section anchor="fit" heading="Where It Fits">
             <p>The issuer answers what the acquiring side sends. Today you can model issuer responses with the <a href="/docs/host-simulator">Host Simulator</a> in Server mode; the dedicated Issuer System will add account-aware decisioning.</p>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

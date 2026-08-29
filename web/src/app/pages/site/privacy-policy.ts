@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-privacy-policy',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-privacy-policy' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -43,8 +45,7 @@ import { SitePage } from './site-page';
             </ol>
         </nav>
 
-        <section class="doc-section">
-            <h2 id="overview">Overview &amp; our commitment</h2>
+        <ui-section anchor="overview" heading="Overview &amp; our commitment">
             <p>At ISO8583Studio, we are committed to protecting your privacy and ensuring the security of your personal information. As a professional desktop application for financial transaction processing, we understand the critical importance of data protection in the financial technology sector.</p>
 
             <div class="info-card tip">
@@ -59,10 +60,9 @@ import { SitePage } from './site-page';
                 <li><strong>Support Services</strong> — customer support and technical assistance</li>
                 <li><strong>Documentation &amp; Resources</strong> — online guides and documentation</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="data-collection">Information we collect</h2>
+        <ui-section anchor="data-collection" heading="Information we collect">
 
             <h3>Information you provide directly</h3>
             <p>We collect information you voluntarily provide when using our services:</p>
@@ -111,10 +111,9 @@ import { SitePage } from './site-page';
                 <li><strong>Configuration data:</strong> gateway configurations and message templates are stored locally unless you use cloud sync features</li>
                 <li><strong>Support cases:</strong> if you share configuration or log files for support purposes, we handle them with strict confidentiality</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="data-usage">How we use your data</h2>
+        <ui-section anchor="data-usage" heading="How we use your data">
             <p>We use collected information for the following purposes:</p>
 
             <h3>Service provision &amp; improvement</h3>
@@ -139,10 +138,9 @@ import { SitePage } from './site-page';
                 <li><strong>Security protection:</strong> detect and prevent fraud, unauthorized access, and security threats</li>
                 <li><strong>Terms enforcement:</strong> enforce our <a href="/terms-and-conditions">Terms and Conditions</a> and protect our rights and property</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="data-sharing">Data sharing &amp; disclosure</h2>
+        <ui-section anchor="data-sharing" heading="Data sharing &amp; disclosure">
             <p>We do not sell, rent, or trade your personal information. We may share information only in the following limited circumstances:</p>
 
             <h3>Service providers</h3>
@@ -170,10 +168,9 @@ import { SitePage } from './site-page';
 
             <h3>Business transfers</h3>
             <p>In the event of a merger, acquisition, or sale of assets, your information may be transferred as part of the transaction. We will notify you of any such change and the choices you may have.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="security">Security measures</h2>
+        <ui-section anchor="security" heading="Security measures">
             <p>We implement comprehensive security measures to protect your information:</p>
 
             <h3>Technical safeguards</h3>
@@ -204,10 +201,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Financial data security</div>
                 <p>Since ISO8583Studio processes financial transaction data, we follow industry best practices including PCI DSS guidelines, even though your transaction data typically remains on your local system.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="retention">Data retention</h2>
+        <ui-section anchor="retention" heading="Data retention">
             <p>We retain your information only as long as necessary to provide our services and comply with legal obligations:</p>
 
             <h3>Account information</h3>
@@ -230,10 +226,9 @@ import { SitePage } from './site-page';
                 <li><strong>Legal holds:</strong> data subject to legal proceedings retained until resolution</li>
                 <li><strong>Regulatory requirements:</strong> data retained as required by applicable financial services regulations</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="rights">Your rights</h2>
+        <ui-section anchor="rights" heading="Your rights">
             <p>You have several rights regarding your personal information. The specific rights available to you may depend on your location and applicable laws:</p>
 
             <h3>Access &amp; portability rights</h3>
@@ -262,10 +257,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">How to exercise your rights</div>
                 <p>Contact us at <a href="mailto:admin@iso8583.studio">admin@iso8583.studio</a> with your request. We will respond within 30 days and may require identity verification for security purposes.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="cookies">Cookies &amp; tracking technologies</h2>
+        <ui-section anchor="cookies" heading="Cookies &amp; tracking technologies">
             <p>Our website uses cookies and similar technologies to improve your experience and understand how our services are used:</p>
 
             <h3>Types of cookies we use</h3>
@@ -298,10 +292,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Note</div>
                 <p>The desktop application does not use web cookies, but may store local configuration files and preferences on your system for application functionality.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="international">International data transfers</h2>
+        <ui-section anchor="international" heading="International data transfers">
             <p>ISO8583Studio operates globally, and your information may be transferred to and processed in countries other than your own:</p>
 
             <h3>Legal basis for transfers</h3>
@@ -319,16 +312,14 @@ import { SitePage } from './site-page';
                 <li><strong>Contractual protections:</strong> legal agreements requiring equivalent protection</li>
                 <li><strong>Regular reviews:</strong> ongoing assessment of transfer arrangements and protections</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="minors">Children's privacy</h2>
+        <ui-section anchor="minors" heading="Children's privacy">
             <p>ISO8583Studio is designed for professional use in financial services and is not intended for children under 16. We do not knowingly collect personal information from children.</p>
             <p>If we become aware that we have collected information from a child under 16 without parental consent, we will take steps to delete that information promptly.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="updates">Changes to this Privacy Policy</h2>
+        <ui-section anchor="updates" heading="Changes to this Privacy Policy">
             <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors.</p>
 
             <h3>How we notify you of changes</h3>
@@ -350,10 +341,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Your continued use</div>
                 <p>Continued use of our services after policy changes constitutes acceptance of the updated terms. If you disagree with changes, please discontinue use and contact us about data deletion.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="compliance">Legal compliance &amp; frameworks</h2>
+        <ui-section anchor="compliance" heading="Legal compliance &amp; frameworks">
             <p>ISO8583Studio complies with major data protection frameworks and regulations:</p>
 
             <h3>Regulatory compliance</h3>
@@ -371,10 +361,9 @@ import { SitePage } from './site-page';
                 <li><strong>SOC 2:</strong> security, availability, and confidentiality controls</li>
                 <li><strong>Financial industry standards:</strong> sector-specific security and privacy requirements</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section">
-            <h2 id="contact">Contact information</h2>
+        <ui-section anchor="contact" heading="Contact information">
             <p>If you have any questions about this Privacy Policy, wish to exercise your rights, or need to report a privacy concern, please get in touch.</p>
             <div class="hub-grid">
                 <a class="hub-card" href="mailto:admin@iso8583.studio"><div class="hub-body"><div class="hub-title">Email <span class="badge badge-teal">Privacy requests</span></div><p class="hub-desc">Data access, correction and deletion requests, or any question about this policy.</p><span class="hub-link">admin@iso8583.studio →</span></div></a>
@@ -385,7 +374,7 @@ import { SitePage } from './site-page';
                 <p><strong>Document version</strong> 2.1 &nbsp;·&nbsp; <strong>Effective date</strong> 9 June 2025 &nbsp;·&nbsp; <strong>Last reviewed</strong> 9 June 2025</p>
                 <p>See also the <a href="/terms-and-conditions">Terms and Conditions</a>.</p>
             </div>
-        </section>
+        </ui-section>
 </main>`,
 })
 export class PrivacyPolicyPage {}

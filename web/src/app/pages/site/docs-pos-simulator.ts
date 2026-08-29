@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-pos-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-pos-simulator' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -22,8 +24,7 @@ import { SitePage } from './site-page';
         </div>
         <p class="page-description">Boot a real Android terminal in an emulator &mdash; a PAX, Ingenico, Sunmi, Verifone or Kozen device with its own screen, memory, peripherals and spoofed build identity &mdash; and run your payment app against it without the hardware on your desk.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The POS Simulator boots an Android Virtual Device shaped like a specific payment terminal. You pick a vendor, model and variant; the simulator creates the AVD, applies the device&rsquo;s screen, memory and peripheral profile, spoofs its <code>ro.product.*</code> build identity, and powers it on. Your APK then runs believing it is on that terminal.</p>
             <p>It is a development and debugging rig, not a certification tool &mdash; but it is the real Android emulator underneath, so the app under test behaves as it would on the device.</p>
 
@@ -42,10 +43,9 @@ import { SitePage } from './site-page';
                 <div class="feature-item"><div class="feature-item-icon">✅</div><h4>Prerequisite Checks</h4><p>SDK, emulator binary, command-line tools, adb, system image and host ABI all validated before boot.</p></div>
                 <div class="feature-item"><div class="feature-item-icon">💳</div><h4>Card Source</h4><p>Software card profile, a real card through a PC/SC reader, or a serial link &mdash; configured per terminal.</p></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="quick-start">
-            <h2>Quick Start</h2>
+        <ui-section anchor="quick-start" heading="Quick Start">
             <ol class="steps">
                 <li><strong>Create a terminal profile</strong> &mdash; Open <code>POS Simulator</code> and add a profile in the left rail.</li>
                 <li><strong>Pick the device</strong> &mdash; On the <strong>Device</strong> tab choose a manufacturer, a model, and the variant matching the unit you are targeting.</li>
@@ -58,10 +58,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Tip</div>
                 <p>Boot is fastest when the system image ABI matches your host &mdash; the prerequisites list reports <code>arm64-v8a &mdash; hardware accelerated</code> when it does.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="device">
-            <h2>Device Tab</h2>
+        <ui-section anchor="device" heading="Device Tab">
             <p>The Device tab picks which terminal the emulator will pretend to be. It has four parts: a <strong>Vendor</strong> filter with a model/variant/SKU search, the <strong>Model</strong> grid, the <strong>Variant</strong> chooser, and a <strong>Resolved device</strong> summary of what the AVD will actually be built from.</p>
 
             <div class="shot-grid">
@@ -86,10 +85,9 @@ import { SitePage } from './site-page';
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="hardware">
-            <h2>Hardware Tab</h2>
+        <ui-section anchor="hardware" heading="Hardware Tab">
             <p>Every control here writes an actual key into the AVD&rsquo;s <code>config.ini</code>, driven by the emulator&rsquo;s own <code>hardware-properties.ini</code> schema &mdash; the property name sits under each label so you can see exactly what is being set. Values come from the selected model; anything you change is stored as an override and can be reset. A validation strip at the top of the tab reports problems at edit time rather than as a failed boot ten minutes later.</p>
 
             <div class="shot-grid">
@@ -123,10 +121,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Note</div>
                 <p>Some changes can be patched into an existing AVD; others force a destructive recreate. The tab tells you which before you commit.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="peripherals">
-            <h2>Peripherals Tab</h2>
+        <ui-section anchor="peripherals" heading="Peripherals Tab">
             <p>What the terminal has bolted to it, beyond the Android hardware. The model supplies these; the tab lets you confirm or override them.</p>
             <div class="spec-list">
                 <div class="spec-row"><div class="k">Peripherals</div><div class="v">The device&rsquo;s feature summary &mdash; contact and contactless readers, magnetic stripe, NFC, SAM slots, status LEDs, beeper, camera, cellular, GPS, Wi-Fi.</div></div>
@@ -134,10 +131,9 @@ import { SitePage } from './site-page';
                 <div class="spec-row"><div class="k">Barcode scanner</div><div class="v">Present or absent.</div></div>
                 <div class="spec-row"><div class="k">PIN entry (PED)</div><div class="v">Supported PIN block formats, DUKPT support, key slots, offline PIN.</div></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="system-boot">
-            <h2>System &amp; Boot Tab</h2>
+        <ui-section anchor="system-boot" heading="System &amp; Boot Tab">
             <p>Where the Android toolchain lives and how the AVD boots.</p>
             <div class="spec-list">
                 <div class="spec-row"><div class="k">Android SDK</div><div class="v">SDK root and how it was found. The tab reports when all required tools are present.</div></div>
@@ -145,10 +141,9 @@ import { SitePage } from './site-page';
                 <div class="spec-row"><div class="k">AVD &amp; boot</div><div class="v">AVD name and AVD home, plus cold boot every start, headless (<code>-no-window</code>), writable <code>/system</code> and SELinux permissive.</div></div>
                 <div class="spec-row"><div class="k">Spoofed device identity</div><div class="v">The <code>ro.product.manufacturer</code>, <code>brand</code>, <code>model</code>, <code>device</code> and <code>name</code> values applied after boot &mdash; what an app reads when it asks which terminal it is running on.</div></div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="card-host">
-            <h2>Card &amp; Host Tab</h2>
+        <ui-section anchor="card-host" heading="Card &amp; Host Tab">
             <p>Where card data comes from, and where transactions are meant to go.</p>
             <div class="spec-list">
                 <div class="spec-row"><div class="k">Card source</div><div class="v">A software card profile, a real card through a PC/SC reader, a serial link, or loopback.</div></div>
@@ -161,10 +156,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Host uplink is not wired up yet</div>
                 <p>The acquirer host fields are stored on the profile, but the terminal does not yet send ISO 8583 to them &mdash; that arrives with the ISO 8583 uplink milestone. To exercise a host today, drive the <a href="/docs/host-simulator">Host Simulator</a> directly.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="runtime">
-            <h2>The Terminal Window</h2>
+        <ui-section anchor="runtime" heading="The Terminal Window">
             <p><strong>Launch POS Simulator</strong> opens the terminal itself. Two tabs are live today; the rest are placeholders that name what they will hold and which milestone brings them.</p>
             <div class="table-wrapper">
                 <table>
@@ -186,7 +180,7 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Note</div>
                 <p>For chip-level cryptogram and TLV work today, pair the terminal with the <a href="/docs/apdu-simulator">APDU Simulator</a> and the <a href="/docs/emv-tools">EMV &amp; Card Tools</a>.</p>
             </div>
-        </section>
+        </ui-section>
 
     </main>
 

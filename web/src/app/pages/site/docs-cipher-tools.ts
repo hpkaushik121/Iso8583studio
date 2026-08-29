@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-cipher-tools',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-cipher-tools' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,8 +23,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Cryptographic Tools</h1>
         <p class="page-description">Symmetric and asymmetric encryption calculators for testing payment cryptography. AES, DES/3DES, RSA, ECDSA, and Format-Preserving Encryption (FPE) variants are all supported with hex inputs and detailed audit logs.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Introduction</h2>
+        <ui-section anchor="overview" heading="Introduction">
             <p>The <strong>Cryptographic Tools</strong> hub &mdash; encryption, decryption and security utilities &mdash; gathers them in one place. Each calculator is dedicated to a single algorithm family and exposes the inputs typically required for payment-system testing: hex keys, hex data, IV/tweak values, and mode/padding selectors. Every operation is recorded in the activity log with timestamps and round-trip values.</p>
 
             <div class="shot-grid">
@@ -66,10 +67,9 @@ import { SitePage } from './site-page';
                     <p>Vendor-aware RSA helpers for Thales key blocks and LMK variant operations.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="all-tools">
-            <h2>All tools</h2>
+        <ui-section anchor="all-tools" heading="All tools">
             <p>Every tool in this category &mdash; each card links to the detailed reference below.</p>
             <div class="hub-grid">
                 <div class="hub-card">
@@ -122,10 +122,9 @@ import { SitePage } from './site-page';
                     </div>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="common">
-            <h2>Common UI Patterns</h2>
+        <ui-section anchor="common" heading="Common UI Patterns">
             <p>All cipher calculators share the same conventions:</p>
             <ul>
                 <li><strong>Two-pane layout</strong> &mdash; Inputs on the left, an activity log on the right that records every operation with timestamps and inputs.</li>
@@ -139,10 +138,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">Tip</div>
                 <p>Use the activity log to compare consecutive runs side-by-side. The log persists until you clear it or close the tool.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="aes">
-            <h2>AES Calculator</h2>
+        <ui-section anchor="aes" heading="AES Calculator">
             <p>Encrypt or decrypt data with AES, or compute a Key Check Value over a known key.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -195,10 +193,9 @@ IV (Hex):        00000000000000000000000000000000
 Input Data:      6BC1BEE22E409F96E93D7E117393172A
 
 Output:          7649ABAC8119B246CEE98E9B12E9197D</code></pre>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="des">
-            <h2>DES / 3DES Calculator</h2>
+        <ui-section anchor="des" heading="DES / 3DES Calculator">
             <p>Single DES or Triple DES with a wide selection of cipher modes and padding schemes commonly used by legacy payment hosts.</p>
 
             <div class="shot-grid">
@@ -244,10 +241,9 @@ Output:          7649ABAC8119B246CEE98E9B12E9197D</code></pre>
                 <li>Generating 3DES MACs by chaining ECB operations.</li>
                 <li>Verifying ZPK / ZMK translations during HSM integration.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="fpe">
-            <h2>FPE Calculator</h2>
+        <ui-section anchor="fpe" heading="FPE Calculator">
             <p>Format-Preserving Encryption keeps the output in the same format as the input &mdash; e.g. encrypting a 16-digit PAN into another 16-digit numeric string. Useful for tokenisation and PCI-scope reduction.</p>
 
             <div class="shot-grid shot-row shot-even" style="--row-w:936px">
@@ -313,10 +309,9 @@ Tweak:           39383736353433323130
 Data:            0123456789012345
 
 Output:          6124200211725605</code></pre>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="rsa">
-            <h2>RSA Calculator</h2>
+        <ui-section anchor="rsa" heading="RSA Calculator">
             <p>Six-tab tool covering the full RSA workflow from key generation through padding-aware encryption and signing.</p>
 
             <div class="shot-grid">
@@ -376,10 +371,9 @@ Output:          6124200211725605</code></pre>
                 <li><strong>Data (Hex)</strong>, <strong>Encoding Parameters (Label, Hex)</strong>.</li>
                 <li>Button label changes between <strong>Encode</strong> and <strong>Decode</strong> based on the selected method.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="thales-rsa">
-            <h2>Thales RSA Calculator</h2>
+        <ui-section anchor="thales-rsa" heading="Thales RSA Calculator">
             <p>Vendor-aware RSA helpers tailored to Thales PayShield workflows.</p>
 
             <div class="shot-grid">
@@ -437,10 +431,9 @@ Output:          6124200211725605</code></pre>
                 <li><strong>Public Key</strong>, <strong>Private Key</strong></li>
             </ul>
             <p>Button: <strong>Process LMK Variant</strong>.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="ecdsa">
-            <h2>ECDSA Calculator</h2>
+        <ui-section anchor="ecdsa" heading="ECDSA Calculator">
             <p>Elliptic Curve Digital Signature Algorithm with three workflow tabs.</p>
 
             <div class="shot-grid">
@@ -475,10 +468,9 @@ Output:          6124200211725605</code></pre>
                 <li><strong>Signature (Hex)</strong>.</li>
             </ul>
             <p>Button: <strong>Verify Signature</strong>.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="cipher-modes">
-            <h2>Cipher Modes Reference</h2>
+        <ui-section anchor="cipher-modes" heading="Cipher Modes Reference">
             <p>Mode availability depends on the calculator. AES exposes ECB / CBC / CFB / OFB / KCV. DES / 3DES exposes ECB, CBC, and the CFB-8 / CFB-64 / OFB-8 / OFB-64 byte/feedback variants.</p>
             <div class="table-wrapper">
                 <table>
@@ -492,10 +484,9 @@ Output:          6124200211725605</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="hash">
-            <h2>Hash Calculator</h2>
+        <ui-section anchor="hash" heading="Hash Calculator">
             <p>Generate a message digest over arbitrary input. Useful for checking a known-answer test vector, or for producing the hash an RSA or ECDSA <em>Verify</em> step expects as its input.</p>
 
             <div class="shot-split" style="--fig-col:500px">
@@ -532,10 +523,9 @@ Output:          6124200211725605</code></pre>
                 <div class="info-card-title">Note</div>
                 <p>MD5 and SHA-1 are here because payment protocols and test packs still reference them. Neither is collision-resistant &mdash; use them to reproduce an existing vector, not to secure new data.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="padding">
-            <h2>Padding Schemes (DES / 3DES)</h2>
+        <ui-section anchor="padding" heading="Padding Schemes (DES / 3DES)">
             <p>The DES / 3DES calculator exposes the full set of padding schemes used across legacy and modern payment protocols. Pick the one your host expects:</p>
             <div class="table-wrapper">
                 <table>
@@ -554,16 +544,15 @@ Output:          6124200211725605</code></pre>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips</h2>
+        <ui-section anchor="tips" heading="Tips">
             <ul>
                 <li>Use the <strong>Bitmap Calculator</strong> under <code>Tools &rarr; Payment Utilities</code> to inspect block alignment when sizes look odd.</li>
                 <li>For HSM-bound keys, prefer <strong>Thales RSA &rarr; Thales Key Block</strong> over the raw RSA tool to keep wrapping consistent.</li>
                 <li>If a known answer test fails, double-check the IV is in hex (not ASCII) and the data length matches the mode requirements.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

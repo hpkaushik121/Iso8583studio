@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-emv-tools',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-emv-tools' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,8 +23,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">EMV Tools</h1>
         <p class="page-description">The EMV &amp; Card Tools group &mdash; offline authentication verifiers (SDA, DDA), cryptogram calculators for EMV 4.1, EMV 4.2, M/Chip and VSDC, issuer-script secure messaging, CAP tokens and HCE contactless keys. Each tool is hex-driven, with annotated outputs and an audit log.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Introduction</h2>
+        <ui-section anchor="overview" heading="Introduction">
             <p>The <strong>EMV &amp; Card Tools</strong> group &mdash; smart card, EMV and contactless payment tools &mdash; is organised by the stage of a transaction it belongs to: offline authentication first (SDA, DDA), then the cryptogram calculators for each scheme, then the issuer-script and token tools that run after authorisation.</p>
 
             <div class="shot-grid">
@@ -34,10 +35,9 @@ import { SitePage } from './site-page';
                 </figure>
             </div>
             <p>Every calculator carries its own activity log on the right, so each intermediate value &mdash; derived key, session key, recovered certificate &mdash; is visible rather than just the final result.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="all-tools">
-            <h2>All tools</h2>
+        <ui-section anchor="all-tools" heading="All tools">
             <p>Every tool in this group, in the order an EMV transaction reaches them &mdash; each card links to the detailed reference below.</p>
             <div class="hub-grid">
                 <div class="hub-card">
@@ -104,10 +104,9 @@ import { SitePage } from './site-page';
                     </div>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="sda">
-            <h2>SDA Verification</h2>
+        <ui-section anchor="sda" heading="SDA Verification">
             <p>Static Data Authentication: the terminal verifies issuer-signed static data against a CA public key. The tool splits the job into the two steps the terminal performs &mdash; recover the issuer public key from its certificate, then use that key to check the signature over the card&rsquo;s static data.</p>
 
             <h3>Retrieve Issuer Public Key</h3>
@@ -147,10 +146,9 @@ import { SitePage } from './site-page';
     <p>Button: <strong>Verify SSAD</strong>. The log reports the recovered hash alongside the pass/fail result, so a mismatch can be traced to the data rather than the key.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="dda">
-            <h2>DDA Verification</h2>
+        <ui-section anchor="dda" heading="DDA Verification">
             <p>Dynamic Data Authentication: the card signs terminal-supplied dynamic data, proving it holds the ICC private key. Three tabs walk the chain down &mdash; issuer key, then card key, then the signature itself.</p>
 
             <div class="shot-grid">
@@ -202,10 +200,9 @@ import { SitePage } from './site-page';
     <p>Button: <strong>Verify Dynamic Signature</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="app-crypto">
-            <h2>EMV 4.1 Crypto Calculator</h2>
+        <ui-section anchor="app-crypto" heading="EMV 4.1 Crypto Calculator">
             <p>The reference cryptogram calculator, and the one to learn the flow on: five tabs that follow the key hierarchy from the issuer master key down to the response cryptogram &mdash; <strong>UDK Derivation</strong>, <strong>Session Keys</strong>, <strong>Cryptogram</strong>, <strong>ARPC</strong>, <strong>Utilities</strong>. The scheme-specific calculators below are the same shape with their own derivations.</p>
 
             <div class="shot-grid">
@@ -295,10 +292,9 @@ import { SitePage } from './site-page';
     <p>Key validation helpers that sit alongside the derivation tabs. Paste a <strong>Key (Hex)</strong> and <strong>Calculate KCV</strong> returns its check value &mdash; the quickest way to confirm the key you loaded is the key you meant.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="emv42">
-            <h2>EMV 4.2 Crypto Calculator</h2>
+        <ui-section anchor="emv42" heading="EMV 4.2 Crypto Calculator">
             <p>The same five tabs against the EMV 4.2 rules. The UDK tab states its derivation in the panel subtitle &mdash; <em>EMV 4.2 Option A</em> &mdash; and drops the separate parity selector, so the form is just the master key and the card identifiers.</p>
 
             <div class="shot-grid">
@@ -316,10 +312,9 @@ import { SitePage } from './site-page';
                 <li><strong>PAN Sequence Number</strong></li>
             </ul>
             <p>Button: <strong>Calculate UDK</strong>. Session key, cryptogram and ARPC follow on their own tabs exactly as in 4.1.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="mchip">
-            <h2>MasterCard M/Chip Crypto Calculator</h2>
+        <ui-section anchor="mchip" heading="MasterCard M/Chip Crypto Calculator">
             <p>M/Chip&rsquo;s own derivation, with a fifth tab that 4.1 and 4.2 do not have: <strong>Session Key (EMV 2000)</strong>, kept for cards personalised against the older scheme.</p>
 
             <div class="shot-grid">
@@ -337,10 +332,9 @@ import { SitePage } from './site-page';
                 <li><strong>Key Parity</strong> &mdash; <code>NONE</code> by default here, unlike the EMV 4.1 tool.</li>
             </ul>
             <p>Button: <strong>Generate UDK</strong>. The cryptogram tab is labelled <strong>AAC/ARQC/TC</strong> &mdash; one tab covering all three types.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="vsdc">
-            <h2>VSDC Crypto Calculator</h2>
+        <ui-section anchor="vsdc" heading="VSDC Crypto Calculator">
             <p>Visa Smart Debit/Credit, in four tabs: <strong>UDK</strong>, <strong>Session Keys</strong>, <strong>AAC/ARQC/TC</strong>, <strong>ARPC</strong>.</p>
 
             <div class="shot-grid">
@@ -358,10 +352,9 @@ import { SitePage } from './site-page';
                 <li><strong>Key Parity</strong> &mdash; <code>Odd</code> by default.</li>
             </ul>
             <p>Button: <strong>Generate UDK</strong>.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="secure-msg">
-            <h2>Secure Messaging</h2>
+        <ui-section anchor="secure-msg" heading="Secure Messaging">
             <p>Issuer scripts reach the card after authorisation, and Secure Messaging is what protects them: SMI for integrity, SMC for confidentiality. Three tabs cover the sequence &mdash; derive the session keys, build the encrypted PIN block a PIN-change script carries, then MAC the command.</p>
 
             <div class="shot-grid">
@@ -418,10 +411,9 @@ import { SitePage } from './site-page';
     </ul>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="cap">
-            <h2>CAP Token Computation</h2>
+        <ui-section anchor="cap" heading="CAP Token Computation">
             <p>Computes the Chip Authentication Programme token some banks ask for as an online-banking second factor &mdash; the number a customer reads off a handheld reader and types into the website.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -445,10 +437,9 @@ import { SitePage } from './site-page';
     <p>Button: <strong>Generate Token</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="hce">
-            <h2>HCE (Host Card Emulation)</h2>
+        <ui-section anchor="hce" heading="HCE (Host Card Emulation)">
             <p>Host Card Emulation puts the card credential in a phone instead of a chip, so the key that signs a tap is short-lived by design. The Visa HCE calculator follows that chain across four tabs: card key, then the Limited-Use Key it produces, then the two contactless cryptograms an HCE wallet can present.</p>
 
             <div class="shot-grid">
@@ -516,16 +507,15 @@ import { SitePage } from './site-page';
     </ul>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips</h2>
+        <ui-section anchor="tips" heading="Tips">
             <ul>
                 <li>For SDA / DDA work, double-check the CA public key index in tag <code>8F</code> matches the CA you supply &mdash; mismatched indices is the most common SDA failure.</li>
                 <li>Cryptogram versions vary by issuer, and the CVN is encoded inside the IAD (tag <code>9F10</code>) &mdash; read it before picking a calculator, because the derivation differs.</li>
                 <li>Work the tabs left to right. Each one consumes what the previous produced, and the activity log keeps every intermediate key so you can restart mid-chain rather than from the master key.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

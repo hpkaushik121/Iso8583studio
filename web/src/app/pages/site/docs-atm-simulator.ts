@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-atm-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-atm-simulator' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -30,14 +32,12 @@ import { SitePage } from './site-page';
             </div>
         </div>
 
-        <section class="doc-section" id="overview">
-            <h2>Overview</h2>
+        <ui-section anchor="overview" heading="Overview">
             <p>The ATM Simulator will represent a self-service cash machine. It will originate ISO 8583 financial requests (withdrawal, balance, transfer, PIN change), model device-level NDC/DDC state flows, and drive them to a host or switch — the same way the <a href="/docs/pos-simulator">POS Simulator</a> models an attended terminal.</p>
 
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="planned">
-            <h2>Planned Capabilities</h2>
+        <ui-section anchor="planned" heading="Planned Capabilities">
             <ul>
                 <li>Cash withdrawal, balance inquiry, mini-statement and PIN-change transaction flows</li>
                 <li>NDC / DDC device state modelling (card read, PIN entry, dispense, eject)</li>
@@ -46,12 +46,11 @@ import { SitePage } from './site-page';
                 <li>Electronic journal / transaction log</li>
             </ul>
             <div class="info-card note"><div class="info-card-title">Note</div><p>Scope is indicative and may change as the feature is built. Follow the <a href="https://github.com/users/hpkaushik121/projects/1">roadmap</a> for status.</p></div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="fit">
-            <h2>Where It Fits</h2>
+        <ui-section anchor="fit" heading="Where It Fits">
             <p>The ATM sits at the acceptance edge of the network, alongside the <a href="/docs/pos-simulator">POS Simulator</a>. Pair it with the <a href="/docs/host-simulator">Host Simulator</a> to authorize its transactions.</p>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

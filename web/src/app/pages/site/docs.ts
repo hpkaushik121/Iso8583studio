@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -18,8 +20,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Documentation</h1>
         <p class="page-description">Guides and references for every simulator, tool and service in ISO8583Studio.</p>
 
-        <section class="doc-section" id="simulators">
-            <h2>Simulator Guides</h2>
+        <ui-section anchor="simulators" heading="Simulator Guides">
             <p>One guide per simulator — configuration, runtime tabs and protocol details. Or start from the <a href="/docs/payment-simulators">all-simulators overview</a>.</p>
             <div class="hub-grid">
                 <a class="hub-card" href="/docs/host-simulator"><div class="hub-body"><div class="hub-title">Host Simulator <span class="badge badge-teal">Available</span></div><p class="hub-desc">Acquirer &amp; issuer host responses — Server, Client or Proxy over TCP/IP, REST, RS232 and dial-up.</p><span class="hub-link">Open guide →</span></div></a>
@@ -32,10 +33,9 @@ import { SitePage } from './site-page';
                 <a class="hub-card" href="/docs/atm-simulator"><div class="hub-body"><div class="hub-title">ATM Simulator <span class="badge badge-yellow">In development</span></div><p class="hub-desc">Cash withdrawal, balance and PIN-change flows with NDC/DDC device states.</p><span class="hub-link">Open guide →</span></div></a>
                 <a class="hub-card" href="/docs/ecr-simulator"><div class="hub-body"><div class="hub-title">ECR Simulator <span class="badge badge-yellow">In development</span></div><p class="hub-desc">Electronic cash register driving sale, void and refund to a payment terminal.</p><span class="hub-link">Open guide →</span></div></a>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tools">
-            <h2>Tool References</h2>
+        <ui-section anchor="tools" heading="Tool References">
             <p>Category references for the 64 tools in the studio.</p>
             <div class="hub-grid">
                 <a class="hub-card" href="/docs/emv-tools"><div class="hub-body"><div class="hub-title">EMV &amp; Card Tools <span class="badge badge-blue">12 tools</span></div><p class="hub-desc">Cryptograms (ARQC/TC), SDA/DDA, ATR parsing, tag dictionary, CAP tokens, secure messaging.</p><span class="hub-link">Open reference →</span></div></a>
@@ -47,20 +47,18 @@ import { SitePage } from './site-page';
                 <a class="hub-card" href="/docs/mac-tools"><div class="hub-body"><div class="hub-title">MAC Tools</div><p class="hub-desc">Message authentication — ISO 9797 algorithms, retail MAC and HMAC.</p><span class="hub-link">Open reference →</span></div></a>
                 <a class="hub-card" href="/docs/card-validation"><div class="hub-body"><div class="hub-title">Card Validation</div><p class="hub-desc">PAN validation, CVV/CVC computation and card-number utilities.</p><span class="hub-link">Open reference →</span></div></a>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="solutions">
-            <h2>Solutions &amp; Services</h2>
+        <ui-section anchor="solutions" heading="Solutions &amp; Services">
             <div class="hub-grid">
                 <a class="hub-card" href="/emv-certification"><div class="hub-body"><div class="hub-title">EMV Certification</div><p class="hub-desc">L1 / L2 / L3 and scheme certification — from gap analysis to lab sign-off.</p><span class="hub-link">Learn more →</span></div></a>
                 <a class="hub-card" href="/cloud-simulators"><div class="hub-body"><div class="hub-title">Cloud Simulators</div><p class="hub-desc">Hosted host &amp; HSM endpoints for CI pipelines and distributed teams.</p><span class="hub-link">Learn more →</span></div></a>
                 <a class="hub-card" href="/middleware"><div class="hub-body"><div class="hub-title">Payment Middleware</div><p class="hub-desc">Switching, routing and protocol translation built on the Studio engine.</p><span class="hub-link">Learn more →</span></div></a>
                 <a class="hub-card" href="/kernel"><div class="hub-body"><div class="hub-title">Kernel Development</div><p class="hub-desc">EMV L2 kernel engineering for terminals, contact to contactless.</p><span class="hub-link">Learn more →</span></div></a>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="resources">
-            <h2>Resources</h2>
+        <ui-section anchor="resources" heading="Resources">
             <div class="hub-grid">
                 <a class="hub-card" href="/docs/installation"><div class="hub-body"><div class="hub-title">Installation</div><p class="hub-desc">Prerequisites and install steps for Windows, macOS and Linux — plus building from source.</p><span class="hub-link">Install →</span></div></a>
                 <a class="hub-card" href="/docs/versions"><div class="hub-body"><div class="hub-title">Versions</div><p class="hub-desc">Current release (v1.0.14), the release channel and upgrade notes.</p><span class="hub-link">See versions →</span></div></a>
@@ -70,7 +68,7 @@ import { SitePage } from './site-page';
                 <a class="hub-card" href="https://github.com/hpkaushik121/Iso8583studio/releases"><div class="hub-body"><div class="hub-title">Downloads</div><p class="hub-desc">Latest releases for Windows, macOS and Linux.</p><span class="hub-link">Get the studio →</span></div></a>
                 <a class="hub-card" href="https://github.com/users/hpkaushik121/projects/1"><div class="hub-body"><div class="hub-title">Roadmap</div><p class="hub-desc">What's shipping next across simulators and tools.</p><span class="hub-link">Follow along →</span></div></a>
             </div>
-        </section>
+        </ui-section>
 </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

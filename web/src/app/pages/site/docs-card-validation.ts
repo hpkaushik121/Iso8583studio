@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-card-validation',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-card-validation' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,15 +23,13 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Card Validation Tools</h1>
         <p class="page-description">Generate and validate the card security codes used by MasterCard and American Express &mdash; dynamic CVC3 for contactless taps, and the Amex CSC in its 3, 4 and 5-digit forms.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Introduction</h2>
+        <ui-section anchor="overview" heading="Introduction">
             <p>Card security codes are short numeric values printed on a card or computed dynamically that prove the cardholder physically possesses the card or a valid token. They&rsquo;re the first line of defence in card-not-present transactions and are checked on every authorisation alongside expiry date and address verification.</p>
 
             <p>ISO8583Studio includes dedicated calculators per scheme so you can simulate issuer behaviour without an HSM and validate codes returned by your authorisation pipeline.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="concepts">
-            <h2>Key Concepts</h2>
+        <ui-section anchor="concepts" heading="Key Concepts">
             <div class="table-wrapper">
                 <table>
                     <thead><tr><th>Code</th><th>Scheme</th><th>Where it lives</th><th>Length</th></tr></thead>
@@ -44,10 +44,9 @@ import { SitePage } from './site-page';
                     </tbody>
                 </table>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="cvc-mc">
-            <h2>MasterCard CVC3 Calculator</h2>
+        <ui-section anchor="cvc-mc" heading="MasterCard CVC3 Calculator">
             <p>CVC3 is the dynamic card verification code a contactless (PayPass) card computes for every tap, from a master key, the terminal&rsquo;s unpredictable number and the Application Transaction Counter. The calculator has a <strong>Generate</strong> tab and a <strong>Validate</strong> tab, with the activity log beside them.</p>
 
             <div class="shot-grid">
@@ -86,10 +85,9 @@ import { SitePage } from './site-page';
                 <div class="info-card-title">CVC3 placement</div>
                 <p>The CVC3 digits replace discretionary data positions in the magstripe-equivalent track the contactless card emits. Combined with the ATC, every tap produces a different track 2.</p>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="amex">
-            <h2>AMEX CSC Calculator</h2>
+        <ui-section anchor="amex" heading="AMEX CSC Calculator">
             <p>American Express uses a Card Security Code (CSC) printed on the card front above the embossed PAN. The calculator generates one from the card data, or checks a presented value.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -124,10 +122,9 @@ import { SitePage } from './site-page';
                     <figcaption class="shot-cap"><span class="mono">card-validation</span> Validate CSC</figcaption>
                 </figure>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="service-codes">
-            <h2>Service Codes</h2>
+        <ui-section anchor="service-codes" heading="Service Codes">
             <p>The 3-digit service code is fed into CVV/CVC algorithms. Each digit has independent meaning:</p>
 
             <div class="table-wrapper">
@@ -148,16 +145,15 @@ import { SitePage } from './site-page';
                 <li><strong>999</strong> &mdash; Special value used by Visa for iCVV computation.</li>
                 <li><strong>000</strong> &mdash; Special value for CVV2 / CVC2.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips</h2>
+        <ui-section anchor="tips" heading="Tips">
             <ul>
                 <li>Use the same CVK / CVC key for CVV, CVV2, and iCVV &mdash; only the service code changes.</li>
                 <li>If your CVV2 doesn&rsquo;t match across systems, check whether the integrator strips the trailing PAN check digit before computation. Different specs handle that differently.</li>
                 <li>For CVC3 testing, capture the UN and ATC from your terminal log alongside the track data &mdash; off-by-one ATC is a common error.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>`,
 })
 export class DocsCardValidationPage {}

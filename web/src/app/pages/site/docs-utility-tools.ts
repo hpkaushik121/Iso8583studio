@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
+import { UiSection } from '../../ui/section';
 
 @Component({
   selector: 'page-docs-utility-tools',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiSection],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-docs-utility-tools' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -21,8 +23,7 @@ import { SitePage } from './site-page';
         <h1 class="page-title">Data Converters</h1>
         <p class="page-description">Format conversion and encoding utilities &mdash; Base64, Base94, BCD, character encoding, check digits and the Track 2 codec. Each one works in both directions, on the representations payment data actually arrives in.</p>
 
-        <section class="doc-section" id="overview">
-            <h2>Introduction</h2>
+        <ui-section anchor="overview" heading="Introduction">
             <p>The converters live under <code>Tools &rarr; Data Converters</code> and handle format conversion and encoding: the representations payment data arrives in &mdash; Base64 on an API, BCD in an ISO 8583 field, packed hex in EMV tag <code>57</code> &mdash; and the check digits that guard them. Every tool is a two-direction pair: one card encodes, the other decodes.</p>
 
             <div class="shot-grid">
@@ -33,10 +34,9 @@ import { SitePage } from './site-page';
                     <figcaption class="shot-cap"><span class="mono">utility-tools</span> Data Converters hub</figcaption>
                 </figure>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="all-tools">
-            <h2>All tools</h2>
+        <ui-section anchor="all-tools" heading="All tools">
             <p>Every converter in this category &mdash; each card links to the detailed reference below.</p>
             <div class="hub-grid">
                 <div class="hub-card">
@@ -82,10 +82,9 @@ import { SitePage } from './site-page';
                     </div>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="base64">
-            <h2>Base64 Encoder</h2>
+        <ui-section anchor="base64" heading="Base64 Encoder">
             <p>Base64 turns arbitrary bytes into a text-safe alphabet &mdash; the form payment data usually takes when it crosses a JSON or XML boundary. Encode and decode sit side by side.</p>
 
             <div class="shot-grid shot-row shot-even" style="--row-w:936px">
@@ -109,10 +108,9 @@ import { SitePage } from './site-page';
                 <li><strong>Input Data</strong> &mdash; The bytes to encode, in the format above.</li>
                 <li><strong>Base64 Data</strong> &mdash; On the decode side; the result comes back as hexadecimal.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="base94">
-            <h2>Base94 Encoder</h2>
+        <ui-section anchor="base94" heading="Base94 Encoder">
             <p>Base94 packs bytes into the full printable ASCII range, so it fits more data into the same number of characters than Base64. Some key-injection and terminal-management protocols use it for exactly that reason.</p>
 
             <div class="shot-grid shot-row shot-even" style="--row-w:936px">
@@ -131,10 +129,9 @@ import { SitePage } from './site-page';
             </div>
 
             <p>The fields mirror the Base64 tool exactly &mdash; an <strong>Input Encoding</strong> drop-down and <strong>Input Data</strong> going in, <strong>Base94 Data</strong> coming back, decoded to hexadecimal.</p>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="bcd">
-            <h2>BCD Converter</h2>
+        <ui-section anchor="bcd" heading="BCD Converter">
             <p>Binary Coded Decimal stores two digits per byte, which is how numeric ISO 8583 fields and EMV amounts are carried on the wire. The converter goes both ways between a decimal string and its packed form.</p>
 
             <div class="shot-grid shot-row shot-even" style="--row-w:936px">
@@ -158,10 +155,9 @@ import { SitePage } from './site-page';
                 <li><strong>Input Format</strong> &mdash; On the decode side: <code>Hexadecimal</code> by default.</li>
                 <li><strong>BCD Data</strong> &mdash; The packed value to unpack.</li>
             </ul>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="encoding">
-            <h2>Character Encoder</h2>
+        <ui-section anchor="encoding" heading="Character Encoder">
             <p>A general conversion bench for the representations that are not a payment format in their own right &mdash; binary, hexadecimal, decimal and ASCII. One drop-down picks the direction.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -180,10 +176,9 @@ import { SitePage } from './site-page';
     <p>Button: <strong>Convert</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="check-digit">
-            <h2>Check Digit Calculator</h2>
+        <ui-section anchor="check-digit" heading="Check Digit Calculator">
             <p>The trailing digit on a PAN is a Luhn checksum, and a wrong one is rejected before any cryptography runs. This tool computes it, or checks the one you already have.</p>
 
             <div class="shot-split" style="--fig-col:430px">
@@ -202,10 +197,9 @@ import { SitePage } from './site-page';
     <p>Buttons: <strong>Validate</strong>, <strong>Generate</strong>.</p>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="track2">
-            <h2>Track 2 Codec</h2>
+        <ui-section anchor="track2" heading="Track 2 Codec">
             <p>Track 2 is the magstripe-equivalent record that also travels in EMV tag <code>57</code>, and it appears in at least three shapes depending on where you captured it. The codec builds one from its parts, or takes any of those shapes apart.</p>
 
             <h3>Encode</h3>
@@ -245,17 +239,16 @@ import { SitePage } from './site-page';
     </ul>
                 </div>
             </div>
-        </section>
+        </ui-section>
 
-        <section class="doc-section" id="tips">
-            <h2>Tips</h2>
+        <ui-section anchor="tips" heading="Tips">
             <ul>
                 <li>When a field will not parse, check its representation before its value &mdash; a PAN that looks wrong is often BCD read as ASCII, or the other way round.</li>
                 <li>Round-trip anything you are unsure of: encode, then decode the result. If you do not land back on the input, the format assumption is what is wrong.</li>
                 <li>The Track 2 decoder accepts all three shapes, so paste a capture straight in rather than converting it by hand first.</li>
                 <li>The activity logs in each tool persist until you clear them &mdash; useful for capturing a sequence of intermediate values to share with a vendor support ticket.</li>
             </ul>
-        </section>
+        </ui-section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,
