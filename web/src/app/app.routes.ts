@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { pageRoutes } from './content/page-routes';
+import { siteRoutes } from './pages/site/site-routes';
 import { blogRoutes } from './content/blog-routes';
 import { BlogIndex } from './pages/blog/blog-index';
 import { PageSeo } from './core/seo';
@@ -26,7 +26,7 @@ const BLOG_INDEX_SEO: PageSeo = {
 };
 
 export const routes: Routes = [
-  ...pageRoutes,
+  ...siteRoutes,
   { path: 'blogs', component: BlogIndex, data: { seo: BLOG_INDEX_SEO } },
   ...blogRoutes,
   {
