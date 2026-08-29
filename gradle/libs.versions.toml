@@ -17,8 +17,10 @@ kotlinSerializer="1.6.2"
 materialIcons="1.6.2"
 material="1.6.2"
 serialComms="2.7.0"
+googleAnalyticsKmp="0.0.1"
 
 [libraries]
+google-analytics-kmp = { module = "io.github.frankois944:googleAnalyticsKMPTracker", version.ref = "googleAnalyticsKmp" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
