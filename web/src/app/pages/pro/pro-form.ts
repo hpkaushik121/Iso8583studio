@@ -289,6 +289,16 @@ export class ProForm {
         console.error(`payments ${e.code} (request ${e.requestId ?? 'unknown'}): ${e.message}`);
         this.formError.set(messageFor(e as never));
       } else {
+        // fetch threw rather than answering, so there is no code to branch on.
+        // In a browser that is usually a blocked preflight, not a bad network:
+        // an origin outside the tenant's cors_allowed_origins gets a bare 204
+        // with no allow headers and the call never leaves. The two are
+        // indistinguishable from here, so say so rather than guess.
+        console.warn(
+          `Pro checkout: the request to ${PAYMENTS.baseUrl} did not complete. If `
+          + `${location.origin} is not in the tenant's cors_allowed_origins, the browser blocks `
+          + 'it at preflight and this looks identical to a network failure. Only the deployed '
+          + 'origin is allowlisted, so checkout cannot be exercised from a dev server.', err);
         this.formError.set('Payment could not be started. Check your connection and try again.');
       }
     }

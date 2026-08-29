@@ -45,6 +45,15 @@ the workflow's variables in CI.
 Unset is a supported state: checkout stays off and the form says so rather than
 shipping a button that fails.
 
+**Checkout cannot be exercised from a dev server**, and this is by design rather
+than a gap. Only the deployed origin is in the tenant's `cors_allowed_origins`,
+so a browser on `localhost` has its preflight refused and blocks the call before
+it is sent — which surfaces as "check your connection", because a blocked
+preflight and a dead network are the same `TypeError` to JavaScript. The console
+carries the real explanation. Redirect URLs rule it out a second time: they must
+be absolute `https`, so `http://localhost` is `400 invalid_redirect` regardless.
+Verify checkout against the deployed site.
+
 Still needed before it can take a payment:
 
 - [x] A unit SKU published in the tenant's `browser_checkout_price_points`, and
