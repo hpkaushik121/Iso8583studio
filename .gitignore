@@ -22,3 +22,9 @@ gradle
 /composeApp/logs.txt
 /composeApp/*.json
 /composeApp/logs.txt
+
+# Local secrets. Never commit these — .env.example documents the shape and is
+# the only one that is tracked.
+.env
+.env.*
+!.env.example
