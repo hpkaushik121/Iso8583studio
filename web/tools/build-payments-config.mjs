@@ -48,6 +48,21 @@ if (key && !key.startsWith('pmk_pub_')) {
 const pricePoints = (process.env.PAYMENTS_PRICE_POINTS ?? '')
   .split(',').map((s) => s.trim()).filter(Boolean);
 
+/* What one unit of the first price point costs, in rupees.
+ *
+ * This is how a page that may not name a price still takes a chosen amount:
+ * it names a quantity instead. A ₹1 unit means ₹250 is quantity 250, and the
+ * service prices it from the catalog exactly as it would any other order —
+ * the total is computed and frozen server-side, so there is still nothing on
+ * the page for a tampered URL to change.
+ *
+ * The tenant's browser_max_quantity has to be raised to match the largest
+ * amount offered; the guide defaults it to 10. */
+const unitRupees = Number(process.env.PAYMENTS_UNIT_RUPEES ?? 1);
+if (!Number.isInteger(unitRupees) || unitRupees < 1) {
+  throw new Error(`PAYMENTS_UNIT_RUPEES must be a positive whole number (got "${unitRupees}").`);
+}
+
 mkdirSync(OUT_DIR, { recursive: true });
 /* Annotated rather than `as const`: with no SKUs configured the literal would
    narrow to `readonly []`, and every read of pricePoints[0] becomes a compile
@@ -59,12 +74,14 @@ writeFileSync(join(OUT_DIR, 'payments-config.ts'),
   + '  readonly baseUrl: string;\n'
   + '  readonly publicKey: string;\n'
   + '  readonly pricePoints: readonly string[];\n'
+  + '  readonly unitRupees: number;\n'
   + '}\n\n'
   + 'export const PAYMENTS: PaymentsConfig = {\n'
   + `  baseUrl: ${JSON.stringify(baseUrl)},\n`
   + `  publicKey: ${JSON.stringify(key)},\n`
   + `  pricePoints: ${JSON.stringify(pricePoints)},\n`
+  + `  unitRupees: ${JSON.stringify(unitRupees)},\n`
   + '};\n');
 
 console.log(`payments: ${key ? 'key set' : 'NO KEY — checkout disabled'}, `
-  + `${pricePoints.length} price point(s), ${baseUrl}`);
+  + `${pricePoints.length} price point(s) @ ₹${unitRupees}/unit, ${baseUrl}`);

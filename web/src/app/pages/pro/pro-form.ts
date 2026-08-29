@@ -146,6 +146,7 @@ export class ProForm {
       Validators.min(ProForm.MIN),
       Validators.max(ProForm.MAX),
       wholeNumber,
+      unitMultiple,
     ]),
     country: new FormControl('India', [Validators.required]),
   });
@@ -195,6 +196,7 @@ export class ProForm {
     const e = this.form.get('amount')?.errors ?? {};
     if (e['required']) return 'Enter the amount you want to pay.';
     if (e['notWhole']) return 'Enter a whole number of rupees.';
+    if (e['notMultiple']) return `Enter a multiple of ₹${PAYMENTS.unitRupees}.`;
     if (e['min']) return `The minimum is ₹${ProForm.MIN}.`;
     return `The maximum is ₹${ProForm.MAX.toLocaleString('en-IN')} — write to us for anything larger.`;
   }
@@ -234,6 +236,10 @@ export class ProForm {
     try {
       const { checkoutUrl } = await this.payments.createCheckout({
         pricePoint: PAYMENTS.pricePoints[0],
+        // A page may not name a price, so it names how many units it wants
+        // and the catalog prices them. The service computes and freezes the
+        // total; the amount never travels in anything the customer can edit.
+        quantity: this.quantityForAmount(),
         email: email!,
         // No accounts here, so the customer's own email is the stable key.
         ref: email!,
@@ -251,6 +257,17 @@ export class ProForm {
         this.formError.set('Payment could not be started. Check your connection and try again.');
       }
     }
+  }
+
+  /**
+   * The chosen amount expressed in catalog units.
+   *
+   * The validator keeps the amount a whole multiple of the unit price, so this
+   * divides exactly. The tenant's browser_max_quantity has to be at least the
+   * largest quantity this can produce, or the call is refused.
+   */
+  private quantityForAmount(): number {
+    return Math.round(Number(this.form.getRawValue().amount) / PAYMENTS.unitRupees);
   }
 
   /** What the team needs to fulfil by hand, carried on the payment. */
@@ -296,6 +313,17 @@ export class ProForm {
       this.outcome.set('We could not confirm the payment automatically. Write to admin@iso8583.studio.');
     }
   }
+}
+
+/**
+ * The amount is bought as whole catalog units, so it has to sit on a unit
+ * boundary. With the usual ₹1 unit every whole rupee qualifies and this never
+ * fires; it earns its place if the unit is ever coarser than that.
+ */
+function unitMultiple(control: { value: unknown }) {
+  const v = Number(control.value);
+  if (control.value === null || control.value === '' || Number.isNaN(v)) return null;
+  return v % PAYMENTS.unitRupees === 0 ? null : { notMultiple: true };
 }
 
 /** `type="number"` accepts 12.5; rupees here are whole. */

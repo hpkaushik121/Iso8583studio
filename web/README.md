@@ -15,7 +15,21 @@ Two rules follow from that and are not negotiable:
   service prices it. Sending an amount from a browser credential is `403`.
 - **Nothing may be provisioned automatically from it.** There is no signed
   callback to trust, so Pro workspaces are opened by hand off the back of a
-  payment the service records.
+  payment the service records. The guide sanctions exactly that — fulfilling
+  by hand or by email is the browser-only shape's intended use.
+
+### How a chosen amount still works
+
+The form lets the customer pick what to pay, which looks like it needs the
+page to name a price. It does not. The page names a **quantity** of a small
+unit SKU and the catalog prices it: with `PAYMENTS_UNIT_RUPEES=1`, ₹250 is
+simply quantity 250. The service computes and freezes the total server-side,
+so the amount never exists anywhere the customer can edit — which is the same
+protection a fixed price point gets.
+
+The cost of this is one tenant setting: **`browser_max_quantity` must be at
+least the largest amount you offer** (the guide defaults it to 10). The
+checkout's own breakdown will read as `250 × ₹1` rather than one ₹250 line.
 
 Configure through the environment; `tools/build-payments-config.mjs` bakes the
 values into the bundle at build time, reading the repo-root `.env` locally and
@@ -24,7 +38,8 @@ the workflow's variables in CI.
 | Variable | |
 | --- | --- |
 | `PAYMENTS_PUB_KEY` | the `pmk_pub_` browser credential. Public by construction — it ships in the page source. **Never a `pmk_live_` key**; the build refuses one. |
-| `PAYMENTS_PRICE_POINTS` | comma-separated SKUs the page may sell |
+| `PAYMENTS_PRICE_POINTS` | comma-separated SKUs the page may sell; the first is the unit SKU |
+| `PAYMENTS_UNIT_RUPEES` | rupees per unit of that SKU, default `1` |
 | `PAYMENTS_BASE_URL` | defaults to `https://payments.iso8583.studio` |
 
 Unset is a supported state: checkout stays off and the form says so rather than
@@ -32,8 +47,10 @@ shipping a button that fails.
 
 Still needed before it can take a payment:
 
-- [ ] SKUs published in the tenant's `browser_checkout_price_points`, and set
-      in `PAYMENTS_PRICE_POINTS`
+- [ ] A unit SKU published in the tenant's `browser_checkout_price_points`, and
+      set in `PAYMENTS_PRICE_POINTS` with its price in `PAYMENTS_UNIT_RUPEES`
+- [ ] `browser_max_quantity` raised to the largest amount offered — ₹100,000 at
+      a ₹1 unit needs 100000, against a default of 10
 - [ ] `checkout:create` on the credential — not granted by default
 - [ ] `https://iso8583.studio` in `cors_allowed_origins`
 - [ ] `https://iso8583.studio/pro` in `allowed_redirect_origins`
