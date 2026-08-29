@@ -128,15 +128,21 @@ ui-card > .card { height: 100%; }
     background: var(--card-deep);
 }
 
-/* Sits above the article body at the width of the text column. */
+/* Sits above the article body, on the text column rather than the full width
+   of .blog-body, which has no measure of its own.
+
+   No aspect-ratio and no object-fit here, unlike the card thumbnail: these are
+   infographics, and cropping one to a nominal ratio cuts the top off its
+   title. The intrinsic ratio is already close to 16:9, so nothing is gained
+   by forcing it. */
 .post-hero-img {
     display: block;
     width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
+    max-width: var(--prose-max);
+    height: auto;
+    margin: 0 auto var(--sp-8);
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
-    margin-bottom: var(--sp-8);
     background: var(--card-deep);
 }
 
