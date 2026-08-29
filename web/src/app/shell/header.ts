@@ -3,7 +3,7 @@ import {
   inject, signal,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { EXTERNAL, NAV_GROUPS } from '../core/site-nav';
+import { NAV_GROUPS } from '../core/site-nav';
 import { MobileMenu } from './mobile-menu';
 
 /**
@@ -52,7 +52,6 @@ import { MobileMenu } from './mobile-menu';
 
         <div class="nav-right">
           <a class="pro-pill" routerLink="/pro" title="ISO8583Studio Pro">✦ Pro</a>
-          <a class="btn btn--primary" [href]="external.releases">Download</a>
           <button class="ham" type="button" aria-label="Menu" aria-controls="m-menu"
                   [attr.aria-expanded]="mobileOpen()" (click)="toggleMobile()">☰</button>
         </div>
@@ -63,7 +62,6 @@ import { MobileMenu } from './mobile-menu';
 })
 export class Header {
   protected readonly groups = NAV_GROUPS;
-  protected readonly external = EXTERNAL;
   protected readonly openMenu = signal<string | null>(null);
   protected readonly mobileOpen = signal(false);
 

@@ -15,6 +15,7 @@ import { ICON_PATHS } from './icons';
             <a class="brand" routerLink="/"><img src="/images/app.png" alt="" width="27" height="27">ISO8583Studio</a>
             <p>Professional ISO 8583 payment transaction processing, simulation and testing.
                Built with Kotlin Multiplatform &amp; Compose Desktop.</p>
+            <a class="btn btn--primary" [href]="external.releases">Download</a>
             <div class="f-social">
               @for (s of social; track s.title) {
                 <a [href]="s.href" [title]="s.title" rel="noopener">
@@ -48,6 +49,8 @@ export class Footer {
   /** Derived, so the footer can never drift out of date the way the two
    *  hard-coded years ("2024" in the blog, "2026" in site.js) did. */
   protected readonly year = new Date().getFullYear();
+
+  protected readonly external = EXTERNAL;
 
   protected readonly social = [
     { title: 'Roadmap', href: EXTERNAL.roadmap, path: ICON_PATHS.roadmap },

@@ -592,6 +592,9 @@ ui-section { display: block; }
 footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var(--sp-16) 0 var(--sp-8); margin-top: var(--sp-20); }
 .f-grid { display: grid; grid-template-columns: 2fr repeat(5, 1fr); gap: var(--sp-8); }
 .f-brand p { color: var(--muted); font-size: var(--fs-sm); margin: var(--sp-4) 0; max-width: 320px; line-height: var(--lh-base); }
+/* The download CTA sits between the blurb and the social row; the blurb
+   supplies the space above it. */
+.f-brand .btn { margin-bottom: var(--sp-4); }
 .f-social { display: flex; gap: var(--sp-3); }
 .f-social a { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--r-md); background: var(--neutral-wash); color: var(--muted); }
 .f-social a:hover { background: var(--blue-wash); color: var(--blue-hi); }
