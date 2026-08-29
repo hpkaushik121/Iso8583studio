@@ -48,28 +48,36 @@ const IMAGE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interac
 const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE || '1K';
 const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || process.env.GEMINI_MODEL;
 
-/* One house style for all of them, so fifty-two posts do not look like
-   fifty-two different blogs.
+/* One house style, so fifty-two posts do not look like fifty-two blogs.
  *
- * Two things were learned the hard way and are why this reads the way it does.
- * Naming the post's tags alongside its title primed the model to draw a
- * labelled schematic — an "AES encryption" prompt came back as a flowchart
- * captioned Encryption, Mode, IV and Padding. And a trailing "no text" is not
- * enough on its own: the ban has to be last, explicit about every form text
- * takes, and paired with saying outright that this is not a diagram. Text in
- * a generated image is misspelled as often as not, and duplicates a headline
- * that sits directly above it anyway. */
+ * These are infographics, not decoration: the picture is supposed to teach the
+ * post's subject at a glance, so it is built from the post's own structure —
+ * its description and its section headings — rather than from the title alone.
+ * A title on its own gave pretty artwork about nothing in particular.
+ *
+ * Labels are wanted here and the model spells them correctly, but they have to
+ * be kept short. Asked for explanatory text it produces paragraph-shaped
+ * blocks of plausible nonsense, which is the one kind of text that actually
+ * looks broken. */
 const IMAGE_STYLE =
-  'Abstract symbolic artwork for an article about payment systems engineering. ' +
-  'Very dark navy background (#15161f), thin luminous line work in blue (#1e88e5) and ' +
-  'teal (#26a69a), subtle glow, generous negative space, calm centred composition, ' +
-  'flat vector feel.';
+  'A clean technical infographic illustrating a payments-engineering concept. ' +
+  'Very dark navy background (#15161f), flat vector diagram in blue (#1e88e5) and ' +
+  'teal (#26a69a), labels in white and light grey, clear visual hierarchy, ' +
+  'generous spacing, balanced 16:9 editorial layout.';
 
-const promptFor = (post) =>
-  `${IMAGE_STYLE} Evoke this theme as a single abstract symbol or form: ${post.title}. ` +
-  'This is decorative artwork, not a diagram, flowchart, schematic or chart. ' +
-  'Absolutely no text anywhere in the image: no letters, words, numbers, labels, ' +
-  'captions, annotations, logos or watermarks. No user interface, no people, no hands.';
+const promptFor = (post) => {
+  const points = post.headings.slice(0, 5);
+  return `${IMAGE_STYLE} ` +
+    `Explain this topic visually so a reader understands it at a glance: ${post.title}. ` +
+    `${post.description} ` +
+    (points.length ? `Build the graphic around these ideas: ${points.join('; ')}. ` : '') +
+    'Use labelled boxes, arrows, icons and simple structured layouts to show how the ' +
+    'parts relate. Every label must be one to three real, correctly spelled words: ' +
+    'check the spelling of each one, and use fewer labels rather than risk a ' +
+    'misspelling. Any hex or binary shown must be well formed. ' +
+    'No sentences or paragraphs of text, no fake body copy, no legend blocks. ' +
+    'No logos, no watermarks, no people, no hands, no application screenshots.';
+};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -191,6 +199,10 @@ const posts = files.map((file) => {
     author: String(data.author ?? 'AiCortex Team'),
     readTime: String(data.read_time ?? '5 min read'),
     tags,
+    // Section headings drive the infographic prompt; they are the closest
+    // thing the post has to an outline of what the picture should show.
+    headings: [...content.matchAll(/^#{2,3}\s+(.+?)\s*$/gm)]
+      .map((m) => m[1].replace(/[`*_]/g, '').trim()),
     html: md.render(content),
   };
 });
@@ -220,7 +232,7 @@ for (const post of posts) {
   );
 }
 
-const meta = posts.map(({ html, ...rest }) => rest);
+const meta = posts.map(({ html, headings, ...rest }) => rest);
 
 writeFileSync(
   join(OUT_DIR, 'blog-index.ts'),
