@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { SitePage } from './site-page';
 import { UiSection } from '../../ui/section';
+import { ProForm } from '../pro/pro-form';
 
 @Component({
   selector: 'page-pro',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiSection],
+  imports: [UiSection, ProForm],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-pro' },
   // <image-slot> is a styling-only element the design system owns; see
@@ -42,33 +43,7 @@ import { UiSection } from '../../ui/section';
     <ui-section anchor="register" heading="Register for Pro">
         <p>Tell us who you are and what you're certifying. We provision your workspace and send credentials by email.</p>
 
-        <form class="pro-form" id="proForm" novalidate>
-            <div class="pf-grid">
-                <label class="pf-field"><span>Full name</span><input type="text" name="name" required autocomplete="name" placeholder="Sourabh Kaushik"></label>
-                <label class="pf-field"><span>Work email</span><input type="email" name="email" required autocomplete="email" placeholder="you@company.com"></label>
-                <label class="pf-field"><span>Company</span><input type="text" name="company" required autocomplete="organization" placeholder="Acquirer, processor or fintech"></label>
-                <label class="pf-field"><span>Role</span><input type="text" name="role" autocomplete="organization-title" placeholder="Payments engineer"></label>
-                <label class="pf-field pf-span"><span>What are you testing or certifying?</span><textarea name="usecase" rows="3" placeholder="e.g. RuPay issuer certification, ISO 8583 switch integration, EMV L3"></textarea></label>
-                <div class="pf-field">
-                    <span class="pf-label">
-                        <label for="proAmount">Amount to pay</label>
-                        <span class="pf-tip-wrap">
-                            <button type="button" class="pf-tip" aria-describedby="proAmountTip"><span aria-hidden="true">i</span><span class="sr-only">Why the amount matters</span></button>
-                            <span class="pf-tip-bubble" role="tooltip" id="proAmountTip">Pay what Pro is worth to you. Early access is provisioned from a queue — <b>the higher the amount, the higher your priority in it</b>, so a larger contribution gets your workspace, certification packs and support channel opened sooner.</span>
-                        </span>
-                    </span>
-                    <div class="pf-amount"><span class="pf-cur">₹</span><input type="number" name="amount" id="proAmount" required step="1" min="2" max="100000" inputmode="numeric" placeholder="Enter amount"></div>
-                    <p class="pf-hint"><b>Higher amount → higher priority</b> in the early-access queue.</p>
-                </div>
-                <label class="pf-field"><span>Billing country</span><input type="text" name="country" value="India" autocomplete="country-name"></label>
-            </div>
-            <p class="pf-error" id="proError" hidden></p>
-            <div class="pf-actions">
-                <button class="btn btn-blue" type="submit" id="proSubmit"><span id="proSubmitLabel">Continue to payment</span></button>
-                <span class="pf-note">Secure payment by Razorpay — UPI, cards, netbanking or wallet. You'll get an emailed receipt and workspace credentials.</span>
-            </div>
-            <p class="pf-done" id="proDone" hidden></p>
-        </form>
+        <app-pro-form />
     </ui-section>
 
     <ui-section anchor="faq" heading="Questions">

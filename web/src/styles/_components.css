@@ -856,3 +856,42 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
     .blog-body { padding-left: var(--sp-4); padding-right: var(--sp-4); }
     .blog-cta { padding: var(--sp-6) var(--sp-5); }
 }
+
+/* ---- Pro form validation ------------------------------------------------
+   The field styles themselves are still in _legacy.css; these are the states
+   that form never had, because it was static markup with `novalidate` and no
+   script behind it. They live here rather than there because _legacy.css is
+   generated from docs/assets and would lose them on the next build. */
+
+.pf-field input[aria-invalid='true'],
+.pf-field textarea[aria-invalid='true'] {
+    border-color: var(--red);
+}
+
+.pf-field input[aria-invalid='true']:focus,
+.pf-field textarea[aria-invalid='true']:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(229, 72, 77, .16);
+}
+
+/* Sits where .pf-hint would, so swapping one for the other does not move the
+   fields below it. */
+.pf-err {
+    display: block;
+    margin-top: var(--sp-2);
+    font-size: var(--fs-2xs);
+    font-style: normal;
+    line-height: var(--lh-base);
+    color: var(--red-hi);
+}
+
+.pf-count {
+    display: block;
+    margin-top: var(--sp-2);
+    font-size: var(--fs-2xs);
+    font-style: normal;
+    text-align: right;
+    color: var(--faint);
+}
+
+.pf-count-over { color: var(--red-hi); }
