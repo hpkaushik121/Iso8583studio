@@ -1,0 +1,46 @@
+{
+  "name": "iso8583-studio",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "npm run build:content && ng serve",
+    "build": "node tools/build-blog-routes.mjs && node tools/import-pages.mjs && ng build && node tools/postbuild.mjs",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "build:content": "node tools/build-blog-routes.mjs && node tools/import-pages.mjs",
+    "check": "node tools/check-links.mjs",
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "serve:dist": "node tools/serve-dist.mjs",
+    "compare": "npm run build && ./tools/sync-preview.sh && node tools/compare-pages.mjs",
+    "compare:blog": "node tools/compare-blog.mjs"
+  },
+  "private": true,
+  "packageManager": "npm@10.9.8",
+  "dependencies": {
+    "@angular/common": "^22.1.0",
+    "@angular/compiler": "^22.1.0",
+    "@angular/core": "^22.1.0",
+    "@angular/forms": "^22.1.0",
+    "@angular/platform-browser": "^22.1.0",
+    "@angular/platform-server": "^22.1.0",
+    "@angular/router": "^22.1.0",
+    "@angular/ssr": "^22.1.6",
+    "express": "^5.1.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.1.6",
+    "@angular/cli": "^22.1.6",
+    "@angular/compiler-cli": "^22.1.0",
+    "@types/express": "^5.0.1",
+    "@types/node": "^20.17.19",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^15.0.1",
+    "prettier": "^3.8.1",
+    "puppeteer": "^25.9.0",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard": "^40.0.0",
+    "typescript": "~6.0.2"
+  }
+}

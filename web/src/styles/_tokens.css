@@ -1,0 +1,144 @@
+/* ==========================================================================
+   Design tokens — the single source of truth for every value in the system.
+   Reconciled from the two palettes that previously coexisted:
+   assets/site.css (kept) and the palette build_blogs.py baked into each post.
+   No other file may declare a raw hex colour or a raw px font-size.
+   ========================================================================== */
+
+:root {
+    /* ---- Surfaces ------------------------------------------------------ */
+    --bg-deep: #15161f;
+    --bg: #1b1d27;
+    --surface: #252836;
+    --card: #2f3142;
+    --card-hi: #383b50;
+    --card-deep: #1e1f2e;
+
+    /* ---- Lines --------------------------------------------------------- */
+    /* Translucent so borders read correctly on every surface above. The
+       retired blog palette used opaque #3d3d3d, which banded on dark cards. */
+    --line: rgba(151, 168, 214, .14);
+    --line2: rgba(151, 168, 214, .07);
+
+    /* ---- Text ---------------------------------------------------------- */
+    --text: #e9ecf5;
+    --muted: #9aa3ba;
+    --faint: #6a7288;
+
+    /* ---- Accents ------------------------------------------------------- */
+    --blue: #1e88e5;
+    --blue-hi: #6ab7ff;
+    --blue-lo: #9fd3ff;
+    --blue-deep: #005cb2;
+    --teal: #26a69a;
+    --teal-hi: #64d8cb;
+    --teal-lo: #a0f4ea;
+    --green: #43a047;
+    --green-hi: #5ec26a;
+    --amber: #ff9800;
+    --amber-hi: #ffb74d;
+    --yellow: #ffd43b;
+    --red: #e5484d;
+    --red-hi: #ff8a8d;
+    --purple: #9c27b0;
+    --purple-hi: #d78ae4;
+
+    /* Fixed against coloured fills, so it does not follow the text scale. */
+    --on-accent: #fff;
+    --blue-hover: #3d9bef;
+
+    /* Tinted washes, derived from the accents above. */
+    --blue-wash: rgba(30, 136, 229, .12);
+    --blue-wash-hi: rgba(106, 183, 255, .1);
+    --neutral-wash: rgba(151, 168, 214, .07);
+
+    /* ---- Typography ---------------------------------------------------- */
+    --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --fs-2xs: 10.5px;
+    /* Sizes the original design uses in specific roles. Kept exact rather than
+       snapped to the ladder above, because these are load-bearing: rounding
+       them visibly changed badges, table cells and card captions. */
+    --fs-badge: 11px;
+    --fs-th: 12.5px;
+    --fs-note: 13.5px;
+    --fs-btn: 14.5px;
+    --fs-caption: 12px;
+    --fs-prose-h4: 18px;
+    --fs-xs: 11.5px;
+    --fs-sm: 13px;
+    --fs-base: 14px;
+    /* Reading size for body copy. The original stylesheets set no font-size on
+       body, so all prose inherited the browser's 16px while chrome opted down
+       to 14px explicitly. Forcing 14px on body shrank every doc page. */
+    --fs-body: 16px;
+    --fs-md: 15.5px;
+    --fs-lg: 17.5px;
+    --fs-xl: 19px;
+    --fs-2xl: 24px;
+    --fs-3xl: 30px;
+    --fs-icon: 21px;
+    /* Fluid display sizes, carried over verbatim from the pages that used them. */
+    --fs-display: clamp(34px, 4.4vw, 48px);
+    --fs-h2: clamp(24px, 3vw, 30px);
+    --fs-hero: clamp(32px, 6vw, 52px);
+
+    --lh-tight: 1.2;
+    --lh-snug: 1.4;
+    --lh-base: 1.6;
+    --lh-relaxed: 1.7;
+    --lh-loose: 1.8;
+
+    --ls-tight: -.03em;
+    --ls-snug: -.01em;
+    --ls-wide: .16em;
+
+    /* ---- Spacing (4px base) -------------------------------------------- */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+    --sp-10: 40px;
+    --sp-12: 48px;
+    --sp-14: 56px;
+    --sp-16: 64px;
+    --sp-20: 80px;
+
+    /* ---- Radius -------------------------------------------------------- */
+    --r-sm: 6px;
+    --r-md: 9px;
+    --r-lg: 12px;
+    --r-xl: 16px;
+    --r-pill: 99px;
+
+    /* ---- Shadow -------------------------------------------------------- */
+    --sh-btn: 0 4px 18px rgba(30, 136, 229, .34);
+    --sh-menu: 0 24px 60px rgba(0, 0, 0, .5);
+    --sh-modal: 0 30px 80px rgba(0, 0, 0, .6);
+    --sh-card: 0 12px 32px rgba(0, 0, 0, .3);
+
+    /* ---- Motion -------------------------------------------------------- */
+    --dur-fast: .16s;
+    --dur: .18s;
+    --ease: cubic-bezier(.4, 0, .2, 1);
+
+    /* ---- Layout -------------------------------------------------------- */
+    /* The page's side gutter. .wrap, .doc-body and the Pro aside all resolve
+       their edges from this, so they stay aligned at every width. */
+    --gutter: 32px;
+    --wrap-max: 1240px;
+    --nav-max: 1300px;
+    --doc-max: 1000px;
+    --prose-max: 800px;
+    --nav-h: 64px;
+
+    /* ---- Z-index ------------------------------------------------------- */
+    --z-nav: 100;
+    --z-menu: 99;
+    --z-modal: 200;
+    --z-toast: 300;
+}

@@ -1,0 +1,12 @@
+<!-- routerLink with no commands keeps the current route, so the emitted href is
+     "/this-page#main" rather than a bare "#main", which <base href="/"> would
+     resolve to the site root. The handler also moves focus, which is the point
+     of a skip link — scrolling alone leaves the keyboard where it was. -->
+<a class="skip-link" [routerLink]="[]" fragment="main" (click)="focusMain()">Skip to content</a>
+<app-header />
+<main id="main" tabindex="-1">
+  <router-outlet />
+</main>
+<app-footer />
+<app-cookie-banner />
+<app-pro-download-modal />

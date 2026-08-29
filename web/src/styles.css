@@ -1,0 +1,10 @@
+/* ISO8583Studio design system.
+   Load order matters: tokens define the vocabulary everything else resolves
+   against, and page styles come last so a page can refine — never redefine —
+   what the system provides. */
+@import './styles/_tokens.css';
+@import './styles/_base.css';
+@import './styles/_components.css';
+@import './styles/_prose.css';
+@import './styles/_legacy.css';
+@import './styles/pages/_index.css';

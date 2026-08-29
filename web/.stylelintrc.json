@@ -1,0 +1,71 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "custom-property-pattern": null,
+    "selector-class-pattern": null,
+    "no-descending-specificity": null,
+    "declaration-block-no-redundant-longhand-properties": null,
+    "alpha-value-notation": null,
+    "color-function-notation": null,
+    "media-feature-range-notation": null,
+    "value-keyword-case": null,
+    "comment-empty-line-before": null,
+    "declaration-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "at-rule-empty-line-before": null,
+    "custom-property-empty-line-before": null,
+    "font-family-name-quotes": null,
+    "shorthand-property-no-redundant-values": null,
+    "color-no-hex": [
+      true,
+      {
+        "message": "Colours belong in src/styles/_tokens.css. Use var(--token) instead of a hex literal."
+      }
+    ],
+    "declaration-property-value-disallowed-list": {
+      "font-size": [
+        "/^[0-9.]+px$/"
+      ]
+    },
+    "property-no-vendor-prefix": null,
+    "value-no-vendor-prefix": null,
+    "at-rule-no-vendor-prefix": null,
+    "selector-no-vendor-prefix": null,
+    "color-function-alias-notation": null,
+    "keyframes-name-pattern": null,
+    "number-max-precision": null,
+    "length-zero-no-unit": null,
+    "declaration-block-single-line-max-declarations": null,
+    "no-duplicate-selectors": null,
+    "font-family-no-missing-generic-family-keyword": null,
+    "selector-pseudo-element-colon-notation": null,
+    "property-no-deprecated": null,
+    "import-notation": null
+  },
+  "overrides": [
+    {
+      "comment": "The token file is the one place a literal colour may be written.",
+      "files": [
+        "src/styles/_tokens.css"
+      ],
+      "rules": {
+        "color-no-hex": null
+      }
+    },
+    {
+      "comment": "Quarantined legacy: styles lifted from the old docs/ pages and from site.css/solutions.css. They no longer declare tokens, but their remaining literals and font sizes are page-specific artwork that has not been migrated to the scale. New code must not add to these files.",
+      "files": [
+        "src/styles/pages/**/*.css",
+        "src/styles/_legacy.css"
+      ],
+      "rules": {
+        "color-no-hex": null,
+        "declaration-property-value-disallowed-list": null
+      }
+    }
+  ],
+  "ignoreFiles": [
+    "dist/**",
+    "node_modules/**"
+  ]
+}
