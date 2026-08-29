@@ -1,72 +1,76 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# Builds the Angular site and deploys the prerendered output to GitHub Pages.
+#
+# The build is fully static: every route is prerendered to its own index.html,
+# so crawlers that do not run JavaScript — including the AI crawlers robots.txt
+# allows — receive complete HTML.
+name: Deploy site to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
     paths:
-      - 'docs/**'
-      # Redeploy when the pipeline itself changes.
+      - 'web/**'
       - '.github/workflows/static.yml'
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # The home page is assembled from assets/site.js (header, footer, nav),
-      # assets/analytics.js (GA4) and three screenshots. Any one of them
-      # missing renders a broken site, so fail here rather than deploy it.
-      - name: Verify site payload
-        run: |
-          set -euo pipefail
-          missing=0
-          for f in \
-            docs/index.html \
-            docs/CNAME \
-            docs/robots.txt \
-            docs/sitemap.xml \
-            docs/assets/site.js \
-            docs/assets/analytics.js \
-            docs/images/app.png \
-            docs/images/img.png \
-            docs/images/img_1.png \
-            docs/images/img_3.png
-          do
-            if [ ! -s "$f" ]; then
-              echo "::error file=$f::required file is missing or empty"
-              missing=1
-            fi
-          done
-          # The home page must load both scripts, or the redesign ships unstyled
-          # and untracked.
-          grep -q 'assets/site.js' docs/index.html || {
-            echo "::error file=docs/index.html::site.js is not referenced"; missing=1; }
-          grep -q 'assets/analytics.js' docs/index.html || {
-            echo "::error file=docs/index.html::analytics.js is not referenced"; missing=1; }
-          exit $missing
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Angular 22 requires ^22.22.3 || ^24.15.0 || >=26.
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # Regenerates the blog and page content modules, builds and prerenders
+      # every route, then writes the sitemap, the legacy .html redirect stubs
+      # and 404.html.
+      - name: Build
+        run: npm run build
+        env:
+          # The pmk_pub_ browser credential. Public by construction — it ships
+          # in the page source, and the Origin binding, the self-serve
+          # price-point allowlist and the rate limit are what bound it. A
+          # repository variable is therefore the honest home for it; the
+          # secrets fallback is there so either place works.
+          # Unset is a supported state: checkout stays off and the form says so.
+          PAYMENTS_PUB_KEY: ${{ vars.PAYMENTS_PUB_KEY || secrets.PAYMENTS_PUB_KEY }}
+          # Comma-separated SKUs, which must also be published for the tenant
+          # in browser_checkout_price_points.
+          PAYMENTS_PRICE_POINTS: ${{ vars.PAYMENTS_PRICE_POINTS }}
+
+      # Replaces the old file-existence check. Fails the deploy if a route is
+      # missing, an internal link is broken, a URL still carries .html, the
+      # sitemap disagrees with the output, a legacy redirect stub is gone, or
+      # any URL that is live today would start returning 404.
+      # Keeps the design system's token discipline: no hex literals or raw px
+      # font sizes outside src/styles/_tokens.css.
+      - name: Lint stylesheets
+        run: npm run lint:css
+
+      - name: Verify links and URLs
+        run: npm run check
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -74,9 +78,15 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: './docs'
+          path: './web/dist/iso8583-studio/browser'
 
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

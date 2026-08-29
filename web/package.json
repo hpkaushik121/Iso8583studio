@@ -4,10 +4,10 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "node tools/build-blog-routes.mjs && ng build && node tools/postbuild.mjs",
+    "build": "node tools/build-blog-routes.mjs && node tools/build-payments-config.mjs && ng build && node tools/postbuild.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "build:content": "node tools/build-blog-routes.mjs",
+    "build:content": "node tools/build-blog-routes.mjs && node tools/build-payments-config.mjs",
     "blog:images": "node tools/build-blog-routes.mjs --images",
     "check": "node tools/check-links.mjs",
     "lint:css": "stylelint \"src/**/*.css\"",

@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { PAYMENTS } from '../../content/payments-config';
+import { PaymentsService, messageFor } from '../../core/payments';
 
 /**
  * The Pro registration form.
@@ -23,6 +25,10 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (outcome(); as o) {
+      <p class="pf-done" role="status">{{ o }}</p>
+    }
+
     <form class="pro-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="pf-grid">
         <label class="pf-field">
@@ -144,14 +150,18 @@ export class ProForm {
     country: new FormControl('India', [Validators.required]),
   });
 
+  private readonly payments = inject(PaymentsService);
+
   protected readonly busy = signal(false);
   protected readonly formError = signal<string | null>(null);
+  protected readonly outcome = signal<string | null>(null);
 
   /** Re-read on every change so the template's error state stays current. */
   private readonly value = signal(this.form.getRawValue());
   private readonly status = signal(this.form.status);
 
   constructor() {
+    void this.resumeAfterCheckout();
     this.form.valueChanges.subscribe(() => {
       this.value.set(this.form.getRawValue());
       this.status.set(this.form.status);
@@ -201,12 +211,90 @@ export class ProForm {
       return;
     }
 
-    // Payment is not wired up yet: this site has no backend, and the browser-only
-    // shape of the payments service cannot accept a customer-named amount.
-    // See .design-sync/NOTES.md — the form validates and collects, and the call
-    // is added once the pricing model is settled.
-    this.formError.set(
-      'Payment is not connected yet. Write to admin@iso8583.studio and we will set you up directly.');
+    void this.startCheckout();
+  }
+
+  /**
+   * Browser-only checkout: name a price point, never an amount.
+   *
+   * With no price point published the form has nothing it is allowed to sell,
+   * so it says so rather than making a call that would answer 403. The amount
+   * field cannot drive this — see PaymentsService for why a page may not set a
+   * price — and becomes a plan choice when the SKUs exist.
+   */
+  private async startCheckout(): Promise<void> {
+    if (!this.payments.configured) {
+      this.formError.set(
+        'Payment is not connected yet. Write to admin@iso8583.studio and we will set you up directly.');
+      return;
+    }
+
+    const { email } = this.form.getRawValue();
+    this.busy.set(true);
+    try {
+      const { checkoutUrl } = await this.payments.createCheckout({
+        pricePoint: PAYMENTS.pricePoints[0],
+        email: email!,
+        // No accounts here, so the customer's own email is the stable key.
+        ref: email!,
+        notes: this.notesFromForm(),
+      });
+      // The token is already stored; leaving the site is the last thing we do.
+      location.assign(checkoutUrl);
+    } catch (err) {
+      this.busy.set(false);
+      const e = err as { code?: string; message?: string; requestId?: string | null };
+      if (e.code) {
+        console.error(`payments ${e.code} (request ${e.requestId ?? 'unknown'}): ${e.message}`);
+        this.formError.set(messageFor(e as never));
+      } else {
+        this.formError.set('Payment could not be started. Check your connection and try again.');
+      }
+    }
+  }
+
+  /** What the team needs to fulfil by hand, carried on the payment. */
+  private notesFromForm(): Record<string, string> {
+    const v = this.form.getRawValue();
+    return {
+      name: v.name ?? '',
+      company: v.company ?? '',
+      role: v.role ?? '',
+      usecase: (v.usecase ?? '').slice(0, 200),
+      country: v.country ?? '',
+    };
+  }
+
+  /**
+   * Reads the outcome after the hosted checkout sends the customer back.
+   *
+   * Polls status; never verify — the hosted page has already verified, and
+   * verify without the provider's callback parameters answers 400. A pending
+   * or processing answer is never shown as failure: it means not known yet.
+   */
+  private async resumeAfterCheckout(): Promise<void> {
+    if (typeof location === 'undefined') return;
+    const flag = new URLSearchParams(location.search).get('payment');
+    if (!flag) return;
+
+    const token = this.payments.takeToken();
+    if (!token) {
+      this.outcome.set(flag === 'done'
+        ? 'Thanks — your payment is being confirmed. We will email you shortly.'
+        : 'That payment did not complete. You can try again below.');
+      return;
+    }
+
+    this.outcome.set('Confirming your payment…');
+    try {
+      const out = await this.payments.waitForOutcome(token);
+      this.payments.clearToken();
+      this.outcome.set(out.status === 'paid'
+        ? 'Payment received. We will provision your workspace and email your credentials.'
+        : 'That payment did not complete. Nothing has been charged — you can try again below.');
+    } catch {
+      this.outcome.set('We could not confirm the payment automatically. Write to admin@iso8583.studio.');
+    }
   }
 }
 
