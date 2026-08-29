@@ -1,6 +1,10 @@
 /**
  * Fills the empty <image-slot> placeholders once the screenshot files exist.
  *
+ * Operates on the page components under src/app/pages/site. It used to edit
+ * docs/docs/<page>/index.html, which was the content source until those pages
+ * became components; the figure markup it matches is unchanged by that move.
+ *
  * Each figure declares the file it expects via data-shot, and the alt text via
  * data-alt. This reads the PNG header for the real pixel dimensions, writes the
  * <img> with width/height (so the space is reserved before it loads) and sets
@@ -15,6 +19,12 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DOCS = join(ROOT, 'docs');
+const SITE_PAGES = join(ROOT, 'web', 'src', 'app', 'pages', 'site');
+
+/** `docs-pos-simulator.ts` -> `pos-simulator`, which is also the image folder. */
+const docPages = () => readdirSync(SITE_PAGES)
+  .filter((f) => f.startsWith('docs-') && f.endsWith('.ts'))
+  .map((f) => [f.slice('docs-'.length, -'.ts'.length), join(SITE_PAGES, f)]);
 /* Images are served from the Angular public directory; docs/images only still
    exists for the legacy site. Prefer public, fall back to docs. */
 const IMAGE_ROOTS = [join(ROOT, 'web', 'public', 'images', 'docs'), join(DOCS, 'images', 'docs')];
@@ -35,9 +45,7 @@ const DPR = 2;
 
 let filled = 0, missing = [], already = 0;
 
-for (const page of readdirSync(join(DOCS, 'docs'))) {
-  const file = join(DOCS, 'docs', page, 'index.html');
-  if (!existsSync(file)) continue;
+for (const [page, file] of docPages()) {
   let html = readFileSync(file, 'utf8');
   let changed = false;
 
@@ -67,9 +75,7 @@ for (const page of readdirSync(join(DOCS, 'docs'))) {
 }
 
 // Count slots that already carry an image.
-for (const page of readdirSync(join(DOCS, 'docs'))) {
-  const file = join(DOCS, 'docs', page, 'index.html');
-  if (!existsSync(file)) continue;
+for (const [, file] of docPages()) {
   already += (readFileSync(file, 'utf8').match(/<image-slot><img/g) ?? []).length;
 }
 

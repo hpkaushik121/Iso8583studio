@@ -55,7 +55,7 @@
     {
       "comment": "Quarantined legacy: styles lifted from the old docs/ pages and from site.css/solutions.css. They no longer declare tokens, but their remaining literals and font sizes are page-specific artwork that has not been migrated to the scale. New code must not add to these files.",
       "files": [
-        "src/styles/pages/**/*.css",
+        "src/styles/_page-home.css",
         "src/styles/_legacy.css"
       ],
       "rules": {

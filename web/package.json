@@ -3,15 +3,14 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "npm run build:content && ng serve",
-    "build": "node tools/build-blog-routes.mjs && node tools/import-pages.mjs && ng build && node tools/postbuild.mjs",
+    "start": "ng serve",
+    "build": "node tools/build-blog-routes.mjs && ng build && node tools/postbuild.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "build:content": "node tools/build-blog-routes.mjs && node tools/import-pages.mjs",
+    "build:content": "node tools/build-blog-routes.mjs",
     "check": "node tools/check-links.mjs",
     "lint:css": "stylelint \"src/**/*.css\"",
     "serve:dist": "node tools/serve-dist.mjs",
-    "compare": "npm run build && ./tools/sync-preview.sh && node tools/compare-pages.mjs",
     "compare:blog": "node tools/compare-blog.mjs"
   },
   "private": true,
