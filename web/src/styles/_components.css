@@ -114,10 +114,14 @@ ui-card > .card { height: 100%; }
 .card--post { position: relative; overflow: hidden; padding: var(--sp-6) var(--sp-6) var(--sp-5); }
 
 /* The thumbnail is pulled out to the card's edges — the card's own padding
-   would otherwise frame it in a border of background colour. */
+   would otherwise frame it in a border of background colour.
+   max-width has to be reset: the global `img { max-width: 100% }` caps the
+   width below at the content box, which left the image flush on the left,
+   where the negative margin put it, and short of the card on the right. */
 .post-thumb {
     display: block;
     width: calc(100% + 2 * var(--sp-6));
+    max-width: none;
     margin: calc(-1 * var(--sp-6)) calc(-1 * var(--sp-6)) var(--sp-5);
     aspect-ratio: 16 / 9;
     object-fit: cover;
