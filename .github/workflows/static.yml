@@ -7,6 +7,8 @@ on:
     branches: ["main"]
     paths:
       - 'docs/**'
+      # Redeploy when the pipeline itself changes.
+      - '.github/workflows/static.yml'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -33,13 +35,48 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # The home page is assembled from assets/site.js (header, footer, nav),
+      # assets/analytics.js (GA4) and three screenshots. Any one of them
+      # missing renders a broken site, so fail here rather than deploy it.
+      - name: Verify site payload
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            docs/index.html \
+            docs/CNAME \
+            docs/robots.txt \
+            docs/sitemap.xml \
+            docs/assets/site.js \
+            docs/assets/analytics.js \
+            docs/images/app.png \
+            docs/images/img.png \
+            docs/images/img_1.png \
+            docs/images/img_3.png
+          do
+            if [ ! -s "$f" ]; then
+              echo "::error file=$f::required file is missing or empty"
+              missing=1
+            fi
+          done
+          # The home page must load both scripts, or the redesign ships unstyled
+          # and untracked.
+          grep -q 'assets/site.js' docs/index.html || {
+            echo "::error file=docs/index.html::site.js is not referenced"; missing=1; }
+          grep -q 'assets/analytics.js' docs/index.html || {
+            echo "::error file=docs/index.html::analytics.js is not referenced"; missing=1; }
+          exit $missing
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
           path: './docs'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

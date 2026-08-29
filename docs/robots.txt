@@ -1,14 +1,22 @@
 User-agent: *
 Allow: /
 Disallow: /images/
+Disallow: /*.md$
+Disallow: /*.py$
 
 Sitemap: https://iso8583.studio/sitemap.xml
 
 User-agent: Googlebot
 Allow: /
+Disallow: /images/
+Disallow: /*.md$
+Disallow: /*.py$
 
 User-agent: Bingbot
 Allow: /
+Disallow: /images/
+Disallow: /*.md$
+Disallow: /*.py$
 
 User-agent: GPTBot
 Allow: /

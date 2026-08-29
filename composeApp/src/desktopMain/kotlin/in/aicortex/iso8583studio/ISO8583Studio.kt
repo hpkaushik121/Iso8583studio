@@ -19,7 +19,11 @@ import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.avd.ProcessRegistry
+import `in`.aicortex.iso8583studio.analytics.Analytics
 import `in`.aicortex.iso8583studio.data.ExceptionHandler
+import `in`.aicortex.iso8583studio.data.model.AnalyticsConsent
+import `in`.aicortex.iso8583studio.data.model.AppSettings
+import `in`.aicortex.iso8583studio.ui.screens.about.AnalyticsConsentDialog
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.domain.FileImporter
@@ -81,6 +85,10 @@ class ISO8583Studio {
             // default — leaving a CPU core and ~2 GB of RAM held after the app is gone.
             ProcessRegistry.installShutdownHook()
 
+            AppSettings.recordLaunch()
+            // Starts reporting only if consent was previously granted; a no-op otherwise.
+            Analytics.init()
+
             application {
 
             Thread.currentThread().uncaughtExceptionHandler = ExceptionHandler()
@@ -131,6 +139,25 @@ class ISO8583Studio {
                         // ─── About Dialog ───────────────────────────────
                         if (showAboutDialog) {
                             AboutDialog(onCloseRequest = { showAboutDialog = false })
+                        }
+
+                        // ─── Analytics Consent (first run only) ─────────
+                        // Asked once. Nothing has been transmitted at this point: Analytics.init()
+                        // above is inert while consent is UNSET.
+                        if (AppSettings.analyticsConsent == AnalyticsConsent.UNSET) {
+                            AnalyticsConsentDialog(
+                                onAccept = {
+                                    AppSettings.updateAnalyticsConsent(AnalyticsConsent.GRANTED)
+                                    Analytics.init()
+                                },
+                                onDecline = {
+                                    AppSettings.updateAnalyticsConsent(AnalyticsConsent.DENIED)
+                                }
+                            )
+                        }
+
+                        LaunchedEffect(AppSettings.analyticsConsent) {
+                            if (AppSettings.analyticsConsent.isGranted) Analytics.appOpen()
                         }
 
                         // ─── Error/Success Dialog ───────────────────────

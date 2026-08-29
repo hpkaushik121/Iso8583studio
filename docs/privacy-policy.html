@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
+
     <link rel="shortcut icon" href="images/app.png" type="image/x-icon">
     <link rel="icon" href="images/app.png" type="image/x-icon">
     <meta name="description" content="ISO8583Studio Privacy Policy - How we protect your data. Desktop-first application with local data processing. GDPR, CCPA compliant. No transaction data collection. Transparent data practices for fintech software.">
@@ -928,6 +930,22 @@
             <p><strong>Desktop Application Data:</strong> ISO8583Studio is primarily a desktop application. Most of your transaction data, configurations, and financial information remain on your local system and are not transmitted to our servers unless you explicitly use cloud features or request support.</p>
         </div>
 
+        <h3>Desktop Application Usage Analytics (Opt-In)</h3>
+        <p>The ISO8583Studio desktop application can report anonymous usage analytics to Google Analytics 4. This is <strong>off by default</strong>. On first launch the application asks whether you wish to enable it, and nothing is transmitted unless you accept. You can change your choice at any time under <em>Settings &rarr; Usage Analytics</em>.</p>
+
+        <p>When you have opted in, the application sends:</p>
+        <ul>
+            <li><strong>Feature usage:</strong> which tools and simulators you open, how long sessions last, whether a calculation succeeded or failed, and the names of screens you visit</li>
+            <li><strong>Environment:</strong> application version, operating system and version, CPU architecture, Java runtime version, language, timezone and screen resolution</li>
+            <li><strong>Approximate location:</strong> city, region/state and country. To determine this, the application makes a request to a third-party IP geolocation service. Your IP address is used to resolve this location and to let Google resolve it; it is not stored by us as an analytics attribute, and precise GPS coordinates are never collected.</li>
+            <li><strong>A random device identifier:</strong> generated on your machine, persisted between launches, and not derived from any hardware, account or network identifier. You can regenerate it at any time from Settings.</li>
+            <li><strong>Error types:</strong> the class name of an unexpected error, without its message or stack trace</li>
+        </ul>
+
+        <div class="warning-box">
+            <p><strong>What is never collected:</strong> card numbers (PANs), PINs or PIN blocks, cryptographic keys or key components, cryptograms, MACs, the contents of any ISO 8583 or HSM message, file paths, hostnames, IP addresses of systems you connect to, or the names you give your simulator profiles. Analytics carries only the identity of the tool or screen in use, timings, and the environment details listed above.</p>
+        </div>
+
         <h3>Financial & Transaction Data</h3>
         <p>Important clarifications regarding sensitive financial data:</p>
         <ul>
@@ -972,7 +990,7 @@
         <p>We may share data with trusted third-party service providers who help us operate our business:</p>
         <ul>
             <li><strong>Cloud Infrastructure:</strong> Hosting services for our website and support systems</li>
-            <li><strong>Analytics Services:</strong> Website analytics and application performance monitoring</li>
+            <li><strong>Analytics Services:</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Analytics 4</a> for website and application usage measurement, and Google Ads for advertising measurement</li>
             <li><strong>Support Tools:</strong> Customer support and ticketing systems</li>
             <li><strong>Payment Processing:</strong> Payment processors for license purchases (they handle payment data independently)</li>
         </ul>
@@ -1095,7 +1113,8 @@
         <h3>Third-Party Cookies</h3>
         <p>We may use third-party services that set their own cookies:</p>
         <ul>
-            <li><strong>Google Analytics:</strong> Website traffic analysis and user behavior insights</li>
+            <li><strong>Google Analytics 4:</strong> Website traffic analysis and usage insights. We also enable Google Signals, which allows Google to associate visits with signed-in Google accounts for cross-device measurement and aggregated demographic reporting.</li>
+            <li><strong>Google Ads:</strong> Advertising measurement and remarketing audiences, where a campaign is running</li>
             <li><strong>Support Chat:</strong> Customer support chat functionality</li>
             <li><strong>CDN Services:</strong> Content delivery and website performance optimization</li>
         </ul>

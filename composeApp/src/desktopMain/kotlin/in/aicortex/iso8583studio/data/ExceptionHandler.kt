@@ -16,6 +16,10 @@ class ExceptionHandler : Thread.UncaughtExceptionHandler {
         println("Uncaught exception in thread ${thread?.name}: ${throwable?.message}")
         throwable?.printStackTrace()
 
+        // Report the error *type* only. Messages and stack traces routinely carry key
+        // material and message buffers, so they must never be transmitted.
+        throwable?.let { `in`.aicortex.iso8583studio.analytics.Analytics.error(it) }
+
         // Perform custom error handling, e.g., show an error message or restart the app
         println("The application will terminate.")
     }

@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
     <title>Host Simulator Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
     <link rel="icon" href="../../images/app.png" type="image/x-icon">
     <meta name="description" content="ISO8583Studio Host Simulator documentation - Simulate acquirer and issuer host responses for POS terminals and ATMs. Configure Server/Client/Proxy gateways, transaction rules, ISO 8583 templates, and dynamic placeholders.">
@@ -25,7 +29,7 @@
       "headline": "ISO8583Studio Host Simulator Documentation",
       "description": "Comprehensive documentation for the ISO8583Studio Host Simulator - simulate acquirer and issuer host responses for payment terminals, ATMs, and client applications.",
       "url": "https://iso8583.studio/docs/host-simulator/",
-      "author": { "@type": "Organization", "name": "AiCortex Solutions" },
+      "author": { "@type": "Organization", "name": "AiCortex" },
       "about": [
         { "@type": "Thing", "name": "ISO 8583" },
         { "@type": "Thing", "name": "Payment Processing" },
@@ -33,695 +37,15 @@
       ]
     }
     </script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        :root {
-            --primary-blue: #6ab7ff;
-            --primary-blue-light: #9fd3ff;
-            --primary-blue-dark: #1e88e5;
-            --accent-teal: #64d8cb;
-            --accent-teal-light: #a0f4ea;
-            --accent-teal-dark: #26a69a;
-            --accent-purple: #9c27b0;
-            --accent-orange: #ff9800;
-            --background-light: #252836;
-            --background-dark: #1a1d2e;
-            --card-light: #2F3142;
-            --card-dark: #1e1f2e;
-            --error-red: #ff6b6b;
-            --success-green: #51cf66;
-            --warning-yellow: #ffd43b;
-            --border-light: #3d3d3d;
-            --border-dark: #2a2a2a;
-            --text-primary: #eceff1;
-            --text-secondary: #b0bec5;
-        }
-
-        html { scroll-behavior: smooth; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--text-primary);
-            background: var(--background-dark);
-        }
-
-        /* Header */
-        .header {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            height: 80px;
-            background: rgba(26, 29, 46, 0.98);
-            backdrop-filter: blur(15px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid rgba(106, 183, 255, 0.2);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .header-container {
-            width: 100%;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            color: var(--text-primary);
-            font-size: 22px;
-            font-weight: 700;
-        }
-
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-        }
-
-        .nav { display: flex; align-items: center; gap: 8px; }
-
-        .nav-link {
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 600;
-            padding: 10px 16px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            color: var(--primary-blue);
-            background: rgba(106, 183, 255, 0.1);
-        }
-
-        .header-cta {
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
-            color: var(--background-dark);
-            padding: 10px 20px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 700;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.4);
-        }
-
-        .header-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(106, 183, 255, 0.5);
-        }
-
-        /* Page Layout */
-        .page-wrapper {
-            display: flex;
-            margin-top: 80px;
-            min-height: calc(100vh - 80px);
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: var(--card-dark);
-            border-right: 1px solid var(--border-light);
-            padding: 32px 0;
-            position: fixed;
-            top: 80px;
-            left: 0;
-            bottom: 0;
-            overflow-y: auto;
-            z-index: 100;
-        }
-
-        .sidebar-title {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--text-secondary);
-            padding: 0 24px;
-            margin-bottom: 12px;
-        }
-
-        .sidebar-section { margin-bottom: 24px; }
-
-        .sidebar-link {
-            display: block;
-            padding: 8px 24px 8px 28px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            border-left: 3px solid transparent;
-        }
-
-        .sidebar-link:hover {
-            color: var(--primary-blue);
-            background: rgba(106, 183, 255, 0.05);
-            border-left-color: rgba(106, 183, 255, 0.3);
-        }
-
-        .sidebar-link.active {
-            color: var(--primary-blue);
-            background: rgba(106, 183, 255, 0.1);
-            border-left-color: var(--primary-blue);
-            font-weight: 600;
-        }
-
-        .sidebar-divider {
-            height: 1px;
-            background: var(--border-light);
-            margin: 16px 24px;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 48px 64px;
-            max-width: calc(100% - 280px);
-        }
-
-        /* Breadcrumb */
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 32px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .breadcrumb a {
-            color: var(--primary-blue);
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover { text-decoration: underline; }
-
-        .breadcrumb-sep { opacity: 0.5; }
-
-        /* Page Title */
-        .page-title {
-            font-size: 42px;
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .page-description {
-            font-size: 18px;
-            color: var(--text-secondary);
-            margin-bottom: 48px;
-            max-width: 800px;
-            line-height: 1.6;
-        }
-
-        /* Content Sections */
-        .doc-section { margin-bottom: 56px; }
-
-        .doc-section h2 {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid rgba(106, 183, 255, 0.2);
-        }
-
-        .doc-section h3 {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--primary-blue-light);
-            margin: 32px 0 12px;
-        }
-
-        .doc-section h4 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--accent-teal);
-            margin: 24px 0 8px;
-        }
-
-        .doc-section p {
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-            line-height: 1.7;
-        }
-
-        .doc-section ul, .doc-section ol {
-            margin: 0 0 16px 24px;
-            color: var(--text-secondary);
-        }
-
-        .doc-section li {
-            margin-bottom: 8px;
-            line-height: 1.6;
-        }
-
-        .doc-section li strong { color: var(--text-primary); }
-
-        /* Info Cards */
-        .info-card {
-            background: var(--card-light);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .info-card.tip {
-            border-left: 4px solid var(--accent-teal);
-            background: rgba(100, 216, 203, 0.05);
-        }
-
-        .info-card.warning {
-            border-left: 4px solid var(--warning-yellow);
-            background: rgba(255, 212, 59, 0.05);
-        }
-
-        .info-card.note {
-            border-left: 4px solid var(--primary-blue);
-            background: rgba(106, 183, 255, 0.05);
-        }
-
-        .info-card-title {
-            font-weight: 700;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .info-card.tip .info-card-title { color: var(--accent-teal); }
-        .info-card.warning .info-card-title { color: var(--warning-yellow); }
-        .info-card.note .info-card-title { color: var(--primary-blue); }
-
-        .info-card p { margin-bottom: 0; }
-
-        /* Tables */
-        .table-wrapper {
-            overflow-x: auto;
-            margin-bottom: 24px;
-            border-radius: 12px;
-            border: 1px solid var(--border-light);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        thead {
-            background: var(--card-light);
-        }
-
-        th {
-            text-align: left;
-            padding: 14px 16px;
-            font-weight: 700;
-            color: var(--primary-blue);
-            border-bottom: 2px solid rgba(106, 183, 255, 0.2);
-            white-space: nowrap;
-        }
-
-        td {
-            padding: 12px 16px;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border-dark);
-        }
-
-        tr:last-child td { border-bottom: none; }
-
-        tr:hover td { background: rgba(106, 183, 255, 0.03); }
-
-        /* Code */
-        code {
-            background: rgba(106, 183, 255, 0.1);
-            color: var(--primary-blue);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 13px;
-        }
-
-        pre {
-            background: var(--card-dark);
-            border: 1px solid var(--border-light);
-            border-radius: 10px;
-            padding: 20px 24px;
-            overflow-x: auto;
-            margin-bottom: 24px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            color: var(--text-secondary);
-        }
-
-        pre code {
-            background: none;
-            padding: 0;
-            color: inherit;
-        }
-
-        /* Steps */
-        .steps {
-            counter-reset: step-counter;
-            list-style: none;
-            margin: 0 0 24px 0;
-            padding: 0;
-        }
-
-        .steps li {
-            counter-increment: step-counter;
-            position: relative;
-            padding: 16px 16px 16px 60px;
-            margin-bottom: 12px;
-            background: var(--card-light);
-            border-radius: 10px;
-            border: 1px solid var(--border-light);
-        }
-
-        .steps li::before {
-            content: counter(step-counter);
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
-            color: var(--background-dark);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        /* Feature Grid */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 32px;
-        }
-
-        .feature-item {
-            background: var(--card-light);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 24px;
-            transition: all 0.3s ease;
-        }
-
-        .feature-item:hover {
-            border-color: rgba(106, 183, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .feature-item-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-teal) 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            margin-bottom: 12px;
-        }
-
-        .feature-item h4 {
-            color: var(--text-primary);
-            font-size: 16px;
-            margin: 0 0 8px;
-        }
-
-        .feature-item p {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin: 0;
-            line-height: 1.5;
-        }
-
-        /* Badge */
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .badge-blue { background: rgba(106, 183, 255, 0.2); color: var(--primary-blue); }
-        .badge-teal { background: rgba(100, 216, 203, 0.2); color: var(--accent-teal); }
-        .badge-yellow { background: rgba(255, 212, 59, 0.2); color: var(--warning-yellow); }
-        .badge-green { background: rgba(81, 207, 102, 0.2); color: var(--success-green); }
-
-        /* Footer */
-        .footer {
-            background: var(--card-dark);
-            padding: 40px 24px;
-            border-top: 1px solid var(--border-light);
-            margin-left: 280px;
-            text-align: center;
-        }
-
-        .footer-copyright {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .footer-social {
-            display: flex;
-            justify-content: center;
-            gap: clamp(16px, 4vw, 32px);
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-        }
-
-        .social-link {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: clamp(40px, 8vw, 48px);
-            height: clamp(40px, 8vw, 48px);
-            background: rgba(106, 183, 255, 0.1);
-            border: 1px solid rgba(106, 183, 255, 0.3);
-            border-radius: 12px;
-            color: var(--primary-blue);
-            text-decoration: none;
-            font-size: clamp(16px, 3vw, 20px);
-            transition: all 0.3s ease;
-            transform: translateZ(0);
-        }
-
-        .social-link:hover {
-            background: rgba(106, 183, 255, 0.2);
-            border-color: rgba(106, 183, 255, 0.5);
-            transform: translateY(-2px) translateZ(0);
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
-        .footer-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s;
-        }
-
-        .footer-link:hover { color: var(--primary-blue); }
-
-        /* Mobile Menu Toggle */
-        .mobile-menu-toggle {
-            display: none;
-            flex-direction: column;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 8px;
-        }
-
-        .mobile-menu-toggle span {
-            width: 24px;
-            height: 2px;
-            background: var(--text-primary);
-            margin: 3px 0;
-            border-radius: 2px;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-close {
-            display: none;
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 32px;
-            height: 32px;
-            background: rgba(106, 183, 255, 0.1);
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 18px;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 80px; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 90;
-        }
-
-        /* Mobile CTA inside sidebar */
-        .sidebar-cta-wrapper { display: none; padding: 0 24px 16px; margin-bottom: 8px; }
-        .sidebar-cta-wrapper .header-cta {
-            display: block; width: 100%; text-align: center;
-            padding: 12px 20px;
-            box-shadow: 0 4px 12px rgba(106, 183, 255, 0.3);
-        }
-
-        @media (max-width: 1024px) {
-            .nav { display: none; }
-            .mobile-menu-toggle { display: flex; }
-
-            /* Hide header download on mobile; surface it inside the sidebar instead */
-            .header > .header-container > .header-cta { display: none; }
-            .sidebar-cta-wrapper { display: block; }
-
-            .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
-
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-close { display: flex; }
-            .sidebar-overlay.open { display: block; }
-
-            .main-content {
-                margin-left: 0;
-                max-width: 100%;
-                padding: 32px 24px;
-            }
-
-            .footer { margin-left: 0; }
-        }
-
-        @media (max-width: 768px) {
-            .page-title { font-size: 32px; }
-            .page-description { font-size: 16px; }
-            .main-content { padding: 24px 16px; }
-            .doc-section h2 { font-size: 24px; }
-        }
-
-        @media (max-width: 480px) {
-            .header { height: 70px; }
-            .page-wrapper { margin-top: 70px; }
-            .sidebar { top: 70px; }
-            .feature-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" href="../../assets/site.css">
 </head>
 <body>
 
-<header class="header">
-    <div class="header-container">
-        <a href="../../" class="logo">
-            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
-            ISO8583Studio
-        </a>
-        <nav class="nav">
-            <a href="../../" class="nav-link">Home</a>
-            <a href="../host-simulator/" class="nav-link active">Host Simulator</a>
-            <a href="../hsm-simulator/" class="nav-link">HSM Simulator</a>
-        </nav>
-        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
-            <span></span><span></span><span></span>
-        </div>
-        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
-    </div>
-</header>
+<site-header root="../../"></site-header>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<div class="page-wrapper">
-    <aside class="sidebar" id="sidebar">
-        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
-
-        <div class="sidebar-cta-wrapper">
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Getting Started</div>
-            <a href="#overview" class="sidebar-link active">Overview</a>
-            <a href="#quick-start" class="sidebar-link">Quick Start Guide</a>
-            <a href="#gateway-types" class="sidebar-link">Gateway Types</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Configuration</div>
-            <a href="#gateway-config" class="sidebar-link">Gateway Configuration</a>
-            <a href="#transmission" class="sidebar-link">Transmission Settings</a>
-            <a href="#connection-types" class="sidebar-link">Connection Types</a>
-            <a href="#message-formats" class="sidebar-link">Message Formats</a>
-            <a href="#log-settings" class="sidebar-link">Log Settings</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Using the Simulator</div>
-            <a href="#host-handler" class="sidebar-link">ISO8583 Transaction Tab</a>
-            <a href="#transaction-rules" class="sidebar-link">Settings &amp; Responses</a>
-            <a href="#placeholders" class="sidebar-link">Dynamic Placeholders</a>
-            <a href="#rest-matching" class="sidebar-link">REST Matching</a>
-            <a href="#iso8583-template" class="sidebar-link">ISO8583 Template</a>
-            <a href="#unsolicited" class="sidebar-link">Unsolicited Messages</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Reference</div>
-            <a href="#security" class="sidebar-link">Security Options</a>
-            <a href="#tabs-reference" class="sidebar-link">Tabs Reference</a>
-        </div>
-    </aside>
-
-    <main class="main-content">
+<main class="doc-body">
         <div class="breadcrumb">
-            <a href="../../">Home</a>
+            <a href="../../index.html">Home</a>
             <span class="breadcrumb-sep">/</span>
             <span>Documentation</span>
             <span class="breadcrumb-sep">/</span>
@@ -735,6 +59,13 @@
         <section class="doc-section" id="overview">
             <h2>Overview</h2>
             <p>The Host Simulator in ISO8583Studio acts as a payment host simulator for development and testing. It accepts incoming connections from POS terminals, ATMs, or other financial clients and returns configurable responses based on matching rules. This eliminates the need for a real host environment during development and QA testing.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig wide" style="--shot-w:1400px">
+                    <image-slot><img src="/images/docs/host-simulator/overview.png" alt="ISO8583Studio Host Simulator running as Hitachi - 1, ISO8583 Transaction tab showing a formatted 0200 request and 0210 response beside their raw hex" width="2800" height="1683" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Overview</figcaption>
+                </figure>
+            </div>
 
             <div class="feature-grid">
                 <div class="feature-item">
@@ -770,6 +101,7 @@
             </div>
         </section>
 
+
         <!-- Quick Start -->
         <section class="doc-section" id="quick-start">
             <h2>Quick Start Guide</h2>
@@ -794,6 +126,13 @@
         <section class="doc-section" id="gateway-types">
             <h2>Gateway Types</h2>
             <p>The host simulator supports three gateway modes, each suited to different testing scenarios:</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig" style="--shot-w:936px">
+                    <image-slot><img src="/images/docs/host-simulator/gateway-types.png" alt="Gateway Type selector with Server, Client and Proxy tiles and the Synchronous / Asynchronous transmission type below" width="1872" height="1256" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Gateway Types</figcaption>
+                </figure>
+            </div>
 
             <div class="table-wrapper">
                 <table>
@@ -839,6 +178,13 @@
             <h2>Gateway Configuration</h2>
             <p>The Gateway Type tab provides the core configuration for your simulator instance.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig" style="--shot-w:936px">
+                    <image-slot><img src="/images/docs/host-simulator/gateway-config.png" alt="Response Settings with the Realistic response delay selected, Max Concurrent set to 50, and Advanced Options showing Enable Detailed Logging checked" width="1872" height="879" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Gateway Configuration</figcaption>
+                </figure>
+            </div>
+
             <h3>Basic Settings</h3>
             <div class="table-wrapper">
                 <table>
@@ -881,6 +227,13 @@
         <section class="doc-section" id="transmission">
             <h2>Transmission Settings</h2>
             <p>Configure how the simulator communicates over the network. Settings differ based on your gateway type.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig" style="--shot-w:1400px">
+                    <image-slot><img src="/images/docs/host-simulator/transmission.png" alt="Incoming and outgoing connection settings side by side, each with a TCP/IP, RS232, Dial-up or REST API connection type and a message length format" width="2800" height="895" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Transmission Settings</figcaption>
+                </figure>
+            </div>
 
             <h3>Incoming Connection (Server / Proxy)</h3>
             <p>Configure the listener that accepts incoming connections:</p>
@@ -998,6 +351,13 @@
             <h2>Log Settings</h2>
             <p>Configure how the simulator logs transactions and connections.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig" style="--shot-w:936px">
+                    <image-slot><img src="/images/docs/host-simulator/log-settings.png" alt="Logging Options with logfile name and max size, and Logging Content set to Parsed data using the ISO8583 protocol" width="1464" height="820" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Log Settings</figcaption>
+                </figure>
+            </div>
+
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -1020,6 +380,17 @@
             <h2>ISO8583 Transaction Tab</h2>
             <p>The <strong>ISO8583 Transaction</strong> tab (visible for Server and Proxy gateway types) is the main runtime interface for controlling and monitoring the simulator.</p>
 
+            <div class="shot-grid shot-row" style="--row-w:1400px">
+                <figure class="shot-fig" style="--shot-w:898px">
+                    <image-slot><img src="/images/docs/host-simulator/host-handler.png" alt="Message Parser showing a raw ISO8583 hex message parsed into 12 fields, with field 25 selected and its point of service condition code decoded" width="2800" height="1281" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Message Parser &mdash; parsed fields and per-field detail</figcaption>
+                </figure>
+                <figure class="shot-fig" style="--shot-w:484px">
+                    <image-slot><img src="/images/docs/host-simulator/host-handler-bitmap.png" alt="Bitmap Analysis grid for hex bitmap 3038048020C00014, highlighting the twelve set fields out of 64" width="1118" height="948" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Bitmap Analysis</figcaption>
+                </figure>
+            </div>
+
             <h3>Controls</h3>
             <ul>
                 <li><strong>Start / Stop</strong> &mdash; Launch or shut down the simulator server.</li>
@@ -1039,6 +410,13 @@
         <section class="doc-section" id="transaction-rules">
             <h2>Transaction Rules (Settings Tab)</h2>
             <p>Transaction rules define how the simulator matches incoming requests and what responses to return. Configure them in the <strong>Settings</strong> tab.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig" style="--shot-w:936px">
+                    <image-slot><img src="/images/docs/host-simulator/transaction-rules.png" alt="Transaction Simulator with SALE, REVERSAL and VOID transactions listed on the left and the Fields tab on the right showing 13 configured ISO8583 fields" width="1872" height="878" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Transaction Rules (Settings Tab)</figcaption>
+                </figure>
+            </div>
 
             <h3>Settings Tab Layout</h3>
             <ul>
@@ -1103,32 +481,49 @@ Response Fields (Fields tab):
             <h2>Dynamic Placeholders</h2>
             <p>Use placeholders in response field values to generate dynamic content at runtime instead of static values.</p>
 
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr><th>Placeholder</th><th>Name</th><th>Description</th><th>Example</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>[SV]</code></td>
-                            <td>Source Value</td>
-                            <td>Copies the value of the same field from the incoming request. Essential for echo-back fields like System Trace, RRN, and Terminal ID.</td>
-                            <td>If request Field 11 is <code>123456</code>, response Field 11 with <code>[SV]</code> will be <code>123456</code>.</td>
-                        </tr>
-                        <tr>
-                            <td><code>[TIME]</code></td>
-                            <td>Current Time</td>
-                            <td>Generates a timestamp formatted based on the field's length. Uses formats like <code>MMdd</code>, <code>HHmmss</code>, or <code>yyMMddHHmmss</code> automatically.</td>
-                            <td>Field 12 (6 chars) &rarr; <code>143052</code> (HHmmss)</td>
-                        </tr>
-                        <tr>
-                            <td><code>[RAND]</code></td>
-                            <td>Random Value</td>
-                            <td>Generates a random numeric string matching the field's expected length. Useful for authorization codes and reference numbers.</td>
-                            <td>Field 38 (6 chars) &rarr; <code>847291</code></td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="ph-grid">
+                <div class="ph-card ph-sv">
+                    <div class="ph-tok">[SV]</div>
+                    <h4>Source Value</h4>
+                    <p>Copies data from the corresponding field in the request message.</p>
+                    <div class="ph-ex">
+                        <b>Examples</b>
+                        <ul>
+                            <li>Field 3: [SV] <span>&rarr; Processing Code</span></li>
+                            <li>Field 11: [SV] <span>&rarr; STAN</span></li>
+                            <li>Field 37: [SV] <span>&rarr; RRN</span></li>
+                        </ul>
+                    </div>
+                    <p class="ph-note">Useful for response messages where you need to echo back values from the original request.</p>
+                </div>
+                <div class="ph-card ph-time">
+                    <div class="ph-tok">[TIME]</div>
+                    <h4>Current Time</h4>
+                    <p>Generates a current timestamp based on the field&rsquo;s expected length.</p>
+                    <div class="ph-ex">
+                        <b>Examples</b>
+                        <ul>
+                            <li>Field 12 (6): [TIME] <span>&rarr; 143052 (HHmmss)</span></li>
+                            <li>Field 13 (4): [TIME] <span>&rarr; 1204 (MMdd)</span></li>
+                            <li>Field 7 (10): [TIME] <span>&rarr; 1204143052</span></li>
+                        </ul>
+                    </div>
+                    <p class="ph-note">Automatically formats the current time according to ISO8583 field specifications.</p>
+                </div>
+                <div class="ph-card ph-rand">
+                    <div class="ph-tok">[RAND]</div>
+                    <h4>Random Number</h4>
+                    <p>Generates a random numeric value based on the field&rsquo;s maximum length.</p>
+                    <div class="ph-ex">
+                        <b>Examples</b>
+                        <ul>
+                            <li>Field 11 (6): [RAND] <span>&rarr; 123456</span></li>
+                            <li>Field 37 (12): [RAND] <span>&rarr; 987654321098</span></li>
+                            <li>Field 38 (6): [RAND] <span>&rarr; 456789</span></li>
+                        </ul>
+                    </div>
+                    <p class="ph-note">Generates unique values for fields like STAN, RRN or authorization codes during testing.</p>
+                </div>
             </div>
 
             <div class="info-card note">
@@ -1185,6 +580,13 @@ Response Fields (Fields tab):
             <h2>ISO8583 Template Tab</h2>
             <p>The <strong>ISO8583 Template</strong> tab defines the message specification used for parsing and building messages.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig" style="--shot-w:936px">
+                    <image-slot><img src="/images/docs/host-simulator/iso8583-template.png" alt="Source Bit Templates table listing each bit with its format type, length type, max length and description, beside the source advanced options and message format panels" width="1872" height="868" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> ISO8583 Template Tab</figcaption>
+                </figure>
+            </div>
+
             <h3>Top-bar actions</h3>
             <ul>
                 <li><strong>Save</strong> &mdash; Persist template changes. Send Message and other tabs re-sync immediately.</li>
@@ -1220,6 +622,13 @@ Response Fields (Fields tab):
         <section class="doc-section" id="unsolicited">
             <h2>Unsolicited Messages</h2>
             <p>Unsolicited messages are messages sent outside the normal request-response flow, typically for network management, notifications, or terminal updates.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig" style="--shot-w:1400px">
+                    <image-slot><img src="/images/docs/host-simulator/host-handler.png" alt="Message Parser showing a raw ISO8583 hex message parsed into 12 fields, with field 25 selected and its point of service condition code decoded" width="2800" height="1281" loading="lazy"></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">host-simulator</span> Message Parser &mdash; incoming messages parsed against the active template</figcaption>
+                </figure>
+            </div>
 
             <h3>Send Message (Client / Proxy)</h3>
             <p>Craft and send outbound unsolicited messages to connected hosts. Available in <strong>Client</strong> and <strong>Proxy</strong> modes. Use the message builder to construct ISO8583 messages with specific fields and send them on demand.</p>
@@ -1334,69 +743,11 @@ Response Fields (Fields tab):
         </section>
 
     </main>
-</div>
 
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-social">
-            <a href="https://github.com/users/hpkaushik121/projects/1" class="social-link" title="Roadmap">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/></svg>
-            </a>
-            <a href="https://www.linkedin.com/in/sourabh-kaushik/" class="social-link" title="LinkedIn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-            </a>
-            <a href="https://github.com/hpkaushik121" class="social-link" title="GitHub">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-            </a>
-            <a href="https://medium.com/@iso8583.studio" class="social-link" title="Medium">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/></svg>
-            </a>
-        </div>
+<site-pro root="../../"></site-pro>
 
-        <div class="footer-links">
-            <a href="../" class="footer-link">Documentation</a>
-            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
-            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
-        </div>
+<site-footer root="../../"></site-footer>
 
-        <div class="footer-copyright">
-            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
-        </div>
-    </div>
-</footer>
-
-<script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('open');
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('.sidebar-link');
-        const sections = document.querySelectorAll('.doc-section');
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    links.forEach(l => l.classList.remove('active'));
-                    const id = entry.target.getAttribute('id');
-                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
-                    if (active) active.classList.add('active');
-                }
-            });
-        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
-
-        sections.forEach(s => observer.observe(s));
-
-        links.forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 1024) toggleSidebar();
-            });
-        });
-    });
-</script>
-
+<script src="../../assets/site.js"></script>
 </body>
 </html>

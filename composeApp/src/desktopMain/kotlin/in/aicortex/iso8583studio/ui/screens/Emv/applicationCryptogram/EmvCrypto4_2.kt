@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram
 
+import `in`.aicortex.iso8583studio.analytics.Analytics
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -127,6 +128,7 @@ object Emv42LogManager {
 
     fun logOperation(tabTitle: String, operation: String, inputs: Map<String, String>, result: String? = null, error: String? = null, executionTime: Long = 0L) {
         if (result == null && error == null) return
+        Analytics.calculationRun(operation, success = result != null, durationMs = executionTime)
 
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
         val details = buildString {

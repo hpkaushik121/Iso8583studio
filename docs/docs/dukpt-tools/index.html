@@ -3,89 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
     <title>DUKPT Tools Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
     <link rel="icon" href="../../images/app.png" type="image/x-icon">
     <meta name="description" content="ISO8583Studio DUKPT Tools documentation - Derive transaction keys from BDK and KSN for both DUKPT AES (X9.24-3) and DUKPT ISO 9797 (X9.24-1) variants.">
     <meta name="keywords" content="DUKPT calculator, DUKPT AES, DUKPT ISO 9797, BDK, KSN, IPEK, key serial number, base derivation key, ANSI X9.24-1, ANSI X9.24-3, transaction key derivation">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://iso8583.studio/docs/dukpt-tools/">
-    <link rel="stylesheet" href="../_shared.css">
+    <link rel="stylesheet" href="../../assets/site.css">
 </head>
 <body>
 
-<header class="header">
-    <div class="header-container">
-        <a href="../../" class="logo">
-            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
-            ISO8583Studio
-        </a>
-        <nav class="nav">
-            <a href="../../" class="nav-link">Home</a>
-            <a href="../" class="nav-link">Documentation</a>
-            <a href="../../blogs/" class="nav-link">Blog</a>
-        </nav>
-        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
-            <span></span><span></span><span></span>
-        </div>
-        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
-    </div>
-</header>
+<site-header root="../../"></site-header>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<div class="page-wrapper">
-    <aside class="sidebar" id="sidebar">
-        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
-
-        <div class="sidebar-cta-wrapper">
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Overview</div>
-            <a href="#overview" class="sidebar-link active">What is DUKPT?</a>
-            <a href="#variants" class="sidebar-link">DUKPT Variants</a>
-            <a href="#concepts" class="sidebar-link">Key Concepts</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">DUKPT ISO 9797</div>
-            <a href="#iso9797-overview" class="sidebar-link">Tabs Overview</a>
-            <a href="#iso9797-pek" class="sidebar-link">PEK Derivation</a>
-            <a href="#iso9797-dek" class="sidebar-link">DEK Derivation</a>
-            <a href="#iso9797-pin" class="sidebar-link">DUKPT PIN</a>
-            <a href="#iso9797-mac" class="sidebar-link">DUKPT MAC</a>
-            <a href="#iso9797-data" class="sidebar-link">DUKPT Data</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">DUKPT AES</div>
-            <a href="#aes-overview" class="sidebar-link">Tabs Overview</a>
-            <a href="#aes-derive" class="sidebar-link">Key Derivation</a>
-            <a href="#aes-pin" class="sidebar-link">DUKPT PIN</a>
-            <a href="#aes-mac" class="sidebar-link">DUKPT MAC</a>
-            <a href="#aes-data" class="sidebar-link">DUKPT Data</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Reference</div>
-            <a href="#ksn-format" class="sidebar-link">KSN Structure</a>
-            <a href="#tips" class="sidebar-link">Tips &amp; Pitfalls</a>
-        </div>
-    </aside>
-
-    <main class="main-content">
+<main class="doc-body">
         <div class="breadcrumb">
-            <a href="../../">Home</a>
+            <a href="../../index.html">Home</a>
             <span class="breadcrumb-sep">/</span>
-            <a href="../">Documentation</a>
+            <a href="../index.html">Documentation</a>
             <span class="breadcrumb-sep">/</span>
             <span>DUKPT Tools</span>
         </div>
@@ -96,6 +35,13 @@
         <section class="doc-section" id="overview">
             <h2>What is DUKPT?</h2>
             <p>DUKPT generates a unique cryptographic key for every transaction without ever transmitting that key. The terminal stores a single Initial PIN Encryption Key (IPEK) derived from a Base Derivation Key (BDK) and a Key Serial Number (KSN). For each transaction the terminal advances the KSN counter and derives a fresh transaction key. The host, knowing only the BDK and the KSN it received, derives the same transaction key independently.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig wide">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> What is DUKPT?</figcaption>
+                </figure>
+            </div>
 
             <div class="info-card note">
                 <div class="info-card-title">Why use DUKPT?</div>
@@ -151,6 +97,13 @@
         <section class="doc-section" id="iso9797-pek">
             <h2>PEK Derivation Tab</h2>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> PEK Derivation Tab</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <ul>
                 <li><strong>Input Key Designation</strong> &mdash; Radio / toggle: <code>BDK</code> or <code>IPEK</code>. Determines which key field is shown.</li>
@@ -174,6 +127,13 @@
             <h2>DEK Derivation Tab</h2>
             <p>Identical fields and flow to <em>PEK Derivation</em> &mdash; the only difference is the variant applied to produce a Data Encryption Key.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> DEK Derivation Tab</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <ul>
                 <li><strong>Input Key Designation</strong> &mdash; <code>BDK</code> or <code>IPEK</code>.</li>
@@ -187,6 +147,13 @@
             <h2>DUKPT PIN Tab</h2>
             <p>Encrypt or decrypt a PIN block using a working key you derived in <em>PEK Derivation</em>.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> DUKPT PIN Tab</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <ul>
                 <li><strong>PEK (32 Hex Chars)</strong> &mdash; Paste the PEK from the PEK Derivation tab.</li>
@@ -198,6 +165,13 @@
         <section class="doc-section" id="iso9797-mac">
             <h2>DUKPT MAC Tab</h2>
             <p>Compute a MAC over hex data with a previously derived working key.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> DUKPT MAC Tab</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -211,6 +185,13 @@
         <section class="doc-section" id="iso9797-data">
             <h2>DUKPT Data Tab</h2>
             <p>Encrypt or decrypt sensitive data fields (track 2, EMV data) with a derived key.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> DUKPT Data Tab</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -238,6 +219,13 @@
 
         <section class="doc-section" id="aes-derive">
             <h2>Key Derivation Tab</h2>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> Key Derivation Tab</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -267,6 +255,13 @@
 
         <section class="doc-section" id="aes-pin">
             <h2>DUKPT PIN Tab (AES)</h2>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> DUKPT PIN Tab (AES)</figcaption>
+                </figure>
+            </div>
             <h3>Inputs</h3>
             <ul>
                 <li><strong>PEK (Pin Encryption Key)</strong> &mdash; Hex working key from <em>Key Derivation</em>.</li>
@@ -277,6 +272,13 @@
 
         <section class="doc-section" id="aes-mac">
             <h2>DUKPT MAC Tab (AES)</h2>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> DUKPT MAC Tab (AES)</figcaption>
+                </figure>
+            </div>
             <h3>Inputs</h3>
             <ul>
                 <li><strong>MAC Generation Key</strong> &mdash; Hex working key from <em>Key Derivation</em>.</li>
@@ -287,6 +289,13 @@
 
         <section class="doc-section" id="aes-data">
             <h2>DUKPT Data Tab (AES)</h2>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">dukpt-tools</span> DUKPT Data Tab (AES)</figcaption>
+                </figure>
+            </div>
             <h3>Inputs</h3>
             <ul>
                 <li><strong>DEK (Data Encryption Key)</strong> &mdash; Hex working key from <em>Key Derivation</em>.</li>
@@ -320,54 +329,9 @@
             </ul>
         </section>
     </main>
-</div>
 
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-links">
-            <a href="../" class="footer-link">Documentation</a>
-            <a href="../../blogs/" class="footer-link">Blog</a>
-            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
-            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
-        </div>
-        <div class="footer-copyright">
-            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
-        </div>
-    </div>
-</footer>
+<site-footer root="../../"></site-footer>
 
-<script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('open');
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('.sidebar-link');
-        const sections = document.querySelectorAll('.doc-section');
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    links.forEach(l => l.classList.remove('active'));
-                    const id = entry.target.getAttribute('id');
-                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
-                    if (active) active.classList.add('active');
-                }
-            });
-        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
-
-        sections.forEach(s => observer.observe(s));
-
-        links.forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 1024) toggleSidebar();
-            });
-        });
-    });
-</script>
-
+<script src="../../assets/site.js"></script>
 </body>
 </html>

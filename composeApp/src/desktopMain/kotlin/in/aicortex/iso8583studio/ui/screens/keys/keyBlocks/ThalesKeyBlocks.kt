@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.keyBlocks
 
+import `in`.aicortex.iso8583studio.analytics.Analytics
 import ai.cortex.core.ValidationResult
 import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
@@ -76,6 +77,8 @@ private object ThalesKbLogManager {
     }
 
     fun logOperation(operation: String, details: String, isError: Boolean = false) {
+        // `details` is deliberately not forwarded - it holds key material.
+        Analytics.calculationRun(operation, success = !isError, durationMs = 0L)
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
         val logType = if (isError) LogType.ERROR else LogType.TRANSACTION
         val message = if (isError) "$operation Failed" else "$operation Result"

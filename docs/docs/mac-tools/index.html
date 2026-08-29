@@ -3,84 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
     <title>MAC Tools Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
     <link rel="icon" href="../../images/app.png" type="image/x-icon">
     <meta name="description" content="ISO8583Studio MAC Tools documentation - HMAC, CMAC, ISO 9797 MAC, ANSI X9.19 MAC, Retail MAC, AS2805 MAC, and TDES CBC-MAC calculators for payment integrity testing.">
     <meta name="keywords" content="MAC calculator, HMAC, CMAC, ISO 9797-1, ANSI X9.19, retail MAC, AS2805 MAC, TDES CBC MAC, message authentication code, payment integrity">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://iso8583.studio/docs/mac-tools/">
-    <link rel="stylesheet" href="../_shared.css">
+    <link rel="stylesheet" href="../../assets/site.css">
 </head>
 <body>
 
-<header class="header">
-    <div class="header-container">
-        <a href="../../" class="logo">
-            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
-            ISO8583Studio
-        </a>
-        <nav class="nav">
-            <a href="../../" class="nav-link">Home</a>
-            <a href="../" class="nav-link">Documentation</a>
-            <a href="../../blogs/" class="nav-link">Blog</a>
-        </nav>
-        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
-            <span></span><span></span><span></span>
-        </div>
-        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
-    </div>
-</header>
+<site-header root="../../"></site-header>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<div class="page-wrapper">
-    <aside class="sidebar" id="sidebar">
-        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
-
-        <div class="sidebar-cta-wrapper">
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Overview</div>
-            <a href="#overview" class="sidebar-link active">Introduction</a>
-            <a href="#choosing" class="sidebar-link">Choosing a MAC</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Hash-based MACs</div>
-            <a href="#hmac" class="sidebar-link">HMAC</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Block-cipher MACs</div>
-            <a href="#cmac" class="sidebar-link">CMAC</a>
-            <a href="#tdes-cbc" class="sidebar-link">TDES CBC-MAC</a>
-            <a href="#ansi-mac" class="sidebar-link">ANSI X9.19 MAC</a>
-            <a href="#iso9797" class="sidebar-link">ISO 9797 MAC</a>
-            <a href="#retail" class="sidebar-link">Retail MAC</a>
-            <a href="#as2805" class="sidebar-link">AS2805 MAC</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Reference</div>
-            <a href="#padding" class="sidebar-link">Padding Methods</a>
-            <a href="#tips" class="sidebar-link">Tips</a>
-        </div>
-    </aside>
-
-    <main class="main-content">
+<main class="doc-body">
         <div class="breadcrumb">
-            <a href="../../">Home</a>
+            <a href="../../index.html">Home</a>
             <span class="breadcrumb-sep">/</span>
-            <a href="../">Documentation</a>
+            <a href="../index.html">Documentation</a>
             <span class="breadcrumb-sep">/</span>
             <span>MAC Tools</span>
         </div>
@@ -91,6 +35,13 @@
         <section class="doc-section" id="overview">
             <h2>Introduction</h2>
             <p>A Message Authentication Code (MAC) is a short tag computed from a message and a secret key. It lets a receiver verify that a message has not been altered and that it came from someone holding the same key. Payment networks rely on MACs heavily &mdash; on ISO 8583 messages, on terminal-host links, and on PIN-translation pipelines.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig wide">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> Introduction</figcaption>
+                </figure>
+            </div>
             <p>ISO8583Studio includes calculators for every MAC algorithm commonly seen in payment specifications, organised into two families: hash-based (HMAC) and block-cipher-based (CMAC, CBC-MAC and its variants).</p>
         </section>
 
@@ -115,6 +66,13 @@
         <section class="doc-section" id="hmac">
             <h2>HMAC Calculator</h2>
             <p>Hash-based MAC defined by RFC 2104.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> HMAC Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <div class="table-wrapper">
@@ -158,6 +116,13 @@ Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</co
             <h2>CMAC Calculator</h2>
             <p>Cipher-based MAC (NIST SP 800-38B). Uses AES or TDES as the underlying block cipher with subkey derivation to handle final-block padding cleanly.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> CMAC Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <ul>
                 <li><strong>Cipher</strong> &mdash; AES-128, AES-192, AES-256, or TDES (2-key / 3-key).</li>
@@ -176,6 +141,13 @@ Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</co
             <h2>TDES CBC-MAC Calculator</h2>
             <p>Triple-DES CBC-MAC: encrypt the message under TDES in CBC mode and take the last block as the MAC. Common in legacy ISO 8583 implementations.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> TDES CBC-MAC Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <ul>
                 <li><strong>Key</strong> &mdash; 32 or 48 hex chars (2-key or 3-key 3DES).</li>
@@ -193,6 +165,13 @@ Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</co
         <section class="doc-section" id="ansi-mac">
             <h2>ANSI X9.19 MAC Calculator</h2>
             <p>ANSI X9.19 (financial institution retail message authentication) uses single-DES CBC-MAC across the message, with a final 3DES "finalize" step over the last block. Equivalent to ISO 9797-1 Algorithm 3 with a specific key arrangement.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> ANSI X9.19 MAC Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -213,6 +192,13 @@ Output:     5BDCC146BF60754E6A042426089575C75A003F089D2739839DEC58B964EC3843</co
         <section class="doc-section" id="iso9797">
             <h2>ISO 9797 MAC Calculator</h2>
             <p>ISO/IEC 9797-1 standardises six MAC algorithms over block ciphers. The calculator exposes each variant by tab.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> ISO 9797 MAC Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Algorithms</h3>
             <div class="table-wrapper">
@@ -257,6 +243,13 @@ Output: B11FFC78A4FB1B5A</code></pre>
             <h2>Retail MAC Calculator</h2>
             <p>A dedicated tab for ISO 9797-1 Algorithm 3 with the conventional retail-banking key arrangement. Equivalent to ANSI X9.19 in practice.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> Retail MAC Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <ul>
                 <li><strong>Key A / Key B</strong> &mdash; Two 8-byte hex halves forming the 3DES key.</li>
@@ -269,6 +262,13 @@ Output: B11FFC78A4FB1B5A</code></pre>
         <section class="doc-section" id="as2805">
             <h2>AS2805 MAC Calculator</h2>
             <p>The Australian Standard AS 2805.4 specifies its own MAC variant for inter-bank messaging. The calculator implements the "MAC" portion of AS 2805 with the expected key splits.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">mac-tools</span> AS2805 MAC Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -306,54 +306,9 @@ Output: B11FFC78A4FB1B5A</code></pre>
             </ul>
         </section>
     </main>
-</div>
 
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-links">
-            <a href="../" class="footer-link">Documentation</a>
-            <a href="../../blogs/" class="footer-link">Blog</a>
-            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
-            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
-        </div>
-        <div class="footer-copyright">
-            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
-        </div>
-    </div>
-</footer>
+<site-footer root="../../"></site-footer>
 
-<script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('open');
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('.sidebar-link');
-        const sections = document.querySelectorAll('.doc-section');
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    links.forEach(l => l.classList.remove('active'));
-                    const id = entry.target.getAttribute('id');
-                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
-                    if (active) active.classList.add('active');
-                }
-            });
-        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
-
-        sections.forEach(s => observer.observe(s));
-
-        links.forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 1024) toggleSidebar();
-            });
-        });
-    });
-</script>
-
+<script src="../../assets/site.js"></script>
 </body>
 </html>

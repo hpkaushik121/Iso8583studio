@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.components
 
+import `in`.aicortex.iso8583studio.analytics.Analytics
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
@@ -93,6 +94,7 @@ data class CalculatorLogManager(val tabs: List<CalculatorTab>) {
         if (result == null && error == null) {
             return
         }
+        Analytics.calculationRun(operation, success = result != null, durationMs = executionTime)
 
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 

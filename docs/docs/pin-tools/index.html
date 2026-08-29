@@ -3,81 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
     <title>PIN Tools Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
     <link rel="icon" href="../../images/app.png" type="image/x-icon">
     <meta name="description" content="ISO8583Studio PIN Tools documentation - PIN block calculators (ISO 9564 formats 0-4, OEM variants), AES PIN block, IBM 3624 PIN offset, and VISA PVV calculation.">
     <meta name="keywords" content="PIN block calculator, ISO 9564, PIN block format 0, format 1, format 3, format 4, AES PIN block, PVV calculator, IBM 3624 offset, VISA PVV, payment PIN testing">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://iso8583.studio/docs/pin-tools/">
-    <link rel="stylesheet" href="../_shared.css">
+    <link rel="stylesheet" href="../../assets/site.css">
 </head>
 <body>
 
-<header class="header">
-    <div class="header-container">
-        <a href="../../" class="logo">
-            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
-            ISO8583Studio
-        </a>
-        <nav class="nav">
-            <a href="../../" class="nav-link">Home</a>
-            <a href="../" class="nav-link">Documentation</a>
-            <a href="../../blogs/" class="nav-link">Blog</a>
-        </nav>
-        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
-            <span></span><span></span><span></span>
-        </div>
-        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
-    </div>
-</header>
+<site-header root="../../"></site-header>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<div class="page-wrapper">
-    <aside class="sidebar" id="sidebar">
-        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
-
-        <div class="sidebar-cta-wrapper">
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Overview</div>
-            <a href="#overview" class="sidebar-link active">Introduction</a>
-            <a href="#formats" class="sidebar-link">PIN Block Formats</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">PIN Blocks</div>
-            <a href="#pin-block" class="sidebar-link">PIN Block Calculator</a>
-            <a href="#format-walkthroughs" class="sidebar-link">Format Walk-throughs</a>
-            <a href="#aes-pin" class="sidebar-link">AES PIN Block</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">PIN Verification</div>
-            <a href="#pvv" class="sidebar-link">VISA PVV</a>
-            <a href="#offset" class="sidebar-link">IBM 3624 Offset</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Reference</div>
-            <a href="#tips" class="sidebar-link">Tips</a>
-        </div>
-    </aside>
-
-    <main class="main-content">
+<main class="doc-body">
         <div class="breadcrumb">
-            <a href="../../">Home</a>
+            <a href="../../index.html">Home</a>
             <span class="breadcrumb-sep">/</span>
-            <a href="../">Documentation</a>
+            <a href="../index.html">Documentation</a>
             <span class="breadcrumb-sep">/</span>
             <span>PIN Tools</span>
         </div>
@@ -88,6 +35,62 @@
         <section class="doc-section" id="overview">
             <h2>Introduction</h2>
             <p>A PIN block is a fixed-format encoding of a cardholder PIN designed to be encrypted under a key (TPK, ZPK, or DUKPT-derived) and transmitted across a payment network. ISO 9564 defines the canonical formats; vendors and legacy networks add a few non-standard variants you may still encounter.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig wide">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">pin-tools</span> Introduction</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <section class="doc-section" id="all-tools">
+            <h2>All tools</h2>
+            <p>Every tool in this category &mdash; each card links to the detailed reference below.</p>
+            <div class="hub-grid">
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">PIN Block Formats</div>
+                        <p class="hub-desc">Reference of ISO 9564 formats 0–4 plus OEM variants — which are PAN-bound, how padding works, and when each is used.</p>
+                        <a class="hub-link" href="#formats">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">PIN Block Calculator</div>
+                        <p class="hub-desc">The PIN Block Calculator is a multi-tab tool with one tab per supported format.</p>
+                        <a class="hub-link" href="#pin-block">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Format Walk-throughs</div>
+                        <p class="hub-desc">No PAN; the PIN is followed by random fill bytes.</p>
+                        <a class="hub-link" href="#format-walkthroughs">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">AES PIN Block (ISO-4) Calculator</div>
+                        <p class="hub-desc">The PIN Block AES tab focuses on the modern ISO Format 4 design.</p>
+                        <a class="hub-link" href="#aes-pin">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">VISA PVV Calculator</div>
+                        <p class="hub-desc">The PIN Verification Value (PVV) is a 4-digit value computed from the PIN, PAN, and a PVK that lets the issuer verify a PIN…</p>
+                        <a class="hub-link" href="#pvv">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">IBM 3624 PIN Offset Calculator</div>
+                        <p class="hub-desc">The IBM 3624 method derives a "natural PIN" from the PAN under a PIN Generation Key (PGK), then computes an offset that, added…</p>
+                        <a class="hub-link" href="#offset">View details →</a>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <section class="doc-section" id="formats">
@@ -116,6 +119,13 @@
         <section class="doc-section" id="pin-block">
             <h2>PIN Block Calculator</h2>
             <p>The PIN Block Calculator is a multi-tab tool with one tab per supported format. Each tab can run in <strong>Encode</strong> mode (PIN &rarr; encrypted PIN block) or <strong>Decode</strong> mode (encrypted PIN block &rarr; PIN).</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">pin-tools</span> PIN Block Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Common Inputs</h3>
             <ul>
@@ -169,6 +179,13 @@ Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
             <h2>AES PIN Block (ISO-4) Calculator</h2>
             <p>The PIN Block AES tab focuses on the modern ISO Format 4 design.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">pin-tools</span> AES PIN Block (ISO-4) Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <ul>
                 <li><strong>PIN</strong> &mdash; 4&ndash;12 digits.</li>
@@ -194,6 +211,13 @@ Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
         <section class="doc-section" id="pvv">
             <h2>VISA PVV Calculator</h2>
             <p>The PIN Verification Value (PVV) is a 4-digit value computed from the PIN, PAN, and a PVK that lets the issuer verify a PIN without storing it. Specified by VISA.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">pin-tools</span> VISA PVV Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -229,6 +253,13 @@ PVV:        8254</code></pre>
         <section class="doc-section" id="offset">
             <h2>IBM 3624 PIN Offset Calculator</h2>
             <p>The IBM 3624 method derives a "natural PIN" from the PAN under a PIN Generation Key (PGK), then computes an offset that, added (mod 10) to the natural PIN, produces the customer&rsquo;s chosen PIN.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">pin-tools</span> IBM 3624 PIN Offset Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -268,54 +299,11 @@ PVV:        8254</code></pre>
             </ul>
         </section>
     </main>
-</div>
 
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-links">
-            <a href="../" class="footer-link">Documentation</a>
-            <a href="../../blogs/" class="footer-link">Blog</a>
-            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
-            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
-        </div>
-        <div class="footer-copyright">
-            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
-        </div>
-    </div>
-</footer>
+<site-pro root="../../"></site-pro>
 
-<script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('open');
-    }
+<site-footer root="../../"></site-footer>
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('.sidebar-link');
-        const sections = document.querySelectorAll('.doc-section');
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    links.forEach(l => l.classList.remove('active'));
-                    const id = entry.target.getAttribute('id');
-                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
-                    if (active) active.classList.add('active');
-                }
-            });
-        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
-
-        sections.forEach(s => observer.observe(s));
-
-        links.forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 1024) toggleSidebar();
-            });
-        });
-    });
-</script>
-
+<script src="../../assets/site.js"></script>
 </body>
 </html>

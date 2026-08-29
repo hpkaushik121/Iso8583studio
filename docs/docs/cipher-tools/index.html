@@ -3,84 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
     <title>Cipher Tools Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
     <link rel="icon" href="../../images/app.png" type="image/x-icon">
     <meta name="description" content="ISO8583Studio Cipher Tools documentation - AES, DES/3DES, RSA, ECDSA, and Format-Preserving Encryption (FPE) calculators for payment system testing.">
     <meta name="keywords" content="AES calculator, DES 3DES calculator, RSA calculator, ECDSA, FPE FF1 FF3, format preserving encryption, Thales RSA, payment encryption tools, hex key encryption, ECB CBC mode">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://iso8583.studio/docs/cipher-tools/">
-    <link rel="stylesheet" href="../_shared.css">
+    <link rel="stylesheet" href="../../assets/site.css">
 </head>
 <body>
 
-<header class="header">
-    <div class="header-container">
-        <a href="../../" class="logo">
-            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
-            ISO8583Studio
-        </a>
-        <nav class="nav">
-            <a href="../../" class="nav-link">Home</a>
-            <a href="../" class="nav-link">Documentation</a>
-            <a href="../../blogs/" class="nav-link">Blog</a>
-        </nav>
-        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
-            <span></span><span></span><span></span>
-        </div>
-        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
-    </div>
-</header>
+<site-header root="../../"></site-header>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<div class="page-wrapper">
-    <aside class="sidebar" id="sidebar">
-        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
-
-        <div class="sidebar-cta-wrapper">
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Overview</div>
-            <a href="#overview" class="sidebar-link active">Introduction</a>
-            <a href="#common" class="sidebar-link">Common UI Patterns</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Symmetric Ciphers</div>
-            <a href="#aes" class="sidebar-link">AES Calculator</a>
-            <a href="#des" class="sidebar-link">DES / 3DES Calculator</a>
-            <a href="#fpe" class="sidebar-link">FPE Calculator</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Asymmetric Ciphers</div>
-            <a href="#rsa" class="sidebar-link">RSA Calculator</a>
-            <a href="#thales-rsa" class="sidebar-link">Thales RSA</a>
-            <a href="#ecdsa" class="sidebar-link">ECDSA Calculator</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Reference</div>
-            <a href="#cipher-modes" class="sidebar-link">Cipher Modes</a>
-            <a href="#padding" class="sidebar-link">Padding Schemes</a>
-            <a href="#tips" class="sidebar-link">Tips</a>
-        </div>
-    </aside>
-
-    <main class="main-content">
+<main class="doc-body">
         <div class="breadcrumb">
-            <a href="../../">Home</a>
+            <a href="../../index.html">Home</a>
             <span class="breadcrumb-sep">/</span>
-            <a href="../">Documentation</a>
+            <a href="../index.html">Documentation</a>
             <span class="breadcrumb-sep">/</span>
             <span>Cipher Tools</span>
         </div>
@@ -91,6 +35,13 @@
         <section class="doc-section" id="overview">
             <h2>Introduction</h2>
             <p>Cipher tools live under <code>Tools &rarr; Cipher</code> in the main navigation. Each calculator is dedicated to a single algorithm family and exposes the inputs typically required for payment-system testing: hex keys, hex data, IV/tweak values, and mode/padding selectors. Every operation is recorded in the activity log with timestamps and round-trip values.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig wide">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">cipher-tools</span> Introduction</figcaption>
+                </figure>
+            </div>
 
             <div class="feature-grid">
                 <div class="feature-item">
@@ -126,6 +77,55 @@
             </div>
         </section>
 
+        <section class="doc-section" id="all-tools">
+            <h2>All tools</h2>
+            <p>Every tool in this category &mdash; each card links to the detailed reference below.</p>
+            <div class="hub-grid">
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">AES Calculator</div>
+                        <p class="hub-desc">Encrypt or decrypt data with AES, or compute a Key Check Value over a known key.</p>
+                        <a class="hub-link" href="#aes">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">DES / 3DES Calculator</div>
+                        <p class="hub-desc">Single DES or Triple DES with a wide selection of cipher modes and padding schemes commonly used by legacy payment hosts.</p>
+                        <a class="hub-link" href="#des">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">FPE Calculator</div>
+                        <p class="hub-desc">Format-Preserving Encryption keeps the output in the same format as the input — e.g.</p>
+                        <a class="hub-link" href="#fpe">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">RSA Calculator</div>
+                        <p class="hub-desc">Six-tab tool covering the full RSA workflow from key generation through padding-aware encryption and signing.</p>
+                        <a class="hub-link" href="#rsa">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Thales RSA Calculator</div>
+                        <p class="hub-desc">Vendor-aware RSA helpers tailored to Thales PayShield workflows.</p>
+                        <a class="hub-link" href="#thales-rsa">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">ECDSA Calculator</div>
+                        <p class="hub-desc">Elliptic Curve Digital Signature Algorithm with three workflow tabs.</p>
+                        <a class="hub-link" href="#ecdsa">View details →</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="doc-section" id="common">
             <h2>Common UI Patterns</h2>
             <p>All cipher calculators share the same conventions:</p>
@@ -146,6 +146,13 @@
         <section class="doc-section" id="aes">
             <h2>AES Calculator</h2>
             <p>Encrypt or decrypt data with AES, or compute a Key Check Value over a known key.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">cipher-tools</span> AES Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <div class="table-wrapper">
@@ -193,6 +200,13 @@ Output:          7649ABAC8119B246CEE98E9B12E9197D</code></pre>
             <h2>DES / 3DES Calculator</h2>
             <p>Single DES or Triple DES with a wide selection of cipher modes and padding schemes commonly used by legacy payment hosts.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">cipher-tools</span> DES / 3DES Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Inputs</h3>
             <div class="table-wrapper">
                 <table>
@@ -232,6 +246,13 @@ Output:          7649ABAC8119B246CEE98E9B12E9197D</code></pre>
         <section class="doc-section" id="fpe">
             <h2>FPE Calculator</h2>
             <p>Format-Preserving Encryption keeps the output in the same format as the input &mdash; e.g. encrypting a 16-digit PAN into another 16-digit numeric string. Useful for tokenisation and PCI-scope reduction.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">cipher-tools</span> FPE Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Tabs (5)</h3>
             <p>Each tab is a self-contained calculator for the named variant:</p>
@@ -287,6 +308,13 @@ Output:          6124200211725605</code></pre>
             <h2>RSA Calculator</h2>
             <p>Six-tab tool covering the full RSA workflow from key generation through padding-aware encryption and signing.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">cipher-tools</span> RSA Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Tabs (6)</h3>
             <ul>
                 <li><strong>Keys</strong> &mdash; Generate or paste a key pair.</li>
@@ -341,6 +369,13 @@ Output:          6124200211725605</code></pre>
             <h2>Thales RSA Calculator</h2>
             <p>Vendor-aware RSA helpers tailored to Thales PayShield workflows.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">cipher-tools</span> Thales RSA Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Tabs (3)</h3>
 
             <h4>Generate</h4>
@@ -382,6 +417,13 @@ Output:          6124200211725605</code></pre>
         <section class="doc-section" id="ecdsa">
             <h2>ECDSA Calculator</h2>
             <p>Elliptic Curve Digital Signature Algorithm with three workflow tabs.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">cipher-tools</span> ECDSA Calculator</figcaption>
+                </figure>
+            </div>
 
             <h3>Keys Tab</h3>
             <ul>
@@ -456,54 +498,11 @@ Output:          6124200211725605</code></pre>
             </ul>
         </section>
     </main>
-</div>
 
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-links">
-            <a href="../" class="footer-link">Documentation</a>
-            <a href="../../blogs/" class="footer-link">Blog</a>
-            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
-            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
-        </div>
-        <div class="footer-copyright">
-            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
-        </div>
-    </div>
-</footer>
+<site-pro root="../../"></site-pro>
 
-<script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('open');
-    }
+<site-footer root="../../"></site-footer>
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('.sidebar-link');
-        const sections = document.querySelectorAll('.doc-section');
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    links.forEach(l => l.classList.remove('active'));
-                    const id = entry.target.getAttribute('id');
-                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
-                    if (active) active.classList.add('active');
-                }
-            });
-        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
-
-        sections.forEach(s => observer.observe(s));
-
-        links.forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 1024) toggleSidebar();
-            });
-        });
-    });
-</script>
-
+<script src="../../assets/site.js"></script>
 </body>
 </html>

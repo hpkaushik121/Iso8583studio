@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.navigation.stateConfigs
 
+import `in`.aicortex.iso8583studio.analytics.Analytics
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.awt.ComposeWindow
@@ -568,7 +569,12 @@ data class UnifiedSimulatorState(
      * this produces exactly one profile. The envelope records the simulator type so that
      * [importProfile] can route it back without the user having to say where it belongs.
      */
-    fun exportProfile(config: SimulatorConfig): ProfileTransferResult {
+    fun exportProfile(config: SimulatorConfig): ProfileTransferResult =
+        exportProfileInternal(config).also {
+            Analytics.configExported(config.simulatorType.name, it is ProfileTransferResult.Success)
+        }
+
+    private fun exportProfileInternal(config: SimulatorConfig): ProfileTransferResult {
         return try {
             val profile = when (config) {
                 is GatewayConfig -> json.encodeToJsonElement(GatewayConfig.serializer(), config)
@@ -607,7 +613,15 @@ data class UnifiedSimulatorState(
      * id plus a de-duplicated name so that importing a profile twice — or importing one that
      * originated on this machine — cannot collide with or silently overwrite what is already there.
      */
-    fun importProfile(file: File): ProfileTransferResult {
+    fun importProfile(file: File): ProfileTransferResult =
+        importProfileInternal(file).also { result ->
+            Analytics.configImported(
+                (result as? ProfileTransferResult.Success)?.simulatorType?.name ?: "UNKNOWN",
+                result is ProfileTransferResult.Success,
+            )
+        }
+
+    private fun importProfileInternal(file: File): ProfileTransferResult {
         return try {
             if (!file.exists()) return ProfileTransferResult.Error("The selected file does not exist.")
 

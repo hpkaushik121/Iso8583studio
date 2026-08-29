@@ -1595,15 +1595,408 @@
         {
             "id": "a83d09a0-9894-4a62-b88c-ee92dfdd6c27",
             "name": "Config - 2",
-            "destinationPort": 7027,
-            "destinationServer": "1.7.140.10",
-            "gatewayType": "CLIENT",
+            "serverPort": 9000,
+            "destinationPort": 8000,
+            "destinationServer": "127.0.0.1",
+            "serverAddress": "0.0.0.0",
             "privateKey": [],
             "iv": [],
             "createDate": 1776347969081,
             "password": [],
             "advancedOptions": {},
             "codeFormatDest": "BYTE_ARRAY",
+            "codeFormatSource": "BYTE_ARRAY",
+            "destinationConnectionType": "REST",
+            "simulatedTransactionsToSource": [
+                {
+                    "id": "TXN_1787823766210_4916",
+                    "mti": "0200",
+                    "proCode": "000000",
+                    "description": "SALE",
+                    "fields": [
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BINARY"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 20,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 6,
+                            "m_Length": 6,
+                            "m_Data": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "m_BitType": "BCD",
+                            "m_IsSet": true
+                        },
+                        {
+                            "m_MaxLength": 12,
+                            "m_Length": 12,
+                            "m_Data": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "m_BitType": "BCD",
+                            "m_IsSet": true
+                        },
+                        {
+                            "m_MaxLength": 13,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 12,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 10,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 6,
+                            "m_Length": 6,
+                            "m_Data": [
+                                0,
+                                0,
+                                0
+                            ],
+                            "m_BitType": "BCD",
+                            "m_IsSet": true
+                        },
+                        {
+                            "m_MaxLength": 12,
+                            "m_Length": 12,
+                            "m_Data": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "m_BitType": "BCD",
+                            "m_IsSet": true
+                        },
+                        {
+                            "m_MaxLength": 4,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 4,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 6,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 4,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 4,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 4,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 2,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 2,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 1,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 13,
+                            "m_BitType": "BINARY"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 11,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 11,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 28,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 37,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_MaxLength": 104,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 12,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 6,
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_MaxLength": 2,
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "BINARY"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_MaxLength": 15,
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_MaxLength": 40,
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 99,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 99,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_MaxLength": 255,
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_MaxLength": 999,
+                            "m_BitType": "BINARY"
+                        },
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {},
+                        {},
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BINARY"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 16,
+                            "m_BitType": "BINARY"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_MaxLength": 999,
+                            "m_BitType": "BINARY"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_MaxLength": 255,
+                            "m_BitType": "AN"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "BCD"
+                        },
+                        {},
+                        {},
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BINARY"
+                        },
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {
+                            "m_MaxLength": 3,
+                            "m_BitType": "BCD"
+                        },
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {
+                            "m_MaxLength": 42,
+                            "m_BitType": "BCD"
+                        },
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 28,
+                            "m_BitType": "BCD"
+                        },
+                        {
+                            "m_LengthAttribute": "LLVAR",
+                            "m_MaxLength": 28,
+                            "m_BitType": "BCD"
+                        },
+                        {},
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_MaxLength": 999,
+                            "m_BitType": "BCD"
+                        },
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {
+                            "m_LengthAttribute": "LLLVAR",
+                            "m_MaxLength": 999,
+                            "m_BitType": "BCD"
+                        },
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {
+                            "m_MaxLength": 8,
+                            "m_BitType": "BINARY"
+                        }
+                    ]
+                }
+            ],
             "gwBitTemplateSource": [
                 {
                     "bitNumber": 1,
@@ -7333,7 +7726,7 @@
             ],
             "messageLengthTypeDest": "HEX_HL",
             "createdDate": 1776347969081,
-            "modifiedDate": 1777010881859
+            "modifiedDate": 1787824256359
         }
     ],
     "hsmConfigs": [
@@ -7341,7 +7734,7 @@
             "id": "cb49039a-1842-4b88-97e9-505479907396",
             "name": "Thales PayShield 10k",
             "createdDate": 1768383552215,
-            "modifiedDate": 1781263129514,
+            "modifiedDate": 1787831431823,
             "authenticationPolicy": "SMART_CARD",
             "deviceInfo": {
                 "capabilities": [
@@ -10113,7 +10506,18 @@
             "activeProfileId": "mastercard-debit-test"
         }
     ],
-    "posConfigs": [],
+    "posConfigs": [
+        {
+            "id": "57044cca-7afd-4783-bd04-ff15d907688c",
+            "name": "POS - 1",
+            "description": "",
+            "createdDate": 1787832945094,
+            "modifiedDate": 1787833020432,
+            "terminalid": 0,
+            "merchantid": 0,
+            "acquirerid": 0
+        }
+    ],
     "hsmCommandConfigs": [
         {
             "id": "cdd088df-4a72-48c7-885e-cbadbb5bba9f",
@@ -10149,8 +10553,12 @@
             "id": "c1b5bd25-9404-44af-a876-d7419641b094",
             "name": "HSM Host Console - local",
             "createdDate": 1781171347275,
-            "modifiedDate": 1781171356416,
-            "port": 9090
+            "modifiedDate": 1787831698029,
+            "port": 9090,
+            "sslConfig": {
+                "enabled": true,
+                "certificateVerification": "CA_SIGNED"
+            }
         }
     ],
     "ecrConfigs": [],
@@ -10159,6 +10567,6 @@
     "switchConfigs": [],
     "acquirerConfigs": [],
     "issuerConfigs": [],
-    "exportedAt": 1787572717679,
+    "exportedAt": 1787833020432,
     "version": "1.0"
 }

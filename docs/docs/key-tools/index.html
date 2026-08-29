@@ -3,96 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
     <title>Key Management Tools Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
     <link rel="icon" href="../../images/app.png" type="image/x-icon">
     <meta name="description" content="ISO8583Studio Key Management Tools documentation - DEA / 3DES key utilities, TR-31 and Thales key blocks, vendor-specific key calculators (Thales, Futurex, Atalla, Safenet), keyshare generation, and SSL/X.509 certificate workflows.">
     <meta name="keywords" content="TR-31 key block, Thales key block, key calculator, Futurex key, Atalla key, Safenet key, keyshare splitting, SSL certificate, X.509, CSR, DES parity, key management, payment HSM keys">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://iso8583.studio/docs/key-tools/">
-    <link rel="stylesheet" href="../_shared.css">
+    <link rel="stylesheet" href="../../assets/site.css">
 </head>
 <body>
 
-<header class="header">
-    <div class="header-container">
-        <a href="../../" class="logo">
-            <img src="../../images/app.png" class="logo-icon" alt="ISO8583Studio"/>
-            ISO8583Studio
-        </a>
-        <nav class="nav">
-            <a href="../../" class="nav-link">Home</a>
-            <a href="../" class="nav-link">Documentation</a>
-            <a href="../../blogs/" class="nav-link">Blog</a>
-        </nav>
-        <div class="mobile-menu-toggle" onclick="toggleSidebar()">
-            <span></span><span></span><span></span>
-        </div>
-        <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download</a>
-    </div>
-</header>
+<site-header root="../../"></site-header>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<div class="page-wrapper">
-    <aside class="sidebar" id="sidebar">
-        <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
-
-        <div class="sidebar-cta-wrapper">
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" class="header-cta">Download Studio</a>
-        </div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Overview</div>
-            <a href="#overview" class="sidebar-link active">Introduction</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">DES / 3DES</div>
-            <a href="#dea" class="sidebar-link">DEA Keys</a>
-            <a href="#keyshare" class="sidebar-link">Keyshare Generator</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Key Blocks</div>
-            <a href="#tr31" class="sidebar-link">TR-31 Key Block</a>
-            <a href="#thales-block" class="sidebar-link">Thales Key Block</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">HSM Vendor Calculators</div>
-            <a href="#thales-keys" class="sidebar-link">Thales</a>
-            <a href="#futurex" class="sidebar-link">Futurex</a>
-            <a href="#atalla" class="sidebar-link">Atalla</a>
-            <a href="#safenet" class="sidebar-link">Safenet</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Certificates</div>
-            <a href="#ssl" class="sidebar-link">SSL / X.509</a>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <div class="sidebar-section">
-            <div class="sidebar-title">Reference</div>
-            <a href="#tips" class="sidebar-link">Tips</a>
-        </div>
-    </aside>
-
-    <main class="main-content">
+<main class="doc-body">
         <div class="breadcrumb">
-            <a href="../../">Home</a>
+            <a href="../../index.html">Home</a>
             <span class="breadcrumb-sep">/</span>
-            <a href="../">Documentation</a>
+            <a href="../index.html">Documentation</a>
             <span class="breadcrumb-sep">/</span>
             <span>Key Management Tools</span>
         </div>
@@ -103,6 +35,13 @@
         <section class="doc-section" id="overview">
             <h2>Introduction</h2>
             <p>Key Management Tools cluster around four jobs:</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig wide">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> Introduction</figcaption>
+                </figure>
+            </div>
             <ul>
                 <li><strong>Build keys</strong> &mdash; generate and combine raw key material.</li>
                 <li><strong>Wrap keys</strong> &mdash; bind a key to its usage / algorithm via TR-31 or Thales key blocks.</li>
@@ -112,9 +51,86 @@
             <p>SSL / X.509 certificate handling is also grouped here for projects that need terminal or host-to-host TLS.</p>
         </section>
 
+        <section class="doc-section" id="all-tools">
+            <h2>All tools</h2>
+            <p>Every tool in this category &mdash; each card links to the detailed reference below.</p>
+            <div class="hub-grid">
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">DEA Keys (DES / 3DES Utility)</div>
+                        <p class="hub-desc">A multi-tab tool focused on raw 3DES key material.</p>
+                        <a class="hub-link" href="#dea">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Keyshare Generator</div>
+                        <p class="hub-desc">Splits a single key into n shares such that all n are required to reconstruct the key (XOR-based component scheme).</p>
+                        <a class="hub-link" href="#keyshare">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">TR-31 Key Block</div>
+                        <p class="hub-desc">ASC X9.143 (formerly TR-31) defines a key block format that binds a key to its allowable usage, algorithm, mode, and…</p>
+                        <a class="hub-link" href="#tr31">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Thales Key Block</div>
+                        <p class="hub-desc">The Thales-specific key block format used by PayShield HSMs.</p>
+                        <a class="hub-link" href="#thales-block">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Thales Key Calculator</div>
+                        <p class="hub-desc">Vendor-aware calculations matching Thales PayShield host commands.</p>
+                        <a class="hub-link" href="#thales-keys">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Futurex Key Calculator</div>
+                        <p class="hub-desc">Computes keys in Futurex Excrypt / VirtuCrypt key block format.</p>
+                        <a class="hub-link" href="#futurex">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Atalla Key Calculator</div>
+                        <p class="hub-desc">Atalla / Utimaco AKB-style key block helpers, including AKB header construction and KCV verification.</p>
+                        <a class="hub-link" href="#atalla">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">Safenet Key Calculator</div>
+                        <p class="hub-desc">Safenet / Thales Luna key calculations for legacy and modern formats.</p>
+                        <a class="hub-link" href="#safenet">View details →</a>
+                    </div>
+                </div>
+                <div class="hub-card">
+                    <div class="hub-body">
+                        <div class="hub-title">SSL / X.509 Certificate Tool</div>
+                        <p class="hub-desc">An end-to-end certificate workflow tool for terminal-host TLS.</p>
+                        <a class="hub-link" href="#ssl">View details →</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="doc-section" id="dea">
             <h2>DEA Keys (DES / 3DES Utility)</h2>
             <p>A multi-tab tool focused on raw 3DES key material.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> DEA Keys (DES / 3DES Utility)</figcaption>
+                </figure>
+            </div>
 
             <h3>Tabs</h3>
             <ul>
@@ -136,6 +152,13 @@
         <section class="doc-section" id="keyshare">
             <h2>Keyshare Generator</h2>
             <p>Splits a single key into <em>n</em> shares such that all <em>n</em> are required to reconstruct the key (XOR-based component scheme). Useful for multi-custodian key loading.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> Keyshare Generator</figcaption>
+                </figure>
+            </div>
 
             <h3>Inputs</h3>
             <ul>
@@ -159,6 +182,13 @@
         <section class="doc-section" id="tr31">
             <h2>TR-31 Key Block</h2>
             <p>ASC X9.143 (formerly TR-31) defines a key block format that binds a key to its allowable usage, algorithm, mode, and exportability. A TR-31 block is opaque to anything outside the issuing HSM but lets two HSMs exchange keys without losing metadata.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> TR-31 Key Block</figcaption>
+                </figure>
+            </div>
 
             <h3>Tabs</h3>
             <ul>
@@ -187,6 +217,13 @@
             <h2>Thales Key Block</h2>
             <p>The Thales-specific key block format used by PayShield HSMs. Similar in concept to TR-31 but with Thales&rsquo; own header and key usage codes.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> Thales Key Block</figcaption>
+                </figure>
+            </div>
+
             <h3>Workflow</h3>
             <ul>
                 <li>Pick a <strong>Thales Key Type</strong> &mdash; ZMK, ZPK, TMK, BDK, ZEK, etc.</li>
@@ -205,6 +242,13 @@
             <h2>Thales Key Calculator</h2>
             <p>Vendor-aware calculations matching Thales PayShield host commands.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> Thales Key Calculator</figcaption>
+                </figure>
+            </div>
+
             <h3>Operations</h3>
             <ul>
                 <li><strong>Key Generation</strong> &mdash; Equivalent to <code>A0</code> (Generate a Key) host command.</li>
@@ -218,6 +262,13 @@
             <h2>Futurex Key Calculator</h2>
             <p>Computes keys in Futurex Excrypt / VirtuCrypt key block format.</p>
 
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> Futurex Key Calculator</figcaption>
+                </figure>
+            </div>
+
             <ul>
                 <li>Wrap clear keys under a Futurex KEK.</li>
                 <li>Compute KCVs in Futurex&rsquo;s expected representation.</li>
@@ -228,16 +279,37 @@
         <section class="doc-section" id="atalla">
             <h2>Atalla Key Calculator</h2>
             <p>Atalla / Utimaco AKB-style key block helpers, including AKB header construction and KCV verification.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> Atalla Key Calculator</figcaption>
+                </figure>
+            </div>
         </section>
 
         <section class="doc-section" id="safenet">
             <h2>Safenet Key Calculator</h2>
             <p>Safenet / Thales Luna key calculations for legacy and modern formats.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> Safenet Key Calculator</figcaption>
+                </figure>
+            </div>
         </section>
 
         <section class="doc-section" id="ssl">
             <h2>SSL / X.509 Certificate Tool</h2>
             <p>An end-to-end certificate workflow tool for terminal-host TLS.</p>
+
+            <div class="shot-grid">
+                <figure class="shot-fig">
+                    <image-slot></image-slot>
+                    <figcaption class="shot-cap"><span class="mono">key-tools</span> SSL / X.509 Certificate Tool</figcaption>
+                </figure>
+            </div>
 
             <h3>Tabs</h3>
             <ul>
@@ -270,54 +342,11 @@
             </ul>
         </section>
     </main>
-</div>
 
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-links">
-            <a href="../" class="footer-link">Documentation</a>
-            <a href="../../blogs/" class="footer-link">Blog</a>
-            <a href="../../privacy-policy.html" class="footer-link">Privacy Policy</a>
-            <a href="../../terms-and-conditions.html" class="footer-link">Terms and Conditions</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/" class="footer-link">Support</a>
-            <a href="https://github.com/hpkaushik121/Iso8583studio/releases" class="footer-link">Downloads</a>
-        </div>
-        <div class="footer-copyright">
-            &copy; 2024 AiCortex. All rights reserved. Built with &hearts; for the financial technology community.
-        </div>
-    </div>
-</footer>
+<site-pro root="../../"></site-pro>
 
-<script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('open');
-    }
+<site-footer root="../../"></site-footer>
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('.sidebar-link');
-        const sections = document.querySelectorAll('.doc-section');
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    links.forEach(l => l.classList.remove('active'));
-                    const id = entry.target.getAttribute('id');
-                    const active = document.querySelector(`.sidebar-link[href="#${id}"]`);
-                    if (active) active.classList.add('active');
-                }
-            });
-        }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
-
-        sections.forEach(s => observer.observe(s));
-
-        links.forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 1024) toggleSidebar();
-            });
-        });
-    });
-</script>
-
+<script src="../../assets/site.js"></script>
 </body>
 </html>
