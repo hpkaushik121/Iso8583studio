@@ -93,6 +93,25 @@ a:hover { color: var(--teal-hi); }
 .info-card ul { margin: 0 0 12px 20px; }
 .info-card ul:last-child { margin-bottom: 0; }
 .info-card li { margin-bottom: 6px; }
+.info-card.danger { border-left: 3px solid var(--red); background: rgba(229,72,77,.06); }
+.info-card.danger .info-card-title { color: var(--red-hi); }
+
+/* ===== Legal pages (privacy, terms) ===== */
+.legal-toc { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 26px; margin-bottom: 48px; }
+.legal-toc .info-card-title { color: var(--teal-hi); }
+.legal-toc ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2px 26px; counter-reset: toc; }
+.legal-toc li { margin: 0; counter-increment: toc; }
+.legal-toc a { display: block; padding: 7px 0; font-size: 14.5px; color: var(--muted); border-bottom: 1px solid var(--line2); }
+.legal-toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--mono); font-size: 11px; color: var(--faint); margin-right: 10px; }
+.legal-toc a:hover { color: var(--blue-hi); }
+.legal-toc a:hover::before { color: var(--teal); }
+
+.legal-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+.legal-meta span { font-family: var(--mono); font-size: 11px; color: var(--faint); border: 1px solid var(--line2); border-radius: 99px; padding: 4px 12px; }
+.legal-meta b { color: var(--muted); font-weight: 500; }
+
+.legal-foot { border-top: 1px solid var(--line); padding-top: 28px; margin-top: 8px; }
+.legal-foot p { font-size: 13.5px; color: var(--faint); margin-bottom: 10px; }
 
 .table-wrapper { overflow-x: auto; margin-bottom: 24px; border-radius: 12px; border: 1px solid var(--line); }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -134,6 +153,29 @@ pre code { background: none; padding: 0; color: inherit; }
 .shot-grid { display: block; margin-bottom: 24px; }
 .shot-fig { width: min(var(--shot-w, 100%), calc(100vw - 40px)); margin: 0 0 18px 50%; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card-dark); }
 .shot-fig:last-child { margin-bottom: 0; }
+/* A shot narrower than the text column would otherwise sit in a band of its own
+   with dead space either side. Pairing it with the prose that names the same
+   fields spends that width instead: the figure takes one column, the text the
+   other. --fig-col caps the figure so the prose keeps a readable measure. */
+.shot-split { display: grid; grid-template-columns: minmax(0, var(--fig-col, 400px)) minmax(0, 1fr); gap: 28px; margin-bottom: 24px; }
+.shot-split > * { min-width: 0; }
+
+/* Both columns end level: the figure stretches to whatever the prose beside it
+   needs and the shot is centred in that frame. Scaling the image to fill the
+   extra height instead would either distort it or crop the panel out of the
+   screenshot, so the frame grows and the capture stays as it was shot. */
+.shot-split { align-items: stretch; }
+.shot-split > .shot-fig { display: flex; flex-direction: column; }
+.shot-split > .shot-fig image-slot { margin-block: auto; }
+.shot-split > .shot-fig { width: min(var(--shot-w, 100%), 100%); margin: 0; transform: none; }
+.shot-split-body > :first-child { margin-top: 0; }
+.shot-split-body > :last-child { margin-bottom: 0; }
+/* Narrower than this the text column stops being a column, so the figure goes
+   back to leading its section on a line of its own. */
+@media (max-width: 860px) {
+    .shot-split { grid-template-columns: minmax(0, 1fr); }
+    .shot-split > .shot-fig { margin: 0 auto; }
+}
 /* Figures documenting one screen share a row. --row-w is the row's total width
    and each figure keeps its own --shot-w, so a wide panel and a narrow one sit
    side by side without either being resampled; pick the two widths so the
@@ -142,9 +184,20 @@ pre code { background: none; padding: 0; color: inherit; }
 /* They shrink together rather than wrapping, so the pair keeps its ratio - and
    its matched heights - all the way down to the breakpoint where stacking wins. */
 .shot-row .shot-fig { width: var(--shot-w, auto); min-width: 0; flex-shrink: 1; margin: 0; transform: none; }
+/* Two shots of the same screen only read as a pair if their images line up.
+   Giving each figure a width proportional to its own aspect ratio (--ar, the
+   shot's width / height) lands both images on the same height whatever their
+   native sizes; pinning the caption to the bottom keeps them level even when
+   one caption wraps. */
+.shot-row.shot-even { align-items: stretch; }
+.shot-row.shot-even .shot-fig { display: flex; flex-direction: column; width: auto; flex: var(--ar, 1) 1 0%; }
+.shot-row.shot-even .shot-cap { margin-top: auto; }
 @media (max-width: 760px) {
     .shot-grid.shot-row { flex-wrap: wrap; }
     .shot-row .shot-fig { width: 100%; }
+    /* A zero basis never overflows, so an even row would never wrap without
+       being handed a full-width basis back. */
+    .shot-row.shot-even .shot-fig { flex: 1 0 100%; }
 }
 /* Height comes from the image once one is dropped in; the empty state below
    supplies its own. A fixed height here would let a tall shot run under the
