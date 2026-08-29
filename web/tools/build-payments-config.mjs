@@ -63,6 +63,20 @@ if (!Number.isInteger(unitRupees) || unitRupees < 1) {
   throw new Error(`PAYMENTS_UNIT_RUPEES must be a positive whole number (got "${unitRupees}").`);
 }
 
+/* Tax on the price point, in basis points — 1800 is 18% GST, added on top.
+ *
+ * This exists only so the form can show a running total while someone is
+ * typing, when no quote exists yet to ask about. It is an estimate by
+ * definition: the catalog is the authority on its own tax, and the amount the
+ * customer is actually charged is the one the service computes and freezes.
+ * The form checks the two agree when the quote comes back, so a rate changed
+ * in the catalog and not here surfaces as a warning rather than as a number
+ * that is quietly wrong. */
+const taxBps = Number(process.env.PAYMENTS_TAX_BPS ?? 1800);
+if (!Number.isInteger(taxBps) || taxBps < 0) {
+  throw new Error(`PAYMENTS_TAX_BPS must be a whole number of basis points (got "${taxBps}").`);
+}
+
 mkdirSync(OUT_DIR, { recursive: true });
 /* Annotated rather than `as const`: with no SKUs configured the literal would
    narrow to `readonly []`, and every read of pricePoints[0] becomes a compile
@@ -75,13 +89,15 @@ writeFileSync(join(OUT_DIR, 'payments-config.ts'),
   + '  readonly publicKey: string;\n'
   + '  readonly pricePoints: readonly string[];\n'
   + '  readonly unitRupees: number;\n'
+  + '  readonly taxBps: number;\n'
   + '}\n\n'
   + 'export const PAYMENTS: PaymentsConfig = {\n'
   + `  baseUrl: ${JSON.stringify(baseUrl)},\n`
   + `  publicKey: ${JSON.stringify(key)},\n`
   + `  pricePoints: ${JSON.stringify(pricePoints)},\n`
   + `  unitRupees: ${JSON.stringify(unitRupees)},\n`
+  + `  taxBps: ${JSON.stringify(taxBps)},\n`
   + '};\n');
 
 console.log(`payments: ${key ? 'key set' : 'NO KEY — checkout disabled'}, `
-  + `${pricePoints.length} price point(s) @ ₹${unitRupees}/unit, ${baseUrl}`);
+  + `${pricePoints.length} price point(s) @ ₹${unitRupees}/unit +${taxBps / 100}% tax, ${baseUrl}`);

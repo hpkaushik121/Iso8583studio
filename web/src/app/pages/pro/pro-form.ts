@@ -100,6 +100,15 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
           </div>
           @if (invalid('amount')) {
             <em class="pf-err" id="err-amount">{{ amountError() }}</em>
+          } @else if (breakdown(); as b) {
+            <p class="pf-total" id="hint-amount">
+              <span>{{ b.subtotal }}</span>
+              <span class="pf-total-op">+</span>
+              <span>{{ b.tax }} GST</span>
+              <span class="pf-total-op">=</span>
+              <b>{{ b.total }}</b>
+              <span class="pf-total-note">confirmed at checkout</span>
+            </p>
           } @else {
             <p class="pf-hint" id="hint-amount">
               <b>Higher amount → higher priority</b> in the early-access queue.
@@ -173,6 +182,21 @@ export class ProForm {
   protected readonly usecaseLeft = computed(() =>
     ProForm.USECASE_MAX - (this.value().usecase?.length ?? 0));
 
+  /**
+   * What the amount actually costs, shown while it is being typed.
+   *
+   * Nothing exists to ask at this point — a quote is only created on submit —
+   * so this is computed here, in whole paise and rounded the way the service
+   * documents, and labelled as confirmed at checkout because the service's
+   * figure is the one that binds. startCheckout compares the two.
+   */
+  protected readonly breakdown = computed(() => {
+    const rupees = Number(this.value().amount);
+    if (!Number.isFinite(rupees) || rupees <= 0) return null;
+    const { subtotal, tax, total } = taxOn(rupees);
+    return { subtotal: money(subtotal), tax: money(tax), total: money(total), totalPaise: total };
+  });
+
   /** Invalid, and the user has finished with the field or tried to submit. */
   protected invalid(name: string): boolean {
     this.value();
@@ -236,7 +260,8 @@ export class ProForm {
     const { email } = this.form.getRawValue();
     this.busy.set(true);
     try {
-      const { checkoutUrl } = await this.payments.createCheckout({
+      const shown = this.breakdown()?.totalPaise;
+      const { checkoutUrl, amountPaise } = await this.payments.createCheckout({
         pricePoint: PAYMENTS.pricePoints[0],
         // A page may not name a price, so it names how many units it wants
         // and the catalog prices them. The service computes and freezes the
@@ -247,6 +272,14 @@ export class ProForm {
         ref: email!,
         notes: this.notesFromForm(),
       });
+      // A mismatch means the catalog's tax no longer matches PAYMENTS_TAX_BPS.
+      // The customer is charged the service's figure either way — the hosted
+      // page shows it — but the estimate they were given was wrong, and that
+      // should be found in a log rather than in a complaint.
+      if (shown !== undefined && shown !== amountPaise) {
+        console.warn(`Pro checkout: showed ₹${shown / 100} but the quote is ₹${amountPaise / 100}. `
+          + 'PAYMENTS_TAX_BPS is out of step with the price point.');
+      }
       // The token is already stored; leaving the site is the last thing we do.
       location.assign(checkoutUrl);
     } catch (err) {
@@ -315,6 +348,20 @@ export class ProForm {
       this.outcome.set('We could not confirm the payment automatically. Write to admin@iso8583.studio.');
     }
   }
+}
+
+/** Integer paise throughout, half-up once, matching how the service rounds. */
+function taxOn(rupees: number): { subtotal: number; tax: number; total: number } {
+  const subtotal = Math.round(rupees * 100);
+  const tax = Math.floor((subtotal * PAYMENTS.taxBps) / 10000 + 0.5);
+  return { subtotal, tax, total: subtotal + tax };
+}
+
+/** Paise as rupees, with the paise dropped when they are zero. */
+function money(paise: number): string {
+  const r = paise / 100;
+  return `₹${Number.isInteger(r) ? r.toLocaleString('en-IN') : r.toLocaleString('en-IN', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**

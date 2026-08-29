@@ -895,3 +895,25 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
 }
 
 .pf-count-over { color: var(--red-hi); }
+
+/* The running total under the amount field. Sits where .pf-hint would, so
+   swapping between them does not move the fields below. */
+.pf-total {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+    font-size: var(--fs-2xs);
+    line-height: var(--lh-base);
+    color: var(--muted);
+}
+
+.pf-total b { color: var(--teal-hi); font-weight: 600; }
+.pf-total-op { color: var(--faint); }
+
+/* The estimate is ours; the charge is the payment service's. */
+.pf-total-note {
+    flex-basis: 100%;
+    color: var(--faint);
+}
