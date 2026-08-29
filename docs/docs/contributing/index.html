@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
+    <title>How to Contribute - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="Contribute to ISO8583Studio — Kotlin Multiplatform development setup, prerequisites, project layout, code style and the pull-request flow.">
+    <link rel="canonical" href="https://iso8583.studio/docs/contributing/">
+    <link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+
+<site-header root="../../"></site-header>
+
+<main class="doc-body">
+        <div class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="breadcrumb-sep">/</span>
+            <a href="../index.html">Documentation</a><span class="breadcrumb-sep">/</span>
+            <span>How to Contribute</span>
+        </div>
+
+        <h1 class="page-title">How to Contribute</h1>
+        <p class="page-description">ISO8583Studio is Apache-licensed and built in the open. Bug fixes, new tools, simulator work and docs are all welcome.</p>
+
+        <section class="doc-section" id="prereqs">
+            <h2>Prerequisites (Kotlin Multiplatform)</h2>
+            <div class="table-wrapper"><table>
+                <thead><tr><th>Tool</th><th>Version</th><th>Purpose</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>JDK</strong></td><td>11+ (17 LTS recommended)</td><td>Compiles Kotlin and runs Compose Desktop.</td></tr>
+                    <tr><td><strong>Git</strong></td><td>any recent</td><td>Clone, branch, PR.</td></tr>
+                    <tr><td><strong>IntelliJ IDEA</strong></td><td>Community is fine</td><td>Recommended IDE — opens the Gradle project directly with Kotlin/Compose support.</td></tr>
+                    <tr><td><strong>Gradle</strong></td><td>bundled wrapper</td><td>No separate install — use <code>./gradlew</code>.</td></tr>
+                </tbody>
+            </table></div>
+        </section>
+
+        <section class="doc-section" id="setup">
+            <h2>Development Setup</h2>
+            <pre><code>git clone https://github.com/hpkaushik121/Iso8583studio.git
+cd Iso8583studio
+./gradlew build     # compile everything + run tests
+./gradlew run       # launch the desktop app
+./gradlew test      # tests only</code></pre>
+            <h3>Project Layout</h3>
+            <div class="spec-list">
+                <div class="spec-row"><div class="k">composeApp/</div><div class="v">The Compose Desktop application — UI screens, simulator services, HSM/payShield engine (<code>src/desktopMain/kotlin</code>).</div></div>
+                <div class="spec-row"><div class="k">iso-core-lib/</div><div class="v">Core ISO 8583 message library.</div></div>
+                <div class="spec-row"><div class="k">cryptocalc/</div><div class="v">Cryptography calculators module.</div></div>
+                <div class="spec-row"><div class="k">docs/</div><div class="v">This website.</div></div>
+            </div>
+        </section>
+
+        <section class="doc-section" id="style">
+            <h2>Code Style</h2>
+            <p>Follow standard Kotlin conventions:</p>
+            <pre><code>class GatewayConfiguration        // classes: PascalCase
+fun processTransaction()          // functions: camelCase
+const val DEFAULT_TIMEOUT = 30    // constants: UPPER_SNAKE_CASE
+val connectionManager = ...       // variables: camelCase</code></pre>
+        </section>
+
+        <section class="doc-section" id="pr">
+            <h2>Submitting Changes</h2>
+            <ol class="steps">
+                <li><strong>Fork</strong> the repository on GitHub.</li>
+                <li><strong>Branch</strong> — <code>git checkout -b feature/new-feature</code>.</li>
+                <li><strong>Build &amp; test</strong> — make your change and run <code>./gradlew build</code>.</li>
+                <li><strong>Commit</strong> with a descriptive message — e.g. <code>git commit -m "Add REST API support"</code>.</li>
+                <li><strong>Push &amp; open a Pull Request</strong> — <code>git push origin feature/new-feature</code>, then open the PR against <code>main</code>.</li>
+            </ol>
+        </section>
+
+        <section class="doc-section" id="issues">
+            <h2>Reporting Issues</h2>
+            <p>Open a <a href="https://github.com/hpkaushik121/Iso8583studio/issues">GitHub issue</a> and include:</p>
+            <ul>
+                <li><strong>Environment</strong> — OS, Java version, app version.</li>
+                <li><strong>Steps to reproduce</strong> — exact clicks/config that trigger it.</li>
+                <li><strong>Expected vs actual behaviour</strong> — plus logs, configuration files or screenshots.</li>
+            </ul>
+            <div class="info-card tip"><div class="info-card-title">Tip</div><p>Not sure where to start? Questions and ideas are welcome in <a href="https://github.com/hpkaushik121/Iso8583studio/discussions">Discussions</a>, or reach us via the <a href="../../contact/index.html">contact page</a>.</p></div>
+        </section>
+
+</main>
+
+<site-footer root="../../"></site-footer>
+
+<script src="../../assets/site.js"></script>
+</body>
+</html>

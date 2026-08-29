@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
+    <title>ECR Simulator Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio ECR Simulator (in development) - simulate an electronic cash register integrated with a payment terminal, exchanging sale, void and refund messages.">
+    <meta name="keywords" content="ECR simulator, electronic cash register, ECR POS integration, register terminal protocol, sale void refund, RS232 ECR, cash register payment">
+    <link rel="canonical" href="https://iso8583.studio/docs/ecr-simulator/">
+    <link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+
+<site-header root="../../"></site-header>
+
+<main class="doc-body">
+        <div class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="breadcrumb-sep">/</span>
+            <a href="../index.html">Documentation</a><span class="breadcrumb-sep">/</span>
+            <span>ECR Simulator</span>
+        </div>
+
+        <div class="page-title-row">
+            <h1 class="page-title">ECR Simulator</h1>
+            <span class="badge badge-yellow">In Development</span>
+        </div>
+        <p class="page-description">Simulate an electronic cash register (ECR) integrated with a payment terminal — the register that sends sale, void and refund requests to the POS and prints the outcome. Scaffolded in the app and actively being built.</p>
+
+        <div class="status-banner">
+            <div class="sb-icon">🚧</div>
+            <div>
+                <h3>This simulator is under active development</h3>
+                <p>The <code>ECR Simulator</code> type is scaffolded in ISO8583Studio, and its configuration &amp; runtime screens are being built. This page describes the intended capabilities. In the meantime, the &ldquo;Available Now&rdquo; simulators cover the same message flows &mdash; see <em>Where It Fits</em> below.</p>
+            </div>
+        </div>
+
+        <section class="doc-section" id="overview">
+            <h2>Overview</h2>
+            <p>The ECR Simulator will model the cash-register side of an ECR&harr;POS integration: it issues transaction requests (sale, void, refund, settlement) to a connected terminal and consumes the results, over serial (RS232) or TCP links.</p>
+
+        </section>
+
+        <section class="doc-section" id="planned">
+            <h2>Planned Capabilities</h2>
+            <ul>
+                <li>Sale, void, refund, pre-auth and settlement request messages</li>
+                <li>ECR &harr; POS integration over RS232 serial and TCP/IP</li>
+                <li>Configurable register protocol framing and field mapping</li>
+                <li>Basket / line-item and tender modelling</li>
+                <li>Response handling and receipt data capture</li>
+            </ul>
+            <div class="info-card note"><div class="info-card-title">Note</div><p>Scope is indicative and may change as the feature is built. Follow the <a href="https://github.com/users/hpkaushik121/projects/1">roadmap</a> for status.</p></div>
+        </section>
+
+        <section class="doc-section" id="fit">
+            <h2>Where It Fits</h2>
+            <p>The ECR drives the <a href="../pos-simulator/index.html">POS Simulator</a> from the merchant application side, completing the register &rarr; terminal &rarr; host chain.</p>
+        </section>
+    </main>
+
+<site-pro root="../../"></site-pro>
+
+<site-footer root="../../"></site-footer>
+
+<script src="../../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
+    <title>Issuer System Documentation - ISO8583Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="../../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio Issuer System (in development) - issuer-side authorization host that approves or declines transactions, verifies PINs and returns ISO 8583 0210 responses.">
+    <meta name="keywords" content="issuer simulator, issuer authorization host, ISO 8583 0210, PIN verification, stand-in authorization, card account validation, decline response codes">
+    <link rel="canonical" href="https://iso8583.studio/docs/issuer-simulator/">
+    <link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+
+<site-header root="../../"></site-header>
+
+<main class="doc-body">
+        <div class="breadcrumb">
+            <a href="../../index.html">Home</a><span class="breadcrumb-sep">/</span>
+            <a href="../index.html">Documentation</a><span class="breadcrumb-sep">/</span>
+            <span>Issuer System</span>
+        </div>
+
+        <div class="page-title-row">
+            <h1 class="page-title">Issuer System</h1>
+            <span class="badge badge-yellow">In Development</span>
+        </div>
+        <p class="page-description">An issuer-side authorization host that approves or declines transactions, verifies PINs and cryptograms, and returns ISO 8583 responses. Scaffolded in the app and actively being built; today, issuer responses can be modelled with the Host Simulator.</p>
+
+        <div class="status-banner">
+            <div class="sb-icon">🚧</div>
+            <div>
+                <h3>This simulator is under active development</h3>
+                <p>The <code>Issuer System</code> type is scaffolded in ISO8583Studio, and its configuration &amp; runtime screens are being built. This page describes the intended capabilities. In the meantime, the &ldquo;Available Now&rdquo; simulators cover the same message flows &mdash; see <em>Where It Fits</em> below.</p>
+            </div>
+        </div>
+
+        <section class="doc-section" id="overview">
+            <h2>Overview</h2>
+            <p>The Issuer System will represent the card issuer at the far end of the network. It will authorize or decline requests against card/account state, verify online PINs and ARQCs, apply limits, and return <code>0210</code> responses with the right field 39 codes.</p>
+
+        </section>
+
+        <section class="doc-section" id="planned">
+            <h2>Planned Capabilities</h2>
+            <ul>
+                <li>Authorization decisioning against configurable card / account records</li>
+                <li>Online PIN and ARQC (cryptogram) verification</li>
+                <li>Balance, limit and velocity checks with stand-in rules</li>
+                <li>Full ISO 8583 0200 &rarr; 0210 response construction</li>
+                <li>Configurable approval / decline response-code scenarios</li>
+            </ul>
+            <div class="info-card note"><div class="info-card-title">Note</div><p>Scope is indicative and may change as the feature is built. Follow the <a href="https://github.com/users/hpkaushik121/projects/1">roadmap</a> for status.</p></div>
+        </section>
+
+        <section class="doc-section" id="fit">
+            <h2>Where It Fits</h2>
+            <p>The issuer answers what the acquiring side sends. Today you can model issuer responses with the <a href="../host-simulator/index.html">Host Simulator</a> in Server mode; the dedicated Issuer System will add account-aware decisioning.</p>
+        </section>
+    </main>
+
+<site-pro root="../../"></site-pro>
+
+<site-footer root="../../"></site-footer>
+
+<script src="../../assets/site.js"></script>
+</body>
+</html>

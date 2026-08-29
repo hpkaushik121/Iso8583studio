@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="/assets/analytics.js"></script>
+    <title>ISO8583Studio Pro — register for early access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://checkout.razorpay.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="../images/app.png" type="image/x-icon">
+    <link rel="icon" href="../images/app.png" type="image/x-icon">
+    <meta name="description" content="ISO8583Studio Pro — hosted simulator endpoints, scheme certification packs, unlimited scripted test suites, priority support. Register for access.">
+    <link rel="canonical" href="https://iso8583.studio/pro/">
+    <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+
+<site-header root="../"></site-header>
+
+<main class="doc-body">
+    <div class="breadcrumb">
+        <a href="../index.html">Home</a><span class="breadcrumb-sep">/</span>
+        <span>Pro</span>
+    </div>
+
+    <div class="page-title-row"><h1 class="page-title">ISO8583Studio Pro</h1><span class="badge badge-purple">Early access</span></div>
+    <p class="page-description">The studio stays free. Pro raises the ceiling: higher cryptographic throughput, the full algorithm set, deeper tuning of every simulator — plus hosted endpoints, certification-grade test packs and an engineer to call when a cryptogram won't verify.</p>
+
+    <section class="doc-section" id="what">
+        <h2>What Pro adds</h2>
+        <div class="feature-grid">
+            <div class="feature-item"><h4>Higher cryptographic throughput</h4><p>Raised CPS ceiling — the free build throttles cryptographic operations per second; Pro runs multi-threaded across cores for load and soak testing at production-like rates.</p></div>
+            <div class="feature-item"><h4>Full algorithm set</h4><p>Beyond the free 3DES/AES basics: RSA and ECC key operations, SHA-3, FPE (FF1/FF3-1), Poly1305, ChaCha20, DUKPT AES, and vendor-specific key derivations.</p></div>
+            <div class="feature-item"><h4>Deep simulator tweaks</h4><p>Per-field ISO 8583 overrides, custom bitmap and header handling, latency and error injection, partial-response and timeout scenarios, and editable payShield command behaviour.</p></div>
+            <div class="feature-item"><h4>Hosted simulator endpoints</h4><p>Host, HSM and switch simulators running as always-on endpoints with static addresses, so pipelines and remote teammates hit the same test bed instead of someone's desktop.</p></div>
+            <div class="feature-item"><h4>Scheme certification packs</h4><p>Curated Visa, Mastercard, RuPay and NPCI message sets with expected responses, run as a suite with a pass/fail report you can attach to a certification submission.</p></div>
+            <div class="feature-item"><h4>Unlimited scripted suites</h4><p>Chain transactions, assert on any field or TLV tag, parameterise with data files, and run the whole thing headless from the CLI in CI.</p></div>
+            <div class="feature-item"><h4>Team configuration sync</h4><p>Share gateway, HSM and terminal configurations across a team with versioning and rollback, instead of passing YAML files around.</p></div>
+            <div class="feature-item"><h4>Full HSM key ceremony</h4><p>Extended payShield command coverage, LMK sets per environment, TR-31 key blocks, component printing and audited key ceremonies.</p></div>
+            <div class="feature-item"><h4>Priority engineering support</h4><p>Direct channel to the engineers who wrote the simulators, with same-business-day response and help reading real traces.</p></div>
+        </div>
+
+        <div class="spec-list">
+            <div class="spec-row"><div class="k">Free</div><div class="v">All 9 simulators, all 64 tools, standard algorithms, throttled cryptographic throughput, local configs, manual test runs, community support on GitHub.</div></div>
+            <div class="spec-row"><div class="k">Pro</div><div class="v">Everything in Free, plus a raised CPS ceiling, the full algorithm set, deep per-simulator tweaks, hosted endpoints, certification packs, scripted suites in CI, config sync, extended HSM coverage and priority support.</div></div>
+        </div>
+    </section>
+
+    <section class="doc-section" id="register">
+        <h2>Register for Pro</h2>
+        <p>Tell us who you are and what you're certifying. We provision your workspace and send credentials by email.</p>
+
+        <form class="pro-form" id="proForm" novalidate>
+            <div class="pf-grid">
+                <label class="pf-field"><span>Full name</span><input type="text" name="name" required autocomplete="name" placeholder="Sourabh Kaushik"></label>
+                <label class="pf-field"><span>Work email</span><input type="email" name="email" required autocomplete="email" placeholder="you@company.com"></label>
+                <label class="pf-field"><span>Company</span><input type="text" name="company" required autocomplete="organization" placeholder="Acquirer, processor or fintech"></label>
+                <label class="pf-field"><span>Role</span><input type="text" name="role" autocomplete="organization-title" placeholder="Payments engineer"></label>
+                <label class="pf-field pf-span"><span>What are you testing or certifying?</span><textarea name="usecase" rows="3" placeholder="e.g. RuPay issuer certification, ISO 8583 switch integration, EMV L3"></textarea></label>
+                <div class="pf-field">
+                    <span class="pf-label">
+                        <label for="proAmount">Amount to pay</label>
+                        <span class="pf-tip-wrap">
+                            <button type="button" class="pf-tip" aria-describedby="proAmountTip"><span aria-hidden="true">i</span><span class="sr-only">Why the amount matters</span></button>
+                            <span class="pf-tip-bubble" role="tooltip" id="proAmountTip">Pay what Pro is worth to you. Early access is provisioned from a queue — <b>the higher the amount, the higher your priority in it</b>, so a larger contribution gets your workspace, certification packs and support channel opened sooner.</span>
+                        </span>
+                    </span>
+                    <div class="pf-amount"><span class="pf-cur">₹</span><input type="number" name="amount" id="proAmount" required step="1" min="2" max="100000" inputmode="numeric" placeholder="Enter amount"></div>
+                    <p class="pf-hint"><b>Higher amount → higher priority</b> in the early-access queue.</p>
+                </div>
+                <label class="pf-field"><span>Billing country</span><input type="text" name="country" value="India" autocomplete="country-name"></label>
+            </div>
+            <p class="pf-error" id="proError" hidden></p>
+            <div class="pf-actions">
+                <button class="btn btn-blue" type="submit" id="proSubmit"><span id="proSubmitLabel">Continue to payment</span></button>
+                <span class="pf-note">Secure payment by Razorpay — UPI, cards, netbanking or wallet. You'll get an emailed receipt and workspace credentials.</span>
+            </div>
+            <p class="pf-done" id="proDone" hidden></p>
+        </form>
+    </section>
+
+    <section class="doc-section" id="faq">
+        <h2>Questions</h2>
+        <div class="info-card"><div class="info-card-title">Does the free studio change?</div><p>No. Every simulator and tool that is free today stays free, offline and unrestricted. Pro is additive.</p></div>
+        <div class="info-card note"><div class="info-card-title">Need an invoice, PO or annual contract?</div><p>Write to <a href="mailto:admin@iso8583.studio">admin@iso8583.studio</a> and we'll bill your organisation directly instead.</p></div>
+    </section>
+</main>
+
+<site-footer root="../"></site-footer>
+
+<script src="../assets/site.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+   Pro registration -> Razorpay Checkout.
+
+   Three values below point this page at your account and your order service.
+   RZP_KEY_ID is the *publishable* key id and is meant to ship in client code;
+   the key secret must never appear here - it lives only in the service.
+
+     ORDER_API   POST {amount_paise, currency, name, email, company, role,
+                       usecase, country}
+                 ->   {order_id, amount, currency, key_id?}
+                 The order is created server-side so the charged amount is
+                 fixed by us, not by whatever the browser posts.
+
+     VERIFY_API  POST {razorpay_payment_id, razorpay_order_id, razorpay_signature}
+                 ->   {ok:true} once the HMAC-SHA256 signature checks out
+                 against the key secret. The browser's word that a payment
+                 succeeded is never enough on its own.
+
+   Leaving ORDER_API empty is a valid state: the form then hands off to email
+   rather than pretending to charge anyone.
+--------------------------------------------------------------------------- */
+(function(){
+  var RZP_KEY_ID  = '';   // 'rzp_live_XXXXXXXXXXXXXX'
+  var ORDER_API   = '';   // 'https://api.iso8583.studio/pro/order'
+  var VERIFY_API  = '';   // 'https://api.iso8583.studio/pro/verify'
+  var CHECKOUT_JS = 'https://checkout.razorpay.com/v1/checkout.js';
+  var MIN = 2, MAX = 100000;
+
+  var f    = document.getElementById('proForm'),
+      amt  = document.getElementById('proAmount'),
+      err  = document.getElementById('proError'),
+      done = document.getElementById('proDone'),
+      btn  = document.getElementById('proSubmit'),
+      lbl  = document.getElementById('proSubmitLabel'),
+      tip  = f.querySelector('.pf-tip');
+  var busy = false, settled = false;
+
+  // GA4 stores an empty string as a real blank value, which pollutes reporting,
+  // so unset params are dropped the way assets/analytics.js drops them.
+  function ev(name, params){
+    if (!window.gtag) return;
+    var p = {};
+    for (var k in (params || {})) { if (params[k] !== undefined && params[k] !== '') p[k] = params[k]; }
+    window.gtag('event', name, p);
+  }
+  function esc(v){ var d = document.createElement('span'); d.textContent = String(v == null ? '' : v); return d.innerHTML; }
+  function inr(v){ return '₹' + Number(v).toLocaleString('en-IN'); }
+  function fail(html){ err.innerHTML = html; err.hidden = false; done.hidden = true; return false; }
+
+  function setBusy(on, label){
+    busy = on;
+    btn.disabled = on;
+    lbl.textContent = label || 'Continue to payment';
+    var sp = btn.querySelector('.pf-spin');
+    if (on && !sp) { sp = document.createElement('span'); sp.className = 'pf-spin'; btn.insertBefore(sp, lbl); }
+    if (!on && sp) sp.parentNode.removeChild(sp);
+  }
+
+  // ------------------------------------------------------------- checkout SDK
+  var loading = null;
+  function loadCheckout(){
+    if (window.Razorpay) return Promise.resolve();
+    if (loading) return loading;
+    loading = new Promise(function(resolve, reject){
+      var el = document.createElement('script');
+      el.src = CHECKOUT_JS; el.async = true;
+      el.onload  = function(){ window.Razorpay ? resolve() : reject(new Error('checkout unavailable')); };
+      el.onerror = function(){ loading = null; reject(new Error('checkout unreachable')); };
+      document.head.appendChild(el);
+    });
+    return loading;
+  }
+  // Pull the SDK down while the form is being filled, not after the click.
+  f.addEventListener('focusin', function warm(){
+    f.removeEventListener('focusin', warm);
+    if (ORDER_API) loadCheckout().catch(function(){});
+  });
+
+  // ------------------------------------------------------------------ reading
+  function read(){
+    var d = new FormData(f);
+    return {
+      name:    String(d.get('name')    || '').trim(),
+      email:   String(d.get('email')   || '').trim(),
+      company: String(d.get('company') || '').trim(),
+      role:    String(d.get('role')    || '').trim(),
+      usecase: String(d.get('usecase') || '').trim(),
+      country: String(d.get('country') || '').trim(),
+      amount:  Number(String(d.get('amount') || '').trim())
+    };
+  }
+
+  function invalid(d){
+    if (!d.name) return { field: 'name', msg: 'Please enter your name.' };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return { field: 'email', msg: 'Please enter a valid work email.' };
+    if (!d.company) return { field: 'company', msg: 'Please enter your company.' };
+    if (!Number.isInteger(d.amount) || d.amount < MIN || d.amount > MAX) {
+      return { field: 'amount', msg: 'Enter a whole rupee amount between ' + inr(MIN) + ' and ' + inr(MAX) + '. Remember: the higher the amount, the higher your place in the early-access queue.' };
+    }
+    return null;
+  }
+
+  // Every press of the pay button reports what the form held at that moment,
+  // before validation, so abandoned and rejected registrations stay visible
+  // alongside the ones that reach checkout.
+  //
+  // Full name and raw email are deliberately absent: GA4's terms forbid PII,
+  // and the privacy page only claims GA4 carries usage measurement. The email
+  // domain and the business fields carry the qualifying signal without it; the
+  // complete record, name and address included, is what goes to ORDER_API.
+  var attempts = 0;
+  function payClick(d, bad){
+    return {
+      value: isFinite(d.amount) ? d.amount : 0,
+      currency: 'INR',
+      attempt: attempts,
+      email_domain: (d.email.split('@')[1] || '').slice(0, 100),
+      company: d.company.slice(0, 100),
+      role: d.role.slice(0, 100),
+      usecase: d.usecase.slice(0, 100),
+      usecase_len: d.usecase.length,
+      country: d.country.slice(0, 100),
+      has_name: d.name ? 1 : 0,
+      has_email: d.email ? 1 : 0,
+      has_company: d.company ? 1 : 0,
+      has_role: d.role ? 1 : 0,
+      has_usecase: d.usecase ? 1 : 0,
+      form_valid: bad ? 0 : 1,
+      invalid_field: bad ? bad.field : '',
+      gateway_ready: ORDER_API ? 1 : 0
+    };
+  }
+
+  // -------------------------------------------------------------------- order
+  function createOrder(d){
+    return fetch(ORDER_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount_paise: d.amount * 100, currency: 'INR',
+        name: d.name, email: d.email, company: d.company,
+        role: d.role, usecase: d.usecase, country: d.country
+      })
+    }).then(function(res){
+      if (!res.ok) throw new Error('order ' + res.status);
+      return res.json();
+    }).then(function(o){
+      if (!o || !o.order_id) throw new Error('order id missing');
+      return o;
+    });
+  }
+
+  function verify(resp){
+    if (!VERIFY_API) return Promise.resolve();   // signature checked by webhook instead
+    return fetch(VERIFY_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        razorpay_payment_id: resp.razorpay_payment_id,
+        razorpay_order_id:   resp.razorpay_order_id,
+        razorpay_signature:  resp.razorpay_signature
+      })
+    }).then(function(res){
+      if (!res.ok) throw new Error('verify ' + res.status);
+      return res.json();
+    }).then(function(o){
+      if (!o || o.ok !== true) throw new Error('signature rejected');
+    });
+  }
+
+  // ----------------------------------------------------------------- checkout
+  function openCheckout(order, d){
+    var key = order.key_id || RZP_KEY_ID;
+    // Razorpay keeps its modal open after a failed attempt so the payer can
+    // retry; once we have shown a real decline reason, a later close must not
+    // overwrite it with the generic "you closed the window" line.
+    var declined = false;
+    if (!key) { setBusy(false); return fail('The payment gateway key is not configured on this page yet. Email <a href="mailto:admin@iso8583.studio">admin@iso8583.studio</a> and we will send you a payment link.'); }
+
+    var rzp = new window.Razorpay({
+      key: key,
+      order_id: order.order_id,
+      amount: order.amount || d.amount * 100,
+      currency: order.currency || 'INR',
+      name: 'ISO8583Studio',
+      description: 'ISO8583Studio Pro — early access',
+      image: 'https://iso8583.studio/images/app.png',
+      prefill: { name: d.name, email: d.email },
+      notes: {
+        company: d.company.slice(0, 240),
+        role: d.role.slice(0, 240),
+        usecase: d.usecase.slice(0, 240),
+        country: d.country.slice(0, 120),
+        queue_amount_inr: String(d.amount)
+      },
+      theme: { color: '#1e88e5', backdrop_color: 'rgba(21,22,31,.86)' },
+      retry: { enabled: true, max_count: 2 },
+      modal: {
+        confirm_close: true,
+        ondismiss: function(){
+          if (settled) return;
+          setBusy(false);
+          ev('pro_checkout_dismissed', { value: d.amount, currency: 'INR', transaction_id: order.order_id, declined: declined ? 1 : 0 });
+          if (declined) return;
+          fail('Checkout was closed before the payment finished, so nothing was charged. Your details are still here — press “Continue to payment” whenever you are ready.');
+        }
+      },
+      handler: function(resp){ settled = true; onPaid(resp, order, d); }
+    });
+
+    rzp.on('payment.failed', function(resp){
+      var e = (resp && resp.error) || {};
+      declined = true;
+      setBusy(false);
+      ev('pro_checkout_error', {
+        error_stage: 'payment', error_code: e.code || '',
+        error_message: String(e.description || '').slice(0, 100),
+        value: d.amount, currency: 'INR', transaction_id: order.order_id
+      });
+      fail('Payment failed' + (e.description ? ': ' + esc(e.description) : '') + '. Nothing was charged — you can close the window and try another method.');
+    });
+
+    rzp.open();
+    setBusy(true, 'Waiting for payment…');
+    ev('pro_checkout_opened', { value: d.amount, currency: 'INR', transaction_id: order.order_id });
+  }
+
+  function onPaid(resp, order, d){
+    setBusy(true, 'Confirming payment…');
+    verify(resp).then(function(){
+      setBusy(false);
+      btn.disabled = true;
+      lbl.textContent = 'Payment received';
+      err.hidden = true;
+      done.hidden = false;
+      done.innerHTML = 'Payment of ' + inr(d.amount) + ' received — reference <span class="mono">' + esc(resp.razorpay_payment_id) + '</span>. ' +
+        'You are in the early-access queue at that contribution level, and a receipt plus your workspace credentials will reach ' + esc(d.email) + '.';
+      ev('purchase', {
+        transaction_id: order.order_id, value: d.amount, currency: 'INR', payment_type: 'razorpay',
+        items: [{ item_id: 'pro_early_access', item_name: 'ISO8583Studio Pro — early access', price: d.amount, quantity: 1 }]
+      });
+    })['catch'](function(e){
+      setBusy(false);
+      ev('pro_checkout_error', { error_stage: 'verify', error_message: String((e && e.message) || e).slice(0, 100), transaction_id: order.order_id });
+      fail('Your payment went through (reference <span class="mono">' + esc(resp.razorpay_payment_id) + '</span>) but this page could not confirm it. Nothing further is needed from you — keep that reference and email <a href="mailto:admin@iso8583.studio">admin@iso8583.studio</a> if you have not heard from us within a business day.');
+    });
+  }
+
+  // ------------------------------------------------------------------- submit
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    if (busy || settled) return;
+
+    var d = read(), bad = invalid(d);
+    attempts++;
+    ev('pro_pay_click', payClick(d, bad));
+
+    if (bad) {
+      ev('pro_form_error', { error_field: bad.field });
+      var el = f.elements[bad.field];
+      if (el && el.focus) el.focus();
+      return fail(bad.msg);
+    }
+
+    if (!ORDER_API) {
+      ev('pro_checkout_unconfigured', { value: d.amount, currency: 'INR' });
+      return fail('Online payment is not switched on for this page yet. Email <a href="mailto:admin@iso8583.studio?subject=ISO8583Studio%20Pro%20registration">admin@iso8583.studio</a> and we will send you a payment link for ' + inr(d.amount) + '.');
+    }
+
+    err.hidden = true; done.hidden = true;
+    setBusy(true, 'Preparing checkout…');
+    ev('pro_checkout_start', { value: d.amount, currency: 'INR', payment_type: 'razorpay' });
+
+    Promise.all([createOrder(d), loadCheckout()]).then(function(r){
+      openCheckout(r[0], d);
+    })['catch'](function(e2){
+      setBusy(false);
+      ev('pro_checkout_error', { error_stage: 'init', error_message: String((e2 && e2.message) || e2).slice(0, 100), value: d.amount, currency: 'INR' });
+      fail('We could not reach the payment gateway just now. Please try again in a moment, or email <a href="mailto:admin@iso8583.studio">admin@iso8583.studio</a> for a payment link.');
+    });
+  });
+
+  // ---------------------------------------------------------------- telemetry
+  if (tip) {
+    var tipSeen = false;
+    var noteTip = function(){
+      if (tipSeen) return;
+      tipSeen = true;
+      ev('pro_amount_tip_view', {});
+    };
+    tip.addEventListener('mouseenter', noteTip);
+    tip.addEventListener('focus', noteTip);
+  }
+  amt.addEventListener('change', function(){
+    var v = Number(amt.value);
+    if (v > 0) ev('pro_amount_set', { value: v, currency: 'INR' });
+  });
+})();
+</script>
+</body>
+</html>
