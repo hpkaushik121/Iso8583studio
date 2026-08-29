@@ -655,7 +655,14 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
 
 /* The documentation pages lay out on .doc-body and the marketing pages on the
    wider .wrap, so the aside needs both widths to line up with the text above
-   it rather than merely being centred. */
+   it rather than merely being centred.
+
+   Margin and padding are repeated here, identical to the base rule, because
+   _page-home.css still carries `.page-home * { margin: 0; padding: 0 }` from
+   the standalone page it was lifted from. That reset ties with .pro-nudge on
+   specificity and loads later, so it strips the box off the aside — the
+   centring auto margin included, which pinned it to the left edge. This
+   selector outranks it. */
 .page-home .pro-nudge,
 .page-emv-certification .pro-nudge,
 .page-cloud-simulators .pro-nudge,
@@ -663,6 +670,8 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
 .page-kernel .pro-nudge,
 .page-pro .pro-nudge {
     width: min(var(--wrap-max) - 2 * var(--gutter), 100% - 2 * var(--gutter));
+    margin: var(--sp-8) auto;
+    padding: var(--sp-4) 18px;
 }
 
 /* ---- Dialog ------------------------------------------------------------ */

@@ -244,11 +244,6 @@
 .page-home .pro-pill{ display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-hi); padding: 6px 12px; border-radius: 99px; border: 1px solid rgba(100,216,203,.28); background: rgba(38,166,154,.09); transition: all .18s; white-space: nowrap; text-decoration: none; }
 .page-home .pro-pill:hover{ color: #b9f3ec; border-color: rgba(100,216,203,.5); background: rgba(38,166,154,.16); }
 .page-home site-pro{ display: block; max-width: 1200px; margin: 0 auto; padding: 0 24px 8px; }
-.page-home .pro-nudge{ display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 18px; margin: 53px 0; border: 1px solid var(--line); border-left: 2px solid rgba(100,216,203,.55); border-radius: 10px; background: linear-gradient(90deg, rgba(38,166,154,.07), transparent 70%); }
-.page-home .pro-nudge .pn-tag{ font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--teal-hi); padding: 3px 10px; border-radius: 99px; border: 1px solid rgba(100,216,203,.3); background: rgba(38,166,154,.12); flex: none; }
-.page-home .pro-nudge p{ margin: 0; flex: 1 1 380px; font-size: 14px; line-height: 1.6; color: var(--muted); text-wrap: pretty; }
-.page-home .pro-nudge a{ flex: none; font-size: 14px; font-weight: 600; color: var(--teal-hi); text-decoration: none; }
-.page-home .pro-nudge a:hover{ color: #b9f3ec; }
 @media (max-width: 900px){.page-home .pro-pill{ display: none; }}
 .page-home .pro-modal-ov{ position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 24px; background: rgba(10,11,16,.72); backdrop-filter: blur(3px); animation: pmIn .16s ease-out; }
 
