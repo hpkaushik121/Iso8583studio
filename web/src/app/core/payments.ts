@@ -49,8 +49,20 @@ export interface PaymentsError {
 export class PaymentsService {
   private readonly doc = inject(DOCUMENT);
 
-  /** False when no credential was built in, so callers can say so plainly. */
+  /**
+   * Checkout needs both halves: a credential to call with, and a SKU to name.
+   * A page may not name a price, so with no price point there is nothing it is
+   * allowed to sell and no call worth making.
+   */
   readonly configured = !!PAYMENTS.publicKey && PAYMENTS.pricePoints.length > 0;
+
+  /** Which half is missing, for the console — the customer sees one message. */
+  readonly unconfiguredReason: string | null = !PAYMENTS.publicKey
+    ? 'PAYMENTS_PUB_KEY is not set: the build had no browser credential to bake in.'
+    : PAYMENTS.pricePoints.length === 0
+      ? 'PAYMENTS_PRICE_POINTS is empty: publish a unit SKU in the tenant\'s '
+        + 'browser_checkout_price_points and set it, with PAYMENTS_UNIT_RUPEES.'
+      : null;
 
   /**
    * Creates a checkout and hands back where to send the customer.

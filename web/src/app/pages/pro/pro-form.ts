@@ -226,6 +226,7 @@ export class ProForm {
    */
   private async startCheckout(): Promise<void> {
     if (!this.payments.configured) {
+      console.warn(`Pro checkout is off — ${this.payments.unconfiguredReason}`);
       this.formError.set(
         'Payment is not connected yet. Write to admin@iso8583.studio and we will set you up directly.');
       return;
