@@ -9,4 +9,6 @@ export interface BlogMeta {
   author: string;
   readTime: string;
   tags: string[];
+  /** `/images/blog/<slug>.jpg`, or null when no image has been generated. */
+  image: string | null;
 }

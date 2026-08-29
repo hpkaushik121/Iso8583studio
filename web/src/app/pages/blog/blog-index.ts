@@ -30,6 +30,10 @@ import { UiTag } from '../../ui/tag';
     <div class="blog-index-grid">
       @for (post of visible(); track post.slug) {
         <a class="card card--post card--interactive" [routerLink]="post.path">
+          @if (post.image) {
+            <img class="post-thumb" [src]="post.image" alt="" width="1376" height="768"
+                 loading="lazy" decoding="async">
+          }
           <span class="ui-card-eyebrow">{{ post.category }}</span>
           <span class="ui-card-title">{{ post.title }}</span>
           <span class="ui-card-desc">{{ post.description }}</span>

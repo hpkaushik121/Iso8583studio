@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "build:content": "node tools/build-blog-routes.mjs",
+    "blog:images": "node tools/build-blog-routes.mjs --images",
     "check": "node tools/check-links.mjs",
     "lint:css": "stylelint \"src/**/*.css\"",
     "serve:dist": "node tools/serve-dist.mjs",

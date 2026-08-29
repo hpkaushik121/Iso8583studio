@@ -9,7 +9,7 @@
  *  - URLs are extensionless, and the sitemap is no longer written from a
  *    hardcoded list of 11 static pages that overwrote every other entry.
  */
-import { readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
@@ -19,7 +19,124 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CONTENT = join(ROOT, 'content/blog');
 const OUT_POSTS = join(ROOT, 'src/app/content/posts');
 const OUT_DIR = join(ROOT, 'src/app/content');
+const OUT_IMAGES = join(ROOT, 'public/images/blog');
 const SITE = 'https://iso8583.studio';
+
+/* ---- Post images ---------------------------------------------------------
+ *
+ * Generated once with Gemini and committed, never regenerated on a normal
+ * build: the API costs money, returns a different picture every call, and CI
+ * has no key. So `npm run build` only ever reads what is already on disk, and
+ * generation is an explicit opt-in:
+ *
+ *   npm run blog:images        # fill in whatever is missing
+ *   npm run blog:images -- --force <slug>   # redo one you dislike
+ *
+ * A post whose file is absent simply has no image; nothing breaks.
+ */
+const WANT_IMAGES = process.argv.includes('--images');
+const FORCE = process.argv.includes('--force');
+const ONLY = process.argv.filter((a) => !a.startsWith('-') && !a.endsWith('.mjs') && !a.includes('node'));
+
+// The key lives in the repo-root .env, which is gitignored. Absent is normal.
+if (WANT_IMAGES && typeof process.loadEnvFile === 'function') {
+  try { process.loadEnvFile(join(ROOT, '..', '.env')); } catch { /* no .env */ }
+}
+
+const IMAGE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+// 1K is the smallest tier that clears the 1200x630 minimum for a social card.
+const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE || '1K';
+const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || process.env.GEMINI_MODEL;
+
+/* One house style for all of them, so fifty-two posts do not look like
+   fifty-two different blogs.
+ *
+ * Two things were learned the hard way and are why this reads the way it does.
+ * Naming the post's tags alongside its title primed the model to draw a
+ * labelled schematic — an "AES encryption" prompt came back as a flowchart
+ * captioned Encryption, Mode, IV and Padding. And a trailing "no text" is not
+ * enough on its own: the ban has to be last, explicit about every form text
+ * takes, and paired with saying outright that this is not a diagram. Text in
+ * a generated image is misspelled as often as not, and duplicates a headline
+ * that sits directly above it anyway. */
+const IMAGE_STYLE =
+  'Abstract symbolic artwork for an article about payment systems engineering. ' +
+  'Very dark navy background (#15161f), thin luminous line work in blue (#1e88e5) and ' +
+  'teal (#26a69a), subtle glow, generous negative space, calm centred composition, ' +
+  'flat vector feel.';
+
+const promptFor = (post) =>
+  `${IMAGE_STYLE} Evoke this theme as a single abstract symbol or form: ${post.title}. ` +
+  'This is decorative artwork, not a diagram, flowchart, schematic or chart. ' +
+  'Absolutely no text anywhere in the image: no letters, words, numbers, labels, ' +
+  'captions, annotations, logos or watermarks. No user interface, no people, no hands.';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function generateImage(post, attempt = 1) {
+  const res = await fetch(IMAGE_ENDPOINT, {
+    method: 'POST',
+    headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: IMAGE_MODEL,
+      input: [{ type: 'text', text: promptFor(post) }],
+      response_format: {
+        type: 'image', mime_type: 'image/jpeg', aspect_ratio: '16:9', image_size: IMAGE_SIZE,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text();
+    // Rate limit and transient server errors are worth retrying; a 400 is a
+    // bad request and will fail identically every time.
+    if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+      await sleep(2000 * attempt);
+      return generateImage(post, attempt + 1);
+    }
+    throw new Error(`${res.status} ${detail.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+  // The picture arrives as a model_output step, alongside a thought step.
+  const image = (json.steps ?? []).flatMap((s) => s.content ?? [])
+    .find((c) => c.type === 'image' && c.data);
+  if (!image) throw new Error('response carried no image');
+
+  writeFileSync(join(OUT_IMAGES, `${post.slug}.jpg`), Buffer.from(image.data, 'base64'));
+}
+
+/** Fills in missing images, a few at a time so the API is not hit flat out. */
+async function generateMissing(posts) {
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('  no GEMINI_API_KEY (set it in the repo-root .env) — skipping images');
+    return;
+  }
+  mkdirSync(OUT_IMAGES, { recursive: true });
+
+  const todo = posts.filter((p) => {
+    if (ONLY.length && !ONLY.includes(p.slug)) return false;
+    return FORCE || !existsSync(join(OUT_IMAGES, `${p.slug}.jpg`));
+  });
+  if (!todo.length) { console.log('  images: nothing to generate'); return; }
+
+  console.log(`  images: generating ${todo.length} at ${IMAGE_SIZE} with ${IMAGE_MODEL}`);
+  let done = 0, failed = 0;
+  const queue = [...todo];
+  const worker = async () => {
+    for (let post; (post = queue.shift());) {
+      try {
+        await generateImage(post);
+        console.log(`    ✔ ${++done}/${todo.length} ${post.slug}`);
+      } catch (err) {
+        failed++;
+        console.warn(`    ✘ ${post.slug}: ${err.message}`);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: 3 }, worker));
+  if (failed) console.warn(`  images: ${failed} failed — re-run to retry just those`);
+}
 
 const md = new MarkdownIt({ html: true, linkify: true, typographer: false });
 
@@ -81,6 +198,16 @@ const posts = files.map((file) => {
 // Newest first, matching the previous index ordering.
 posts.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
+if (WANT_IMAGES) await generateMissing(posts);
+
+// Read from disk rather than from whether generation ran, so a build with no
+// key still wires up every image that is already committed.
+for (const post of posts) {
+  post.image = existsSync(join(OUT_IMAGES, `${post.slug}.jpg`))
+    ? `/images/blog/${post.slug}.jpg`
+    : null;
+}
+
 rmSync(OUT_POSTS, { recursive: true, force: true });
 mkdirSync(OUT_POSTS, { recursive: true });
 
@@ -113,6 +240,7 @@ const routeEntries = posts.map((p) => {
     author: { '@type': 'Organization', name: 'AiCortex Solutions' },
     publisher: { '@type': 'Organization', name: 'AiCortex Solutions', url: `${SITE}/` },
     datePublished: p.date,
+    ...(p.image ? { image: `${SITE}${p.image}` } : {}),
     url: `${SITE}${p.path}`,
     mainEntityOfPage: `${SITE}${p.path}`,
     keywords: p.tags.join(', ') || 'ISO8583, payment testing',
@@ -124,6 +252,7 @@ const routeEntries = posts.map((p) => {
     path: p.path,
     ogType: 'article',
     author: p.author,
+    ...(p.image ? { image: `${SITE}${p.image}` } : {}),
     jsonLd,
   };
   return `  {
@@ -146,4 +275,5 @@ writeFileSync(
   `export const blogRoutes: Routes = [\n${routeEntries.join('\n')}\n];\n`,
 );
 
-console.log(`blog: ${posts.length} posts, ${new Set(posts.map((p) => p.category)).size} categories`);
+console.log(`blog: ${posts.length} posts, ${new Set(posts.map((p) => p.category)).size} categories, `
+  + `${posts.filter((p) => p.image).length} with an image`);

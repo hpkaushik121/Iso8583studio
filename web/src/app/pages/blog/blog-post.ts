@@ -33,6 +33,10 @@ import type { BlogMeta } from './blog-meta';
         </header>
 
         <div class="blog-body">
+          @if (p.image) {
+            <img class="post-hero-img" [src]="p.image" [alt]="" width="1376" height="768"
+                 decoding="async">
+          }
           <div class="prose" [innerHTML]="body()"></div>
 
           <div class="blog-cta prose">

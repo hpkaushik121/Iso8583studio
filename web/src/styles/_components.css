@@ -113,6 +113,29 @@ ui-card > .card { height: 100%; }
 .card--tile { background: var(--surface); border-radius: var(--r-lg); }
 .card--post { position: relative; overflow: hidden; padding: var(--sp-6) var(--sp-6) var(--sp-5); }
 
+/* The thumbnail is pulled out to the card's edges — the card's own padding
+   would otherwise frame it in a border of background colour. */
+.post-thumb {
+    display: block;
+    width: calc(100% + 2 * var(--sp-6));
+    margin: calc(-1 * var(--sp-6)) calc(-1 * var(--sp-6)) var(--sp-5);
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--card-deep);
+}
+
+/* Sits above the article body at the width of the text column. */
+.post-hero-img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    margin-bottom: var(--sp-8);
+    background: var(--card-deep);
+}
+
 .card--post::before {
     content: '';
     position: absolute;
