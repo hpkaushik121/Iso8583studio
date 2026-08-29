@@ -179,6 +179,12 @@ export function messageFor(err: PaymentsError): string {
     case 'unknown_price_point':
     case 'browser_checkout_disabled':
       return 'That plan is not available for self-serve checkout yet. Write to admin@iso8583.studio.';
+    // The likeliest failure once a unit SKU exists: browser_max_quantity
+    // defaults to 10, and at ₹1 a unit even a small amount exceeds it.
+    case 'invalid_quantity':
+      return 'That amount is above the current self-serve limit. Write to admin@iso8583.studio.';
+    case 'too_many_line_items':
+      return 'That order has too many items for self-serve checkout.';
     case 'origin_not_allowed':
       return 'Checkout is not enabled for this address. Write to admin@iso8583.studio.';
     case 'amount_not_permitted':
