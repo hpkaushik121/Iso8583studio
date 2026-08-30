@@ -11,6 +11,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <!--
+    Google AdSense. Here rather than injected from a component because every
+    route is prerendered from this one shell, so this is the only place that
+    reaches all of them — including the legacy .html aliases postbuild writes.
+    async, so it never blocks first paint.
+  -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8373195110711939"
+          crossorigin="anonymous"></script>
 </head>
 <body>
   <app-root></app-root>
