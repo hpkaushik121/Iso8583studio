@@ -562,8 +562,10 @@ ui-section { display: block; }
 }
 
 /* Opened by hover for pointers and by aria-expanded for keyboards, so the
-   menus are reachable without a mouse. */
-.nav-item:hover > .menu,
+   menus are reachable without a mouse. .hover-off suppresses the hover-open
+   right after an item is picked (the pointer is still parked on the menu);
+   the header clears it on mouseleave. */
+.nav-item:hover > .menu:not(.hover-off),
 .nav-item > .menu.open { opacity: 1; visibility: visible; transform: none; }
 
 .menu.mega { min-width: 560px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; }
@@ -572,6 +574,44 @@ ui-section { display: block; }
 .menu b { display: block; font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; }
 .menu .mi-sub { display: block; font-size: var(--fs-xs); color: var(--muted); line-height: 1.35; margin-top: 1px; }
 .menu .cnt { font-family: var(--mono); font-size: var(--fs-2xs); color: var(--teal-hi); font-weight: 400; }
+
+/* ---- Route progress ----------------------------------------------------- */
+
+/* Indeterminate bar shown while the router loads the next page's chunk.
+   The component only renders it once a navigation has taken >120ms, so
+   instant navigations never flash it. */
+.route-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: var(--z-toast);
+    overflow: hidden;
+    pointer-events: none;
+    background: var(--blue-wash);
+}
+
+.route-progress::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    border-radius: var(--r-pill);
+    background: linear-gradient(90deg, var(--blue), var(--teal-hi));
+    animation: route-progress-slide 1s var(--ease) infinite;
+}
+
+@keyframes route-progress-slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(350%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .route-progress::before { animation: none; width: 100%; opacity: .5; }
+}
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); }
 .gh-link { display: flex; align-items: center; gap: var(--sp-2); color: var(--muted); font-size: var(--fs-sm); font-weight: 500; padding: var(--sp-2); border-radius: var(--r-sm); }

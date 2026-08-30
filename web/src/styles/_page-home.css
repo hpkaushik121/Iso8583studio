@@ -36,7 +36,7 @@
 .page-home .nav-a svg{transition:transform .18s}
 .page-home .nav-links>div:hover .nav-a svg{transform:rotate(180deg)}
 .page-home .menu{position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:9px;min-width:300px;box-shadow:0 24px 60px rgba(0,0,0,.5);opacity:0;visibility:hidden;transform:translateY(6px);transition:all .16s}
-.page-home .nav-links>div:hover .menu{opacity:1;visibility:visible;transform:none}
+.page-home .nav-links>div:hover .menu:not(.hover-off){opacity:1;visibility:visible;transform:none}
 .page-home .menu.mega{min-width:552px;display:grid;grid-template-columns:1fr 1fr;gap:1px}
 .page-home .menu a{display:flex;gap:11px;align-items:flex-start;padding:10px 11px;border-radius:9px;color:var(--text)}
 .page-home .menu a:hover{background:rgba(30,136,229,.1)}

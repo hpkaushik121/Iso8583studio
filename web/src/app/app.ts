@@ -5,6 +5,7 @@ import { Header } from './shell/header';
 import { Footer } from './shell/footer';
 import { CookieBanner } from './shell/cookie-banner';
 import { ProDownloadModal } from './shell/pro-download-modal';
+import { RouteProgress } from './shell/route-progress';
 import { SeoService } from './core/seo';
 import { AnalyticsService } from './core/analytics';
 
@@ -14,7 +15,7 @@ const SCROLL_OFFSET = 84;
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterOutlet, Header, Footer, CookieBanner, ProDownloadModal],
+  imports: [RouterLink, RouterOutlet, Header, Footer, CookieBanner, ProDownloadModal, RouteProgress],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
 })

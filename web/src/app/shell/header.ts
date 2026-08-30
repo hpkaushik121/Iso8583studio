@@ -24,7 +24,7 @@ import { MobileMenu } from './mobile-menu';
 
         <nav class="nav-links" aria-label="Main">
           @for (group of groups; track group.label) {
-            <div class="nav-item">
+            <div class="nav-item" (mouseleave)="hoverOff.set(false)">
               <button class="nav-a" type="button"
                       [attr.aria-expanded]="openMenu() === group.label"
                       (click)="toggle(group.label)">
@@ -33,7 +33,8 @@ import { MobileMenu } from './mobile-menu';
                   <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </button>
-              <div class="menu" [class.mega]="group.mega" [class.open]="openMenu() === group.label">
+              <div class="menu" [class.mega]="group.mega" [class.open]="openMenu() === group.label"
+                   [class.hover-off]="hoverOff()">
                 @for (item of group.items; track item.link) {
                   <a [routerLink]="item.link" (click)="closeAll()">
                     <span class="icon-tile" aria-hidden="true">{{ item.glyph }}</span>
@@ -64,6 +65,10 @@ export class Header {
   protected readonly groups = NAV_GROUPS;
   protected readonly openMenu = signal<string | null>(null);
   protected readonly mobileOpen = signal(false);
+  /** Suppresses the CSS hover-open after a menu item is picked — without it
+   *  the menu stays visible while the pointer is still parked on it. Cleared
+   *  when the pointer leaves the nav item, so hovering works again. */
+  protected readonly hoverOff = signal(false);
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly doc = inject(DOCUMENT);
@@ -75,6 +80,7 @@ export class Header {
   protected closeAll(): void {
     this.openMenu.set(null);
     this.mobileOpen.set(false);
+    this.hoverOff.set(true);
   }
 
   protected toggleMobile(): void {
