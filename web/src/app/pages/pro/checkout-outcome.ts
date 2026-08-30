@@ -17,16 +17,12 @@ import { PaymentsService } from '../../core/payments';
  * different from one that is known to be bad.
  */
 export type OutcomeState =
-  /** No `?payment=` on the URL — an ordinary visit to the page. */
+  /** Not a return from checkout — an ordinary visit to the page. */
   | 'idle'
   /** Polling `/c/{token}/status`; the ledger has not settled yet. */
   | 'confirming'
   | 'paid'
-  | 'failed'
-  /** Came back on the success URL, but this tab has no token to confirm with. */
-  | 'unconfirmed'
-  /** Polled to the deadline, or the poll threw. Still not a failure. */
-  | 'unresolved';
+  | 'failed';
 
 @Injectable({ providedIn: 'root' })
 export class CheckoutOutcome {
@@ -39,6 +35,12 @@ export class CheckoutOutcome {
   readonly reference = signal<string | null>(null);
   /** The quote total, when this tab is the one that started the checkout. */
   readonly amountPaise = signal<number | null>(null);
+  /**
+   * Whether `/c/{token}/status` was actually read, rather than the outcome
+   * being taken from the redirect. Both are shown as paid; only this one may
+   * claim the ledger says so.
+   */
+  readonly ledgerConfirmed = signal(false);
 
   constructor() {
     // Deferred to after the first render rather than run in the constructor,
@@ -82,37 +84,51 @@ export class CheckoutOutcome {
   private async resolve(): Promise<void> {
     const params = new URLSearchParams(this.doc.defaultView?.location.search ?? '');
     const flag = params.get('payment');
-    if (!flag) return;
+    const ref = params.get('ref');
 
-    // Read before anything can clear it: on the branch with no token this is
-    // the only concrete thing the customer can quote at us, because a browser
-    // credential may never hold `order:read`.
-    this.reference.set(params.get('ref'));
+    // Both, and a flag we recognise. The service appends `ref` itself, so a URL
+    // carrying one is a genuine return from checkout; `?payment=done` typed or
+    // pasted on its own is not, and must not put the page into a result screen
+    // that claims something about a payment nobody made.
+    if ((flag !== 'done' && flag !== 'failed') || !ref) return;
+
+    this.reference.set(ref);
     this.amountPaise.set(this.payments.takeAmount());
 
-    const token = this.payments.takeToken();
-    if (!token) {
-      // A different tab, cleared storage, or a forwarded link. The redirect
-      // itself is evidence — the hosted page only sends the customer to
-      // success_url after its own verify succeeded — but it is not the ledger,
-      // so this says "being confirmed" rather than "paid".
-      this.state.set(flag === 'done' ? 'unconfirmed' : 'failed');
+    if (flag === 'failed') {
+      this.payments.clearToken();
+      this.state.set('failed');
       return;
     }
 
+    // `done` is already an outcome, not a hint: the hosted checkout calls
+    // verify — signature, order match, then a re-fetch from Razorpay — and
+    // only redirects here once that answered paid. So the screen states it,
+    // and does not depend on this tab having kept a token.
+    const token = this.payments.takeToken();
+    if (!token) {
+      this.state.set('paid');
+      return;
+    }
+
+    // With a token there is a better source than the redirect, so use it: the
+    // ledger can also correct a `done` that has since settled the other way.
     this.state.set('confirming');
     try {
       const out = await this.payments.waitForOutcome(token);
-      if (out.status === 'paid' || out.status === 'failed') {
-        this.payments.clearToken();
-        this.state.set(out.status);
+      this.payments.clearToken();
+      if (out.status === 'failed') {
+        this.state.set('failed');
         return;
       }
-      // Still processing at the deadline. The token stays: it is what a reload
-      // would need to pick the poll back up.
-      this.state.set('unresolved');
+      // paid, or still processing when the poll gave up. Either way the
+      // redirect already said paid, and a webhook that has not landed yet is
+      // not a reason to tell the customer otherwise.
+      this.ledgerConfirmed.set(out.status === 'paid');
+      this.state.set('paid');
     } catch {
-      this.state.set('unresolved');
+      // The poll could not run. The redirect stands on its own.
+      this.state.set('paid');
     }
   }
 }

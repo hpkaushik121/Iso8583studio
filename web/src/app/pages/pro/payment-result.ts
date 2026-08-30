@@ -54,13 +54,11 @@ import { formatPaise } from '../../core/payments';
               </svg>
             }
             @default {
-              @if (state() === 'confirming') {
-                <svg class="pr-sweep" viewBox="0 0 72 72" fill="none" aria-hidden="true">
-                  <circle cx="36" cy="36" r="35" stroke="var(--muted)" stroke-width="1.5"
-                          stroke-linecap="round" />
-                </svg>
-              }
-              <svg class="pr-icon" viewBox="0 0 24 24" fill="none" [attr.stroke]="waitStroke()"
+              <svg class="pr-sweep" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+                <circle cx="36" cy="36" r="35" stroke="var(--muted)" stroke-width="1.5"
+                        stroke-linecap="round" />
+              </svg>
+              <svg class="pr-icon" viewBox="0 0 24 24" fill="none" stroke="var(--muted)"
                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="8.5" />
                 <path d="M12 7.6 V12 L15.4 14" />
@@ -138,13 +136,9 @@ export class PaymentResult {
     switch (this.state()) {
       case 'paid': return 'ok';
       case 'failed': return 'bad';
-      case 'confirming': return 'wait';
-      default: return 'hold';
+      default: return 'wait';
     }
   });
-
-  protected readonly waitStroke = computed(() =>
-    this.state() === 'confirming' ? 'var(--muted)' : 'var(--amber-hi)');
 
   protected readonly copy = computed(() => {
     switch (this.state()) {
@@ -155,7 +149,9 @@ export class PaymentResult {
           amountNote: 'ISO8583Studio Pro · early access',
           advisory: null,
           code: 'STATUS paid',
-          codeNote: 'CAPTURED · CONFIRMED AGAINST THE PAYMENTS LEDGER',
+          codeNote: this.outcome.ledgerConfirmed()
+            ? 'CAPTURED · CONFIRMED AGAINST THE PAYMENTS LEDGER'
+            : 'CAPTURED · VERIFIED BY THE HOSTED CHECKOUT',
         };
       case 'failed':
         return {
@@ -167,7 +163,7 @@ export class PaymentResult {
           code: 'STATUS failed',
           codeNote: 'NOT CAPTURED · NOTHING CHARGED',
         };
-      case 'confirming':
+      default:
         return {
           title: 'Confirming your payment',
           body: 'Your bank has sent you back. We are waiting for the payment service to '
@@ -176,28 +172,6 @@ export class PaymentResult {
           advisory: 'Do not pay again. This is a confirmation still in flight, not a failure.',
           code: 'STATUS processing',
           codeNote: 'AWAITING WEBHOOK · POLLING THE LEDGER',
-        };
-      case 'unconfirmed':
-        return {
-          title: 'Your payment is being confirmed',
-          body: 'Checkout finished in another tab, so this one cannot confirm it. Your payment '
-            + 'is not affected — we will email you once it settles.',
-          amountNote: 'ISO8583Studio Pro · early access',
-          advisory: 'Do not pay again. Quote the reference below and we can find it.',
-          code: 'NO SESSION',
-          codeNote: 'RETURNED ON THE SUCCESS URL · NOT CONFIRMABLE FROM THIS TAB',
-        };
-      default:
-        return {
-          title: 'Still confirming your payment',
-          body: 'The confirmation is taking longer than usual, which is slowness rather than a '
-            + 'problem. We will email you once it settles.',
-          amountNote: 'ISO8583Studio Pro · early access',
-          advisory: 'Do not pay again. Quote the reference below and we can find it.',
-          code: 'STATUS processing',
-          // Covers both ways this state is reached — the poll ran to its
-          // deadline, or it could not complete at all.
-          codeNote: 'NO ANSWER YET · NOT A FAILURE',
         };
     }
   });

@@ -967,7 +967,6 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
 
 .pr-disc-ok { background: var(--green-wash); border: 1px solid var(--green-line); }
 .pr-disc-bad { background: var(--red-wash); border: 1px solid var(--red-line); }
-.pr-disc-hold { background: var(--amber-wash); border: 1px solid var(--amber-line); }
 .pr-disc-wait { background: var(--neutral-wash); border: 1px solid var(--neutral-line); }
 
 .pr-icon { width: 32px; height: 32px; }
@@ -1111,7 +1110,6 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
 
 .pr-pill-ok { color: var(--green-hi); background: var(--green-wash); border: 1px solid var(--green-line); }
 .pr-pill-bad { color: var(--red-hi); background: var(--red-wash); border: 1px solid var(--red-line); }
-.pr-pill-hold { color: var(--amber-hi); background: var(--amber-wash); border: 1px solid var(--amber-line); }
 .pr-pill-wait { color: var(--text); background: var(--neutral-wash); border: 1px solid var(--neutral-line); }
 
 /* ---- Actions ----------------------------------------------------------- */
