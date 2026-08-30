@@ -101,6 +101,17 @@ export const siteRoutes: Routes = [
     } },
   },
   {
+    path: "download",
+    loadComponent: () => import('./download').then((c) => c.DownloadPage),
+    data: { seo: {
+      "title": "Download ISO8583Studio — Free Payment Testing Studio",
+      "description": "Download ISO8583Studio for Windows, macOS or Linux. Free, open-source payment testing: 9 simulators and 64 tools for ISO 8583, EMV, HSM and key operations.",
+      "keywords": "download iso8583 simulator, payment testing tool download, iso 8583 software, hsm simulator download, free payment simulator",
+      "path": "/download",
+      "ogType": "website"
+    } },
+  },
+  {
     path: "emv-certification",
     loadComponent: () => import('./emv-certification').then((c) => c.EmvCertificationPage),
     data: { seo: {

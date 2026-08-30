@@ -263,6 +263,12 @@ import { UiSection } from '../../ui/section';
                 <li>Keep BDKs out of source control. The activity log persists keys in memory during the session but never writes them to disk.</li>
             </ul>
         </ui-section>
+        <section class="cta">
+            <h2>Try it on your own transactions</h2>
+            <p>Free and open source. Download the studio and run this simulator on your desk in minutes.</p>
+            <div class="row"><a class="btn btn--primary btn-lg" href="/download">⬇ Download Studio</a>
+            <a class="btn btn-ghost btn-lg" href="/docs/installation">Installation guide</a></div>
+        </section>
     </main>`,
 })
 export class DocsDukptToolsPage {}

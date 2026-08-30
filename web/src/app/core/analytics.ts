@@ -30,6 +30,18 @@ const SOLUTION_PAGES = ['emv-certification', 'cloud-simulators', 'kernel', 'midd
 const DOWNLOAD_FILE = /\.(dmg|msi|exe|deb|rpm|jar|zip)(\?|#|$)/i;
 const RELEASE_LINK = /releases\/(latest|download)/i;
 const SCROLL_MARKS = [25, 50, 75, 90];
+/** Same key the cookie banner writes; analytics replays it into Consent Mode. */
+const CONSENT_KEY = 'iso8583-cookie-consent';
+const PAID_SESSION_KEY = 'iso8583_paid_session';
+
+/** Buckets keep amount_bucket's cardinality at five. */
+function amountBucket(rupees: number): string {
+  if (rupees >= 10000) return '10000_plus';
+  if (rupees >= 2000) return '2000_9999';
+  if (rupees >= 500) return '500_1999';
+  if (rupees >= 100) return '100_499';
+  return '2_99';
+}
 
 interface PageInfo { group: string; id: string; }
 
@@ -62,10 +74,23 @@ export class AnalyticsService {
       LOCAL_HOSTS.includes(host) ||
       /\.local$|\.test$|\.localhost$/.test(host) ||
       !MEASUREMENT_ID ||
-      MEASUREMENT_ID.includes('XXXX')
+      MEASUREMENT_ID.includes('XXXX') ||
+      // Owner kill-switch: survives a changing residential IP, unlike the
+      // GA4 internal-traffic filter it backs up.
+      this.lsGet('iso8583_no_analytics') === '1'
     ) {
       return;
     }
+
+    // A paid landing (?src=ads, or any Google click id) marks the whole
+    // session: the Pro modal and AdSense stay out of the way of traffic that
+    // was promised a download. sessionStorage, so organic visits are untouched.
+    try {
+      const q = new URLSearchParams(this.win.location.search);
+      if (q.get('src') === 'ads' || q.has('gclid') || q.has('gbraid') || q.has('wbraid')) {
+        this.win.sessionStorage.setItem(PAID_SESSION_KEY, '1');
+      }
+    } catch { /* private mode */ }
 
     this.enabled = true;
     this.adsEnabled = !!ADS_ID && !ADS_ID.includes('XXXX');
@@ -248,14 +273,33 @@ export class AnalyticsService {
 
     this.page = this.pageInfo(this.router.url);
 
+    // Consent Mode v2. Denied until the visitor chooses; a stored choice is
+    // replayed immediately, so returning visitors never lose a session.
+    this.gtag('consent', 'default', {
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      analytics_storage: 'denied',
+      wait_for_update: 500,
+    });
+    const consent = this.lsGet(CONSENT_KEY);
+    if (consent) this.applyConsent(consent === 'all');
+
     this.gtag('js', new Date());
-    this.gtag('set', 'user_properties', this.compact(this.environment(ft, visits)));
+    this.gtag('set', 'user_properties', this.compact({
+      ...this.environment(ft, visits),
+      // Durable audience seeds, replayed each boot so they survive sessions.
+      pro_customer: this.lsGet('iso8583_pro') === '1' ? 'yes' : undefined,
+      downloader: this.lsGet('iso8583_dl') === '1' ? 'yes' : undefined,
+    }));
     // send_page_view is off because the router, not the document load, decides
-    // when a page has been viewed.
+    // when a page has been viewed. content_group mirrors page_group into GA4's
+    // built-in Content group dimension, which costs no custom-dimension slot.
     this.gtag('config', MEASUREMENT_ID, {
       user_id: this.visitorId,
       send_page_view: false,
       page_group: this.page.group,
+      content_group: this.page.group,
       content_id: this.page.id,
     });
 
@@ -268,7 +312,11 @@ export class AnalyticsService {
 
   private track(name: string, params: Record<string, unknown> = {}): void {
     if (!this.enabled) return;
-    const p: Record<string, unknown> = { page_group: this.page.group, content_id: this.page.id };
+    const p: Record<string, unknown> = {
+      page_group: this.page.group,
+      content_group: this.page.group,
+      content_id: this.page.id,
+    };
     for (const k of Object.keys(params)) {
       if (params[k] !== undefined && params[k] !== '') p[k] = params[k];
     }
@@ -290,9 +338,9 @@ export class AnalyticsService {
         this.fired.clear();
         this.gtag('event', 'page_view', {
           page_location: this.win.location.href,
-          page_path: e.urlAfterRedirects,
           page_title: this.doc.title,
           page_group: this.page.group,
+          content_group: this.page.group,
           content_id: this.page.id,
         });
       });
@@ -391,36 +439,35 @@ export class AnalyticsService {
           return;
         }
         if (el.classList.contains('dialog-x')) {
-          this.track('pro_modal_action', { action: 'close' });
+          this.track('pro_modal_action', { modal_action: 'close' });
           return;
         }
         if (el.classList.contains('filter-btn')) {
-          this.track('blog_filter', { category: label });
+          this.track('blog_filter', { filter_category: label });
           return;
         }
         return;
       }
 
       if (el.closest('.dialog')) {
+        const skipped = el.classList.contains('pm-skip');
         this.track('pro_modal_action', {
-          action: el.classList.contains('pm-skip') ? 'skip' : 'register',
+          modal_action: skipped ? 'skip' : 'register',
           link_url: url,
         });
-        if (!el.classList.contains('pm-skip')) return;
-        // Skipping the modal is a real download: fall through.
+        if (skipped) {
+          // The skip link is the click that actually leaves for the release
+          // page — the terminal download event. Returning here is also what
+          // stops the RELEASE_LINK branch below double-counting the journey.
+          this.reportAppDownload('release_page', label, url, 'pro_modal');
+        }
+        return;
       }
 
       const file = href.match(DOWNLOAD_FILE);
       if (file) {
-        this.track('app_download', {
-          file_extension: file[1].toLowerCase(),
-          link_text: label,
-          link_url: url,
-          location: this.navArea(el) || 'body',
-        });
-        if (this.adsEnabled && ADS_CONVERSION) {
-          this.gtag('event', 'conversion', { send_to: `${ADS_ID}/${ADS_CONVERSION}` });
-        }
+        this.reportAppDownload('direct_binary', label, url, this.navArea(el) || 'body',
+          file[1].toLowerCase());
         return;
       }
 
@@ -428,9 +475,8 @@ export class AnalyticsService {
         this.track('download_intent', {
           link_text: label,
           link_url: url,
-          location: this.navArea(el) ||
-            (el.closest('.dialog') ? 'pro_modal'
-              : el.closest('.hero') ? 'hero'
+          cta_location: this.navArea(el) ||
+            (el.closest('.hero') ? 'hero'
               : el.closest('section.cta') ? 'final_cta' : 'body'),
         });
         return;
@@ -470,6 +516,36 @@ export class AnalyticsService {
         return;
       }
 
+      // The three home-page surfaces the legacy site.js tracked; restored with
+      // params that reuse already-registered dimensions.
+      const node = el.closest('.node');
+      if (node) {
+        const siblings = Array.from(node.parentElement?.children ?? []).filter(
+          (c) => c.classList.contains('node'));
+        this.track('flow_node_click', {
+          section_index: siblings.indexOf(node) + 1,
+          section_name: this.text(node.querySelector('h3')),
+          link_url: url,
+        });
+        return;
+      }
+      if (el.classList.contains('cat') || el.closest('.cat')) {
+        const cat = el.classList.contains('cat') ? el : el.closest('.cat')!;
+        this.track('tool_category_click', {
+          card_category: this.text(cat.querySelector('h3')),
+          link_url: url,
+        });
+        return;
+      }
+      if (el.classList.contains('sol') || el.closest('.sol')) {
+        const sol = el.classList.contains('sol') ? el : el.closest('.sol')!;
+        this.track('solution_click', {
+          card_title: this.text(sol.querySelector('h3')),
+          link_url: url,
+        });
+        return;
+      }
+
       if (el.closest('.hero-ctas') || el.closest('.ph-ctas')) {
         this.track('hero_cta_click', { link_text: label, link_url: url });
         return;
@@ -491,7 +567,7 @@ export class AnalyticsService {
       }
 
       if (href.charAt(0) === '#') {
-        this.track('anchor_click', { anchor: url, link_text: label });
+        this.track('anchor_click', { link_url: url, link_text: label });
         return;
       }
       if (/^mailto:/i.test(href)) {
@@ -508,12 +584,143 @@ export class AnalyticsService {
     }, true);
   }
 
+  /** Whether this session arrived from a paid click (?src=ads or a gclid). */
+  paidSession(): boolean {
+    try { return this.win?.sessionStorage.getItem(PAID_SESSION_KEY) === '1'; } catch { return false; }
+  }
+
+  /**
+   * Fires an event and calls `done` once the beacon has left (or after 400ms,
+   * whichever is first) — for the one event that immediately precedes a
+   * cross-origin redirect and must not be lost to it.
+   */
+  private trackThen(name: string, params: Record<string, unknown>, done: () => void): void {
+    if (!this.enabled) { done(); return; }
+    let called = false;
+    const fire = () => { if (!called) { called = true; done(); } };
+    this.track(name, { ...params, event_callback: fire, event_timeout: 400 });
+    setTimeout(fire, 400);
+  }
+
   /** Called by the components that site.js used to inject and watch. */
   reportCookieBannerShown(): void { this.trackOnce('cookie_view', 'cookie_banner_view'); }
   reportProModalShown(triggerUrl: string): void {
-    this.track('pro_modal_view', { trigger_url: this.trim100(triggerUrl) });
+    this.track('pro_modal_view', { link_url: this.trim100(triggerUrl) });
   }
-  reportProModalDismissed(): void { this.track('pro_modal_action', { action: 'dismiss_backdrop' }); }
+  reportProModalDismissed(): void { this.track('pro_modal_action', { modal_action: 'dismiss_backdrop' }); }
+
+  /** Consent Mode v2 update; called by the cookie banner and replayed on boot. */
+  applyConsent(all: boolean): void {
+    this.gtag('consent', 'update', {
+      analytics_storage: 'granted',
+      ad_storage: all ? 'granted' : 'denied',
+      ad_user_data: all ? 'granted' : 'denied',
+      ad_personalization: all ? 'granted' : 'denied',
+    });
+  }
+
+  // ------------------------------------------------------------- pro funnel
+
+  /** view_item for the Pro pitch — once per navigation, skipped on returns. */
+  reportProView(): void {
+    this.trackOnce('pro_view', 'view_item', {
+      currency: 'INR',
+      items: [{ item_id: 'pp_pro_initial', item_name: 'ISO8583Studio Pro — early access',
+                item_category: 'pro', item_brand: 'ISO8583Studio', quantity: 1 }],
+    });
+  }
+
+  reportFormStart(): void { this.trackOnce('pro_form_start', 'form_start'); }
+
+  /** The pay-what-you-want signal: what people type, whether or not they pay. */
+  reportAmountEntered(rupees: number): void {
+    this.trackOnce('amount_entered', 'amount_entered', {
+      value: rupees, currency: 'INR', amount_bucket: amountBucket(rupees),
+    });
+  }
+
+  reportFormSubmit(valid: boolean, rupees?: number): void {
+    this.track('form_submit', {
+      form_valid: valid ? 'yes' : 'no',
+      ...(valid && rupees ? { value: rupees, currency: 'INR' } : {}),
+    });
+  }
+
+  /** Field *names* only — the form holds PII that must never reach GA4. */
+  reportFormError(fields: string[]): void {
+    this.track('form_error', { error_field: this.trim100(fields.join('|')) });
+  }
+
+  /**
+   * begin_checkout + generate_lead, then `done` — which performs the redirect.
+   * Fired with the amount the service froze, the only authoritative figure.
+   */
+  reportBeginCheckout(amountPaise: number, checkoutId: string, done: () => void): void {
+    const rupees = amountPaise / 100;
+    this.track('generate_lead', { value: rupees, currency: 'INR' });
+    this.trackThen('begin_checkout', {
+      value: rupees, currency: 'INR',
+      amount_bucket: amountBucket(rupees),
+      checkout_id: checkoutId,
+      items: [{ item_id: 'pp_pro_initial', item_name: 'ISO8583Studio Pro — early access',
+                item_category: 'pro', price: rupees, quantity: 1 }],
+    }, done);
+  }
+
+  reportCheckoutError(code: string): void {
+    this.track('checkout_error', { error_code: this.trim100(code) });
+  }
+
+  /**
+   * The purchase, deduped by a localStorage ledger of reported refs — written
+   * before the event fires, so a mid-flight failure fails closed. The ledger
+   * is localStorage because a UPI app returns the customer in a new tab.
+   */
+  reportPurchase(ref: string, amountPaise: number | null, checkoutId: string | null): void {
+    const LEDGER = 'iso8583studio.purchases_reported';
+    try {
+      const seen: string[] = JSON.parse(this.lsGet(LEDGER) || '[]');
+      if (seen.includes(ref)) return;
+      this.lsSet(LEDGER, JSON.stringify([...seen, ref].slice(-20)));
+    } catch { /* private mode: transaction_id still dedupes server-side */ }
+
+    this.lsSet('iso8583_pro', '1');
+    this.gtag('set', 'user_properties', { pro_customer: 'yes' });
+
+    const rupees = amountPaise === null ? undefined : amountPaise / 100;
+    this.track('purchase', {
+      transaction_id: ref,
+      currency: 'INR',
+      ...(rupees !== undefined ? { value: rupees, amount_bucket: amountBucket(rupees) } : {}),
+      value_known: rupees !== undefined ? 'yes' : 'no',
+      ...(checkoutId ? { checkout_id: checkoutId } : {}),
+      items: [{ item_id: 'pp_pro_initial', item_name: 'ISO8583Studio Pro — early access',
+                item_category: 'pro', ...(rupees !== undefined ? { price: rupees } : {}),
+                quantity: 1 }],
+    });
+  }
+
+  reportPaymentFailed(ref: string): void {
+    this.track('payment_failed', { payment_state: 'failed', transaction_id: ref });
+  }
+
+  reportPaymentResult(state: string, ref: string): void {
+    this.track('payment_result_view', { payment_state: state, transaction_id: ref });
+  }
+
+  /** The terminal download event — the click that actually leaves for a build. */
+  reportAppDownload(source: string, label: string, url: string, ctaLocation: string,
+                    fileExtension?: string): void {
+    this.lsSet('iso8583_dl', '1');
+    this.gtag('set', 'user_properties', { downloader: 'yes' });
+    this.track('app_download', {
+      download_source: source,
+      link_text: label,
+      link_url: url,
+      cta_location: ctaLocation,
+      ...(fileExtension ? { file_extension: fileExtension } : {}),
+    });
+  }
   reportSectionView(name: string, index: number): void {
     this.trackOnce(`sect:${name}`, 'section_view', { section_name: name.slice(0, 100), section_index: index });
   }
@@ -522,6 +729,6 @@ export class AnalyticsService {
    *  signal of interest — reported once per view, as before. */
   reportRailEngage(): void { this.trackOnce('rail_engage', 'flow_rail_engage'); }
   reportBoardEngage(simulator: string): void {
-    this.trackOnce(`tile:${simulator}`, 'sim_board_engage', { simulator: this.trim100(simulator) });
+    this.trackOnce(`tile:${simulator}`, 'sim_board_engage', { simulator_type: this.trim100(simulator) });
   }
 }

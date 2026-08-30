@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PAYMENTS } from '../../content/payments-config';
 import { PaymentsService, formatPaise, messageFor } from '../../core/payments';
+import { AnalyticsService } from '../../core/analytics';
 
 /**
  * The Pro registration form.
@@ -173,6 +174,7 @@ export class ProForm {
   });
 
   private readonly payments = inject(PaymentsService);
+  private readonly analytics = inject(AnalyticsService);
 
   protected readonly busy = signal(false);
   protected readonly formError = signal<string | null>(null);
@@ -185,6 +187,13 @@ export class ProForm {
     this.form.valueChanges.subscribe(() => {
       this.value.set(this.form.getRawValue());
       this.status.set(this.form.status);
+      // First keystroke anywhere = the form was started. trackOnce dedupes.
+      this.analytics.reportFormStart();
+      // What people think Pro is worth — reported once per view, valid only.
+      const amount = this.form.get('amount');
+      if (amount?.valid && amount.value) {
+        this.analytics.reportAmountEntered(Number(amount.value));
+      }
     });
   }
 
@@ -249,10 +258,15 @@ export class ProForm {
     this.value.set(this.form.getRawValue());
 
     if (this.form.invalid) {
+      this.analytics.reportFormSubmit(false);
+      // Names only, never values — the form holds PII.
+      this.analytics.reportFormError(
+        Object.keys(this.form.controls).filter((k) => this.form.get(k)?.invalid));
       this.formError.set('Check the highlighted fields and try again.');
       return;
     }
 
+    this.analytics.reportFormSubmit(true, Number(this.form.getRawValue().amount));
     void this.startCheckout();
   }
 
@@ -299,11 +313,19 @@ export class ProForm {
         console.warn(`Pro checkout: showed ₹${shown / 100} but the quote is ₹${amountPaise / 100}. `
           + 'PAYMENTS_TAX_BPS is out of step with the price point.');
       }
-      // The token is already stored; leaving the site is the last thing we do.
-      location.assign(checkoutUrl);
+      // begin_checkout carries the amount the service froze — the only
+      // authoritative figure — and the redirect waits for the beacon (max
+      // 400ms). checkout_id stitches this to the purchase on return.
+      const checkoutId = crypto.randomUUID();
+      this.payments.rememberCheckoutId(checkoutId);
+      this.analytics.reportBeginCheckout(amountPaise, checkoutId, () => {
+        // The token is already stored; leaving the site is the last thing we do.
+        location.assign(checkoutUrl);
+      });
     } catch (err) {
       this.busy.set(false);
       const e = err as { code?: string; message?: string; requestId?: string | null };
+      this.analytics.reportCheckoutError(e.code ?? 'network_or_cors');
       if (e.code) {
         console.error(`payments ${e.code} (request ${e.requestId ?? 'unknown'}): ${e.message}`);
         this.formError.set(messageFor(e as never));

@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA, afterNextRender, inject } from '@angular/core';
 import { SitePage } from './site-page';
 import { UiSection } from '../../ui/section';
 import { ProForm } from '../pro/pro-form';
 import { PaymentResult } from '../pro/payment-result';
 import { CheckoutOutcome } from '../pro/checkout-outcome';
+import { AnalyticsService } from '../../core/analytics';
 
 @Component({
   selector: 'page-pro',
@@ -65,4 +66,13 @@ import { CheckoutOutcome } from '../pro/checkout-outcome';
 export class ProPage {
   /** Set once, after the first render, from the `?payment=` return URL. */
   protected readonly outcome = inject(CheckoutOutcome);
+  private readonly analytics = inject(AnalyticsService);
+
+  constructor() {
+    // After hydration, and only for a genuine pitch view — someone returning
+    // from checkout is not viewing a product.
+    afterNextRender(() => {
+      if (!this.outcome.active()) this.analytics.reportProView();
+    });
+  }
 }

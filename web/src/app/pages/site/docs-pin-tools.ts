@@ -272,6 +272,12 @@ Step 4 (Encrypt):    encrypted under TPK / ZPK</code></pre>
                 <li>When testing DUKPT-protected PIN flows, derive the working key first (<a href="/docs/dukpt-tools">DUKPT Tools</a>), then encrypt or decrypt with it under <a href="/docs/pin-tools#dukpt-pin">DUKPT PIN</a>. The activity log shows both the input PIN block and the decrypted clear PIN for cross-checking.</li>
             </ul>
         </ui-section>
+        <section class="cta">
+            <h2>Try it on your own transactions</h2>
+            <p>Free and open source. Download the studio and run this simulator on your desk in minutes.</p>
+            <div class="row"><a class="btn btn--primary btn-lg" href="/download">⬇ Download Studio</a>
+            <a class="btn btn-ghost btn-lg" href="/docs/installation">Installation guide</a></div>
+        </section>
     </main>
 
 <aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,

@@ -45,6 +45,9 @@ export class CookieBanner {
 
   protected choose(value: 'all' | 'essential'): void {
     try { this.doc.defaultView?.localStorage.setItem(KEY, value); } catch { /* ignore */ }
+    // Consent Mode v2: analytics is granted either way; the ad trio only on
+    // "Accept all". The banner's own click already fires cookie_consent.
+    this.analytics.applyConsent(value === 'all');
     this.leaving.set(true);
     setTimeout(() => this.visible.set(false), 220);
   }

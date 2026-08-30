@@ -2,6 +2,7 @@ import { Injectable, afterNextRender, inject, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { Router } from '@angular/router';
 import { PaymentsService } from '../../core/payments';
+import { AnalyticsService } from '../../core/analytics';
 
 /**
  * What happened to the payment, read once when the customer comes back.
@@ -27,6 +28,7 @@ export type OutcomeState =
 @Injectable({ providedIn: 'root' })
 export class CheckoutOutcome {
   private readonly payments = inject(PaymentsService);
+  private readonly analytics = inject(AnalyticsService);
   private readonly doc = inject(DOCUMENT);
   private readonly router = inject(Router);
 
@@ -93,10 +95,14 @@ export class CheckoutOutcome {
     if ((flag !== 'done' && flag !== 'failed') || !ref) return;
 
     this.reference.set(ref);
+    // Read before clearToken() wipes it — order matters here.
     this.amountPaise.set(this.payments.takeAmount());
+    const checkoutId = this.payments.takeCheckoutId();
+    this.analytics.reportPaymentResult(flag, ref);
 
     if (flag === 'failed') {
       this.payments.clearToken();
+      this.analytics.reportPaymentFailed(ref);
       this.state.set('failed');
       return;
     }
@@ -107,6 +113,9 @@ export class CheckoutOutcome {
     // and does not depend on this tab having kept a token.
     const token = this.payments.takeToken();
     if (!token) {
+      // A different tab (UPI return) or cleared storage: the redirect already
+      // said paid. Count it — value_known:'no' keeps the blind spot visible.
+      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
       this.state.set('paid');
       return;
     }
@@ -125,9 +134,11 @@ export class CheckoutOutcome {
       // redirect already said paid, and a webhook that has not landed yet is
       // not a reason to tell the customer otherwise.
       this.ledgerConfirmed.set(out.status === 'paid');
+      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
       this.state.set('paid');
     } catch {
       // The poll could not run. The redirect stands on its own.
+      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
       this.state.set('paid');
     }
   }

@@ -42,6 +42,9 @@ export class ProDownloadModal {
   @HostListener('document:click', ['$event'])
   protected onClick(event: MouseEvent): void {
     if (this.pendingHref()) return;
+    // Paid clicks were promised a download, not an upsell — the interstitial
+    // is what the landing-page-experience signal punishes hardest.
+    if (this.analytics.paidSession()) return;
     const anchor = (event.target as Element | null)?.closest?.('a');
     if (!anchor) return;
 

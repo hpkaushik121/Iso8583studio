@@ -35,6 +35,12 @@ const TOKEN_KEY = 'iso8583studio.checkout_token';
  * authoritative and, after the redirect, is gone anyway.
  */
 const AMOUNT_KEY = 'iso8583studio.checkout_amount';
+/**
+ * An analytics-only id minted at begin_checkout and read back on return, so
+ * the funnel can stitch begin_checkout to purchase. It is never the token —
+ * the token is the authorisation and must not reach any analytics payload.
+ */
+const CHECKOUT_ID_KEY = 'iso8583studio.checkout_id';
 
 export type CheckoutStatus = 'paid' | 'processing' | 'pending' | 'failed';
 
@@ -219,6 +225,17 @@ export class PaymentsService {
   clearToken(): void {
     this.remove(TOKEN_KEY);
     this.remove(AMOUNT_KEY);
+  }
+
+  rememberCheckoutId(id: string): void {
+    this.write(CHECKOUT_ID_KEY, id);
+  }
+
+  /** Read-and-clear: one purchase report per checkout. */
+  takeCheckoutId(): string | null {
+    const id = this.read(CHECKOUT_ID_KEY);
+    this.remove(CHECKOUT_ID_KEY);
+    return id;
   }
 
   rememberAmount(paise: number): void {

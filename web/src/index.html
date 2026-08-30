@@ -17,8 +17,29 @@
     reaches all of them — including the legacy .html aliases postbuild writes.
     async, so it never blocks first paint.
   -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8756347363236718"
-          crossorigin="anonymous"></script>
+  <!--
+    Suppressed for paid sessions (?src=ads or a Google click id): paying for a
+    click and then showing that visitor display ads is both bad economics and
+    the exact landing-page pattern Ads' quality signal punishes. The flag is
+    kept in sessionStorage so the suppression survives in-site navigation.
+  -->
+  <script>
+    (function () {
+      var KEY = 'iso8583_paid_session';
+      try {
+        var q = new URLSearchParams(location.search);
+        if (q.get('src') === 'ads' || q.has('gclid') || q.has('gbraid') || q.has('wbraid')) {
+          sessionStorage.setItem(KEY, '1');
+        }
+        if (sessionStorage.getItem(KEY) === '1') return;
+      } catch (e) { /* private mode: fall through and load ads */ }
+      var s = document.createElement('script');
+      s.async = true;
+      s.crossOrigin = 'anonymous';
+      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8756347363236718';
+      document.head.appendChild(s);
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>
