@@ -17,7 +17,7 @@ import { filter } from 'rxjs/operators';
  *     is now extensionless.
  */
 
-const MEASUREMENT_ID: string = 'G-XNF9XV2V2E';
+const MEASUREMENT_ID: string = 'G-445XQ0W2Q4';
 // Google Ads, e.g. 'AW-123456789'. Empty disables the Ads tag entirely.
 const ADS_ID: string = '';
 // Download conversion label, e.g. 'AbC-D_efG'.
