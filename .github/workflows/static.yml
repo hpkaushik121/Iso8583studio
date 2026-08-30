@@ -25,6 +25,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # The payments values live on the github-pages environment, and an
+    # environment's variables and secrets are readable only by a job that uses
+    # that environment. The build is where they are needed — they are baked
+    # into the bundle at compile time, long before the deploy job runs — so the
+    # build has to name it too, not just deploy.
+    environment: github-pages
     defaults:
       run:
         working-directory: web
@@ -51,14 +57,15 @@ jobs:
         env:
           # The pmk_pub_ browser credential. Public by construction — it ships
           # in the page source, and the Origin binding, the self-serve
-          # price-point allowlist and the rate limit are what bound it. A
-          # repository variable is therefore the honest home for it; the
-          # secrets fallback is there so either place works.
+          # price-point allowlist and the rate limit are what bound it, not
+          # secrecy. Resolved from the environment first and the repository
+          # second, and from either a variable or a secret, so it works
+          # wherever it has been put.
           # Unset is a supported state: checkout stays off and the form says so.
           PAYMENTS_PUB_KEY: ${{ vars.PAYMENTS_PUB_KEY || secrets.PAYMENTS_PUB_KEY }}
           # Comma-separated SKUs, which must also be published for the tenant
           # in browser_checkout_price_points.
-          PAYMENTS_PRICE_POINTS: ${{ vars.PAYMENTS_PRICE_POINTS }}
+          PAYMENTS_PRICE_POINTS: ${{ vars.PAYMENTS_PRICE_POINTS || secrets.PAYMENTS_PRICE_POINTS }}
 
       # Replaces the old file-existence check. Fails the deploy if a route is
       # missing, an internal link is broken, a URL still carries .html, the
