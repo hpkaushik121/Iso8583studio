@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PAYMENTS } from '../../content/payments-config';
-import { PaymentsService, messageFor } from '../../core/payments';
+import { PaymentsService, formatPaise, messageFor } from '../../core/payments';
 
 /**
  * The Pro registration form.
@@ -25,15 +25,6 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (outcome(); as o) {
-      <p class="pf-done" role="status">
-        {{ o }}
-        @if (reference(); as ref) {
-          <span class="pf-ref">Reference <code>{{ ref }}</code></span>
-        }
-      </p>
-    }
-
     <form class="pro-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="pf-grid">
         <label class="pf-field">
@@ -53,6 +44,20 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
                  [attr.aria-describedby]="invalid('email') ? 'err-email' : null">
           @if (invalid('email')) {
             <em class="pf-err" id="err-email">{{ emailError() }}</em>
+          }
+        </label>
+
+        <!-- Not decoration: this is prefilled into Razorpay Checkout. Without
+             it Checkout opens on its own contact form and asks for a mobile
+             number before it will show a payment method. -->
+        <label class="pf-field">
+          <span>Mobile</span>
+          <input type="tel" formControlName="contact" autocomplete="tel"
+                 placeholder="+91 98765 43210" inputmode="tel"
+                 [attr.aria-invalid]="invalid('contact') || null"
+                 [attr.aria-describedby]="invalid('contact') ? 'err-contact' : null">
+          @if (invalid('contact')) {
+            <em class="pf-err" id="err-contact">{{ contactError() }}</em>
           }
         </label>
 
@@ -153,6 +158,7 @@ export class ProForm {
   protected readonly form = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]),
     email: new FormControl('', [Validators.required, Validators.pattern(EMAIL), Validators.maxLength(254)]),
+    contact: new FormControl('', [Validators.required, diallable]),
     company: new FormControl('', [Validators.required, Validators.maxLength(100)]),
     role: new FormControl('', [Validators.maxLength(100)]),
     usecase: new FormControl('', [Validators.maxLength(ProForm.USECASE_MAX)]),
@@ -170,16 +176,12 @@ export class ProForm {
 
   protected readonly busy = signal(false);
   protected readonly formError = signal<string | null>(null);
-  protected readonly outcome = signal<string | null>(null);
-  /** The service's own order id, which it appends to the return URL. */
-  protected readonly reference = signal<string | null>(null);
 
   /** Re-read on every change so the template's error state stays current. */
   private readonly value = signal(this.form.getRawValue());
   private readonly status = signal(this.form.status);
 
   constructor() {
-    void this.resumeAfterCheckout();
     this.form.valueChanges.subscribe(() => {
       this.value.set(this.form.getRawValue());
       this.status.set(this.form.status);
@@ -201,7 +203,7 @@ export class ProForm {
     const rupees = Number(this.value().amount);
     if (!Number.isFinite(rupees) || rupees <= 0) return null;
     const { subtotal, tax, total } = taxOn(rupees);
-    return { subtotal: money(subtotal), tax: money(tax), total: money(total), totalPaise: total };
+    return { subtotal: formatPaise(subtotal), tax: formatPaise(tax), total: formatPaise(total), totalPaise: total };
   });
 
   /** Invalid, and the user has finished with the field or tried to submit. */
@@ -222,6 +224,12 @@ export class ProForm {
     const e = this.form.get('email')?.errors ?? {};
     if (e['required']) return 'A work email is required — this is where credentials are sent.';
     return 'That does not look like an email address.';
+  }
+
+  protected contactError(): string {
+    const e = this.form.get('contact')?.errors ?? {};
+    if (e['required']) return 'A mobile number is required — checkout asks for one otherwise.';
+    return 'Enter a mobile number with its country code, or a 10-digit Indian number.';
   }
 
   protected amountError(): string {
@@ -264,7 +272,7 @@ export class ProForm {
       return;
     }
 
-    const { email } = this.form.getRawValue();
+    const { email, contact, name } = this.form.getRawValue();
     this.busy.set(true);
     try {
       const shown = this.breakdown()?.totalPaise;
@@ -275,6 +283,10 @@ export class ProForm {
         // total; the amount never travels in anything the customer can edit.
         quantity: this.quantityForAmount(),
         email: email!,
+        // Validated above, so this normalises. Sent as E.164 because Checkout
+        // prefills it, and an unprefilled number costs the customer a screen.
+        contact: normaliseContact(contact ?? '')!,
+        name: (name ?? '').trim() || undefined,
         // No accounts here, so the customer's own email is the stable key.
         ref: email!,
         notes: this.notesFromForm(),
@@ -326,54 +338,48 @@ export class ProForm {
   private notesFromForm(): Record<string, string> {
     const v = this.form.getRawValue();
     return {
-      name: v.name ?? '',
       company: v.company ?? '',
       role: v.role ?? '',
       usecase: (v.usecase ?? '').slice(0, 200),
       country: v.country ?? '',
     };
   }
+}
 
-  /**
-   * Reads the outcome after the hosted checkout sends the customer back.
-   *
-   * Polls status; never verify — the hosted page has already verified, and
-   * verify without the provider's callback parameters answers 400. A pending
-   * or processing answer is never shown as failure: it means not known yet.
-   */
-  private async resumeAfterCheckout(): Promise<void> {
-    if (typeof location === 'undefined') return;
-    const params = new URLSearchParams(location.search);
-    const flag = params.get('payment');
-    if (!flag) return;
+/**
+ * A typed number as E.164, or null if it cannot be read as one.
+ *
+ * The service strips separators itself, so this is not about formatting — it
+ * is about supplying the country code. A bare ten-digit Indian mobile is what
+ * people actually type, and sending it unqualified prefills a number Checkout
+ * cannot dial. Anything already carrying a `+` is passed through, so a
+ * customer billing outside India is not forced into +91.
+ */
+function normaliseContact(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const digits = t.replace(/[^\d]/g, '');
 
-    /* Shown whichever way this goes. The service appends its order id to the
-       return URL so the page has it without parsing anything, and it is the
-       only thing a customer can quote at us — the browser credential cannot
-       read an order, by design, so support needs them to carry the id. It
-       matters most in the branch below, where the token is gone and there is
-       otherwise nothing concrete to show. */
-    this.reference.set(params.get('ref'));
+  let e164: string | null = null;
+  if (t.startsWith('+')) e164 = /^\d{8,15}$/.test(digits) ? `+${digits}` : null;
+  // 0XXXXXXXXXX — the domestic trunk prefix, which E.164 drops.
+  else if (/^0\d{10}$/.test(digits)) e164 = `+91${digits.slice(1)}`;
+  else if (/^91\d{10}$/.test(digits)) e164 = `+${digits}`;
+  else if (/^[6-9]\d{9}$/.test(digits)) e164 = `+91${digits}`;
+  if (!e164) return null;
 
-    const token = this.payments.takeToken();
-    if (!token) {
-      this.outcome.set(flag === 'done'
-        ? 'Thanks — your payment is being confirmed. We will email you shortly.'
-        : 'That payment did not complete. You can try again below.');
-      return;
-    }
+  // The generic length range above cannot tell a short +91 number from a
+  // legitimately shorter foreign one, and +91 is almost every number typed
+  // here. Its rule is known — ten digits starting 6-9 — so a digit dropped
+  // while typing is caught now rather than at Checkout.
+  if (e164.startsWith('+91') && !/^\+91[6-9]\d{9}$/.test(e164)) return null;
+  return e164;
+}
 
-    this.outcome.set('Confirming your payment…');
-    try {
-      const out = await this.payments.waitForOutcome(token);
-      this.payments.clearToken();
-      this.outcome.set(out.status === 'paid'
-        ? 'Payment received. We will provision your workspace and email your credentials.'
-        : 'That payment did not complete. Nothing has been charged — you can try again below.');
-    } catch {
-      this.outcome.set('We could not confirm the payment automatically. Write to admin@iso8583.studio.');
-    }
-  }
+function diallable(control: { value: unknown }) {
+  const v = control.value;
+  if (v === null || v === undefined || v === '') return null;
+  return normaliseContact(String(v)) ? null : { notDiallable: true };
 }
 
 /** Integer paise throughout, half-up once, matching how the service rounds. */
@@ -381,13 +387,6 @@ function taxOn(rupees: number): { subtotal: number; tax: number; total: number }
   const subtotal = Math.round(rupees * 100);
   const tax = Math.floor((subtotal * PAYMENTS.taxBps) / 10000 + 0.5);
   return { subtotal, tax, total: subtotal + tax };
-}
-
-/** Paise as rupees, with the paise dropped when they are zero. */
-function money(paise: number): string {
-  const r = paise / 100;
-  return `₹${Number.isInteger(r) ? r.toLocaleString('en-IN') : r.toLocaleString('en-IN', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**

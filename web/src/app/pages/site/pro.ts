@@ -1,18 +1,27 @@
-import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { SitePage } from './site-page';
 import { UiSection } from '../../ui/section';
 import { ProForm } from '../pro/pro-form';
+import { PaymentResult } from '../pro/payment-result';
+import { CheckoutOutcome } from '../pro/checkout-outcome';
 
 @Component({
   selector: 'page-pro',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiSection, ProForm],
+  imports: [UiSection, ProForm, PaymentResult],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-pro' },
   // <image-slot> is a styling-only element the design system owns; see
   // _components.css. Drop this schema once it becomes part of ui-figure.
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `<main class="doc-body">
+    <!-- Coming back from checkout replaces the page rather than adding to it.
+         Someone who has just paid is not shopping: the pitch, the plan table
+         and the registration form are all answers to a question they have
+         already settled, and the form is an invitation to pay twice. -->
+    @if (outcome.active()) {
+      <app-payment-result />
+    } @else {
     <div class="breadcrumb">
         <a href="/">Home</a><span class="breadcrumb-sep">/</span>
         <span>Pro</span>
@@ -50,6 +59,10 @@ import { ProForm } from '../pro/pro-form';
         <div class="info-card"><div class="info-card-title">Does the free studio change?</div><p>No. Every simulator and tool that is free today stays free, offline and unrestricted. Pro is additive.</p></div>
         <div class="info-card note"><div class="info-card-title">Need an invoice, PO or annual contract?</div><p>Write to <a href="mailto:admin@iso8583.studio">admin@iso8583.studio</a> and we'll bill your organisation directly instead.</p></div>
     </ui-section>
+    }
 </main>`,
 })
-export class ProPage {}
+export class ProPage {
+  /** Set once, after the first render, from the `?payment=` return URL. */
+  protected readonly outcome = inject(CheckoutOutcome);
+}

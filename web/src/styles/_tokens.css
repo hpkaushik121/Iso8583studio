@@ -52,6 +52,17 @@
     --blue-wash-hi: rgba(106, 183, 255, .1);
     --neutral-wash: rgba(151, 168, 214, .07);
 
+    /* Status washes and their borders. A result screen states its outcome with
+       a tinted disc rather than a filled one, so each accent needs a fill and a
+       companion border that reads on it. */
+    --green-wash: rgba(94, 194, 106, .12);
+    --green-line: rgba(94, 194, 106, .3);
+    --red-wash: rgba(229, 72, 77, .12);
+    --red-line: rgba(229, 72, 77, .3);
+    --amber-wash: rgba(255, 152, 0, .08);
+    --amber-line: rgba(255, 152, 0, .24);
+    --neutral-line: rgba(151, 168, 214, .22);
+
     /* ---- Typography ---------------------------------------------------- */
     --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -79,6 +90,11 @@
     --fs-2xl: 24px;
     --fs-3xl: 30px;
     --fs-icon: 21px;
+    /* The result screen's headline and amount. The amount is the largest type
+       in the system and the design draws it twice — 44px on the desktop card,
+       33px on the phone — so one clamp covers both rather than a breakpoint. */
+    --fs-result-title: 25px;
+    --fs-result-amount: clamp(33px, 6vw, 44px);
     /* Fluid display sizes, carried over verbatim from the pages that used them. */
     --fs-display: clamp(34px, 4.4vw, 48px);
     --fs-h2: clamp(24px, 3vw, 30px);

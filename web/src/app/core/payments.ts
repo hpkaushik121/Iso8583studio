@@ -27,6 +27,14 @@ import { PAYMENTS } from '../content/payments-config';
  */
 
 const TOKEN_KEY = 'iso8583studio.checkout_token';
+/**
+ * The quote's own total, kept so the result screen can lead with the amount.
+ *
+ * It is stored beside the token rather than recomputed, because the figure the
+ * service froze is the one that was charged — the form's estimate is not
+ * authoritative and, after the redirect, is gone anyway.
+ */
+const AMOUNT_KEY = 'iso8583studio.checkout_amount';
 
 export type CheckoutStatus = 'paid' | 'processing' | 'pending' | 'failed';
 
@@ -43,6 +51,8 @@ export interface PaymentsError {
   message: string;
   /** Every response carries one; it is how the payments team finds the call. */
   requestId: string | null;
+  /** From `Retry-After`, where the service asks to be backed off from. */
+  retryAfterMs?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -75,40 +85,76 @@ export class PaymentsService {
     pricePoint: string;
     quantity?: number;
     email: string;
+    /**
+     * The mobile number, already normalised to `+91XXXXXXXXXX`.
+     *
+     * The guide marks this required in practice, and the reason is concrete:
+     * name, email and contact are passed straight through to Razorpay Checkout
+     * as `prefill`, and anything not sent is something Checkout stops and asks
+     * the customer for. A missing number costs them a screen before they can
+     * pay, and records whatever they type rather than who we priced for.
+     */
+    contact: string;
+    name?: string;
     /** Our own id for the customer; the natural key the service upserts on. */
     ref: string;
     notes?: Record<string, string>;
   }): Promise<{ checkoutUrl: string; token: string; amountPaise: number }> {
     const origin = this.doc.defaultView?.location.origin ?? '';
 
-    const res = await fetch(`${PAYMENTS.baseUrl}/v1/checkouts`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${PAYMENTS.publicKey}`,
-        'Content-Type': 'application/json',
-        // Required on every money-moving POST. A retry must reuse the same key
-        // or one intent becomes two checkouts.
-        'Idempotency-Key': crypto.randomUUID(),
+    const body = JSON.stringify({
+      line_items: [{ price_point: input.pricePoint, quantity: input.quantity ?? 1 }],
+      // `ref` carries the whole object: without it the customer is dropped
+      // silently — no error — and the payment cannot be attributed later.
+      customer: {
+        ref: input.ref,
+        email: input.email,
+        contact: input.contact,
+        ...(input.name ? { name: input.name } : {}),
       },
-      body: JSON.stringify({
-        line_items: [{ price_point: input.pricePoint, quantity: input.quantity ?? 1 }],
-        customer: { ref: input.ref, email: input.email },
-        success_url: `${origin}/pro?payment=done`,
-        failure_url: `${origin}/pro?payment=failed`,
-        cancel_url: `${origin}/pro`,
-        ...(input.notes ? { notes: input.notes } : {}),
-      }),
+      success_url: `${origin}/pro?payment=done`,
+      failure_url: `${origin}/pro?payment=failed`,
+      cancel_url: `${origin}/pro`,
+      ...(input.notes ? { notes: input.notes } : {}),
     });
 
-    if (!res.ok) throw await this.toError(res);
+    // Minted once and reused across retries. A fresh key on a retry is how one
+    // intent becomes two checkouts, so the in-flight answer below must not
+    // generate a new one.
+    const idempotencyKey = crypto.randomUUID();
 
-    const body = await res.json();
-    this.rememberToken(body.checkout_token);
-    return {
-      checkoutUrl: body.checkout_url,
-      token: body.checkout_token,
-      amountPaise: body.amount_paise,
-    };
+    for (let attempt = 0; ; attempt++) {
+      const res = await fetch(`${PAYMENTS.baseUrl}/v1/checkouts`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${PAYMENTS.publicKey}`,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body,
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        this.rememberToken(created.checkout_token);
+        this.rememberAmount(created.amount_paise);
+        return {
+          checkoutUrl: created.checkout_url,
+          token: created.checkout_token,
+          amountPaise: created.amount_paise,
+        };
+      }
+
+      const err = await this.toError(res);
+      // The first request is still running. Backing off on the same key gets
+      // that request's own answer replayed; giving up here would leave a
+      // checkout the customer never sees.
+      if (err.code === 'idempotency_in_flight' && attempt < 3) {
+        await new Promise((r) => setTimeout(r, err.retryAfterMs ?? 1000));
+        continue;
+      }
+      throw err;
+    }
   }
 
   /**
@@ -133,35 +179,92 @@ export class PaymentsService {
    * customer as failure: someone told "failed" for a payment that is actually
    * in progress pays a second time.
    */
-  async waitForOutcome(token: string, onWait?: () => void): Promise<StatusResult> {
-    for (;;) {
-      const out = await this.status(token);
-      if (out.status !== 'processing' && out.status !== 'pending') return out;
-      onWait?.();
-      await new Promise((r) => setTimeout(r, out.poll_after_ms ?? 1500));
+  async waitForOutcome(
+    token: string,
+    opts: { onWait?: () => void; timeoutMs?: number } = {},
+  ): Promise<StatusResult> {
+    // A webhook that never lands would otherwise poll for as long as the tab is
+    // open. Giving up returns the last non-terminal answer rather than
+    // inventing a terminal one: the caller must keep saying "not known yet",
+    // because a customer told "failed" here pays a second time.
+    const deadline = Date.now() + (opts.timeoutMs ?? 90_000);
+    let last: StatusResult = { status: 'processing' };
+    while (Date.now() < deadline) {
+      last = await this.status(token);
+      if (last.status !== 'processing' && last.status !== 'pending') return last;
+      opts.onWait?.();
+      await new Promise((r) => setTimeout(r, last.poll_after_ms ?? 1500));
     }
+    return last;
   }
 
-  /** Survives the redirect in the same tab. */
+  /**
+   * Survives the round trip, including one that comes back in another tab.
+   *
+   * `sessionStorage` is per-tab, and a UPI or netbanking app returning through
+   * its own browser view lands the customer in a new one — where the token is
+   * gone and the payment cannot be confirmed. The guide names `localStorage`
+   * as the fix for exactly that; the alternative it offers, carrying the token
+   * in `success_url`, is not taken because the token *is* the authorisation
+   * and a URL leaks through history, referrers and logs.
+   */
   rememberToken(token: string): void {
-    try { this.doc.defaultView?.sessionStorage.setItem(TOKEN_KEY, token); } catch { /* private mode */ }
+    this.write(TOKEN_KEY, token);
   }
 
   takeToken(): string | null {
-    try {
-      const w = this.doc.defaultView;
-      const t = w?.sessionStorage.getItem(TOKEN_KEY) ?? null;
-      return t;
-    } catch { return null; }
+    return this.read(TOKEN_KEY);
   }
 
   clearToken(): void {
-    try { this.doc.defaultView?.sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+    this.remove(TOKEN_KEY);
+    this.remove(AMOUNT_KEY);
+  }
+
+  rememberAmount(paise: number): void {
+    if (!Number.isFinite(paise)) return;
+    this.write(AMOUNT_KEY, String(paise));
+  }
+
+  /** The quote total, as the service froze it. */
+  takeAmount(): number | null {
+    const raw = this.read(AMOUNT_KEY);
+    const n = raw === null ? NaN : Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private write(key: string, value: string): void {
+    try { this.doc.defaultView?.localStorage.setItem(key, value); } catch { /* private mode */ }
+  }
+
+  /**
+   * Reads the durable copy, falling back to the per-tab one.
+   *
+   * The fallback is for checkouts already in flight when this shipped: those
+   * tokens were written to `sessionStorage` by the previous build, and a
+   * customer mid-payment must not come back to an unconfirmable result.
+   */
+  private read(key: string): string | null {
+    try {
+      const w = this.doc.defaultView;
+      return w?.localStorage.getItem(key) ?? w?.sessionStorage.getItem(key) ?? null;
+    } catch { return null; }
+  }
+
+  private remove(key: string): void {
+    try {
+      const w = this.doc.defaultView;
+      w?.localStorage.removeItem(key);
+      w?.sessionStorage.removeItem(key);
+    } catch { /* ignore */ }
   }
 
   /** Branch on `code`, never on `message`; log `request_id`. */
   private async toError(res: Response): Promise<PaymentsError> {
     const requestId = res.headers.get('X-Request-Id');
+    // Seconds in the header; a date form is possible but the service sends
+    // seconds, and a value we cannot parse simply leaves the caller's default.
+    const retryAfter = Number(res.headers.get('Retry-After'));
     let code = `http_${res.status}`;
     let message = 'The payment service could not be reached.';
     try {
@@ -169,8 +272,27 @@ export class PaymentsService {
       if (body?.error?.code) code = body.error.code;
       if (body?.error?.message) message = body.error.message;
     } catch { /* not JSON */ }
-    return { code, message, requestId };
+    return {
+      code,
+      message,
+      requestId,
+      ...(Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfterMs: retryAfter * 1000 } : {}),
+    };
   }
+}
+
+/**
+ * Paise as rupees.
+ *
+ * Zero paise are dropped by default, because the running total under the
+ * amount field is read while it is being typed and `₹250.00` there is noise.
+ * A receipt is the other way round: `exact` keeps the paise, since a figure
+ * that has actually been charged is quoted in full.
+ */
+export function formatPaise(paise: number, exact = false): string {
+  const r = paise / 100;
+  return `₹${!exact && Number.isInteger(r) ? r.toLocaleString('en-IN') : r.toLocaleString('en-IN', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /** What to tell the customer. Anything unlisted gets the generic line. */
@@ -186,9 +308,22 @@ export function messageFor(err: PaymentsError): string {
     case 'too_many_line_items':
       return 'That order has too many items for self-serve checkout.';
     case 'origin_not_allowed':
+    case 'redirect_origin_not_allowed':
       return 'Checkout is not enabled for this address. Write to admin@iso8583.studio.';
     case 'amount_not_permitted':
       return 'This form cannot set its own price. Write to admin@iso8583.studio.';
+    // Every one of these is a misconfigured or wrongly-issued credential. The
+    // customer can do nothing about any of them, so they get one honest line
+    // and a way to reach a human; the distinction is in the console.
+    case 'unauthorized':
+    case 'insufficient_scope':
+    case 'tenant_mismatch':
+      return 'Checkout is not set up correctly on our side. Write to admin@iso8583.studio '
+        + 'and we will take the payment directly.';
+    // Should be unreachable: the key is minted per submit and reused only on
+    // an in-flight retry, which sends the identical body.
+    case 'idempotency_key_reused':
+      return 'That looks like a duplicate attempt. Reload the page and try once more.';
     case 'http_429':
       return 'Too many attempts just now. Wait a moment and try again.';
     case 'provider_unavailable':

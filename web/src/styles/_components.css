@@ -918,13 +918,269 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
     color: var(--faint);
 }
 
-/* The order reference on the payment outcome. Its own line: it is a string to
-   be copied into an email, not part of the sentence above it. */
-.pf-ref {
-    display: block;
-    margin-top: var(--sp-2);
-    font-size: var(--fs-2xs);
-    color: var(--muted);
+
+/* ==========================================================================
+   Payment result — the screen the customer lands on coming back from the
+   hosted checkout. Built from the "Transaction result screens" design.
+
+   The design draws each state twice, as a 600px card and a 320px phone. Only
+   the card is a component: the phone frame is how the canvas shows a narrow
+   viewport, so the width is a media query here rather than a second element.
+   ========================================================================== */
+
+/* This is the component's host element, which is inline by default — without
+   the display the max-width below is silently ignored.
+
+   The result is the whole page here, so it is centred in the viewport rather
+   than sat at the top of a column of other content. */
+.pr-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 68vh;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--sp-10) 0 var(--sp-12);
 }
 
-.pf-ref code { font-family: var(--mono); color: var(--text); }
+/* Deliberately unframed. The design draws this inside a browser chrome to show
+   it as a screen; reproducing that frame on the real page would put a window
+   inside a window, directly under the site's own header. What the design is
+   actually specifying is the content, and the page is its frame. */
+.pr-card { width: 100%; }
+
+.pr-body { width: 100%; }
+
+/* ---- The status disc --------------------------------------------------- */
+
+.pr-disc {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto var(--sp-6);
+    border-radius: 50%;
+    animation: pr-pop .5s cubic-bezier(.34, 1.4, .5, 1) both;
+}
+
+.pr-disc-ok { background: var(--green-wash); border: 1px solid var(--green-line); }
+.pr-disc-bad { background: var(--red-wash); border: 1px solid var(--red-line); }
+.pr-disc-hold { background: var(--amber-wash); border: 1px solid var(--amber-line); }
+.pr-disc-wait { background: var(--neutral-wash); border: 1px solid var(--neutral-line); }
+
+.pr-icon { width: 32px; height: 32px; }
+
+/* The approved tick pulses outward once the disc has landed. */
+.pr-ring {
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    border: 1.5px solid var(--green-hi);
+    animation: pr-ring 2.4s cubic-bezier(.2, .6, .3, 1) .4s infinite;
+}
+
+.pr-draw { stroke-dasharray: 40; animation: pr-draw .45s var(--ease) .3s both; }
+.pr-draw-2 { animation-delay: .45s; }
+
+/* Rotates only while the page is actually polling, so the motion means
+   "we are still asking" rather than being decoration. */
+.pr-sweep {
+    position: absolute;
+    inset: 0;
+    width: 72px;
+    height: 72px;
+    animation: pr-tick 2.2s linear infinite;
+}
+
+.pr-sweep circle { stroke-dasharray: 24 196; }
+
+/* ---- Copy -------------------------------------------------------------- */
+
+.pr-head { text-align: center; animation: pr-rise .45s ease .25s both; }
+
+.pr-head h2 {
+    margin: 0 0 var(--sp-2);
+    font-size: var(--fs-result-title);
+    font-weight: 600;
+    letter-spacing: var(--ls-tight);
+}
+
+.pr-head p {
+    margin: 0 auto;
+    /* The design's measure for centred copy on this card. Narrower than the
+       body and deliberately so: centred text is only readable short. */
+    max-width: 430px;
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
+    color: var(--muted);
+    text-wrap: pretty;
+}
+
+.pr-amount {
+    text-align: center;
+    margin: var(--sp-6) 0;
+    animation: pr-rise .45s ease .32s both;
+}
+
+.pr-amount-value {
+    font-size: var(--fs-result-amount);
+    font-weight: 600;
+    letter-spacing: var(--ls-tight);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--lh-tight);
+}
+
+/* Only a captured payment gets to state the amount in full colour. */
+.pr-amount-quiet .pr-amount-value { color: var(--muted); }
+
+.pr-amount-note {
+    margin-top: var(--sp-2);
+    font-size: var(--fs-note);
+    color: var(--faint);
+}
+
+/* ---- Advisory ---------------------------------------------------------- */
+
+/* Shown on every non-terminal state. The service's own guidance is that a
+   customer who reads "not known yet" as "failed" pays a second time, so the
+   instruction not to is given its own box rather than buried in the prose. */
+/* The top margin is its own rather than inherited from the amount above it:
+   the amount is absent whenever this tab did not start the checkout, and
+   without this the callout collides with the paragraph. Adjacent margins
+   collapse, so it does not add to the amount's spacing when that is there. */
+.pr-advisory {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    margin: var(--sp-6) 0 var(--sp-5);
+    background: var(--amber-wash);
+    border: 1px solid var(--amber-line);
+    border-radius: var(--r-lg);
+}
+
+.pr-advisory svg { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 2px; }
+
+.pr-advisory p {
+    margin: 0;
+    font-size: var(--fs-note);
+    line-height: var(--lh-snug);
+}
+
+/* ---- Details ----------------------------------------------------------- */
+
+/* Same reasoning as the advisory: on a state with neither an amount nor a
+   callout, the rule above these rows would otherwise sit against the copy. */
+.pr-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--sp-3) var(--sp-5);
+    margin: var(--sp-6) 0 0;
+    padding: var(--sp-5) 0;
+    border-top: 1px solid var(--line2);
+    border-bottom: 1px solid var(--line2);
+    font-size: var(--fs-note);
+}
+
+.pr-grid dt { color: var(--muted); }
+.pr-grid dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.pr-mono { font-family: var(--mono); }
+
+/* The one line a QA engineer reads: it separates a confirmed capture from a
+   redirect we have not confirmed. Kept from the design, which carries DE39
+   here for the same reason. */
+.pr-code {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-top: var(--sp-4);
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+}
+
+.pr-code-text { color: var(--faint); }
+
+.pr-pill {
+    border-radius: var(--r-sm);
+    padding: var(--sp-1) var(--sp-2);
+    white-space: nowrap;
+}
+
+.pr-pill-ok { color: var(--green-hi); background: var(--green-wash); border: 1px solid var(--green-line); }
+.pr-pill-bad { color: var(--red-hi); background: var(--red-wash); border: 1px solid var(--red-line); }
+.pr-pill-hold { color: var(--amber-hi); background: var(--amber-wash); border: 1px solid var(--amber-line); }
+.pr-pill-wait { color: var(--text); background: var(--neutral-wash); border: 1px solid var(--neutral-line); }
+
+/* ---- Actions ----------------------------------------------------------- */
+
+.pr-actions { display: flex; gap: var(--sp-3); margin-top: var(--sp-6); }
+
+.pr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--sans);
+    font-size: var(--fs-btn);
+    font-weight: 500;
+    border-radius: var(--r-md);
+    padding: var(--sp-3) var(--sp-5);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background var(--dur) var(--ease);
+}
+
+.pr-btn-primary {
+    flex: 1 1 auto;
+    color: var(--on-accent);
+    background: var(--blue);
+    border: none;
+}
+
+.pr-btn-primary:hover { background: var(--blue-hover); color: var(--on-accent); }
+
+.pr-btn-quiet {
+    flex: 0 0 auto;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+}
+
+.pr-btn-quiet:hover { background: var(--card); color: var(--text); }
+
+/* On a phone the design stacks the actions full width. */
+@media (max-width: 560px) {
+    .pr-wrap { min-height: 0; padding: var(--sp-8) 0 var(--sp-10); }
+    .pr-actions { flex-direction: column; }
+    .pr-btn { width: 100%; }
+}
+
+@keyframes pr-pop {
+    0% { transform: scale(.6); opacity: 0; }
+    60% { transform: scale(1.06); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pr-draw { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+
+@keyframes pr-ring {
+    0% { transform: scale(.8); opacity: .55; }
+    70%, 100% { transform: scale(1.45); opacity: 0; }
+}
+
+@keyframes pr-tick { to { transform: rotate(360deg); } }
+
+@keyframes pr-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* The sweep is the one animation that carries meaning, so it is slowed rather
+   than stopped: a still ring would say the page had given up polling. */
+@media (prefers-reduced-motion: reduce) {
+    .pr-disc, .pr-head, .pr-amount, .pr-draw, .pr-ring { animation: none; }
+    .pr-draw { stroke-dashoffset: 0; }
+    .pr-sweep { animation-duration: 6s; }
+}
