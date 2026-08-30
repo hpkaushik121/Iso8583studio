@@ -27,63 +27,63 @@ import { UiSection } from '../../ui/section';
                     <div class="hub-body">
                         <div class="hub-title">Host Simulator <span class="badge badge-teal">Available</span></div>
                         <p class="hub-desc">Acquirer &amp; issuer host responses for POS, ATM and client apps — Server, Client or Proxy over TCP/IP, REST, RS232 and dial-up.</p>
-                        <a class="hub-link" href="/docs/host-simulator">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/host">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">HSM Simulator <span class="badge badge-teal">Available</span></div>
                         <p class="hub-desc">Thales payShield 10K emulation — host commands, LMK storage, key management, PIN and MAC operations.</p>
-                        <a class="hub-link" href="/docs/hsm-simulator">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/hsm">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">HSM Command Console <span class="badge badge-purple">Beta</span></div>
                         <p class="hub-desc">Host-command client for Thales, Futurex, Luna, Utimaco and nCipher — interactive console, scenarios and load tests.</p>
-                        <a class="hub-link" href="/docs/hsm-command-console">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/hsm-command-console">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">POS Simulator <span class="badge badge-teal">Available</span></div>
                         <p class="hub-desc">A configurable point-of-sale terminal — hardware profile, EMV &amp; contactless kernels — driving ISO 8583 to a host.</p>
-                        <a class="hub-link" href="/docs/pos-simulator">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/pos">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">APDU Simulator <span class="badge badge-teal">Available</span></div>
                         <p class="hub-desc">EMV smart-card sessions — APDU command/response, TLV parsing, flow analysis and certification test plans.</p>
-                        <a class="hub-link" href="/docs/apdu-simulator">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/apdu">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Switch Simulator <span class="badge badge-yellow">In development</span></div>
                         <p class="hub-desc">BIN routing, protocol translation and stand-in processing between acquiring and issuing endpoints.</p>
-                        <a class="hub-link" href="/docs/payment-switch">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/payment-switch">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Issuer System <span class="badge badge-yellow">In development</span></div>
                         <p class="hub-desc">Issuer-side authorization — PIN and ARQC verification, limits and velocity, 0210 decisioning.</p>
-                        <a class="hub-link" href="/docs/issuer-simulator">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/issuer">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">ATM Simulator <span class="badge badge-yellow">In development</span></div>
                         <p class="hub-desc">Cash withdrawal, balance and PIN-change flows with NDC/DDC device state modelling.</p>
-                        <a class="hub-link" href="/docs/atm-simulator">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/atm">Open documentation →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">ECR Simulator <span class="badge badge-yellow">In development</span></div>
                         <p class="hub-desc">Electronic cash register driving sale, void and refund requests to a payment terminal over RS232 or TCP.</p>
-                        <a class="hub-link" href="/docs/ecr-simulator">Open documentation →</a>
+                        <a class="hub-link" href="/simulator/ecr">Open documentation →</a>
                     </div>
                 </div>
             </div>

@@ -167,8 +167,8 @@ export class NotFound {
 
   protected readonly destinations: Destination[] = [
     { label: 'Documentation', link: '/docs', glyph: '▤', desc: 'Install, configure and run every module.' },
-    { label: 'Payment Simulators', link: '/docs/payment-simulators', glyph: '⇄', desc: 'Host, HSM, POS, ATM and switch endpoints.' },
-    { label: 'EMV & Card Tools', link: '/docs/emv-tools', glyph: '▣', desc: 'Cryptograms, SDA/DDA, ATR, tags and CVV.' },
+    { label: 'Payment Simulators', link: '/simulator', glyph: '⇄', desc: 'Host, HSM, POS, ATM and switch endpoints.' },
+    { label: 'EMV & Card Tools', link: '/tools/emv-tools', glyph: '▣', desc: 'Cryptograms, SDA/DDA, ATR, tags and CVV.' },
     { label: 'Blog', link: '/blogs', glyph: '✎', desc: 'Guides on testing, cryptography and EMV.' },
   ];
 

@@ -112,7 +112,7 @@ import { UiSection } from '../../ui/section';
 
             <div class="info-card note">
                 <div class="info-card-title">Note</div>
-                <p>To talk to a non-Thales HSM, use the <a href="/docs/hsm-command-console">HSM Command Console</a> instead &mdash; that tool is a <em>client</em>, and it does carry per-vendor framing and command sets for Thales payShield, Futurex, SafeNet Luna, Utimaco and nCipher.</p>
+                <p>To talk to a non-Thales HSM, use the <a href="/simulator/hsm-command-console">HSM Command Console</a> instead &mdash; that tool is a <em>client</em>, and it does carry per-vendor framing and command sets for Thales payShield, Futurex, SafeNet Luna, Utimaco and nCipher.</p>
             </div>
 
             <h3>Saving and launching</h3>

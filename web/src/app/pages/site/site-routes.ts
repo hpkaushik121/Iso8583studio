@@ -164,48 +164,48 @@ export const siteRoutes: Routes = [
     } },
   },
   {
-    path: "docs/apdu-simulator",
+    path: "simulator/apdu",
     loadComponent: () => import('./docs-apdu-simulator').then((c) => c.DocsApduSimulatorPage),
     data: { seo: {
       "title": "APDU Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio APDU Simulator documentation - run an EMV card profile in-process, drive a real card through a PC/SC reader, or emulate a contact card on STM32 firmware for an external POS terminal. Trace every APDU exchange, run test plans and export an L3 report.",
       "keywords": "APDU simulator, EMV card emulator, ISO 7816-4 APDU, card profile, ATR, AID selection, PC/SC reader, smart card emulation, STM32 card emulator, USB-CDC card, EMV test plan, L3 certification report, Visa VCPS, Mastercard M/Chip, logic analyzer capture, sigrok, APDU trace, status word, issuer master key, EMV personalization",
-      "path": "/docs/apdu-simulator",
+      "path": "/simulator/apdu",
       "ogType": "article",
       "robots": "index, follow"
     } },
   },
   {
-    path: "docs/atm-simulator",
+    path: "simulator/atm",
     loadComponent: () => import('./docs-atm-simulator').then((c) => c.DocsAtmSimulatorPage),
     data: { seo: {
       "title": "ATM Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio ATM Simulator (in development) - drive ATM cash-withdrawal, balance and PIN-change transactions to a host over ISO 8583 with NDC/DDC device flows.",
       "keywords": "ATM simulator, NDC DDC simulator, cash withdrawal testing, ATM ISO 8583, ATM host testing, PIN change, balance inquiry",
-      "path": "/docs/atm-simulator",
+      "path": "/simulator/atm",
       "ogType": "website"
     } },
   },
   {
-    path: "docs/card-validation",
+    path: "tools/card-validation",
     loadComponent: () => import('./docs-card-validation').then((c) => c.DocsCardValidationPage),
     data: { seo: {
       "title": "Card Validation Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio Card Validation tools documentation - Generate and validate MasterCard dynamic CVC3 and American Express CSC card security codes.",
       "keywords": "CVV calculator, CVV2, CVC2, CVC3, MasterCard CVC, AMEX CSC, card security code, card verification value, payment validation, dynamic CVC3",
-      "path": "/docs/card-validation",
+      "path": "/tools/card-validation",
       "ogType": "website",
       "robots": "index, follow"
     } },
   },
   {
-    path: "docs/cipher-tools",
+    path: "tools/cipher-tools",
     loadComponent: () => import('./docs-cipher-tools').then((c) => c.DocsCipherToolsPage),
     data: { seo: {
       "title": "Cryptographic Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio Cryptographic Tools documentation - AES, DES/3DES, RSA, ECDSA, and Format-Preserving Encryption (FPE) calculators for payment system testing.",
       "keywords": "AES calculator, DES 3DES calculator, RSA calculator, ECDSA, FPE FF1 FF3, format preserving encryption, Thales RSA, payment encryption tools, hex key encryption, ECB CBC mode",
-      "path": "/docs/cipher-tools",
+      "path": "/tools/cipher-tools",
       "ogType": "website",
       "robots": "index, follow"
     } },
@@ -221,48 +221,48 @@ export const siteRoutes: Routes = [
     } },
   },
   {
-    path: "docs/dukpt-tools",
+    path: "tools/dukpt-tools",
     loadComponent: () => import('./docs-dukpt-tools').then((c) => c.DocsDukptToolsPage),
     data: { seo: {
       "title": "DUKPT Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio DUKPT Tools documentation - Derive transaction keys from BDK and KSN for both DUKPT AES (X9.24-3) and DUKPT ISO 9797 (X9.24-1) variants.",
       "keywords": "DUKPT calculator, DUKPT AES, DUKPT ISO 9797, BDK, KSN, IPEK, key serial number, base derivation key, ANSI X9.24-1, ANSI X9.24-3, transaction key derivation",
-      "path": "/docs/dukpt-tools",
+      "path": "/tools/dukpt-tools",
       "ogType": "website",
       "robots": "index, follow"
     } },
   },
   {
-    path: "docs/ecr-simulator",
+    path: "simulator/ecr",
     loadComponent: () => import('./docs-ecr-simulator').then((c) => c.DocsEcrSimulatorPage),
     data: { seo: {
       "title": "ECR Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio ECR Simulator (in development) - simulate an electronic cash register integrated with a payment terminal, exchanging sale, void and refund messages.",
       "keywords": "ECR simulator, electronic cash register, ECR POS integration, register terminal protocol, sale void refund, RS232 ECR, cash register payment",
-      "path": "/docs/ecr-simulator",
+      "path": "/simulator/ecr",
       "ogType": "website"
     } },
   },
   {
-    path: "docs/emv-tools",
+    path: "tools/emv-tools",
     loadComponent: () => import('./docs-emv-tools').then((c) => c.DocsEmvToolsPage),
     data: { seo: {
       "title": "EMV Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio EMV Tools documentation - SDA and DDA verification, EMV 4.1 / 4.2 / M-Chip / VSDC cryptogram calculators, issuer script secure messaging, CAP token computation and Visa HCE contactless keys.",
       "keywords": "EMV tools, SDA, DDA, UDK derivation, session key, application cryptogram, ARQC, TC, AAC, ARPC, M/Chip, VSDC, CAP token, EMV secure messaging, HCE, LUK, qVSDC",
-      "path": "/docs/emv-tools",
+      "path": "/tools/emv-tools",
       "ogType": "website",
       "robots": "index, follow"
     } },
   },
   {
-    path: "docs/host-simulator",
+    path: "simulator/host",
     loadComponent: () => import('./docs-host-simulator').then((c) => c.DocsHostSimulatorPage),
     data: { seo: {
       "title": "Host Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio Host Simulator documentation - Simulate acquirer and issuer host responses for POS terminals and ATMs. Configure Server/Client/Proxy gateways, transaction rules, ISO 8583 templates, and dynamic placeholders.",
       "keywords": "ISO 8583 host simulator, payment host emulator, acquirer simulator, issuer simulator, POS terminal testing, ATM testing tool, ISO8583 message builder, transaction rule engine, payment gateway simulator, TCP/IP payment gateway, REST payment API, RS232 serial payment, dial-up payment connection, ISO 8583 message parser, MTI message type indicator, processing code, ISO 8583 field mapping, ByteArray message format, JSON ISO8583, XML ISO8583, payment proxy server, unsolicited message, host handler, transaction monitoring, payment protocol testing, financial message analysis, payment testing environment, gateway configuration, SSL TLS payment, DES 3DES AES encryption, payment log visualization",
-      "path": "/docs/host-simulator",
+      "path": "/simulator/host",
       "ogType": "article",
       "image": "https://iso8583.studio/images/app.png",
       "robots": "index, follow",
@@ -271,7 +271,7 @@ export const siteRoutes: Routes = [
         "@type": "TechArticle",
         "headline": "ISO8583Studio Host Simulator Documentation",
         "description": "Comprehensive documentation for the ISO8583Studio Host Simulator - simulate acquirer and issuer host responses for payment terminals, ATMs, and client applications.",
-        "url": "https://iso8583.studio/docs/host-simulator/",
+        "url": "https://iso8583.studio/simulator/host/",
         "author": {
           "@type": "Organization",
           "name": "AiCortex"
@@ -294,24 +294,24 @@ export const siteRoutes: Routes = [
     } },
   },
   {
-    path: "docs/hsm-command-console",
+    path: "simulator/hsm-command-console",
     loadComponent: () => import('./docs-hsm-command-console').then((c) => c.DocsHsmCommandConsolePage),
     data: { seo: {
       "title": "HSM Command Console Documentation - ISO8583Studio",
       "description": "ISO8583Studio HSM Command Console - a host-command client for Thales payShield, Futurex, SafeNet Luna, Utimaco and nCipher HSMs. Send commands, chain scenarios, and run load tests over TCP/IP with optional TLS.",
       "keywords": "HSM command console, Thales payShield console, HSM host commands, payShield 10K, Futurex Excrypt, SafeNet Luna, Utimaco CryptoServer, nCipher nShield, HSM load test, HSM scenario builder, HSM TLS client",
-      "path": "/docs/hsm-command-console",
+      "path": "/simulator/hsm-command-console",
       "ogType": "website"
     } },
   },
   {
-    path: "docs/hsm-simulator",
+    path: "simulator/hsm",
     loadComponent: () => import('./docs-hsm-simulator').then((c) => c.DocsHsmSimulatorPage),
     data: { seo: {
       "title": "HSM Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio HSM Simulator documentation - Emulate a payment HSM from a device profile: pick vendor, model and firmware, then drive the Thales payShield command engine. 35+ host commands: key management, PIN operations, MAC generation, RSA, encryption, DUKPT, and LMK storage.",
       "keywords": "HSM simulator, HSM vendor profiles, SafeNet Luna, Utimaco CryptoServer, Futurex Excrypt, nCipher nShield, Thales payShield 10K emulator, payShield 9000, hardware security module, HSM emulator, payment HSM, key management, PIN block operations, PIN translation, PIN verification, DUKPT key derivation, ZMK zone master key, ZPK zone PIN key, TPK terminal PIN key, BDK base derivation key, ZEK zone encryption key, 3DES encryption, AES encryption, RSA key generation, MAC generation, ISO 9797, LMK local master key, key check value KCV, PIN block format, ISO 9564, VISA PVV, IBM 3624 PIN, cryptographic operations, payment security, HSM host commands, payShield commands, HSM testing, payment cryptography, financial HSM, key injection, secure key storage, HSM API, PIN encryption",
-      "path": "/docs/hsm-simulator",
+      "path": "/simulator/hsm",
       "ogType": "article",
       "image": "https://iso8583.studio/images/app.png",
       "robots": "index, follow",
@@ -320,7 +320,7 @@ export const siteRoutes: Routes = [
         "@type": "TechArticle",
         "headline": "HSM Simulator Documentation - Thales payShield 10K Emulation",
         "description": "Complete documentation for the ISO8583Studio HSM Simulator emulating a Thales payShield 10K. Covers key management, PIN operations, encryption, MAC, RSA, and 35+ host commands.",
-        "url": "https://iso8583.studio/docs/hsm-simulator/",
+        "url": "https://iso8583.studio/simulator/hsm/",
         "author": {
           "@type": "Organization",
           "name": "AiCortex"
@@ -353,93 +353,93 @@ export const siteRoutes: Routes = [
     } },
   },
   {
-    path: "docs/issuer-simulator",
+    path: "simulator/issuer",
     loadComponent: () => import('./docs-issuer-simulator').then((c) => c.DocsIssuerSimulatorPage),
     data: { seo: {
       "title": "Issuer System Documentation - ISO8583Studio",
       "description": "ISO8583Studio Issuer System (in development) - issuer-side authorization host that approves or declines transactions, verifies PINs and returns ISO 8583 0210 responses.",
       "keywords": "issuer simulator, issuer authorization host, ISO 8583 0210, PIN verification, stand-in authorization, card account validation, decline response codes",
-      "path": "/docs/issuer-simulator",
+      "path": "/simulator/issuer",
       "ogType": "website"
     } },
   },
   {
-    path: "docs/key-tools",
+    path: "tools/key-tools",
     loadComponent: () => import('./docs-key-tools').then((c) => c.DocsKeyToolsPage),
     data: { seo: {
       "title": "Key Management Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio Key Management Tools documentation - DEA / 3DES key utilities, TR-31 and Thales key blocks, vendor-specific key calculators (Thales, Futurex, Atalla, Safenet), keyshare generation, and SSL/X.509 certificate workflows.",
       "keywords": "TR-31 key block, Thales key block, key calculator, Futurex key, Atalla key, Safenet key, keyshare splitting, SSL certificate, X.509, CSR, DES parity, key management, payment HSM keys",
-      "path": "/docs/key-tools",
+      "path": "/tools/key-tools",
       "ogType": "website",
       "robots": "index, follow"
     } },
   },
   {
-    path: "docs/mac-tools",
+    path: "tools/mac-tools",
     loadComponent: () => import('./docs-mac-tools').then((c) => c.DocsMacToolsPage),
     data: { seo: {
       "title": "MAC Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio MAC Tools documentation - HMAC, ISO/IEC 9797-1, ANSI X9.9 / X9.19 and TDES CBC-MAC calculators for payment integrity testing.",
       "keywords": "MAC calculator, HMAC, ISO 9797-1, ANSI X9.9, ANSI X9.19, TDES CBC MAC, message authentication code, payment integrity",
-      "path": "/docs/mac-tools",
+      "path": "/tools/mac-tools",
       "ogType": "website",
       "robots": "index, follow"
     } },
   },
   {
-    path: "docs/payment-simulators",
+    path: "simulator",
     loadComponent: () => import('./docs-payment-simulators').then((c) => c.DocsPaymentSimulatorsPage),
     data: { seo: {
       "title": "Payment Simulators - ISO8583Studio",
       "description": "All nine ISO8583Studio payment simulators — host, HSM, HSM command console, POS, APDU, switch, issuer, ATM and ECR — with documentation for each.",
       "keywords": "payment simulators, ISO 8583 simulator, host simulator, HSM simulator, POS simulator, APDU simulator, payment switch, issuer simulator, ATM simulator, ECR simulator",
-      "path": "/docs/payment-simulators",
+      "path": "/simulator",
       "ogType": "website"
     } },
   },
   {
-    path: "docs/payment-switch",
+    path: "simulator/payment-switch",
     loadComponent: () => import('./docs-payment-switch').then((c) => c.DocsPaymentSwitchPage),
     data: { seo: {
       "title": "Payment Switch Documentation - ISO8583Studio",
       "description": "ISO8583Studio Payment Switch (in development) - route and translate ISO 8583 traffic between acquirers and issuers with BIN routing and protocol translation.",
       "keywords": "payment switch simulator, ISO 8583 switch, transaction routing, BIN routing, protocol translation, acquirer issuer switch, stand-in processing",
-      "path": "/docs/payment-switch",
+      "path": "/simulator/payment-switch",
       "ogType": "website"
     } },
   },
   {
-    path: "docs/pin-tools",
+    path: "tools/pin-tools",
     loadComponent: () => import('./docs-pin-tools').then((c) => c.DocsPinToolsPage),
     data: { seo: {
       "title": "Payment Utilities Documentation - ISO8583Studio",
       "description": "ISO8583Studio Payment Utilities documentation - PIN block calculators (ISO 9564 formats 0-4, OEM variants), AES PIN block, TPK-to-ZPK PIN block translation and DUKPT PIN encryption.",
       "keywords": "PIN block calculator, ISO 9564, PIN block format 0, format 1, format 3, format 4, AES PIN block, PIN block translation, TPK ZPK, DUKPT PIN, payment PIN testing",
-      "path": "/docs/pin-tools",
+      "path": "/tools/pin-tools",
       "ogType": "website",
       "robots": "index, follow"
     } },
   },
   {
-    path: "docs/pos-simulator",
+    path: "simulator/pos",
     loadComponent: () => import('./docs-pos-simulator').then((c) => c.DocsPosSimulatorPage),
     data: { seo: {
       "title": "POS Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio POS Simulator - boot a real Android terminal in an emulator. Pick a PAX, Ingenico, Sunmi, Verifone, Kozen or Newland model, apply its screen, memory, peripherals and spoofed build identity, then install and run your payment app against it.",
       "keywords": "POS simulator, Android POS emulator, payment terminal emulator, PAX A910S emulator, PAX A920, Ingenico AXIUM, Sunmi P2, Verifone T650c, Kozen N2, Newland N910, NexGo N86, Telpo M1, AVD terminal profile, ro.product spoofing, Android emulator config.ini, terminal hardware profile, thermal printer simulation, PED PIN block, PC/SC card reader, payment app testing",
-      "path": "/docs/pos-simulator",
+      "path": "/simulator/pos",
       "ogType": "website"
     } },
   },
   {
-    path: "docs/utility-tools",
+    path: "tools/utility-tools",
     loadComponent: () => import('./docs-utility-tools').then((c) => c.DocsUtilityToolsPage),
     data: { seo: {
       "title": "Data Converters Documentation - ISO8583Studio",
       "description": "ISO8583Studio Data Converters documentation - Base64 and Base94 encoders, BCD converter, character encoding, Luhn check digits and the Track 2 codec for EMV tag 57.",
       "keywords": "Base64 encoder, Base94 encoder, BCD converter, binary coded decimal, character encoder, hex to ASCII, Luhn check digit, Mod 10, Track 2 codec, EMV tag 57, magstripe track 2",
-      "path": "/docs/utility-tools",
+      "path": "/tools/utility-tools",
       "ogType": "website",
       "robots": "index, follow"
     } },

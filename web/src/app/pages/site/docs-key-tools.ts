@@ -50,63 +50,63 @@ import { UiSection } from '../../ui/section';
                     <div class="hub-body">
                         <div class="hub-title">DEA Keys (DES / 3DES Utility)</div>
                         <p class="hub-desc">A multi-tab tool focused on raw 3DES key material.</p>
-                        <a class="hub-link" href="/docs/key-tools#dea">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#dea">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Keyshare Generator</div>
                         <p class="hub-desc">Splits a single key into n shares such that all n are required to reconstruct the key (XOR-based component scheme).</p>
-                        <a class="hub-link" href="/docs/key-tools#keyshare">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#keyshare">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">TR-31 Key Block</div>
                         <p class="hub-desc">ASC X9.143 (formerly TR-31) defines a key block format that binds a key to its allowable usage, algorithm, mode, and…</p>
-                        <a class="hub-link" href="/docs/key-tools#tr31">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#tr31">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Thales Key Block</div>
                         <p class="hub-desc">The Thales-specific key block format used by PayShield HSMs.</p>
-                        <a class="hub-link" href="/docs/key-tools#thales-block">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#thales-block">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Thales Key Calculator</div>
                         <p class="hub-desc">Vendor-aware calculations matching Thales PayShield host commands.</p>
-                        <a class="hub-link" href="/docs/key-tools#thales-keys">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#thales-keys">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Atalla Key Calculator</div>
                         <p class="hub-desc">Atalla / Utimaco AKB-style key block helpers, including AKB header construction and KCV verification.</p>
-                        <a class="hub-link" href="/docs/key-tools#atalla">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#atalla">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Safenet Key Calculator</div>
                         <p class="hub-desc">Safenet / Thales Luna key calculations for legacy and modern formats.</p>
-                        <a class="hub-link" href="/docs/key-tools#safenet">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#safenet">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">RSA DER Public Key Tool</div>
                         <p class="hub-desc">Wrap a modulus and exponent into DER, with the sign-byte case handled.</p>
-                        <a class="hub-link" href="/docs/key-tools#rsa-der">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/key-tools#rsa-der">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">SSL / X.509 Certificate Tool</div>
                         <p class="hub-desc">An end-to-end certificate workflow tool for terminal-host TLS.</p>
-                        <a class="hub-link" href="/docs/key-tools#ssl">View details →</a>
+                        <a class="hub-link" href="/tools/key-tools#ssl">View details →</a>
                     </div>
                 </div>
             </div>

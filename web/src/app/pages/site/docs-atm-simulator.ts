@@ -33,7 +33,7 @@ import { UiSection } from '../../ui/section';
         </div>
 
         <ui-section anchor="overview" heading="Overview">
-            <p>The ATM Simulator will represent a self-service cash machine. It will originate ISO 8583 financial requests (withdrawal, balance, transfer, PIN change), model device-level NDC/DDC state flows, and drive them to a host or switch — the same way the <a href="/docs/pos-simulator">POS Simulator</a> models an attended terminal.</p>
+            <p>The ATM Simulator will represent a self-service cash machine. It will originate ISO 8583 financial requests (withdrawal, balance, transfer, PIN change), model device-level NDC/DDC state flows, and drive them to a host or switch — the same way the <a href="/simulator/pos">POS Simulator</a> models an attended terminal.</p>
 
         </ui-section>
 
@@ -49,7 +49,7 @@ import { UiSection } from '../../ui/section';
         </ui-section>
 
         <ui-section anchor="fit" heading="Where It Fits">
-            <p>The ATM sits at the acceptance edge of the network, alongside the <a href="/docs/pos-simulator">POS Simulator</a>. Pair it with the <a href="/docs/host-simulator">Host Simulator</a> to authorize its transactions.</p>
+            <p>The ATM sits at the acceptance edge of the network, alongside the <a href="/simulator/pos">POS Simulator</a>. Pair it with the <a href="/simulator/host">Host Simulator</a> to authorize its transactions.</p>
         </ui-section>
     </main>
 

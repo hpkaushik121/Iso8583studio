@@ -91,22 +91,22 @@ import { SitePage } from './site-page';
             <div class="rail" id="flowRail">
                 <div class="rail-track">
                     <div class="rail-line"></div>
-                    <a class="node" href="/docs/apdu-simulator">
+                    <a class="node" href="/simulator/apdu">
                         <div class="disc"><span class="n">1</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2.5"/><rect x="5" y="9" width="5" height="4" rx="1"/><path d="M14 9h5M14 13h5"/></svg></div>
                         <h3>Card &amp; EMV</h3><p>Cryptograms, SDA/DDA, ATR &amp; tag parsing.</p>
                         <div class="simchip"><span class="s">APDU Simulator</span><span class="pk">C-APDU · TLV</span></div>
                     </a>
-                    <a class="node" href="/docs/pos-simulator">
+                    <a class="node" href="/simulator/pos">
                         <div class="disc"><span class="n">2</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="2" width="14" height="20" rx="2.5"/><rect x="8" y="5" width="8" height="5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg></div>
                         <h3>Terminal</h3><p>POS, ECR &amp; APDU acceptance flows.</p>
                         <div class="simchip"><span class="s">POS Simulator</span><span class="pk">EMV 9F02 · ARQC</span></div>
                     </a>
-                    <a class="node" href="/docs/hsm-simulator">
+                    <a class="node" href="/simulator/hsm">
                         <div class="disc"><span class="n">3</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M8 9V6a4 4 0 018 0v3"/><path d="M12 13v3"/></svg></div>
                         <h3>HSM &amp; keys</h3><p>PIN, MAC, DUKPT &amp; TR-31.</p>
                         <div class="simchip"><span class="s">HSM Simulator</span><span class="pk">payShield M4 · CW</span></div>
                     </a>
-                    <a class="node" href="/docs/host-simulator">
+                    <a class="node" href="/simulator/host">
                         <div class="disc"><span class="n">4</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 12h.01M10 12h.01"/><path d="M17 12h3M17 9v6"/></svg></div>
                         <h3>Switch &amp; host</h3><p>Server, client or proxy routing.</p>
                         <div class="simchip"><span class="s">Host Simulator</span><span class="pk">ISO 8583 · 0200</span></div>
@@ -116,7 +116,7 @@ import { SitePage } from './site-page';
                         <h3>Scheme</h3><p>Network authorization &amp; clearing.</p>
                         <div class="simchip"><span class="s">Scheme Simulator</span><span class="pk">Scheme · 0100→0110</span></div>
                     </a>
-                    <a class="node" href="/docs/issuer-simulator">
+                    <a class="node" href="/simulator/issuer">
                         <div class="disc"><span class="n">6</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-5 9 5"/><path d="M4 9v10M9 9v10M15 9v10M20 9v10"/><path d="M3 20h18"/></svg></div>
                         <h3>Issuer</h3><p>Authorization, PIN &amp; stand-in decisioning.</p>
                         <div class="simchip"><span class="s">Issuer Host</span><span class="pk">ISO 8583 · 0210 · F39</span></div>
@@ -134,32 +134,32 @@ import { SitePage } from './site-page';
         <h2 class="sec">64 tools, six disciplines</h2>
         <p class="sec-sub">The same categories as the studio sidebar — every tool documented, every workflow covered.</p>
         <div class="cat-grid">
-            <a class="cat reveal" href="/docs/host-simulator"><span class="arrow">→</span>
+            <a class="cat reveal" href="/simulator/host"><span class="arrow">→</span>
                 <div class="cat-top"><span class="cat-ic">⇄</span><span class="cnt">9 tools</span></div>
                 <h3>Payment Simulators</h3><p>Host, HSM, POS, ATM, ECR, switch &amp; scheme over TCP/IP, RS232 and REST.</p>
                 <div class="chips"><span class="chip">Host</span><span class="chip">HSM</span><span class="chip">POS</span><span class="chip">APDU</span></div>
             </a>
-            <a class="cat reveal" href="/docs/emv-tools"><span class="arrow">→</span>
+            <a class="cat reveal" href="/tools/emv-tools"><span class="arrow">→</span>
                 <div class="cat-top"><span class="cat-ic">▣</span><span class="cnt">12 tools</span></div>
                 <h3>EMV &amp; Card Tools</h3><p>ARQC/TC validation, SDA &amp; DDA, ATR parsing, tag decoding, CVV/CVC3.</p>
                 <div class="chips"><span class="chip">EMV 4.1</span><span class="chip">SDA/DDA</span><span class="chip">Tags</span><span class="chip">CVV</span></div>
             </a>
-            <a class="cat reveal" href="/docs/cipher-tools"><span class="arrow">→</span>
+            <a class="cat reveal" href="/tools/cipher-tools"><span class="arrow">→</span>
                 <div class="cat-top"><span class="cat-ic">⬡</span><span class="cnt">7 tools</span></div>
                 <h3>Cryptographic Tools</h3><p>AES, DES/3DES, RSA, format-preserving encryption, MD5/SHA hashing.</p>
                 <div class="chips"><span class="chip">AES</span><span class="chip">3DES</span><span class="chip">RSA</span><span class="chip">FPE</span></div>
             </a>
-            <a class="cat reveal" href="/docs/key-tools"><span class="arrow">→</span>
+            <a class="cat reveal" href="/tools/key-tools"><span class="arrow">→</span>
                 <div class="cat-top"><span class="cat-ic">⚿</span><span class="cnt">10 tools</span></div>
                 <h3>Key Management</h3><p>DUKPT derivation, TR-31 key blocks, shares, KCVs, Thales &amp; Futurex.</p>
                 <div class="chips"><span class="chip">DUKPT</span><span class="chip">TR-31</span><span class="chip">Thales</span><span class="chip">Futurex</span></div>
             </a>
-            <a class="cat reveal" href="/docs/pin-tools"><span class="arrow">→</span>
+            <a class="cat reveal" href="/tools/pin-tools"><span class="arrow">→</span>
                 <div class="cat-top"><span class="cat-ic">▤</span><span class="cnt">21 tools</span></div>
                 <h3>Payment Utilities</h3><p>PIN blocks (ISO 9564 and OEM), AES PIN blocks, PIN translation, DUKPT PIN.</p>
                 <div class="chips"><span class="chip">PIN</span><span class="chip">ISO 9564</span><span class="chip">AES</span><span class="chip">DUKPT</span></div>
             </a>
-            <a class="cat reveal" href="/docs/utility-tools"><span class="arrow">→</span>
+            <a class="cat reveal" href="/tools/utility-tools"><span class="arrow">→</span>
                 <div class="cat-top"><span class="cat-ic">⇋</span><span class="cnt">6 tools</span></div>
                 <h3>Data Converters</h3><p>Base64, Base94, BCD, character encodings, check digits and Track 2.</p>
                 <div class="chips"><span class="chip">Base64</span><span class="chip">BCD</span><span class="chip">Luhn</span><span class="chip">Track 2</span></div>

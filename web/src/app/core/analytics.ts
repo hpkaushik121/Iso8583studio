@@ -24,8 +24,6 @@ const ADS_ID: string = '';
 const ADS_CONVERSION: string = '';
 
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0', ''];
-const SIMULATOR_DOCS = /^(host|hsm|apdu|pos|atm|ecr|issuer|payment-switch|hsm-command-console)/;
-const GUIDE_DOCS = ['installation', 'versions', 'contributing'];
 const SOLUTION_PAGES = ['emv-certification', 'cloud-simulators', 'kernel', 'middleware'];
 const DOWNLOAD_FILE = /\.(dmg|msi|exe|deb|rpm|jar|zip)(\?|#|$)/i;
 const RELEASE_LINK = /releases\/(latest|download)/i;
@@ -161,11 +159,16 @@ export class AnalyticsService {
     }
 
     if (seg[0] === 'docs') {
-      if (seg.length === 1) return { group: 'docs_index', id: 'index' };
-      if (GUIDE_DOCS.includes(seg[1])) return { group: 'docs_guide', id: seg[1] };
-      if (seg[1] === 'payment-simulators' || SIMULATOR_DOCS.test(seg[1])) {
-        return { group: 'docs_simulator', id: seg[1] };
-      }
+      return seg.length === 1
+        ? { group: 'docs_index', id: 'index' }
+        : { group: 'docs_guide', id: seg[1] };
+    }
+
+    if (seg[0] === 'simulator') {
+      return { group: 'docs_simulator', id: seg.length === 1 ? 'index' : seg[1] };
+    }
+
+    if (seg[0] === 'tools') {
       return { group: 'docs_tool', id: seg[1] };
     }
 

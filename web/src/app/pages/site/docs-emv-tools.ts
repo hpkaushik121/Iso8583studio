@@ -44,63 +44,63 @@ import { UiSection } from '../../ui/section';
                     <div class="hub-body">
                         <div class="hub-title">SDA Verification</div>
                         <p class="hub-desc">Verify issuer-signed static data against a CA public key.</p>
-                        <a class="hub-link" href="/docs/emv-tools#sda">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#sda">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">DDA Verification</div>
                         <p class="hub-desc">Check the card&rsquo;s signature over terminal-supplied dynamic data.</p>
-                        <a class="hub-link" href="/docs/emv-tools#dda">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#dda">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">EMV 4.1 Crypto Calculator</div>
                         <p class="hub-desc">The reference cryptogram chain: UDK, session keys, ARQC/TC/AAC, ARPC and key utilities.</p>
-                        <a class="hub-link" href="/docs/emv-tools#app-crypto">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#app-crypto">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">EMV 4.2 Crypto Calculator</div>
                         <p class="hub-desc">The same chain under the EMV 4.2 rules, derivation stated on the form.</p>
-                        <a class="hub-link" href="/docs/emv-tools#emv42">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#emv42">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">MasterCard M/Chip Crypto</div>
                         <p class="hub-desc">M/Chip derivation, with a separate EMV 2000 session key tab.</p>
-                        <a class="hub-link" href="/docs/emv-tools#mchip">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#mchip">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">VSDC Crypto Calculator</div>
                         <p class="hub-desc">Visa Smart Debit/Credit: UDK, session keys, AAC/ARQC/TC and ARPC.</p>
-                        <a class="hub-link" href="/docs/emv-tools#vsdc">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#vsdc">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Secure Messaging</div>
                         <p class="hub-desc">Build and verify SMC / SMI protection on issuer scripts.</p>
-                        <a class="hub-link" href="/docs/emv-tools#secure-msg">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#secure-msg">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">CAP Token Computation</div>
                         <p class="hub-desc">Compute Chip Authentication Programme tokens for banking 2FA.</p>
-                        <a class="hub-link" href="/docs/emv-tools#cap">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#cap">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">HCE (Host Card Emulation)</div>
                         <p class="hub-desc">Generate the Limited-Use and Single-Use Keys HCE tokenisation needs.</p>
-                        <a class="hub-link" href="/docs/emv-tools#hce">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/emv-tools#hce">View details &rarr;</a>
                     </div>
                 </div>
             </div>

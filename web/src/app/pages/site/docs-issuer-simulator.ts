@@ -49,7 +49,7 @@ import { UiSection } from '../../ui/section';
         </ui-section>
 
         <ui-section anchor="fit" heading="Where It Fits">
-            <p>The issuer answers what the acquiring side sends. Today you can model issuer responses with the <a href="/docs/host-simulator">Host Simulator</a> in Server mode; the dedicated Issuer System will add account-aware decisioning.</p>
+            <p>The issuer answers what the acquiring side sends. Today you can model issuer responses with the <a href="/simulator/host">Host Simulator</a> in Server mode; the dedicated Issuer System will add account-aware decisioning.</p>
         </ui-section>
     </main>
 

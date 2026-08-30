@@ -25,7 +25,7 @@ import { UiSection } from '../../ui/section';
         <p class="page-description">A host-command client for hardware security modules. Connect to a real or simulated HSM, fire individual host commands, chain them into repeatable scenarios, and drive them under load &mdash; all over TCP/IP with optional TLS. Inside the app it is titled <strong>HSM Host Console</strong>.</p>
 
         <ui-section anchor="overview" heading="Overview">
-            <p>The HSM Command Console acts as a <strong>client</strong> that talks to an HSM's host interface. It packs your command payload with the vendor's framing (length header, STX/ETX, etc.), sends it over the socket, and shows the raw request/response exchange. Point it at ISO8583Studio's own <a href="/docs/hsm-simulator">HSM Simulator</a> or at a physical device on your bench.</p>
+            <p>The HSM Command Console acts as a <strong>client</strong> that talks to an HSM's host interface. It packs your command payload with the vendor's framing (length header, STX/ETX, etc.), sends it over the socket, and shows the raw request/response exchange. Point it at ISO8583Studio's own <a href="/simulator/hsm">HSM Simulator</a> or at a physical device on your bench.</p>
 
             <div class="shot-grid">
                 <figure class="shot-fig wide" style="--shot-w:1400px"><image-slot><img src="/images/docs/hsm-command-console/overview.png" alt="HSM Host Console connected to Thales payShield at 127.0.0.1:9090, with the 120-command list on the left and an NO / NP HSM Status exchange shown as formatted request and response" width="1919" height="1004" loading="lazy"></image-slot>
@@ -51,7 +51,7 @@ import { UiSection } from '../../ui/section';
                 <li><strong>Launch and connect</strong> &mdash; Open the console and click <strong>Connect</strong>. The header dot turns green when the socket is up.</li>
                 <li><strong>Send a command</strong> &mdash; In the <strong>Console</strong> tab select a command from the vendor set, fill its fields, and send. The response appears in the exchange log.</li>
             </ol>
-            <div class="info-card tip"><div class="info-card-title">Tip</div><p>No physical HSM? Start the <a href="/docs/hsm-simulator">HSM Simulator</a> as a server on the same machine and point the console at <code>127.0.0.1:1500</code> for a fully local key-management loop.</p></div>
+            <div class="info-card tip"><div class="info-card-title">Tip</div><p>No physical HSM? Start the <a href="/simulator/hsm">HSM Simulator</a> as a server on the same machine and point the console at <code>127.0.0.1:1500</code> for a fully local key-management loop.</p></div>
         </ui-section>
 
         <ui-section anchor="vendors" heading="Supported HSM Vendors">
@@ -200,7 +200,7 @@ import { UiSection } from '../../ui/section';
                     <tr><td><strong>Logs</strong></td><td>Timestamped exchange log with connection and byte counters.</td></tr>
                 </tbody>
             </table></div>
-            <div class="info-card note"><div class="info-card-title">Related</div><p>Pair this with the <a href="/docs/hsm-simulator">HSM Simulator</a> (the server side) for a complete, self-contained key-management test rig.</p></div>
+            <div class="info-card note"><div class="info-card-title">Related</div><p>Pair this with the <a href="/simulator/hsm">HSM Simulator</a> (the server side) for a complete, self-contained key-management test rig.</p></div>
         </ui-section>
     </main>
 

@@ -7,9 +7,10 @@
  * were never submitted. Reading the build output makes that class of drift
  * impossible.
  */
-import { readdirSync, readFileSync, writeFileSync, statSync, copyFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, statSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MOVED_ROUTES } from './moved-routes.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist/iso8583-studio/browser');
@@ -43,15 +44,15 @@ const publishedOf = (html) =>
 
 const priorityFor = (route) => {
   if (route === '/') return '1.0';
-  if (route === '/docs' || route === '/blogs') return '0.9';
-  if (/^\/docs\//.test(route)) return '0.8';
+  if (route === '/docs' || route === '/blogs' || route === '/simulator') return '0.9';
+  if (/^\/(docs|simulator|tools)\//.test(route)) return '0.8';
   if (/^\/blogs\//.test(route)) return '0.7';
   if (/^\/(privacy-policy|terms-and-conditions)$/.test(route)) return '0.3';
   return '0.8';
 };
 
 const changefreqFor = (route) =>
-  route === '/' || route === '/blogs' || route === '/docs' ? 'weekly'
+  route === '/' || route === '/blogs' || route === '/docs' || route === '/simulator' ? 'weekly'
     : /^\/(privacy-policy|terms-and-conditions)$/.test(route) ? 'yearly' : 'monthly';
 
 const indexable = pages.filter((p) => !noindex(p.html));
@@ -101,10 +102,40 @@ for (const [file, route] of legacy) {
   copyFileSync(source, join(DIST, file));
 }
 
+// ---- moved /docs/* routes --------------------------------------------------
+
+/**
+ * Simulator and tool pages moved out of /docs into /simulator/* and /tools/*.
+ * The old URLs are indexed and linked from outside, and GitHub Pages cannot
+ * issue a 301, so each old route gets a meta-refresh stub. Unlike the .html
+ * aliases above there is no resolution ambiguity here — /docs/<slug>/ only
+ * ever maps to <slug>/index.html — so a redirect cannot loop. The stub is
+ * noindex (it must not enter the sitemap); the canonical and the refresh both
+ * point at the new home, which is what transfers the indexing.
+ */
+for (const [oldRoute, newRoute] of Object.entries(MOVED_ROUTES)) {
+  if (!existsSync(join(DIST, newRoute.slice(1), 'index.html'))) {
+    throw new Error(`moved route points at a page that was not emitted: ${oldRoute} -> ${newRoute}`);
+  }
+  const dir = join(DIST, oldRoute.slice(1));
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'),
+    `<!doctype html>\n<html lang="en">\n<head>\n` +
+    `<meta charset="utf-8">\n` +
+    `<title>Moved to ${SITE}${newRoute} - ISO8583Studio</title>\n` +
+    `<meta name="robots" content="noindex">\n` +
+    `<link rel="canonical" href="${SITE}${newRoute}">\n` +
+    `<meta http-equiv="refresh" content="0; url=${newRoute}">\n` +
+    `</head>\n<body>\n` +
+    `<p>This page has moved to <a href="${newRoute}">${SITE}${newRoute}</a>.</p>\n` +
+    `</body>\n</html>\n`);
+}
+
 // ---- 404 -------------------------------------------------------------------
 
 const notFound = join(DIST, '404/index.html');
 if (!existsSync(notFound)) throw new Error('the /404 route was not prerendered');
 copyFileSync(notFound, join(DIST, '404.html'));
 
-console.log(`sitemap: ${urls.length} urls | legacy .html aliases: ${legacy.length} | 404.html written`);
+console.log(`sitemap: ${urls.length} urls | legacy .html aliases: ${legacy.length} | ` +
+  `moved-route stubs: ${Object.keys(MOVED_ROUTES).length} | 404.html written`);

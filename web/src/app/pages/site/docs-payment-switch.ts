@@ -49,7 +49,7 @@ import { UiSection } from '../../ui/section';
         </ui-section>
 
         <ui-section anchor="fit" heading="Where It Fits">
-            <p>Until the dedicated switch ships, the <a href="/docs/host-simulator">Host Simulator</a> in <strong>Proxy</strong> mode already bridges two endpoints and can inspect or modify traffic in transit.</p>
+            <p>Until the dedicated switch ships, the <a href="/simulator/host">Host Simulator</a> in <strong>Proxy</strong> mode already bridges two endpoints and can inspect or modify traffic in transit.</p>
         </ui-section>
     </main>
 

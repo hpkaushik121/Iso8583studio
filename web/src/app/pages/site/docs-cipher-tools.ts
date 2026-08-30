@@ -76,49 +76,49 @@ import { UiSection } from '../../ui/section';
                     <div class="hub-body">
                         <div class="hub-title">AES Calculator</div>
                         <p class="hub-desc">Encrypt or decrypt data with AES, or compute a Key Check Value over a known key.</p>
-                        <a class="hub-link" href="/docs/cipher-tools#aes">View details →</a>
+                        <a class="hub-link" href="/tools/cipher-tools#aes">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">DES / 3DES Calculator</div>
                         <p class="hub-desc">Single DES or Triple DES with a wide selection of cipher modes and padding schemes commonly used by legacy payment hosts.</p>
-                        <a class="hub-link" href="/docs/cipher-tools#des">View details →</a>
+                        <a class="hub-link" href="/tools/cipher-tools#des">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">FPE Calculator</div>
                         <p class="hub-desc">Format-Preserving Encryption keeps the output in the same format as the input — e.g.</p>
-                        <a class="hub-link" href="/docs/cipher-tools#fpe">View details →</a>
+                        <a class="hub-link" href="/tools/cipher-tools#fpe">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">RSA Calculator</div>
                         <p class="hub-desc">Six-tab tool covering the full RSA workflow from key generation through padding-aware encryption and signing.</p>
-                        <a class="hub-link" href="/docs/cipher-tools#rsa">View details →</a>
+                        <a class="hub-link" href="/tools/cipher-tools#rsa">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Hash Calculator</div>
                         <p class="hub-desc">Generate an MD5, SHA-1 or SHA-256 digest over ASCII or hex input.</p>
-                        <a class="hub-link" href="/docs/cipher-tools#hash">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/cipher-tools#hash">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Thales RSA Calculator</div>
                         <p class="hub-desc">Vendor-aware RSA helpers tailored to Thales PayShield workflows.</p>
-                        <a class="hub-link" href="/docs/cipher-tools#thales-rsa">View details →</a>
+                        <a class="hub-link" href="/tools/cipher-tools#thales-rsa">View details →</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">ECDSA Calculator</div>
                         <p class="hub-desc">Elliptic Curve Digital Signature Algorithm with three workflow tabs.</p>
-                        <a class="hub-link" href="/docs/cipher-tools#ecdsa">View details →</a>
+                        <a class="hub-link" href="/tools/cipher-tools#ecdsa">View details →</a>
                     </div>
                 </div>
             </div>

@@ -43,42 +43,42 @@ import { UiSection } from '../../ui/section';
                     <div class="hub-body">
                         <div class="hub-title">Base64 Encoder</div>
                         <p class="hub-desc">Encode bytes to Base64 or decode a Base64 string back to hex.</p>
-                        <a class="hub-link" href="/docs/utility-tools#base64">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/utility-tools#base64">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Base94 Encoder</div>
                         <p class="hub-desc">The denser printable-ASCII variant, encoded and decoded the same way.</p>
-                        <a class="hub-link" href="/docs/utility-tools#base94">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/utility-tools#base94">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">BCD Converter</div>
                         <p class="hub-desc">Pack a decimal string two digits per byte, or unpack one.</p>
-                        <a class="hub-link" href="/docs/utility-tools#bcd">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/utility-tools#bcd">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Character Encoder</div>
                         <p class="hub-desc">Convert between binary, hexadecimal, decimal and ASCII.</p>
-                        <a class="hub-link" href="/docs/utility-tools#encoding">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/utility-tools#encoding">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Check Digit Calculator</div>
                         <p class="hub-desc">Generate or validate a Luhn (Mod 10) check digit.</p>
-                        <a class="hub-link" href="/docs/utility-tools#check-digit">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/utility-tools#check-digit">View details &rarr;</a>
                     </div>
                 </div>
                 <div class="hub-card">
                     <div class="hub-body">
                         <div class="hub-title">Track 2 Codec</div>
                         <p class="hub-desc">Build Track 2 from its parts, or decode any of its three shapes.</p>
-                        <a class="hub-link" href="/docs/utility-tools#track2">View details &rarr;</a>
+                        <a class="hub-link" href="/tools/utility-tools#track2">View details &rarr;</a>
                     </div>
                 </div>
             </div>

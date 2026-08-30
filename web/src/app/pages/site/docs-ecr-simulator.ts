@@ -49,7 +49,7 @@ import { UiSection } from '../../ui/section';
         </ui-section>
 
         <ui-section anchor="fit" heading="Where It Fits">
-            <p>The ECR drives the <a href="/docs/pos-simulator">POS Simulator</a> from the merchant application side, completing the register &rarr; terminal &rarr; host chain.</p>
+            <p>The ECR drives the <a href="/simulator/pos">POS Simulator</a> from the merchant application side, completing the register &rarr; terminal &rarr; host chain.</p>
         </ui-section>
     </main>
 

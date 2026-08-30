@@ -154,7 +154,7 @@ import { UiSection } from '../../ui/section';
             </div>
             <div class="info-card warning">
                 <div class="info-card-title">Host uplink is not wired up yet</div>
-                <p>The acquirer host fields are stored on the profile, but the terminal does not yet send ISO 8583 to them &mdash; that arrives with the ISO 8583 uplink milestone. To exercise a host today, drive the <a href="/docs/host-simulator">Host Simulator</a> directly.</p>
+                <p>The acquirer host fields are stored on the profile, but the terminal does not yet send ISO 8583 to them &mdash; that arrives with the ISO 8583 uplink milestone. To exercise a host today, drive the <a href="/simulator/host">Host Simulator</a> directly.</p>
             </div>
         </ui-section>
 
@@ -178,7 +178,7 @@ import { UiSection } from '../../ui/section';
             </div>
             <div class="info-card note">
                 <div class="info-card-title">Note</div>
-                <p>For chip-level cryptogram and TLV work today, pair the terminal with the <a href="/docs/apdu-simulator">APDU Simulator</a> and the <a href="/docs/emv-tools">EMV &amp; Card Tools</a>.</p>
+                <p>For chip-level cryptogram and TLV work today, pair the terminal with the <a href="/simulator/apdu">APDU Simulator</a> and the <a href="/tools/emv-tools">EMV &amp; Card Tools</a>.</p>
             </div>
         </ui-section>
 

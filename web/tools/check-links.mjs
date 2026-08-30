@@ -8,11 +8,13 @@
  *  - a canonical, og:url or in-page link still carries .html;
  *  - a sitemap entry does not resolve;
  *  - a legacy .html URL lost its redirect stub;
+ *  - a moved /docs/* route lost its redirect stub or points at the wrong page;
  *  - any URL that is live today is missing from the output.
  */
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MOVED_ROUTES } from './moved-routes.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = process.argv[2] ? join(process.cwd(), process.argv[2]) : join(ROOT, 'dist/iso8583-studio/browser');
@@ -60,11 +62,12 @@ const EXPECTED_PAGES = [
   '/', '/privacy-policy', '/terms-and-conditions',
   '/cloud-simulators', '/contact', '/emv-certification', '/kernel', '/middleware', '/pro',
   '/docs', '/blogs',
-  ...['apdu-simulator', 'atm-simulator', 'card-validation', 'cipher-tools', 'contributing',
-    'dukpt-tools', 'ecr-simulator', 'emv-tools', 'host-simulator', 'hsm-command-console',
-    'hsm-simulator', 'installation', 'issuer-simulator', 'key-tools', 'mac-tools',
-    'payment-simulators', 'payment-switch', 'pin-tools', 'pos-simulator', 'utility-tools',
-    'versions'].map((s) => `/docs/${s}`),
+  ...['contributing', 'installation', 'versions'].map((s) => `/docs/${s}`),
+  '/simulator',
+  ...['apdu', 'atm', 'ecr', 'host', 'hsm', 'hsm-command-console', 'issuer',
+    'payment-switch', 'pos'].map((s) => `/simulator/${s}`),
+  ...['card-validation', 'cipher-tools', 'dukpt-tools', 'emv-tools', 'key-tools',
+    'mac-tools', 'pin-tools', 'utility-tools'].map((s) => `/tools/${s}`),
 ];
 
 const expected = [...EXPECTED_PAGES, ...EXPECTED_BLOG];
@@ -167,6 +170,26 @@ for (const alias of STUBS) {
   if (!/<title>[^<]+<\/title>/.test(html)) fail(`legacy alias has no title: /${alias}`);
 }
 
+// ---- 5b. moved /docs/* routes redirect to their new homes ------------------
+
+for (const [oldRoute, newRoute] of Object.entries(MOVED_ROUTES)) {
+  const stub = join(DIST, oldRoute.slice(1), 'index.html');
+  if (!existsSync(stub)) { fail(`moved-route stub missing: ${oldRoute}`); continue; }
+  const html = readFileSync(stub, 'utf8');
+  const refresh = html.match(/http-equiv="refresh"[^>]+url=([^">]+)/i)?.[1];
+  if (refresh !== newRoute) {
+    fail(`moved-route stub ${oldRoute} should refresh to ${newRoute}, got ${refresh ?? 'nothing'}`);
+  }
+  const canonical = html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/i)?.[1];
+  if (canonical !== `${SITE}${newRoute}`) {
+    fail(`moved-route stub ${oldRoute} canonical should be ${SITE}${newRoute}, got ${canonical}`);
+  }
+  if (!/<meta[^>]+name="robots"[^>]+content="[^"]*noindex/i.test(html)) {
+    fail(`moved-route stub ${oldRoute} must be noindex or it will enter the sitemap`);
+  }
+  if (!routes.has(newRoute)) fail(`moved-route target not emitted: ${newRoute}`);
+}
+
 // ---- 6. everything indexed today still resolves ----------------------------
 
 const LIVE_SITEMAP = join(ROOT, '..', 'docs', 'sitemap.xml');
@@ -191,4 +214,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`✔ ${pages.length} pages, ${STUBS.size} legacy .html aliases, ${anchorsChecked} in-page anchors, sitemap and assets all check out`);
+console.log(`✔ ${pages.length} pages, ${STUBS.size} legacy .html aliases, ` +
+  `${Object.keys(MOVED_ROUTES).length} moved-route stubs, ${anchorsChecked} in-page anchors, sitemap and assets all check out`);
