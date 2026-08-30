@@ -26,7 +26,12 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (outcome(); as o) {
-      <p class="pf-done" role="status">{{ o }}</p>
+      <p class="pf-done" role="status">
+        {{ o }}
+        @if (reference(); as ref) {
+          <span class="pf-ref">Reference <code>{{ ref }}</code></span>
+        }
+      </p>
     }
 
     <form class="pro-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -166,6 +171,8 @@ export class ProForm {
   protected readonly busy = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly outcome = signal<string | null>(null);
+  /** The service's own order id, which it appends to the return URL. */
+  protected readonly reference = signal<string | null>(null);
 
   /** Re-read on every change so the template's error state stays current. */
   private readonly value = signal(this.form.getRawValue());
@@ -336,8 +343,17 @@ export class ProForm {
    */
   private async resumeAfterCheckout(): Promise<void> {
     if (typeof location === 'undefined') return;
-    const flag = new URLSearchParams(location.search).get('payment');
+    const params = new URLSearchParams(location.search);
+    const flag = params.get('payment');
     if (!flag) return;
+
+    /* Shown whichever way this goes. The service appends its order id to the
+       return URL so the page has it without parsing anything, and it is the
+       only thing a customer can quote at us — the browser credential cannot
+       read an order, by design, so support needs them to carry the id. It
+       matters most in the branch below, where the token is gone and there is
+       otherwise nothing concrete to show. */
+    this.reference.set(params.get('ref'));
 
     const token = this.payments.takeToken();
     if (!token) {

@@ -917,3 +917,14 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
     flex-basis: 100%;
     color: var(--faint);
 }
+
+/* The order reference on the payment outcome. Its own line: it is a string to
+   be copied into an email, not part of the sentence above it. */
+.pf-ref {
+    display: block;
+    margin-top: var(--sp-2);
+    font-size: var(--fs-2xs);
+    color: var(--muted);
+}
+
+.pf-ref code { font-family: var(--mono); color: var(--text); }
