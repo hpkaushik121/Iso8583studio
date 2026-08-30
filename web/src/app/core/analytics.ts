@@ -220,7 +220,11 @@ export class AnalyticsService {
   // ----------------------------------------------------------------- bootstrap
 
   private gtag(...args: unknown[]): void {
-    (this.win.dataLayer ||= []).push(args);
+    // gtag.js only interprets a dataLayer entry as a command when it is a real
+    // `arguments` object; a plain array is pushed and then ignored, so every
+    // js/set/config/event silently never reaches GA. Hence the apply().
+    const dl = (this.win.dataLayer ||= []);
+    (function () { dl.push(arguments); }).apply(null, args as []);
   }
 
   private bootstrap(): void {
