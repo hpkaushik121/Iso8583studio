@@ -663,6 +663,20 @@ export class AnalyticsService {
   reportBeginCheckout(amountPaise: number, checkoutId: string, done: () => void): void {
     const rupees = amountPaise / 100;
     this.track('generate_lead', { value: rupees, currency: 'INR' });
+
+    // Click-time Ads purchase conversion, so a payer who completes in the UPI
+    // app but never returns to the result page is still counted. Keyed to the
+    // checkout id: the success-page fire uses the same id, and Google Ads
+    // drops the duplicate. Dispatched before begin_checkout so it rides the
+    // same pre-redirect flush that trackThen's callback/timeout guards.
+    if (this.adsEnabled && ADS_PURCHASE) {
+      this.gtag('event', 'conversion', {
+        send_to: `${ADS_ID}/${ADS_PURCHASE}`,
+        value: rupees,
+        currency: 'INR',
+        transaction_id: checkoutId,
+      });
+    }
     this.trackThen('begin_checkout', {
       value: rupees, currency: 'INR',
       amount_bucket: amountBucket(rupees),
@@ -695,14 +709,17 @@ export class AnalyticsService {
     const rupees = amountPaise === null ? undefined : amountPaise / 100;
 
     // Google Ads purchase conversion. Behind the same ledger as the GA4 event,
-    // and transaction_id dedupes again on Google's side. Falls back to the
-    // conversion action's default value (1.0) when the amount is unknown.
+    // and keyed to the checkout id so Google drops it as a duplicate of the
+    // click-time fire in reportBeginCheckout when both arrive. The payment ref
+    // is the fallback key for flows that never had a checkout id. Falls back
+    // to the conversion action's default value (1.0) when the amount is
+    // unknown.
     if (this.adsEnabled && ADS_PURCHASE) {
       this.gtag('event', 'conversion', this.compact({
         send_to: `${ADS_ID}/${ADS_PURCHASE}`,
         value: rupees ?? 1.0,
         currency: 'INR',
-        transaction_id: ref,
+        transaction_id: checkoutId || ref,
       }));
     }
 
