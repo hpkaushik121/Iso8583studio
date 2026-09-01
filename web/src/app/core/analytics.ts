@@ -18,8 +18,8 @@ import { filter } from 'rxjs/operators';
  */
 
 const MEASUREMENT_ID: string = 'G-445XQ0W2Q4';
-// Google Ads, e.g. 'AW-123456789'. Empty disables the Ads tag entirely.
-const ADS_ID: string = '';
+// Google Ads. Empty disables the Ads tag entirely.
+const ADS_ID: string = 'AW-18221862602';
 // Download conversion label, e.g. 'AbC-D_efG'.
 const ADS_CONVERSION: string = '';
 
