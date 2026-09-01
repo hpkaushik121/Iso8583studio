@@ -22,6 +22,8 @@ const MEASUREMENT_ID: string = 'G-445XQ0W2Q4';
 const ADS_ID: string = 'AW-18221862602';
 // Download conversion label, e.g. 'AbC-D_efG'.
 const ADS_CONVERSION: string = '';
+// Purchase conversion label, fired on payment success.
+const ADS_PURCHASE: string = 'P2S9CLKR6bocEMqd7vBD';
 
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0', ''];
 const SOLUTION_PAGES = ['emv-certification', 'cloud-simulators', 'kernel', 'middleware'];
@@ -691,6 +693,19 @@ export class AnalyticsService {
     this.gtag('set', 'user_properties', { pro_customer: 'yes' });
 
     const rupees = amountPaise === null ? undefined : amountPaise / 100;
+
+    // Google Ads purchase conversion. Behind the same ledger as the GA4 event,
+    // and transaction_id dedupes again on Google's side. Falls back to the
+    // conversion action's default value (1.0) when the amount is unknown.
+    if (this.adsEnabled && ADS_PURCHASE) {
+      this.gtag('event', 'conversion', this.compact({
+        send_to: `${ADS_ID}/${ADS_PURCHASE}`,
+        value: rupees ?? 1.0,
+        currency: 'INR',
+        transaction_id: ref,
+      }));
+    }
+
     this.track('purchase', {
       transaction_id: ref,
       currency: 'INR',
