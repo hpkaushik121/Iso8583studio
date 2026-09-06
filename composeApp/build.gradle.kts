@@ -142,7 +142,7 @@ compose.desktop {
             // Linux specific configuration
             linux {
                 // Set the icon for Linux
-                iconFile.set(project.file("resources/linus/app.png"))
+                iconFile.set(project.file("resources/linux/app.png"))
                 // Additional Linux settings
                 shortcut = true
                 debMaintainer = "support@iso8583.studio"
