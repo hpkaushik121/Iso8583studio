@@ -3,6 +3,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { PAYMENTS } from '../../content/payments-config';
 import { PaymentsService, formatPaise, messageFor } from '../../core/payments';
 import { AnalyticsService } from '../../core/analytics';
+import { UiLogoMark } from '../../ui/logo-mark';
 
 /**
  * The Pro registration form.
@@ -23,7 +24,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 @Component({
   selector: 'app-pro-form',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, UiLogoMark],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form class="pro-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -144,6 +145,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
       <div class="pf-actions">
         <button class="btn btn-blue" type="submit" [disabled]="busy()">
+          @if (busy()) { <ui-logo-mark mode="trace" [size]="18" /> }
           <span>{{ busy() ? 'Starting payment…' : 'Continue to payment' }}</span>
         </button>
       </div>

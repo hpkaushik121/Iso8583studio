@@ -12,3 +12,4 @@ export * from './spec-row';
 export * from './figure';
 export * from './section';
 export * from './dialog';
+export * from './logo-mark';

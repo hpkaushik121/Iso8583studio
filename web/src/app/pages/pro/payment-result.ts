@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CheckoutOutcome } from './checkout-outcome';
 import { formatPaise } from '../../core/payments';
+import { UiLogoMark } from '../../ui/logo-mark';
 
 /**
  * What the customer sees coming back from the hosted checkout.
@@ -32,6 +33,7 @@ import { formatPaise } from '../../core/payments';
  */
 @Component({
   selector: 'app-payment-result',
+  imports: [UiLogoMark],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'pr-wrap' },
   template: `
@@ -54,15 +56,7 @@ import { formatPaise } from '../../core/payments';
               </svg>
             }
             @default {
-              <svg class="pr-sweep" viewBox="0 0 72 72" fill="none" aria-hidden="true">
-                <circle cx="36" cy="36" r="35" stroke="var(--muted)" stroke-width="1.5"
-                        stroke-linecap="round" />
-              </svg>
-              <svg class="pr-icon" viewBox="0 0 24 24" fill="none" stroke="var(--muted)"
-                   stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="8.5" />
-                <path d="M12 7.6 V12 L15.4 14" />
-              </svg>
+              <ui-logo-mark mode="trace" [size]="36" />
             }
           }
         </div>

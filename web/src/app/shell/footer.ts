@@ -2,17 +2,18 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EXTERNAL, LEGAL, RESOURCES, SIMULATORS, SOLUTIONS, TOOLS } from '../core/site-nav';
 import { ICON_PATHS } from './icons';
+import { UiLogoMark } from '../ui/logo-mark';
 
 @Component({
   selector: 'app-footer',
-  imports: [RouterLink],
+  imports: [RouterLink, UiLogoMark],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer>
       <div class="wrap">
         <div class="f-grid">
           <div class="f-brand">
-            <a class="brand" routerLink="/"><img src="/images/app.png" alt="" width="27" height="27">ISO8583Studio</a>
+            <a class="brand" routerLink="/"><ui-logo-mark [size]="27" />ISO8583Studio</a>
             <p>Professional ISO 8583 payment transaction processing, simulation and testing.
                Built with Kotlin Multiplatform &amp; Compose Desktop.</p>
             <a class="btn btn--primary" [href]="external.releases">Download</a>

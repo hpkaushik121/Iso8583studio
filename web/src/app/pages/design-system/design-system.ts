@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import {
   UiBadge, UiBreadcrumb, UiButton, UiCallout, UiCard, UiDialog, UiFigure,
-  UiIconTile, UiKicker, UiPageHeader, UiSection, UiSpecRow, UiTable, UiTag,
+  UiIconTile, UiKicker, UiLogoMark, UiPageHeader, UiSection, UiSpecRow, UiTable, UiTag,
 } from '../../ui';
 
 interface Swatch { name: string; token: string; }
@@ -15,7 +15,7 @@ interface Swatch { name: string; token: string; }
   selector: 'app-design-system',
   imports: [
     UiBadge, UiBreadcrumb, UiButton, UiCallout, UiCard, UiDialog, UiFigure,
-    UiIconTile, UiKicker, UiPageHeader, UiSection, UiSpecRow, UiTable, UiTag,
+    UiIconTile, UiKicker, UiLogoMark, UiPageHeader, UiSection, UiSpecRow, UiTable, UiTag,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -25,6 +25,10 @@ interface Swatch { name: string; token: string; }
     .ds-label { padding: var(--sp-2) var(--sp-3); font-family: var(--mono); font-size: var(--fs-xs); color: var(--muted); }
     .ds-row { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; margin-bottom: var(--sp-4); }
     .ds-scale > * { margin-bottom: var(--sp-2); }
+    .ds-note { max-width: 62ch; color: var(--muted); font-size: var(--fs-sm); line-height: var(--lh-base); margin-bottom: var(--sp-5); }
+    .ds-marks { display: flex; gap: var(--sp-8); flex-wrap: wrap; align-items: flex-end; }
+    .ds-mark { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); }
+    .ds-mark span { font-family: var(--mono); font-size: var(--fs-2xs); color: var(--faint); }
   `],
   template: `
     <div class="doc-body">
@@ -33,6 +37,20 @@ interface Swatch { name: string; token: string; }
         kicker="Internal reference"
         heading="Design system"
         description="Every primitive the site is built from, in every variant it supports. If a page needs something that is not here, it belongs here first." />
+
+      <ui-section heading="Brand mark" anchor="mark">
+        <p class="ds-note">The S is two arcs and the letter is 180&deg; rotationally symmetric, so a
+           half turn lands back on itself. Every state is those same two paths: hover the tile for
+           the turn, and note that the loading ring circles the mark while the processing trace
+           runs along it &mdash; motion beside the work versus motion following it.</p>
+        <div class="ds-marks">
+          <div class="ds-mark"><ui-logo-mark [size]="40" /><span>brand</span></div>
+          <div class="ds-mark"><ui-logo-mark mode="spin" [size]="40" /><span>spin &middot; loading</span></div>
+          <div class="ds-mark"><ui-logo-mark mode="trace" [size]="40" /><span>trace &middot; processing</span></div>
+          <div class="ds-mark"><ui-logo-mark mode="still" [size]="40" /><span>still</span></div>
+          <div class="ds-mark"><ui-logo-mark [size]="16" /><span>16px</span></div>
+        </div>
+      </ui-section>
 
       <ui-section heading="Colour" anchor="colour">
         <div class="ds-swatches">

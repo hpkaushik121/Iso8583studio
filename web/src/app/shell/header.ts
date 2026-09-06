@@ -5,6 +5,7 @@ import {
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NAV_GROUPS } from '../core/site-nav';
 import { MobileMenu } from './mobile-menu';
+import { UiLogoMark } from '../ui/logo-mark';
 
 /**
  * Site header. The stylesheet opens the mega-menus on hover, and this class
@@ -13,13 +14,13 @@ import { MobileMenu } from './mobile-menu';
  */
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, RouterLinkActive, MobileMenu],
+  imports: [RouterLink, RouterLinkActive, MobileMenu, UiLogoMark],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="nav-bar">
       <div class="nav-in">
         <a class="brand" routerLink="/">
-          <img src="/images/app.png" alt="" width="27" height="27">ISO8583Studio
+          <ui-logo-mark [size]="27" />ISO8583Studio
         </a>
 
         <nav class="nav-links" aria-label="Main">

@@ -521,7 +521,86 @@ ui-section { display: block; }
 
 .brand { display: flex; align-items: center; gap: var(--sp-3); color: var(--text); font-weight: 600; font-size: var(--fs-md); letter-spacing: var(--ls-snug); }
 .brand:hover { color: var(--text); }
-.brand img { width: 27px; height: 27px; border-radius: var(--r-sm); }
+
+/* ---- The S mark --------------------------------------------------------- */
+
+/* Every state of the mark is the same two arcs, so the header brand, the route
+   spinner and the processing disc stay one letter. See ui/logo-mark.ts. */
+
+/* The host is a flex item in every place it is used; the rule keeps it honest
+   anywhere it is not. */
+ui-logo-mark { display: inline-flex; }
+
+.logo-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--logo-size, 27px);
+    height: var(--logo-size, 27px);
+    border-radius: var(--r-sm);
+    background: linear-gradient(150deg, var(--blue), var(--blue-deep));
+    transition: transform .55s var(--ease);
+}
+
+/* The S is 180° rotationally symmetric, so a half turn lands back on the same
+   letter with the two colours swapped ends. */
+.brand:hover .logo-tile { transform: rotate(180deg); }
+
+.logo-s { display: block; width: 64%; height: 64%; }
+.logo-glyph { display: block; flex: none; }
+
+/* One continuous pen stroke on load: the white arc first, the teal one picking
+   up where it ends. The teal arc then keeps the idle beat off the joint. */
+.logo-s--draw .logo-arc-a {
+    stroke-dasharray: 44;
+    animation: logo-draw-a .55s var(--ease) .05s both;
+}
+
+.logo-s--draw .logo-arc-b {
+    stroke-dasharray: 36;
+    transform-box: fill-box;
+    transform-origin: 20% 20%;
+    animation: logo-draw-b .5s var(--ease) .55s both,
+               logo-beat 5s ease-in-out 1.6s infinite;
+}
+
+@keyframes logo-draw-a { from { stroke-dashoffset: 44; } to { stroke-dashoffset: 0; } }
+@keyframes logo-draw-b { from { stroke-dashoffset: 36; } to { stroke-dashoffset: 0; } }
+
+@keyframes logo-beat {
+    0%, 84%, 100% { transform: scale(1); }
+    88% { transform: scale(1.16); }
+    93% { transform: scale(.95); }
+}
+
+/* Loading: the mark holds still and the ring carries the wait. */
+.logo-ring {
+    stroke-dasharray: 30 90;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: logo-spin 1.4s linear infinite;
+}
+
+@keyframes logo-spin { to { transform: rotate(360deg); } }
+
+/* Processing: a light travels the letter over a ghost of itself, so the motion
+   follows the work rather than circling beside it. */
+.logo-ghost { opacity: .26; }
+.logo-trace { stroke-dasharray: 40 40; animation: logo-flow 1.9s linear infinite; }
+
+@keyframes logo-flow { from { stroke-dashoffset: 80; } to { stroke-dashoffset: 0; } }
+
+/* The draw-in and the beat are decoration and stop. The ring and the trace say
+   "still working", so they are slowed rather than stopped — the same rule the
+   payment sweep follows further down. */
+@media (prefers-reduced-motion: reduce) {
+    .logo-tile { transition: none; }
+    .logo-s--draw .logo-arc-a,
+    .logo-s--draw .logo-arc-b { animation: none; stroke-dashoffset: 0; }
+    .logo-ring { animation-duration: 4.2s; }
+    .logo-trace { animation-duration: 5.7s; }
+}
 
 .nav-links { display: flex; align-items: center; gap: 2px; margin-left: var(--sp-1); }
 .nav-item { position: relative; }
@@ -577,40 +656,37 @@ ui-section { display: block; }
 
 /* ---- Route progress ----------------------------------------------------- */
 
-/* Indeterminate bar shown while the router loads the next page's chunk.
-   The component only renders it once a navigation has taken >120ms, so
-   instant navigations never flash it. */
-.route-progress {
+/* The spin study from the logo animation, shown while the router loads the
+   next page's chunk. The component only renders it once a navigation has
+   taken >120ms, so instant navigations never flash it.
+
+   It sits clear of the header rather than over it: the mark is already up
+   there in the brand, and two of them a few pixels apart read as a glitch. */
+.route-busy {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
+    top: calc(var(--nav-h) + var(--sp-3));
+    right: var(--sp-5);
     z-index: var(--z-toast);
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--sh-menu);
     pointer-events: none;
-    background: var(--blue-wash);
+    animation: route-busy-in .18s var(--ease) both;
 }
 
-.route-progress::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 40%;
-    border-radius: var(--r-pill);
-    background: linear-gradient(90deg, var(--blue), var(--teal-hi));
-    animation: route-progress-slide 1s var(--ease) infinite;
-}
-
-@keyframes route-progress-slide {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(350%); }
+@keyframes route-busy-in {
+    from { opacity: 0; transform: scale(.85); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .route-progress::before { animation: none; width: 100%; opacity: .5; }
+    .route-busy { animation: none; }
 }
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--sp-3); }
@@ -1023,18 +1099,6 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
 .pr-draw { stroke-dasharray: 40; animation: pr-draw .45s var(--ease) .3s both; }
 .pr-draw-2 { animation-delay: .45s; }
 
-/* Rotates only while the page is actually polling, so the motion means
-   "we are still asking" rather than being decoration. */
-.pr-sweep {
-    position: absolute;
-    inset: 0;
-    width: 72px;
-    height: 72px;
-    animation: pr-tick 2.2s linear infinite;
-}
-
-.pr-sweep circle { stroke-dasharray: 24 196; }
-
 /* ---- Copy -------------------------------------------------------------- */
 
 .pr-head { text-align: center; animation: pr-rise .45s ease .25s both; }
@@ -1208,17 +1272,15 @@ footer { background: var(--bg); border-top: 1px solid var(--line2); padding: var
     70%, 100% { transform: scale(1.45); opacity: 0; }
 }
 
-@keyframes pr-tick { to { transform: rotate(360deg); } }
-
 @keyframes pr-rise {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* The sweep is the one animation that carries meaning, so it is slowed rather
-   than stopped: a still ring would say the page had given up polling. */
+/* The trace inside the waiting disc is the one animation here that carries
+   meaning, and it is slowed rather than stopped by the rule in the mark's own
+   section: a still mark would say the page had given up polling. */
 @media (prefers-reduced-motion: reduce) {
     .pr-disc, .pr-head, .pr-amount, .pr-draw, .pr-ring { animation: none; }
     .pr-draw { stroke-dashoffset: 0; }
-    .pr-sweep { animation-duration: 6s; }
 }
