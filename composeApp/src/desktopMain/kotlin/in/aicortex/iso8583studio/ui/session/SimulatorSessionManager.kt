@@ -6,6 +6,8 @@ import cafe.adriel.voyager.core.screen.Screen
 import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.POSSimulatorService
 import `in`.aicortex.iso8583studio.data.SimulatorConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
+import `in`.aicortex.iso8583studio.analytics.Analytics
+import `in`.aicortex.iso8583studio.analytics.NavSource
 import `in`.aicortex.iso8583studio.data.model.StudioTool
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.HsmCommandClientService
 import `in`.aicortex.iso8583studio.domain.service.hsmSimulatorService.HsmServiceImpl
@@ -126,6 +128,8 @@ object SimulatorSessionManager {
             return existing.id
         }
 
+        Analytics.simulatorStarted(config.simulatorType)
+
         val sessionId = "${config.simulatorType.name}-${config.id}-${System.currentTimeMillis()}"
         val displayName = "${config.simulatorType.displayName} - ${config.name}"
 
@@ -202,6 +206,13 @@ object SimulatorSessionManager {
             runCatching { svc.stop() }
         }
 
+        val elapsedSeconds = runCatching {
+            java.time.Duration.between(session.launchedAt, java.time.LocalDateTime.now()).seconds
+        }.getOrDefault(0L).coerceAtLeast(0L)
+        session.studioTool
+            ?.let { Analytics.toolClosed(it, elapsedSeconds) }
+            ?: Analytics.simulatorStopped(session.simulatorType, elapsedSeconds)
+
         poppedOutSessionIds.remove(sessionId)
 
         // Removing the session causes the key() block in ISO8583Studio.kt to dispose,
@@ -218,8 +229,13 @@ object SimulatorSessionManager {
      * Switch to a specific session tab
      */
     fun activateSession(sessionId: String) {
-        if (sessions.any { it.id == sessionId }) {
-            activeSessionId.value = sessionId
+        val session = sessions.find { it.id == sessionId } ?: return
+        activeSessionId.value = sessionId
+        val tool = session.studioTool
+        if (tool != null) {
+            Analytics.screenView(tool.label, "Tool", NavSource.TOOL_TAB)
+        } else {
+            Analytics.screenView(session.simulatorType.name, "Simulator", NavSource.TOOL_TAB)
         }
     }
 
@@ -228,6 +244,7 @@ object SimulatorSessionManager {
      */
     fun activateMainContent() {
         activeSessionId.value = null
+        Analytics.screenView("MainContent", "Navigation", NavSource.ROOT)
     }
 
     /**
@@ -263,6 +280,7 @@ object SimulatorSessionManager {
      */
     fun openTool(tool: StudioTool): String {
         ToolUsageTracker.recordUsage(tool.label)
+        Analytics.toolOpened(tool)
 
         // Reuse existing tab for the same tool
         val existing = sessions.find {
@@ -297,6 +315,7 @@ object SimulatorSessionManager {
         if (sessionId in poppedOutSessionIds) return
 
         poppedOutSessionIds.add(sessionId)
+        sessions.find { it.id == sessionId }?.let { Analytics.windowPoppedOut(it.simulatorType) }
 
         if (activeSessionId.value == sessionId) {
             val nextInline = sessions.firstOrNull { it.id != sessionId && it.id !in poppedOutSessionIds }
@@ -310,8 +329,9 @@ object SimulatorSessionManager {
      */
     fun dockSession(sessionId: String) {
         poppedOutSessionIds.remove(sessionId)
-        if (sessions.any { it.id == sessionId }) {
+        sessions.find { it.id == sessionId }?.let {
             activeSessionId.value = sessionId
+            Analytics.windowDocked(it.simulatorType)
         }
     }
 

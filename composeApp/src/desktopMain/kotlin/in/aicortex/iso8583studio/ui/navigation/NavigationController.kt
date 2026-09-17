@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import `in`.aicortex.iso8583studio.analytics.Analytics
+import `in`.aicortex.iso8583studio.analytics.NavSource
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.Navigator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +47,7 @@ class NavigationController(private val navigator: Navigator) {
             navigator.items.contains(screen)    -> navigator.popUntil { it == screen }
             else                                -> navigator.push(screen)
         }
+        Analytics.screenView(screen, NavSource.ROOT)
     }
 
     /**

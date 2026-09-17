@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging
 
+import `in`.aicortex.iso8583studio.analytics.Analytics
 import ai.cortex.core.ValidationResult
 import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
@@ -96,6 +97,7 @@ object SecureMessagingLogManager {
 
     fun logOperation(tabTitle: String, operation: String, inputs: Map<String, String>, result: String? = null, error: String? = null, executionTime: Long = 0L) {
         if (result == null && error == null) return
+        Analytics.calculationRun(operation, success = result != null, durationMs = executionTime)
 
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
         val details = buildString {

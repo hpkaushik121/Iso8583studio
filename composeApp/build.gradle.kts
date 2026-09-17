@@ -55,6 +55,7 @@ kotlin {
             implementation("cafe.adriel.voyager:voyager-navigator:1.1.0-beta02")
             implementation("cafe.adriel.voyager:voyager-screenmodel:1.1.0-beta02")
             implementation("com.google.code.gson:gson:2.13.2")
+            implementation(libs.google.analytics.kmp)
             implementation(project(":cryptocalc"))
             implementation(project(":iso-core-lib"))
         }
@@ -141,7 +142,7 @@ compose.desktop {
             // Linux specific configuration
             linux {
                 // Set the icon for Linux
-                iconFile.set(project.file("resources/linus/app.png"))
+                iconFile.set(project.file("resources/linux/app.png"))
                 // Additional Linux settings
                 shortcut = true
                 debMaintainer = "support@iso8583.studio"

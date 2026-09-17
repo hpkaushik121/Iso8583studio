@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.analytics.Analytics
+import `in`.aicortex.iso8583studio.data.model.AnalyticsConsent
 import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.Panel
@@ -151,6 +153,76 @@ fun GlobalSettingsScreen(onBack: () -> Unit) {
                                 onCheckedChange = { AppSettings.updateDeleteLogFileOnClear(it) },
                                 colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colors.primary)
                             )
+                        }
+                    }
+                }
+            }
+
+            // Usage Analytics section
+            Panel(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    SectionHeader(title = "Usage Analytics")
+
+                    Text(
+                        "Anonymous statistics about which tools and simulators you use, plus your " +
+                                "app version, operating system and approximate location. Card data, PINs, " +
+                                "keys, cryptograms and message contents are never collected and never leave " +
+                                "this machine.",
+                        style = MaterialTheme.typography.body2,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                    )
+
+                    Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Share anonymous usage analytics", fontWeight = FontWeight.Medium)
+                            Text(
+                                "Turning this off stops all reporting immediately.",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Switch(
+                            checked = AppSettings.analyticsConsent.isGranted,
+                            onCheckedChange = { granted ->
+                                AppSettings.updateAnalyticsConsent(
+                                    if (granted) AnalyticsConsent.GRANTED else AnalyticsConsent.DENIED
+                                )
+                                if (granted) Analytics.init() else Analytics.setEnabled(false)
+                            },
+                            colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colors.primary)
+                        )
+                    }
+
+                    if (AppSettings.analyticsConsent.isGranted) {
+                        Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Anonymous device ID", fontWeight = FontWeight.Medium)
+                                Text(
+                                    AppSettings.analyticsClientId.ifBlank { "not yet assigned" },
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            OutlinedButton(onClick = { Analytics.resetIdentity() }) {
+                                Text("Reset")
+                            }
                         }
                     }
                 }

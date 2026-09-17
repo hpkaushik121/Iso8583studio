@@ -7,6 +7,8 @@
 
 A professional desktop application for ISO8583 financial transaction processing, configuration, testing, and monitoring. Built with Kotlin Multiplatform and Compose Desktop for cross-platform compatibility.
 
+![ISO8583Studio Dashboard](docs/images/img.png)
+
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
@@ -260,29 +262,9 @@ settings:
 
 ### Main Interface Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ ISO8583Studio                                     [_][□][×]│
-├─────────────────────────────────────────────────────────┤
-│ File   Configuration   Tools   Help                      │
-├─────────────────────────────────────────────────────────┤
-│ ┌─────────────────┐ ┌─────────────────────────────────┐ │
-│ │ Available       │ │ Configuration: Payment Gateway  │ │
-│ │ Channels        │ │                                 │ │
-│ │                 │ │ ┌─────┬─────┬─────┬─────┬─────┐ │ │
-│ │ □ Gateway 1     │ │ │Gate │Trans│Log  │Adv  │Keys │ │ │
-│ │ ■ Gateway 2     │ │ │Type │Sett │Sett │Opts │Sett │ │ │
-│ │ □ Gateway 3     │ │ └─────┴─────┴─────┴─────┴─────┘ │ │
-│ │                 │ │                                 │ │
-│ │ [Add New]       │ │ [Configuration Content Area]    │ │
-│ │ [Delete]        │ │                                 │ │
-│ │ [Save All]      │ │                                 │ │
-│ │                 │ │                                 │ │
-│ │ [Monitor]       │ │                                 │ │
-│ │ [Host Sim]      │ │                                 │ │
-│ └─────────────────┘ └─────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-```
+![Gateway Configuration Interface](docs/images/img_1.png)
+
+The configuration screen lists your simulator configurations on the left, with tabbed settings (Gateway Type, Transmission Settings, Log Settings, Advanced Options) for the selected configuration on the right.
 
 ### Tab Structure
 
@@ -318,46 +300,15 @@ settings:
 
 ### Monitor Screen
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ Monitor - Payment Gateway                         [Back] │
-├─────────────────────────────────────────────────────────┤
-│ ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │
-│ │Connections  │ │Transactions │ │Traffic              │ │
-│ │Active: 3    │ │Total: 1,247 │ │↓ 2.4MB ↑ 1.8MB     │ │
-│ │Total: 15    │ │Success: 95% │ │                     │ │
-│ └─────────────┘ └─────────────┘ └─────────────────────┘ │
-├─────────────────────────────────────────────────────────┤
-│ Logs                                    Filter: [All ▼] │
-├─────────────────────────────────────────────────────────┤
-│ 2024-05-21 10:15:35 ✓ Transaction approved: 000000     │
-│ 2024-05-21 10:15:34 → Received request: 0200           │
-│ 2024-05-21 10:15:28 ℹ Client connected: 192.168.1.45  │
-│ 2024-05-21 10:15:25 ⚠ Connection timeout               │
-│ 2024-05-21 10:15:20 ✗ Invalid message format          │
-└─────────────────────────────────────────────────────────┘
-```
+![Live Transaction Monitoring](docs/images/docs/host-simulator/overview.png)
+
+The live view shows the gateway status, transaction count, and each transaction's formatted request/response alongside the raw hex payloads as messages flow through.
 
 ### Host Simulator Screen
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ Host Simulator                                    [Back] │
-├─────────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────┐ ┌─────────────────┐ │
-│ │ Transactions                    │ │ Fields          │ │
-│ │ MTI │ProCode│Description        │ │Field│Data │Desc │ │
-│ │ 0200│000000 │Purchase          │ │ 2   │4111…│PAN  │ │
-│ │ 0400│000000 │Reversal          │ │ 3   │0000…│Proc │ │
-│ │ 0800│920000 │Network Mgmt      │ │ 4   │0000…│Amt  │ │
-│ │                                 │ │ 11  │0001…│STAN │ │
-│ │ [Add New Transaction]          │ │               │ │
-│ │                                 │ │ [Add Field]   │ │
-│ └─────────────────────────────────┘ └─────────────────┘ │
-├─────────────────────────────────────────────────────────┤
-│ [ISO8583 Template] [Message Editor]           [Save]    │
-└─────────────────────────────────────────────────────────┘
-```
+![Host Simulator Transaction Settings](docs/images/img_3.png)
+
+Define transaction templates (MTI and processing code) on the left and configure each ISO8583 field — PAN, processing code, amount, STAN, and more — on the right.
 
 ## 🔧 Advanced Features
 
@@ -689,7 +640,7 @@ Application crashes with NullPointerException
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
