@@ -58,6 +58,13 @@ object DukptEngine {
         0x00, 0x00, 0x00, 0x00
     )
 
+    /**
+     * C0C0C0C0 00000000 repeated three times.
+     * 24-byte extension of [KEY_MASK_16] used for IPEK derivation from a
+     * triple-length (24-byte) BDK.
+     */
+    private val KEY_MASK_24 = KEY_MASK_16 + KEY_MASK_8
+
     /** Default counter width per ANSI X9.24-2004 for 80-bit KSN. */
     const val DEFAULT_COUNTER_BITS = 21
 
@@ -105,13 +112,17 @@ object DukptEngine {
      *   4. Right = TDES_ECB(BDK XOR KEY_MASK, IKSN_left8)
      *   5. IPEK  = Left || Right
      *
-     * @param bdk         Clear-text BDK (16 bytes / double-length 3DES)
+     * @param bdk         Clear-text BDK: 16 bytes (double-length) or 24 bytes (triple-length) 3DES.
+     *                    A triple-length BDK uses 3-key TDES with the key mask extended to 24 bytes;
+     *                    the resulting IPEK (and every derived key) is always 16 bytes.
      * @param ksn         Full KSN (10 bytes / 80 bits)
      * @param counterBits Number of counter bits to zero (default 21)
      * @return 16-byte IPEK
      */
     fun deriveIpek(bdk: ByteArray, ksn: ByteArray, counterBits: Int = DEFAULT_COUNTER_BITS): ByteArray {
-        require(bdk.size == 16) { "BDK must be 16 bytes (double-length 3DES key), got ${bdk.size}" }
+        require(bdk.size == 16 || bdk.size == 24) {
+            "BDK must be 16 bytes (double-length) or 24 bytes (triple-length) 3DES key, got ${bdk.size}"
+        }
         require(ksn.size == 10) { "KSN must be 10 bytes (80 bits), got ${ksn.size}" }
         require(counterBits in 1..31) { "counterBits must be 1..31, got $counterBits" }
 
@@ -134,7 +145,7 @@ object DukptEngine {
         val left = cipher.doFinal(iksn8)
 
         // Step 4: Right half = TDES(BDK XOR KEY_MASK, IKSN8)
-        val bdkXor = xorBytes(bdk, KEY_MASK_16)
+        val bdkXor = xorBytes(bdk, if (bdk.size == 24) KEY_MASK_24 else KEY_MASK_16)
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expandTo24(bdkXor), "DESede"))
         val right = cipher.doFinal(iksn8)
 
@@ -270,17 +281,22 @@ object DukptEngine {
     /**
      * Apply the ANSI X9.24 "one-way function" for data variant key derivation.
      *
-     * 3DES-encrypts each 8-byte half of the 16-byte variant key using the full
-     * variant key itself, producing a new 16-byte key that cannot be reversed
-     * back to the session key.
+     * 3DES-encrypts each 8-byte block of the variant key using the full
+     * variant key itself, producing a new key of the same length that cannot
+     * be reversed back to the session key. Accepts 16-byte (double-length)
+     * and 24-byte (triple-length) keys.
      */
     fun applyVariantEncryption(variantKey: ByteArray): ByteArray {
-        require(variantKey.size == 16) { "Variant key must be 16 bytes, got ${variantKey.size}" }
+        require(variantKey.size == 16 || variantKey.size == 24) {
+            "Variant key must be 16 or 24 bytes, got ${variantKey.size}"
+        }
         val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expandTo24(variantKey), "DESede"))
-        val left = cipher.doFinal(variantKey.copyOfRange(0, 8))
-        val right = cipher.doFinal(variantKey.copyOfRange(8, 16))
-        return left + right
+        val out = ByteArray(variantKey.size)
+        for (offset in variantKey.indices step 8) {
+            cipher.doFinal(variantKey, offset, 8).copyInto(out, offset)
+        }
+        return out
     }
 
 
@@ -457,5 +473,16 @@ object DukptEngine {
     fun xorBytes(a: ByteArray, b: ByteArray): ByteArray {
         require(a.size == b.size) { "XOR arrays must be same length: ${a.size} vs ${b.size}" }
         return ByteArray(a.size) { i -> (a[i].toInt() xor b[i].toInt()).toByte() }
+    }
+
+    /**
+     * Resize a variant mask ([PEK_VARIANT], [MAC_VARIANT], [DATA_VARIANT]) to [keySize]
+     * bytes by repeating its 8-byte pattern, so it can be XORed with a single-,
+     * double- or triple-length TDES key.
+     */
+    fun variantForKeySize(mask: ByteArray, keySize: Int): ByteArray {
+        require(keySize in listOf(8, 16, 24)) { "Key size must be 8, 16 or 24 bytes, got $keySize" }
+        val block = mask.copyOfRange(0, 8)
+        return ByteArray(keySize) { i -> block[i % 8] }
     }
 }

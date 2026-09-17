@@ -1,5 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys
 
+import ai.cortex.core.CryptoUtils
 import ai.cortex.core.ValidationResult
 import ai.cortex.core.ValidationState
 import androidx.compose.animation.AnimatedContent
@@ -44,7 +45,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.random.Random
+import java.security.SecureRandom
 
 
 private object DeaKeysValidationUtils {
@@ -65,6 +66,15 @@ private object DeaKeysValidationUtils {
             return ValidationResult(ValidationState.ERROR, "Input must only contain digits.")
         }
         return ValidationResult(ValidationState.VALID)
+    }
+
+    /** Hex check plus TDES length check: 16H (single), 32H (double) or 48H (triple). */
+    fun validateTdesKey(value: String): ValidationResult {
+        val hex = validateHex(value)
+        if (hex.state != ValidationState.VALID) return hex
+        val length = TdesKeyLength.fromHexLen(value.length)
+            ?: return ValidationResult(ValidationState.ERROR, "TDES key must be 16, 32 or 48 hex chars (8/16/24 bytes).")
+        return ValidationResult(ValidationState.VALID, "TDES — ${length.label}")
     }
 }
 
@@ -97,8 +107,7 @@ private object DeaKeysLogManager {
         val details = buildString {
             append("Inputs:\n")
             inputs.forEach { (key, value) ->
-                val displayValue = if (key.contains("Key", ignoreCase = true)) "${value.take(16)}..." else value
-                append("  $key: $displayValue\n")
+                append("  $key: $value\n")
             }
             result?.let { append("\nResult:\n$it") }
             error?.let { append("\nError:\n  Message: $it") }
@@ -111,16 +120,43 @@ private object DeaKeysLogManager {
 }
 
 private object DeaKeysCryptoService {
-    private fun generateRandomHex(length: Int) = (1..length).map { Random.nextInt(0, 16).toString(16) }.joinToString("").uppercase()
+    private val secureRandom = SecureRandom()
 
-    fun generateKeys(count: Int, lengthBits: Int): List<String> {
-        val lengthHex = lengthBits / 4
-        return List(count) { generateRandomHex(lengthHex) }
+    fun hexToBytes(hex: String): ByteArray = hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+    fun bytesToHex(bytes: ByteArray): String = bytes.joinToString("") { "%02X".format(it) }
+
+    /**
+     * Generates [count] random TDES keys of the given [length] using SecureRandom.
+     * [parity] is "Odd", "Even" or "None"; odd/even parity is enforced on every byte.
+     */
+    fun generateKeys(count: Int, length: TdesKeyLength, parity: String): List<String> =
+        List(count) {
+            val raw = ByteArray(length.bytes).also { secureRandom.nextBytes(it) }
+            val adjusted = when (parity) {
+                "Odd" -> CryptoUtils.applyParity(raw, isOdd = true)
+                "Even" -> CryptoUtils.applyParity(raw, isOdd = false)
+                else -> raw
+            }
+            bytesToHex(adjusted)
+        }
+
+    /** Forces odd or even parity on every byte of a hex key (any length). */
+    fun enforceParity(hexKey: String, odd: Boolean): String =
+        bytesToHex(CryptoUtils.applyParity(hexToBytes(hexKey), isOdd = odd))
+
+    /** Returns "Odd", "Even" or "Mixed" depending on the parity of each byte. */
+    fun checkParity(bytes: ByteArray): String {
+        if (bytes.isEmpty()) return "Mixed"
+        val oddBytes = bytes.count { Integer.bitCount(it.toInt() and 0xFF) % 2 == 1 }
+        return when (oddBytes) {
+            bytes.size -> "Odd"
+            0 -> "Even"
+            else -> "Mixed"
+        }
     }
 
     fun combineKeys(keys: List<String>): String {
         if (keys.isEmpty() || keys.any { it.isEmpty() }) return "ERROR: Cannot combine empty keys"
-        // Mock XOR combination
         val maxLength = keys.maxOf { it.length }
         val paddedKeys = keys.map { it.padEnd(maxLength, '0') }
         var result = "0".repeat(maxLength).toBigInteger(16)
@@ -141,19 +177,62 @@ private object DeaKeysCryptoService {
             if (hexKey.length % 2 != 0 || hexKey.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
                 return "??????"
             }
-            val bytes = hexKey.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            val bytes = hexToBytes(hexKey)
             val expanded = when (bytes.size) {
                 8 -> bytes + bytes + bytes                     // single length -> triple
-                16 -> bytes + bytes.copyOf(8)                  // double length -> triple
+                16 -> bytes + bytes.copyOf(8)                  // double length -> triple (K1|K2|K1)
                 24 -> bytes                                     // triple length
                 else -> return "??????"
             }
             val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(expanded, "DESede"))
-            cipher.doFinal(ByteArray(8)).joinToString("") { "%02X".format(it) }.take(6)
+            bytesToHex(cipher.doFinal(ByteArray(8))).take(6)
         } catch (_: Exception) {
             "??????"
         }
+    }
+
+    data class KeyValidationReport(
+        val length: TdesKeyLength,
+        val parity: String,
+        val kcv: String,
+        val issues: List<String>
+    ) {
+        val isValid: Boolean get() = issues.isEmpty()
+
+        fun asText(): String = buildString {
+            append("  Length: ${length}\n")
+            append("  Parity: $parity\n")
+            append("  KCV: $kcv\n")
+            if (isValid) append("  Status: Key is valid")
+            else {
+                append("  Status: Key has issues:\n")
+                issues.forEach { append("    - $it\n") }
+            }
+        }.trimEnd()
+    }
+
+    /**
+     * Validates a 16/32/48 hex TDES key: length, byte parity, KCV and component structure
+     * (equal K1/K2/K3 components reduce the effective strength).
+     */
+    fun validateKey(hexKey: String): KeyValidationReport {
+        val length = requireNotNull(TdesKeyLength.fromHexLen(hexKey.length)) { "Unsupported key length" }
+        val bytes = hexToBytes(hexKey)
+        val parity = checkParity(bytes)
+        val issues = mutableListOf<String>()
+        if (parity != "Odd") issues += "Parity is $parity (DEA keys are expected to have odd parity)"
+
+        val parts = bytes.toList().chunked(8)
+        when (parts.size) {
+            2 -> if (parts[0] == parts[1]) issues += "K1 == K2: effective single-DES strength"
+            3 -> when {
+                parts[0] == parts[1] && parts[1] == parts[2] -> issues += "K1 == K2 == K3: effective single-DES strength"
+                parts[0] == parts[1] || parts[1] == parts[2] -> issues += "Adjacent components are equal: effective single-DES strength"
+                parts[0] == parts[2] -> issues += "K1 == K3: equivalent to a double-length key (K1-K2-K1)"
+            }
+        }
+        return KeyValidationReport(length, parity, calculateTdesKcv(hexKey), issues)
     }
 }
 
@@ -162,8 +241,11 @@ private enum class TdesKeyLength(val label: String, val hexLen: Int) {
     DOUBLE("Double length (16B / 32H)", 32),
     TRIPLE("Triple length (24B / 48H)", 48);
 
+    val bytes: Int get() = hexLen / 2
+
     companion object {
         fun fromLabel(label: String): TdesKeyLength = values().first { it.label == label }
+        fun fromHexLen(hexLen: Int): TdesKeyLength? = values().firstOrNull { it.hexLen == hexLen }
     }
 }
 
@@ -233,35 +315,63 @@ fun DeaKeysScreen( onBack: () -> Unit) {
 @Composable
 private fun KeyGeneratorTab() {
     var keysToGenerate by remember { mutableStateOf("1") }
-    var keyLength by remember { mutableStateOf("128-bit") }
+    var keyLength by remember { mutableStateOf(TdesKeyLength.DOUBLE) }
     var keyParity by remember { mutableStateOf("Odd") }
     var isLoading by remember { mutableStateOf(false) }
+    var generatedKeys by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    val isFormValid = DeaKeysValidationUtils.validateNumeric(keysToGenerate).state == ValidationState.VALID
+    val countValidation = DeaKeysValidationUtils.validateNumeric(keysToGenerate)
+    val isFormValid = countValidation.state == ValidationState.VALID && (keysToGenerate.toIntOrNull() ?: 0) in 1..100
 
-    ModernCryptoCard(title = "Key Generator", subtitle = "Generate one or more random keys", icon = Icons.Default.Autorenew) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            EnhancedTextField(value = keysToGenerate, onValueChange = { keysToGenerate = it }, label = "Keys to Generate", validation = DeaKeysValidationUtils.validateNumeric(keysToGenerate))
-            ModernDropdownField(label = "Key Length", value = keyLength, options = listOf("64-bit", "128-bit", "192-bit", "256-bit"), onSelectionChanged = { keyLength = listOf("64-bit", "128-bit", "192-bit", "256-bit")[it] })
-            ModernDropdownField(label = "Key Parity", value = keyParity, options = listOf("Odd", "Even", "None"), onSelectionChanged = { keyParity = listOf("Odd", "Even", "None")[it] })
+    ModernCryptoCard(title = "Key Generator", subtitle = "Generate one or more random TDES keys (single, double or triple length)", icon = Icons.Default.Autorenew) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            EnhancedTextField(
+                value = keysToGenerate,
+                onValueChange = { keysToGenerate = it },
+                label = "Keys to Generate (1-100)",
+                validation = if (countValidation.state == ValidationState.VALID && !isFormValid)
+                    ValidationResult(ValidationState.ERROR, "Enter a value between 1 and 100.")
+                else countValidation
+            )
+            ModernDropdownField(
+                label = "Key Type / Length",
+                value = "TDES — ${keyLength.label}",
+                options = TdesKeyLength.values().map { "TDES — ${it.label}" },
+                onSelectionChanged = {
+                    keyLength = TdesKeyLength.values()[it]
+                    generatedKeys = emptyList()
+                }
+            )
+            ModernDropdownField(label = "Key Parity", value = keyParity, options = listOf("Odd", "Even", "None"), onSelectionChanged = { keyParity = listOf("Odd", "Even", "None")[it]; generatedKeys = emptyList() })
             Spacer(Modifier.height(8.dp))
             ModernButton(
                 text = "Generate",
                 onClick = {
                     isLoading = true
-                    val inputs = mapOf("Count" to keysToGenerate, "Length" to keyLength, "Parity" to keyParity)
+                    val inputs = mapOf("Count" to keysToGenerate, "Type" to "TDES", "Length" to keyLength.label, "Parity" to keyParity)
                     GlobalScope.launch {
                         delay(200)
-                        val numKeys = keysToGenerate.toIntOrNull() ?: 1
-                        val bits = keyLength.removeSuffix("-bit").toInt()
-                        val keys = DeaKeysCryptoService.generateKeys(numKeys, bits)
-                        val result = keys.mapIndexed { index, key -> "  Key #${index + 1}: $key" }.joinToString("\n")
+                        val numKeys = (keysToGenerate.toIntOrNull() ?: 1).coerceIn(1, 100)
+                        val keys = DeaKeysCryptoService.generateKeys(numKeys, keyLength, keyParity)
+                        generatedKeys = keys
+                        val result = keys.mapIndexed { index, key ->
+                            "  Key #${index + 1}: $key  (KCV: ${DeaKeysCryptoService.calculateTdesKcv(key)})"
+                        }.joinToString("\n")
                         DeaKeysLogManager.logOperation("Key Generation", inputs, result, executionTime = 210)
                         isLoading = false
                     }
                 },
                 isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.GeneratingTokens, modifier = Modifier.fillMaxWidth()
             )
+
+            if (generatedKeys.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                ResultSurface(title = "Generated Keys") {
+                    generatedKeys.forEachIndexed { index, key ->
+                        KeyWithKcvRow(label = "Key #${index + 1}", key = key, kcv = DeaKeysCryptoService.calculateTdesKcv(key))
+                    }
+                }
+            }
         }
     }
 }
@@ -360,31 +470,47 @@ private fun KeyCombinationTab() {
 
             if (combinedKey.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colors.primary.copy(alpha = 0.08f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            "Combined Key",
-                            style = MaterialTheme.typography.caption,
-                            color = MaterialTheme.colors.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                combinedKey,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            KcvBadge(combinedKcv)
-                        }
-                    }
+                ResultSurface(title = "Combined Key") {
+                    KeyWithKcvRow(key = combinedKey, kcv = combinedKcv)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ResultSurface(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colors.primary.copy(alpha = 0.08f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colors.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+private fun KeyWithKcvRow(key: String, kcv: String, label: String? = null) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
+            label?.let {
+                Text(it, style = MaterialTheme.typography.overline, color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f))
+            }
+            Text(
+                key,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        KcvBadge(kcv)
     }
 }
 
@@ -424,28 +550,73 @@ private fun ParityEnforcementTab() {
     var key by remember { mutableStateOf("") }
     var keyParity by remember { mutableStateOf("Odd") }
     var isLoading by remember { mutableStateOf(false) }
+    var resultKey by remember { mutableStateOf("") }
+    var resultKcv by remember { mutableStateOf("") }
+    var resultNote by remember { mutableStateOf("") }
 
-    val isFormValid = DeaKeysValidationUtils.validateHex(key).state == ValidationState.VALID
+    val validation = DeaKeysValidationUtils.validateTdesKey(key)
+    val isFormValid = validation.state == ValidationState.VALID
+    val inputKcv = if (isFormValid) DeaKeysCryptoService.calculateTdesKcv(key) else ""
 
-    ModernCryptoCard(title = "Parity Enforcement", subtitle = "Apply odd or even parity to a key", icon = Icons.Default.Security) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            EnhancedTextField(value = key, onValueChange = { key = it.filterNot { ch -> ch.isWhitespace() }.uppercase() }, label = "Key (Hex)", validation = DeaKeysValidationUtils.validateHex(key), maxLines = 4)
-            ModernDropdownField(label = "Key Parity", value = keyParity, options = listOf("Odd", "Even"), onSelectionChanged = { keyParity = listOf("Odd", "Even")[it] })
+    ModernCryptoCard(title = "Parity Enforcement", subtitle = "Apply odd or even parity to a TDES key (16H / 32H / 48H)", icon = Icons.Default.Security) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    EnhancedTextField(
+                        value = key,
+                        onValueChange = {
+                            key = it.filterNot { ch -> ch.isWhitespace() }.uppercase()
+                            resultKey = ""; resultKcv = ""; resultNote = ""
+                        },
+                        label = "Key (Hex, 16/32/48H)",
+                        validation = validation,
+                        maxLines = 4
+                    )
+                }
+                KcvBadge(inputKcv, modifier = Modifier.padding(top = 8.dp))
+            }
+            ModernDropdownField(label = "Key Parity", value = keyParity, options = listOf("Odd", "Even"), onSelectionChanged = { keyParity = listOf("Odd", "Even")[it]; resultKey = ""; resultKcv = ""; resultNote = "" })
             Spacer(Modifier.height(8.dp))
             ModernButton(
                 text = "Enforce Parity",
                 onClick = {
                     isLoading = true
-                    val inputs = mapOf("Key" to key, "Parity" to keyParity)
+                    val length = TdesKeyLength.fromHexLen(key.length)?.label ?: "?"
+                    val inputs = mapOf("Key" to key, "Type" to "TDES", "Length" to length, "Parity" to keyParity)
                     GlobalScope.launch {
                         delay(100)
-                        val result = "Key with $keyParity Parity: ${key.dropLast(1)}F" // Mock result
-                        DeaKeysLogManager.logOperation("Parity Enforcement", inputs, result, executionTime = 105)
+                        try {
+                            val output = DeaKeysCryptoService.enforceParity(key, odd = keyParity == "Odd")
+                            val outputKcv = DeaKeysCryptoService.calculateTdesKcv(output)
+                            val changedBytes = key.chunked(2).zip(output.chunked(2)).count { (a, b) -> !a.equals(b, ignoreCase = true) }
+                            val note = if (changedBytes == 0) "Key already had $keyParity parity (unchanged)"
+                                       else "$changedBytes of ${key.length / 2} bytes adjusted"
+                            resultKey = output
+                            resultKcv = outputKcv
+                            resultNote = note
+                            val result = buildString {
+                                append("  Input KCV: ${DeaKeysCryptoService.calculateTdesKcv(key)}\n")
+                                append("  Output Key: $output\n")
+                                append("  Output KCV: $outputKcv\n")
+                                append("  $note")
+                            }
+                            DeaKeysLogManager.logOperation("Parity Enforcement", inputs, result, executionTime = 105)
+                        } catch (e: Exception) {
+                            DeaKeysLogManager.logOperation("Parity Enforcement", inputs, error = e.message ?: "Unknown error")
+                        }
                         isLoading = false
                     }
                 },
                 isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.Check, modifier = Modifier.fillMaxWidth()
             )
+
+            if (resultKey.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                ResultSurface(title = "Key with $keyParity Parity") {
+                    KeyWithKcvRow(key = resultKey, kcv = resultKcv)
+                    Text(resultNote, style = MaterialTheme.typography.caption, color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f))
+                }
+            }
         }
     }
 }
@@ -454,27 +625,52 @@ private fun ParityEnforcementTab() {
 private fun KeyValidationTab() {
     var key by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var report by remember { mutableStateOf<DeaKeysCryptoService.KeyValidationReport?>(null) }
 
-    val isFormValid = DeaKeysValidationUtils.validateHex(key).state == ValidationState.VALID
+    val validation = DeaKeysValidationUtils.validateTdesKey(key)
+    val isFormValid = validation.state == ValidationState.VALID
 
-    ModernCryptoCard(title = "Key Validation", subtitle = "Validate a key's properties", icon = Icons.Default.VerifiedUser) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            EnhancedTextField(value = key, onValueChange = { key = it.filterNot { ch -> ch.isWhitespace() }.uppercase() }, label = "Key (Hex)", validation = DeaKeysValidationUtils.validateHex(key), maxLines = 4)
+    ModernCryptoCard(title = "Key Validation", subtitle = "Check length, parity, KCV and component structure of a TDES key", icon = Icons.Default.VerifiedUser) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            EnhancedTextField(
+                value = key,
+                onValueChange = { key = it.filterNot { ch -> ch.isWhitespace() }.uppercase(); report = null },
+                label = "Key (Hex, 16/32/48H)",
+                validation = validation,
+                maxLines = 4
+            )
             Spacer(Modifier.height(8.dp))
             ModernButton(
                 text = "Validate",
                 onClick = {
                     isLoading = true
-                    val inputs = mapOf("Key" to key)
+                    val inputs = mapOf("Key" to key, "Type" to "TDES")
                     GlobalScope.launch {
                         delay(100)
-                        val result = "Key is valid. Parity: Odd. KCV: A1B2C3" // Mock result
-                        DeaKeysLogManager.logOperation("Key Validation", inputs, result, executionTime = 102)
+                        try {
+                            val r = DeaKeysCryptoService.validateKey(key)
+                            report = r
+                            DeaKeysLogManager.logOperation("Key Validation", inputs, r.asText(), executionTime = 102)
+                        } catch (e: Exception) {
+                            DeaKeysLogManager.logOperation("Key Validation", inputs, error = e.message ?: "Unknown error")
+                        }
                         isLoading = false
                     }
                 },
                 isLoading = isLoading, enabled = isFormValid, icon = Icons.Default.FactCheck, modifier = Modifier.fillMaxWidth()
             )
+
+            report?.let { r ->
+                Spacer(Modifier.height(4.dp))
+                ResultSurface(title = if (r.isValid) "Key is valid" else "Key has issues") {
+                    KeyWithKcvRow(key = key, kcv = r.kcv)
+                    Text("Length: ${r.length.label}", style = MaterialTheme.typography.body2)
+                    Text("Parity: ${r.parity}", style = MaterialTheme.typography.body2)
+                    r.issues.forEach { issue ->
+                        Text("• $issue", style = MaterialTheme.typography.body2, color = MaterialTheme.colors.error)
+                    }
+                }
+            }
         }
     }
 }

@@ -1,0 +1,6 @@
+/* ISO8583Studio corner radii — Compose Shapes */
+:root {
+  --iso-radius-small: 4px;   /* Chips, small buttons */
+  --iso-radius-medium: 8px;   /* Cards, panels, list rows */
+  --iso-radius-large: 12px;   /* Dialogs, sheets */
+}

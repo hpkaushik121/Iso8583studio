@@ -68,6 +68,17 @@ object DUKPTValidationUtils {
 
         return ValidationResult(ValidationState.VALID)
     }
+
+    /** Hex + length check for a TDES key that may be double-length (32H) or triple-length (48H). */
+    fun validateTdesKey(value: String, fieldName: String): ValidationResult {
+        val base = validate(value, fieldName, isHex = true)
+        if (base.state != ValidationState.VALID) return base
+        return when (value.length) {
+            32 -> ValidationResult(ValidationState.VALID, "Double-length TDES (16 bytes)")
+            48 -> ValidationResult(ValidationState.VALID, "Triple-length TDES (24 bytes)")
+            else -> ValidationResult(ValidationState.ERROR, "$fieldName must be 32 (double-length) or 48 (triple-length) hex chars.")
+        }
+    }
 }
 
 
@@ -145,7 +156,9 @@ object DUKPTService {
 
     /**
      * Derive PEK (Pin Encryption Key) from BDK and KSN per ANSI X9.24-2004 Annex A.
-     * When inputKeyType is "IPEK", bdk is treated as the IPEK directly (skip IPEK derivation).
+     * The BDK may be double-length (16 bytes) or triple-length (24 bytes); the IPEK and
+     * all derived keys are always 16 bytes. When inputKeyType is "IPEK", bdk is treated
+     * as the IPEK directly (skip IPEK derivation).
      */
     fun derivePek(bdk: String, ksn: String, inputKeyType: String): DukptPekResult {
         val bdkBytes = IsoUtil.hexToBytes(bdk.replace(" ", ""))
@@ -217,7 +230,7 @@ object DUKPTService {
     fun encryptPinBlock(pek: String, pinBlock: String): String {
         val pekBytes = pek.decodeHex()
         val pinBlockBytes = pinBlock.decodeHex()
-        val pinKey = DukptEngine.xorBytes(pekBytes, DukptEngine.PEK_VARIANT)
+        val pinKey = DukptEngine.xorBytes(pekBytes, DukptEngine.variantForKeySize(DukptEngine.PEK_VARIANT, pekBytes.size))
         val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(pinKey), "DESede"))
         return cipher.doFinal(pinBlockBytes).toHex().uppercase()
@@ -229,7 +242,7 @@ object DUKPTService {
     fun decryptPinBlock(pek: String, encryptedPinBlock: String): String {
         val pekBytes = pek.decodeHex()
         val encBytes = encryptedPinBlock.decodeHex()
-        val pinKey = DukptEngine.xorBytes(pekBytes, DukptEngine.PEK_VARIANT)
+        val pinKey = DukptEngine.xorBytes(pekBytes, DukptEngine.variantForKeySize(DukptEngine.PEK_VARIANT, pekBytes.size))
         val cipher = Cipher.getInstance("DESede/ECB/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(DukptEngine.expandTo24(pinKey), "DESede"))
         return cipher.doFinal(encBytes).toHex().uppercase()
@@ -240,12 +253,13 @@ object DUKPTService {
      * DES  → Algorithm 1 (single DES CBC-MAC)
      * 3DES → Algorithm 3 (Retail MAC: DES CBC then final 3DES round)
      *
-     * [key] is the DUKPT **session key** (the same 16-byte value shown as derived PEK on the PEK tab).
+     * [key] is the DUKPT **session key** (the same 16-byte value shown as derived PEK on the PEK tab);
+     * a 24-byte triple-length key is also accepted, in which case the final 3DES round uses K3.
      * Per ANSI X9.24-2004 the MAC working key is `session_key XOR MAC_VARIANT`; PIN uses `PEK_VARIANT` instead.
      */
     fun generateMac(key: String, algorithm: String, data: String): String {
         val sessionKeyBytes = key.decodeHex()
-        val keyBytes = DukptEngine.xorBytes(sessionKeyBytes, DukptEngine.MAC_VARIANT)
+        val keyBytes = DukptEngine.xorBytes(sessionKeyBytes, DukptEngine.variantForKeySize(DukptEngine.MAC_VARIANT, sessionKeyBytes.size))
         val dataBytes = data.decodeHex()
         val padded = if (dataBytes.isEmpty()) {
             ByteArray(8)
@@ -269,6 +283,8 @@ object DUKPTService {
             }
             else -> {
                 val k2 = keyBytes.copyOfRange(8, 16)
+                // Triple-length key: final encryption uses K3 (equals K1 for double-length, i.e. ISO 9797-1 Alg 3)
+                val k3 = if (keyBytes.size >= 24) keyBytes.copyOfRange(16, 24) else k1
                 desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(k1, "DES"))
                 var result = ByteArray(8)
                 for (i in padded.indices step 8) {
@@ -277,7 +293,7 @@ object DUKPTService {
                 }
                 desCipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(k2, "DES"))
                 result = desCipher.doFinal(result)
-                desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(k1, "DES"))
+                desCipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(k3, "DES"))
                 result = desCipher.doFinal(result)
                 result.toHex().uppercase()
             }
@@ -292,7 +308,7 @@ object DUKPTService {
         val dataBytes = if (dataInputType == "ASCII") data.toByteArray() else data.decodeHex()
         val keyBytes = key.decodeHex()
         val actualKey = if (isDataVariant) {
-            val variantKey = DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT)
+            val variantKey = DukptEngine.xorBytes(keyBytes, DukptEngine.variantForKeySize(DukptEngine.DATA_VARIANT, keyBytes.size))
             DukptEngine.applyVariantEncryption(variantKey)
         } else keyBytes
         val padded = if (dataBytes.size % 8 != 0) {
@@ -319,7 +335,7 @@ object DUKPTService {
         val dataBytes = data.decodeHex()
         val keyBytes = key.decodeHex()
         val actualKey = if (isDataVariant) {
-            val variantKey = DukptEngine.xorBytes(keyBytes, DukptEngine.DATA_VARIANT)
+            val variantKey = DukptEngine.xorBytes(keyBytes, DukptEngine.variantForKeySize(DukptEngine.DATA_VARIANT, keyBytes.size))
             DukptEngine.applyVariantEncryption(variantKey)
         } else keyBytes
         val transform = if (mode == "ECB") "DESede/ECB/NoPadding" else "DESede/CBC/NoPadding"
@@ -469,7 +485,8 @@ fun DukptIso9797Screen(onBack: () -> Unit) {
 private fun PekDerivationCard(state: PekDerivationState) { with(state) {
     val keyTypes = remember { listOf("BDK", "IPEK") }
 
-    val bdkValidation = DUKPTValidationUtils.validate(bdk, "BDK", length = 32)
+    val bdkValidation = if (selectedKeyType == "BDK") DUKPTValidationUtils.validateTdesKey(bdk, "BDK")
+                        else DUKPTValidationUtils.validate(bdk, "IPEK", length = 32)
     val ksnValidation = DUKPTValidationUtils.validate(ksn, "KSN", length = 20)
 
     val isFormValid = bdk.isNotBlank() && ksn.isNotBlank() &&
@@ -486,7 +503,7 @@ private fun PekDerivationCard(state: PekDerivationState) { with(state) {
         EnhancedTextField(
             value = bdk,
             onValueChange = { bdk = it },
-            label = if (selectedKeyType == "BDK") "BDK (32 Hex Chars)" else "IPEK (32 Hex Chars)",
+            label = if (selectedKeyType == "BDK") "BDK (32 or 48 Hex Chars)" else "IPEK (32 Hex Chars)",
             validation = bdkValidation
         )
         Spacer(Modifier.height(12.dp))
@@ -524,7 +541,8 @@ private fun PekDerivationCard(state: PekDerivationState) { with(state) {
 private fun DekDerivationCard(state: DekDerivationState) { with(state) {
     val keyTypes = remember { listOf("BDK", "IPEK") }
 
-    val bdkValidation = DUKPTValidationUtils.validate(bdk, "BDK", length = 32)
+    val bdkValidation = if (selectedKeyType == "BDK") DUKPTValidationUtils.validateTdesKey(bdk, "BDK")
+                        else DUKPTValidationUtils.validate(bdk, "IPEK", length = 32)
     val ksnValidation = DUKPTValidationUtils.validate(ksn, "KSN", length = 20)
 
     val isFormValid = bdk.isNotBlank() && ksn.isNotBlank() &&
@@ -541,7 +559,7 @@ private fun DekDerivationCard(state: DekDerivationState) { with(state) {
         EnhancedTextField(
             value = bdk,
             onValueChange = { bdk = it },
-            label = if (selectedKeyType == "BDK") "BDK (32 Hex Chars)" else "IPEK (32 Hex Chars)",
+            label = if (selectedKeyType == "BDK") "BDK (32 or 48 Hex Chars)" else "IPEK (32 Hex Chars)",
             validation = bdkValidation
         )
         Spacer(Modifier.height(12.dp))
@@ -580,14 +598,14 @@ private fun DekDerivationCard(state: DekDerivationState) { with(state) {
 @Composable
 private fun DukptPinCard(state: DukptPinState) { with(state) {
 
-    val pekValidation = DUKPTValidationUtils.validate(pek, "PEK", length = 32)
+    val pekValidation = DUKPTValidationUtils.validateTdesKey(pek, "PEK")
     val pinBlockValidation = DUKPTValidationUtils.validate(pinBlock, "PIN Block", length = 16)
 
     val isFormValid = pek.isNotBlank() && pinBlock.isNotBlank() &&
             pekValidation.state != ValidationState.ERROR && pinBlockValidation.state != ValidationState.ERROR
 
     ModernCryptoCard(title = "DUKPT PIN", subtitle = "Encrypt or Decrypt a PIN block using a PEK", icon = DUKPTTabs.DUKPT_PIN.icon) {
-        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 Hex Chars)", validation = pekValidation)
+        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 or 48 Hex Chars)", validation = pekValidation)
         Spacer(Modifier.height(12.dp))
         EnhancedTextField(value = pinBlock, onValueChange = { pinBlock = it }, label = "PIN Block (16 Hex Chars)", validation = pinBlockValidation)
         Spacer(Modifier.height(16.dp))
@@ -635,14 +653,14 @@ private fun DukptPinCard(state: DukptPinState) { with(state) {
 private fun DukptMacCard(state: DukptMacState) { with(state) {
     val algorithms = remember { listOf("DES", "3DES") }
 
-    val pekValidation = DUKPTValidationUtils.validate(pek, "PEK", length = 32)
+    val pekValidation = DUKPTValidationUtils.validateTdesKey(pek, "PEK")
     val dataValidation = DUKPTValidationUtils.validate(data, "Data", isHex = true)
 
     val isFormValid = pek.isNotBlank() && data.isNotBlank() &&
             pekValidation.state != ValidationState.ERROR && dataValidation.state != ValidationState.ERROR
 
     ModernCryptoCard(title = "DUKPT MAC Generation", subtitle = "Generate a MAC for data using a PEK", icon = DUKPTTabs.DUKPT_MAC.icon) {
-        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 Hex Chars)", validation = pekValidation)
+        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 or 48 Hex Chars)", validation = pekValidation)
         Spacer(Modifier.height(12.dp))
         Text("Algorithm", style = MaterialTheme.typography.body2, fontWeight = FontWeight.Medium)
         Row {
@@ -684,14 +702,14 @@ private fun DukptDataCard(state: DukptDataState) { with(state) {
     val dataTypes = remember { listOf("ASCII", "Hexadecimal") }
     val modes = remember { listOf("CBC", "ECB") }
 
-    val pekValidation = DUKPTValidationUtils.validate(pek, "PEK", length = 32)
+    val pekValidation = DUKPTValidationUtils.validateTdesKey(pek, "PEK")
     val dataValidation = DUKPTValidationUtils.validate(data, "Data", isHex = selectedDataType == "Hexadecimal")
 
     val isFormValid = pek.isNotBlank() && data.isNotBlank() &&
             pekValidation.state != ValidationState.ERROR && dataValidation.state != ValidationState.ERROR
 
     ModernCryptoCard(title = "DUKPT Data", subtitle = "Encrypt or Decrypt data using a PEK", icon = DUKPTTabs.DUKPT_DATA.icon) {
-        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 Hex Chars)", validation = pekValidation)
+        EnhancedTextField(value = pek, onValueChange = { pek = it }, label = "PEK (32 or 48 Hex Chars)", validation = pekValidation)
         Spacer(Modifier.height(12.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { isDataVariant = !isDataVariant }) {

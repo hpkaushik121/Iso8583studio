@@ -1,0 +1,53 @@
+<!-- @dsCard group="Colors" -->
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../../styles.css">
+<style>
+  body { margin:0; padding:24px; font-family: var(--iso-font-family); background:#f5f7fa; color:#212121; }
+  h2 { font-size:20px; font-weight:700; margin:0 0 4px; }
+  .sub { font-size:12px; color:#757575; margin:0 0 20px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+  .sect { font-size:10px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase;
+          color:#757575; margin:22px 0 10px; }
+  .sw { border:1px solid #e0e0e0; border-radius:8px; overflow:hidden; background:#fff; }
+  .chip { height:60px; }
+  .meta { padding:8px 10px; }
+  .nm { font-size:13px; font-weight:600; }
+  .hex { font-size:11px; color:#757575; font-family:ui-monospace,Menlo,monospace; }
+  .kt { font-size:10px; color:#9e9e9e; margin-top:2px; }
+</style></head><body>
+<h2>Colour tokens</h2><p class="sub">19 opaque + 4 translucent tokens, exported from AppTheme.kt</p>
+
+<div class="sect">Brand</div><div class="grid">
+<div class="sw"><div class="chip" style="background:#1e88e5"></div><div class="meta"><div class="nm">--iso-color-primary</div><div class="hex">#1e88e5</div><div class="kt">PrimaryBlue · Primary actions, selection, links</div></div></div>
+<div class="sw"><div class="chip" style="background:#6ab7ff"></div><div class="meta"><div class="nm">--iso-color-primary-light</div><div class="hex">#6ab7ff</div><div class="kt">PrimaryBlueLight · Hover / raised primary</div></div></div>
+<div class="sw"><div class="chip" style="background:#005cb2"></div><div class="meta"><div class="nm">--iso-color-primary-dark</div><div class="hex">#005cb2</div><div class="kt">PrimaryBlueDark · primaryVariant</div></div></div>
+<div class="sw"><div class="chip" style="background:#26a69a"></div><div class="meta"><div class="nm">--iso-color-secondary</div><div class="hex">#26a69a</div><div class="kt">AccentTeal · Secondary actions, Launch button</div></div></div>
+<div class="sw"><div class="chip" style="background:#64d8cb"></div><div class="meta"><div class="nm">--iso-color-secondary-light</div><div class="hex">#64d8cb</div><div class="kt">AccentTealLight · Hover / raised secondary</div></div></div>
+<div class="sw"><div class="chip" style="background:#00766c"></div><div class="meta"><div class="nm">--iso-color-secondary-dark</div><div class="hex">#00766c</div><div class="kt">AccentTealDark · secondaryVariant (light theme)</div></div></div>
+</div>
+<div class="sect">Semantic</div><div class="grid">
+<div class="sw"><div class="chip" style="background:#e53935"></div><div class="meta"><div class="nm">--iso-color-error</div><div class="hex">#e53935</div><div class="kt">ErrorRed · Destructive actions, validation failures</div></div></div>
+<div class="sw"><div class="chip" style="background:#43a047"></div><div class="meta"><div class="nm">--iso-color-success</div><div class="hex">#43a047</div><div class="kt">SuccessGreen · Running simulator, approved response</div></div></div>
+<div class="sw"><div class="chip" style="background:#ffb300"></div><div class="meta"><div class="nm">--iso-color-warning</div><div class="hex">#ffb300</div><div class="kt">WarningYellow · Under-development chips, cautions</div></div></div>
+</div>
+<div class="sect">Surface & Border</div><div class="grid">
+<div class="sw"><div class="chip" style="background:#f5f7fa"></div><div class="meta"><div class="nm">--iso-color-background-light</div><div class="hex">#f5f7fa</div><div class="kt">BackgroundLight · App background (light)</div></div></div>
+<div class="sw"><div class="chip" style="background:#252836"></div><div class="meta"><div class="nm">--iso-color-background-dark</div><div class="hex">#252836</div><div class="kt">BackgroundDark · App background (dark)</div></div></div>
+<div class="sw"><div class="chip" style="background:#ffffff"></div><div class="meta"><div class="nm">--iso-color-card-light</div><div class="hex">#ffffff</div><div class="kt">CardLight · Surface / card (light)</div></div></div>
+<div class="sw"><div class="chip" style="background:#2f3142"></div><div class="meta"><div class="nm">--iso-color-card-dark</div><div class="hex">#2f3142</div><div class="kt">CardDark · Surface / card (dark)</div></div></div>
+<div class="sw"><div class="chip" style="background:#e0e0e0"></div><div class="meta"><div class="nm">--iso-color-border-light</div><div class="hex">#e0e0e0</div><div class="kt">BorderLight · Dividers, outlines (light)</div></div></div>
+<div class="sw"><div class="chip" style="background:#3d3d3d"></div><div class="meta"><div class="nm">--iso-color-border-dark</div><div class="hex">#3d3d3d</div><div class="kt">BorderDark · Dividers, outlines (dark)</div></div></div>
+</div>
+<div class="sect">Text</div><div class="grid">
+<div class="sw"><div class="chip" style="background:#212121"></div><div class="meta"><div class="nm">--iso-color-text-primary-light</div><div class="hex">#212121</div><div class="kt">TextPrimaryLight · onBackground / onSurface (light)</div></div></div>
+<div class="sw"><div class="chip" style="background:#757575"></div><div class="meta"><div class="nm">--iso-color-text-secondary-light</div><div class="hex">#757575</div><div class="kt">TextSecondaryLight · Muted body text (light)</div></div></div>
+<div class="sw"><div class="chip" style="background:#eceff1"></div><div class="meta"><div class="nm">--iso-color-text-primary-dark</div><div class="hex">#eceff1</div><div class="kt">TextPrimaryDark · onBackground / onSurface (dark)</div></div></div>
+<div class="sw"><div class="chip" style="background:#b0bec5"></div><div class="meta"><div class="nm">--iso-color-text-secondary-dark</div><div class="hex">#b0bec5</div><div class="kt">TextSecondaryDark · Muted body text (dark)</div></div></div>
+</div>
+<div class="sect">Glass (Windows 11 Mica)</div><div class="grid">
+<div class="sw"><div class="chip" style="background-image:linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%),linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;box-shadow:inset 0 0 0 999px rgba(245,247,250,0.80)"></div><div class="meta"><div class="nm">--iso-color-background-light-glass</div><div class="hex">rgba(245,247,250,0.80)</div><div class="kt">BackgroundLightGlass · Mica/Acrylic backdrop (Win 11)</div></div></div>
+<div class="sw"><div class="chip" style="background-image:linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%),linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;box-shadow:inset 0 0 0 999px rgba(37,40,54,0.80)"></div><div class="meta"><div class="nm">--iso-color-background-dark-glass</div><div class="hex">rgba(37,40,54,0.80)</div><div class="kt">BackgroundDarkGlass · Mica/Acrylic backdrop (Win 11)</div></div></div>
+<div class="sw"><div class="chip" style="background-image:linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%),linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;box-shadow:inset 0 0 0 999px rgba(255,255,255,0.85)"></div><div class="meta"><div class="nm">--iso-color-card-light-glass</div><div class="hex">rgba(255,255,255,0.85)</div><div class="kt">CardLightGlass · Translucent surface (Win 11)</div></div></div>
+<div class="sw"><div class="chip" style="background-image:linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%),linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%);background-size:12px 12px;background-position:0 0,6px 6px;box-shadow:inset 0 0 0 999px rgba(47,49,66,0.85)"></div><div class="meta"><div class="nm">--iso-color-card-dark-glass</div><div class="hex">rgba(47,49,66,0.85)</div><div class="kt">CardDarkGlass · Translucent surface (Win 11)</div></div></div>
+</div>
+</body></html>

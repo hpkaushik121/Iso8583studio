@@ -1,0 +1,66 @@
+/* ISO8583Studio colour tokens — generated from composeApp/.../ui/AppTheme.kt */
+:root {
+  /* --- Brand --- */
+  --iso-color-primary: #1e88e5;  /* PrimaryBlue — Primary actions, selection, links */
+  --iso-color-primary-light: #6ab7ff;  /* PrimaryBlueLight — Hover / raised primary */
+  --iso-color-primary-dark: #005cb2;  /* PrimaryBlueDark — primaryVariant */
+  --iso-color-secondary: #26a69a;  /* AccentTeal — Secondary actions, Launch button */
+  --iso-color-secondary-light: #64d8cb;  /* AccentTealLight — Hover / raised secondary */
+  --iso-color-secondary-dark: #00766c;  /* AccentTealDark — secondaryVariant (light theme) */
+  /* --- Semantic --- */
+  --iso-color-error: #e53935;  /* ErrorRed — Destructive actions, validation failures */
+  --iso-color-success: #43a047;  /* SuccessGreen — Running simulator, approved response */
+  --iso-color-warning: #ffb300;  /* WarningYellow — Under-development chips, cautions */
+  /* --- Surface --- */
+  --iso-color-background-light: #f5f7fa;  /* BackgroundLight — App background (light) */
+  --iso-color-background-dark: #252836;  /* BackgroundDark — App background (dark) */
+  --iso-color-card-light: #ffffff;  /* CardLight — Surface / card (light) */
+  --iso-color-card-dark: #2f3142;  /* CardDark — Surface / card (dark) */
+  --iso-color-border-light: #e0e0e0;  /* BorderLight — Dividers, outlines (light) */
+  --iso-color-border-dark: #3d3d3d;  /* BorderDark — Dividers, outlines (dark) */
+  /* --- Text --- */
+  --iso-color-text-primary-light: #212121;  /* TextPrimaryLight — onBackground / onSurface (light) */
+  --iso-color-text-secondary-light: #757575;  /* TextSecondaryLight — Muted body text (light) */
+  --iso-color-text-primary-dark: #eceff1;  /* TextPrimaryDark — onBackground / onSurface (dark) */
+  --iso-color-text-secondary-dark: #b0bec5;  /* TextSecondaryDark — Muted body text (dark) */
+  /* --- Glass (Windows 11 Mica/Acrylic) --- */
+  --iso-color-background-light-glass: rgba(245,247,250,0.80);  /* BackgroundLightGlass — Mica/Acrylic backdrop (Win 11) */
+  --iso-color-background-dark-glass: rgba(37,40,54,0.80);  /* BackgroundDarkGlass — Mica/Acrylic backdrop (Win 11) */
+  --iso-color-card-light-glass: rgba(255,255,255,0.85);  /* CardLightGlass — Translucent surface (Win 11) */
+  --iso-color-card-dark-glass: rgba(47,49,66,0.85);  /* CardDarkGlass — Translucent surface (Win 11) */
+}
+
+/* Material role mapping — light theme (lightColorPalette) */
+[data-theme='light'], :root {
+  --iso-primary: var(--iso-color-primary);
+  --iso-primary-variant: var(--iso-color-primary-dark);
+  --iso-secondary: var(--iso-color-secondary);
+  --iso-secondary-variant: var(--iso-color-secondary-dark);
+  --iso-background: var(--iso-color-background-light);
+  --iso-surface: var(--iso-color-card-light);
+  --iso-error: var(--iso-color-error);
+  --iso-on-primary: #ffffff;
+  --iso-on-secondary: #ffffff;
+  --iso-on-background: var(--iso-color-text-primary-light);
+  --iso-on-surface: var(--iso-color-text-primary-light);
+  --iso-on-error: #ffffff;
+  --iso-border: var(--iso-color-border-light);
+}
+
+/* Material role mapping — dark theme (darkColorPalette).
+   Note: darkColors() leaves secondaryVariant at its Material default; the Compose
+   dark palette does not set it, so it is intentionally absent here too. */
+[data-theme='dark'] {
+  --iso-primary: var(--iso-color-primary);
+  --iso-primary-variant: var(--iso-color-primary-dark);
+  --iso-secondary: var(--iso-color-secondary);
+  --iso-background: var(--iso-color-background-dark);
+  --iso-surface: var(--iso-color-card-dark);
+  --iso-error: var(--iso-color-error);
+  --iso-on-primary: #ffffff;
+  --iso-on-secondary: #ffffff;
+  --iso-on-background: var(--iso-color-text-primary-dark);
+  --iso-on-surface: var(--iso-color-text-primary-dark);
+  --iso-on-error: #ffffff;
+  --iso-border: var(--iso-color-border-dark);
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ISO8583Studio — Design Tokens</title>
+<link rel="stylesheet" href="./styles.css">
+<style>
+  body { margin:0; background:#f5f7fa; color:#212121;
+         font-family: var(--iso-font-family); }
+  header { background:#1e88e5; color:#fff; padding:28px 32px; }
+  header h1 { margin:0 0 6px; font-size:24px; font-weight:700; }
+  header p  { margin:0; font-size:14px; opacity:.9; }
+  main { padding:24px 32px 48px; max-width:1280px; }
+  section { margin-bottom:28px; background:#fff; border:1px solid #e0e0e0;
+            border-radius:8px; overflow:hidden; }
+  section > h2 { margin:0; padding:12px 16px; font-size:14px; font-weight:600;
+                 border-bottom:1px solid #e0e0e0; background:#fafbfc; }
+  iframe { width:100%; border:0; display:block; }
+  .note { background:#fff8e1; border:1px solid #ffb300; border-radius:8px;
+          padding:14px 16px; font-size:13px; line-height:1.5; margin-bottom:24px; }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:12px;
+         background:#eceff1; padding:1px 5px; border-radius:3px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ISO8583Studio — Design Tokens</h1>
+  <p>Generated from <code style="background:rgba(255,255,255,.2);color:#fff">ui/AppTheme.kt</code>
+     · 19 colours · 10 type styles · 3 radii</p>
+</header>
+<main>
+  <div class="note">
+    <strong>Tokens-only design system.</strong> ISO8583Studio is a Kotlin Compose Desktop
+    application, so there are no React components to ship — <code>_ds_bundle.js</code> is
+    intentionally empty-bodied. Consume the tokens as CSS custom properties from
+    <code>styles.css</code>, or machine-readably from <code>tokens/tokens.json</code>.
+  </div>
+
+  <section>
+    <h2>Colours</h2>
+    <iframe src="./components/foundations/Colors/Colors.html" height="1180"
+            title="Colour tokens"></iframe>
+  </section>
+
+  <section>
+    <h2>Type scale</h2>
+    <iframe src="./components/foundations/Typography/Typography.html" height="820"
+            title="Type scale"></iframe>
+  </section>
+
+  <section>
+    <h2>Corner radii</h2>
+    <iframe src="./components/foundations/Shapes/Shapes.html" height="300"
+            title="Corner radii"></iframe>
+  </section>
+</main>
+</body>
+</html>

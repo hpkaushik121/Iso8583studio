@@ -1,0 +1,45 @@
+/* ISO8583Studio type scale — Compose sp values map 1:1 to px at 1x density */
+:root {
+  --iso-font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --iso-font-size-h4: 32px;
+  --iso-font-weight-h4: 700;   /* Bold */
+  --iso-letter-spacing-h4: 0.0px;
+  --iso-font-size-h5: 24px;
+  --iso-font-weight-h5: 700;   /* Bold */
+  --iso-letter-spacing-h5: 0.0px;
+  --iso-font-size-h6: 20px;
+  --iso-font-weight-h6: 700;   /* Bold */
+  --iso-letter-spacing-h6: 0.15px;
+  --iso-font-size-subtitle1: 16px;
+  --iso-font-weight-subtitle1: 600;   /* SemiBold */
+  --iso-letter-spacing-subtitle1: 0.15px;
+  --iso-font-size-subtitle2: 14px;
+  --iso-font-weight-subtitle2: 500;   /* Medium */
+  --iso-letter-spacing-subtitle2: 0.1px;
+  --iso-font-size-body1: 16px;
+  --iso-font-weight-body1: 400;   /* Normal */
+  --iso-letter-spacing-body1: 0.5px;
+  --iso-font-size-body2: 14px;
+  --iso-font-weight-body2: 400;   /* Normal */
+  --iso-letter-spacing-body2: 0.25px;
+  --iso-font-size-button: 14px;
+  --iso-font-weight-button: 500;   /* Medium */
+  --iso-letter-spacing-button: 1.25px;
+  --iso-font-size-caption: 12px;
+  --iso-font-weight-caption: 400;   /* Normal */
+  --iso-letter-spacing-caption: 0.4px;
+  --iso-font-size-overline: 10px;
+  --iso-font-weight-overline: 500;   /* Medium */
+  --iso-letter-spacing-overline: 1.5px;
+}
+
+.iso-h4 { font-size: var(--iso-font-size-h4); font-weight: var(--iso-font-weight-h4); letter-spacing: var(--iso-letter-spacing-h4); }
+.iso-h5 { font-size: var(--iso-font-size-h5); font-weight: var(--iso-font-weight-h5); letter-spacing: var(--iso-letter-spacing-h5); }
+.iso-h6 { font-size: var(--iso-font-size-h6); font-weight: var(--iso-font-weight-h6); letter-spacing: var(--iso-letter-spacing-h6); }
+.iso-subtitle1 { font-size: var(--iso-font-size-subtitle1); font-weight: var(--iso-font-weight-subtitle1); letter-spacing: var(--iso-letter-spacing-subtitle1); }
+.iso-subtitle2 { font-size: var(--iso-font-size-subtitle2); font-weight: var(--iso-font-weight-subtitle2); letter-spacing: var(--iso-letter-spacing-subtitle2); }
+.iso-body1 { font-size: var(--iso-font-size-body1); font-weight: var(--iso-font-weight-body1); letter-spacing: var(--iso-letter-spacing-body1); }
+.iso-body2 { font-size: var(--iso-font-size-body2); font-weight: var(--iso-font-weight-body2); letter-spacing: var(--iso-letter-spacing-body2); }
+.iso-button { font-size: var(--iso-font-size-button); font-weight: var(--iso-font-weight-button); letter-spacing: var(--iso-letter-spacing-button); }
+.iso-caption { font-size: var(--iso-font-size-caption); font-weight: var(--iso-font-weight-caption); letter-spacing: var(--iso-letter-spacing-caption); }
+.iso-overline { font-size: var(--iso-font-size-overline); font-weight: var(--iso-font-weight-overline); letter-spacing: var(--iso-letter-spacing-overline); }

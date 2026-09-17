@@ -1,0 +1,6 @@
+/* ISO8583Studio design tokens — entry stylesheet */
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/shapes.css";
+
+body { font-family: var(--iso-font-family); background: var(--iso-background); color: var(--iso-on-background); }
