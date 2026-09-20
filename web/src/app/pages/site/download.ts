@@ -29,7 +29,7 @@ const ASSET_BASE = `${EXTERNAL.repo}/releases/download/${RELEASE}`;
         </div>
 
         <h1 class="page-title">Download ISO8583Studio</h1>
-        <p class="page-description">Free and open source under Apache 2.0. Nine simulators and 64 tools
+        <p class="page-description">Free and open source under the AGPL v3. Nine simulators and 64 tools
            for ISO 8583, EMV, HSM and key operations — pick your platform and start testing.</p>
 
         <ui-section anchor="installers" heading="Installers">

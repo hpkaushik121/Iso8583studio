@@ -248,6 +248,12 @@ fun AboutDialog(
                         color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f)
                     )
 
+                    Text(
+                        "Free software under the GNU AGPL v3. Source: github.com/hpkaushik121/Iso8583studio",
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f)
+                    )
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Website link

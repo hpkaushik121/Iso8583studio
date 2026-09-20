@@ -26,7 +26,7 @@ import { UiSection } from '../../ui/section';
                 <div class="spec-row"><div class="k">Version</div><div class="v"><code>v1.0.14</code> · latest stable</div></div>
                 <div class="spec-row"><div class="k">Contents</div><div class="v">64 tools and 9 simulators — Host, HSM (payShield 10K), HSM Command Console, POS, APDU, and the in-development Switch, Issuer, ATM and ECR.</div></div>
                 <div class="spec-row"><div class="k">Platforms</div><div class="v">Windows 10+ · macOS 10.14+ · Linux (Ubuntu 18.04+) — single JAR, JDK 11+.</div></div>
-                <div class="spec-row"><div class="k">License</div><div class="v">Apache — free and open source, no license fees.</div></div>
+                <div class="spec-row"><div class="k">License</div><div class="v">AGPL v3 — free and open source, no license fees.</div></div>
             </div>
             <p><a class="btn btn-blue" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">Download v1.0.14</a></p>
             <pre><code>java -jar ISO8583Studio.jar</code></pre>

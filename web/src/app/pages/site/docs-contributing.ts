@@ -19,7 +19,7 @@ import { UiSection } from '../../ui/section';
         </div>
 
         <h1 class="page-title">How to Contribute</h1>
-        <p class="page-description">ISO8583Studio is Apache-licensed and built in the open. Bug fixes, new tools, simulator work and docs are all welcome.</p>
+        <p class="page-description">ISO8583Studio is AGPL v3-licensed and built in the open. Bug fixes, new tools, simulator work and docs are all welcome.</p>
 
         <ui-section anchor="prereqs" heading="Prerequisites (Kotlin Multiplatform)">
             <div class="table-wrapper"><table>

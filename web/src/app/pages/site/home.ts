@@ -18,7 +18,7 @@ import { SitePage } from './site-page';
             <a class="btn btn-blue btn-lg" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download Studio</a>
             <a class="btn btn-ghost btn-lg" href="/#toolbox">Explore 64 tools</a>
         </div>
-        <div class="hero-meta"><span>◆ Windows</span><span>◆ macOS</span><span>◆ Linux</span><span>◆ Apache · open source</span></div>
+        <div class="hero-meta"><span>◆ Windows</span><span>◆ macOS</span><span>◆ Linux</span><span>◆ AGPL v3 · open source</span></div>
     </div>
     <div class="monitor-wrap">
         <span class="con-float" style="top:-13px;left:14px;animation-delay:.3s">SERVER · 0.0.0.0:8583</span>
@@ -242,7 +242,7 @@ import { SitePage } from './site-page';
 <section class="solid cta" data-sect="final_cta">
     <div class="wrap">
         <h2>Ship payment software<br>that just works</h2>
-        <p>Free and open source under Apache. Download the studio, or star the repo and follow the roadmap.</p>
+        <p>Free and open source under the AGPL v3. Download the studio, or star the repo and follow the roadmap.</p>
         <div class="row">
             <a class="btn btn-blue btn-lg" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">Download for free</a>
             <a class="btn btn-ghost btn-lg" href="https://github.com/hpkaushik121/Iso8583studio">★ Star on GitHub</a>

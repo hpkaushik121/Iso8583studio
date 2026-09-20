@@ -72,8 +72,8 @@ export const siteRoutes: Routes = [
     loadComponent: () => import('./terms-and-conditions').then((c) => c.TermsAndConditionsPage),
     data: { seo: {
       "title": "Terms and Conditions - ISO8583Studio",
-      "description": "ISO8583Studio Terms and Conditions - Open source software agreement under Apache License 2.0. Free to use, modify, and distribute. No warranties. Professional fintech desktop application.",
-      "keywords": "ISO8583Studio terms and conditions, ISO8583Studio license, Apache License 2.0, open source payment software, fintech software license, ISO 8583 software terms, payment processing software agreement, free payment software, open source fintech",
+      "description": "ISO8583Studio Terms and Conditions - Open source software agreement under the GNU Affero General Public License v3.0. Free to use, modify, and distribute under copyleft terms. No warranties. Professional fintech desktop application.",
+      "keywords": "ISO8583Studio terms and conditions, ISO8583Studio license, AGPL v3, GNU Affero General Public License, copyleft, open source payment software, fintech software license, ISO 8583 software terms, payment processing software agreement, free payment software, open source fintech",
       "path": "/terms-and-conditions",
       "ogType": "website",
       "image": "https://iso8583.studio/images/app.png",

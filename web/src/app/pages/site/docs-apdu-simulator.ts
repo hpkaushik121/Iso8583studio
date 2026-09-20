@@ -97,7 +97,7 @@ import { UiSection } from '../../ui/section';
                     <li><strong>Reader (PC/SC)</strong> &mdash; any PC/SC contact reader, for example an ACS ACR39U-I1.</li>
                     <li><strong>Card emulator</strong> &mdash; an ST Nucleo-L432KC, an XCRFID 4-in-1 SIM/smart-card pinboard, a USB micro-B cable, and a 3V3&harr;5V level shifter such as a TXS0108E if your terminal drives Class&nbsp;A 5&nbsp;V cards.</li>
                 </ul>
-                <p>Order the parts yourself &mdash; or build the board in-house. ISO8583Studio is <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/LICENSE">Apache&nbsp;2.0</a> open source and the emulator firmware ships with it, at <code>firmware/stm32-card/</code> in the repository: the C source, its PlatformIO project, the full bill of materials and the C1&ndash;C8 wiring table from the Nucleo to the ISO 7816 contacts. If you would rather have the board design than a parts list, <a href="https://github.com/hpkaushik121/Iso8583studio/issues">open an issue</a> and ask for it.</p>
+                <p>Order the parts yourself &mdash; or build the board in-house. ISO8583Studio is <a href="https://github.com/hpkaushik121/Iso8583studio/blob/main/LICENSE">AGPL&nbsp;v3</a> open source and the emulator firmware ships with it, at <code>firmware/stm32-card/</code> in the repository: the C source, its PlatformIO project, the full bill of materials and the C1&ndash;C8 wiring table from the Nucleo to the ISO 7816 contacts. If you would rather have the board design than a parts list, <a href="https://github.com/hpkaushik121/Iso8583studio/issues">open an issue</a> and ask for it.</p>
             </div>
 
             <h3>Transport &mdash; STM32 / USB-CDC</h3>

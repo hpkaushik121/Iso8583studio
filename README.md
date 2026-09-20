@@ -3,7 +3,7 @@
 ![ISO8583Studio](https://img.shields.io/badge/ISO8583-Studio-blue?style=for-the-badge)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF?style=for-the-badge&logo=kotlin)
 ![Compose](https://img.shields.io/badge/Compose-Desktop-4285F4?style=for-the-badge)
-![License](https://img.shields.io/badge/License-Apache-green?style=for-the-badge)
+![License](https://img.shields.io/badge/License-AGPL%20v3-green?style=for-the-badge)
 
 A professional desktop application for ISO8583 financial transaction processing, configuration, testing, and monitoring. Built with Kotlin Multiplatform and Compose Desktop for cross-platform compatibility.
 
@@ -640,7 +640,9 @@ Application crashes with NullPointerException
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+The AGPL is a strong copyleft license: if you modify ISO8583Studio and distribute it, or make it available to users over a network, you must release your modified source under the same license. The full text is also available at <https://www.gnu.org/licenses/agpl-3.0.html>.
 
 ## 🙏 Acknowledgments
 
