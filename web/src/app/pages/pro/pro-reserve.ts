@@ -17,7 +17,7 @@ import { ProSpotlight } from './pro-motion';
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** What the card shows in place of its email row. */
-type Phase = 'form' | 'processing' | 'confirming' | 'paid' | 'failed';
+type Phase = 'form' | 'processing' | 'confirming' | 'paid' | 'failed' | 'cancelled';
 
 /**
  * One payment card of the fan behind the Pro card, as the design's CardStack
@@ -62,8 +62,9 @@ function fan(count = 5, angle = 8, spreadStep = 6, maxAngle = 20, turn = 90, off
  * It runs the real payment, the way the design draws it: a work email,
  * "Continue to payment", then the card itself shows the payment being started
  * and hands the customer to the hosted checkout. On the way back (/pro with
- * ?payment=…) the same card shows the outcome — confirming, reserved or
- * declined — from CheckoutOutcome, which reads the payment ledger.
+ * ?payment=…) the page renders as usual and scrolls to this card, which shows
+ * the outcome — confirming, reserved, declined or cancelled — from
+ * CheckoutOutcome, which reads the payment ledger.
  *
  * The page never names a price or a currency: it names the price point and the
  * payment service prices it — in rupees, as units of its ₹1 price point. The
@@ -139,6 +140,18 @@ function fan(count = 5, angle = 8, spreadStep = 6, maxAngle = 20, turn = 90, off
                   <span class="rsv-box-text">The {{ paidAmount() }} charge did not go through. No money was taken.</span>
                   <span class="rsv-box-foot rsv-box-foot--rule rsv-box-foot--act">
                     <span class="rsv-box-code">Order {{ outcome.reference() }}</span>
+                    <button class="btn btn--outline btn--sm" type="button" (click)="tryAgain()">
+                      <ui-icon name="arrow-clockwise" [size]="14" />Try again
+                    </button>
+                  </span>
+                </div>
+              }
+              @case ('cancelled') {
+                <div class="rsv-box rsv-box--off rsv-row" role="status">
+                  <span class="rsv-box-title"><ui-icon name="prohibit" [size]="20" />Payment cancelled</span>
+                  <span class="rsv-box-text">You closed the checkout before paying. No money was taken.</span>
+                  <span class="rsv-box-foot rsv-box-foot--rule rsv-box-foot--act">
+                    <span>Your seat is not reserved yet</span>
                     <button class="btn btn--outline btn--sm" type="button" (click)="tryAgain()">
                       <ui-icon name="arrow-clockwise" [size]="14" />Try again
                     </button>
@@ -230,7 +243,11 @@ export class ProReserve implements OnDestroy {
     effect(() => {
       if (shown || !this.outcome.active()) return;
       shown = true;
-      setTimeout(() => this.stack().nativeElement.scrollIntoView({ block: 'center' }), 120);
+      // The result box itself, centred: the card is taller than many screens.
+      setTimeout(() => {
+        const el = this.stack().nativeElement;
+        (el.querySelector('.rsv-box') ?? el).scrollIntoView({ block: 'center' });
+      }, 150);
     });
 
     afterNextRender(() => {

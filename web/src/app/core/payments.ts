@@ -125,7 +125,9 @@ export class PaymentsService {
       },
       success_url: `${origin}/pro?payment=done`,
       failure_url: `${origin}/pro?payment=failed`,
-      cancel_url: `${origin}/pro`,
+      // Flagged, so the card can say the checkout was closed rather than
+      // showing the page as if nothing had happened.
+      cancel_url: `${origin}/pro?payment=cancelled`,
       ...(input.notes ? { notes: input.notes } : {}),
     });
 

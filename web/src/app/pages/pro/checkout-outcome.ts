@@ -23,7 +23,9 @@ export type OutcomeState =
   /** Polling `/c/{token}/status`; the ledger has not settled yet. */
   | 'confirming'
   | 'paid'
-  | 'failed';
+  | 'failed'
+  /** The customer closed the hosted checkout without paying. */
+  | 'cancelled';
 
 @Injectable({ providedIn: 'root' })
 export class CheckoutOutcome {
@@ -89,6 +91,18 @@ export class CheckoutOutcome {
     const params = new URLSearchParams(this.doc.defaultView?.location.search ?? '');
     const flag = params.get('payment');
     const ref = params.get('ref');
+
+    // A closed checkout. Only believed when this browser started one — a
+    // typed ?payment=cancelled has no token behind it and changes nothing.
+    if (flag === 'cancelled') {
+      if (!this.payments.takeToken()) return;
+      this.payments.clearToken();
+      this.payments.takeCheckoutId();
+      this.reference.set(ref);
+      this.analytics.reportPaymentResult('cancelled', ref ?? '');
+      this.state.set('cancelled');
+      return;
+    }
 
     // Both, and a flag we recognise. The service appends `ref` itself, so a URL
     // carrying one is a genuine return from checkout; `?payment=done` typed or
