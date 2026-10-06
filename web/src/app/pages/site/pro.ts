@@ -5,12 +5,10 @@ import {
   AccordionItem, Crumb, UiAccordion, UiBadge, UiBreadcrumb, UiIcon, UiReveal, UiWords,
 } from '../../ui';
 import { ProReserve } from '../pro/pro-reserve';
-import { PaymentResult } from '../pro/payment-result';
 import { CheckoutOutcome } from '../pro/checkout-outcome';
 import { ProOrbit } from '../pro/pro-orbit';
 import { ProAlgos, ProLane, ProSpotlight } from '../pro/pro-motion';
 import { AnalyticsService } from '../../core/analytics';
-import { PAYMENTS } from '../../content/payments-config';
 
 interface Tier { kind: 'free' | 'pro'; name: string; text: string; height: number; }
 interface Addition { icon: string; title: string; body: string; tint?: 'teal' | 'blue'; }
@@ -70,14 +68,6 @@ const ADDITIONS: Addition[] = [
 ];
 
 
-/**
- * The form's own bounds, restated for the copy around it. ProForm validates
- * against its private MIN/MAX; these only have to agree with those in prose.
- */
-const MIN_RUPEES = 2;
-const MAX_RUPEES = 100000;
-const GST_PERCENT = PAYMENTS.taxBps / 100;
-
 const FAQ: AccordionItem[] = [
   {
     q: 'Does the free studio change?',
@@ -85,15 +75,8 @@ const FAQ: AccordionItem[] = [
   },
   {
     q: 'How much does Pro cost?',
-    a: `Pay what Pro is worth to you: any whole-rupee amount from ₹${MIN_RUPEES} to `
-      + `₹${MAX_RUPEES.toLocaleString('en-IN')}. ${GST_PERCENT}% GST is added on top, and the total `
-      + 'is confirmed at checkout before you pay.',
-  },
-  {
-    q: 'Why does a higher amount matter?',
-    a: 'Early access is provisioned from a queue. The higher the amount, the higher your priority in '
-      + 'it, so a larger contribution gets your workspace, certification packs and support channel '
-      + 'opened sooner.',
+    a: '$13.99 per month, billed once Pro launches. Reserving a seat today costs $9.00, charged in US '
+      + 'dollars at checkout.',
   },
   {
     q: 'What happens after I pay?',
@@ -116,20 +99,13 @@ const FAQ: AccordionItem[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink, UiAccordion, UiBadge, UiBreadcrumb, UiIcon, UiReveal, UiWords,
-    PaymentResult, ProOrbit, ProLane, ProAlgos, ProSpotlight, ProReserve,
+    ProOrbit, ProLane, ProAlgos, ProSpotlight, ProReserve,
   ],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-pro' },
   template: `
-    <!-- Coming back from checkout replaces the page rather than adding to it.
-         Someone who has just paid is not shopping: the pitch, the plan card
-         and the registration form are all answers to a question they have
-         already settled, and the form is an invitation to pay twice. -->
-    @if (outcome.active()) {
-      <div class="pro-result">
-        <app-payment-result />
-      </div>
-    } @else {
+    <!-- A return from checkout is shown in the Pro card itself (#register),
+         which scrolls into view with the outcome. -->
       <section class="page-hero pro-hero" data-sect="hero" proSpotlight>
         <div class="pro-hero-dots" aria-hidden="true"><span></span><span class="pro-hero-dots-hot"></span></div>
         <span class="pro-hero-wash" aria-hidden="true"></span>
@@ -209,7 +185,6 @@ const FAQ: AccordionItem[] = [
           <p class="pro-faq-more">Something else? Write to <a href="mailto:admin@iso8583.studio">admin&#64;iso8583.studio</a>.</p>
         </section>
       </div>
-    }
   `,
 })
 export class ProPage {

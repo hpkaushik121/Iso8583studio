@@ -159,11 +159,73 @@
 
 .rsv-input input::placeholder { color: var(--faint); }
 
-/* ---- The form dialog -------------------------------------------------- */
+/* ---- Payment states: the design's processing, reserved and declined -- */
 
-/* Wider than the default dialog: the form sets its fields two to a row. */
-.rsv-dialog .sheet { width: min(640px, 100%); text-align: left; }
-.rsv-dialog .pro-form { margin-top: 22px; }
+@keyframes rsv-row { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes rsv-pop { 0% { opacity: 0; transform: scale(.5); } 60% { transform: scale(1.08); } 100% { opacity: 1; transform: none; } }
+@keyframes rsv-spin { to { transform: rotate(360deg); } }
+@keyframes rsv-indet { 0% { left: -40%; } 100% { left: 100%; } }
+
+.rsv-row { animation: rsv-row .35s var(--ease-out) both; }
+.rsv-pop { animation: rsv-pop .6s var(--ease-out) both; }
+
+.rsv-box {
+    display: grid;
+    gap: 12px;
+    margin-top: 22px;
+    padding: 16px 18px;
+    border: 1px solid;
+    border-radius: var(--r-md);
+}
+
+.rsv-box--wait { border-color: rgba(106, 183, 255, .35); background: rgba(30, 136, 229, .07); }
+.rsv-box--ok { border-color: rgba(100, 216, 203, .4); background: rgba(100, 216, 203, .08); }
+.rsv-box--bad { border-color: rgba(229, 72, 77, .45); background: rgba(229, 72, 77, .08); }
+
+.rsv-box-title { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: var(--fs-sm); font-weight: 500; }
+.rsv-box--ok .rsv-box-title .ui-icon { color: var(--teal-hi); }
+.rsv-box--bad .rsv-box-title .ui-icon { color: var(--red-hi); }
+.rsv-box-text { color: var(--muted); font-size: var(--fs-sm); line-height: 1.55; }
+
+.rsv-box-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+}
+
+.rsv-box-foot--rule { padding-top: 10px; border-top: 1px solid rgba(100, 216, 203, .2); }
+.rsv-box--bad .rsv-box-foot--rule { border-top-color: rgba(229, 72, 77, .2); }
+.rsv-box-code { color: var(--red-hi); }
+.rsv-box-foot .btn { font-family: var(--sans); }
+
+.rsv-spin {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(106, 183, 255, .25);
+    border-top-color: var(--blue-hi);
+    border-radius: 999px;
+    animation: rsv-spin .8s linear infinite;
+}
+
+.rsv-bar { position: relative; display: block; height: 3px; overflow: hidden; border-radius: 2px; background: rgba(233, 236, 245, .08); }
+
+.rsv-bar-run {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue-hi), transparent);
+    animation: rsv-indet 1.3s cubic-bezier(.65, 0, .35, 1) infinite;
+}
+
+.rsv-err { margin: 8px 0 0; color: var(--red-hi); font-size: var(--fs-caption); }
 
 @media (max-width: 600px) {
     .rsv { --k: .62; }
@@ -172,5 +234,8 @@
 
 @media (prefers-reduced-motion: reduce) {
     .rsv-fan { transition: none; }
+    .rsv-row, .rsv-pop { animation: none; }
+    .rsv-spin { animation-duration: 2.4s; }
+    .rsv-bar-run { left: 30%; animation: none; }
     .rsv-spot-edge, .rsv-spot-wash { display: none; }
 }

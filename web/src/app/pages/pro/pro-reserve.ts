@@ -1,11 +1,20 @@
 import {
   ChangeDetectionStrategy, Component, ElementRef, OnDestroy, PLATFORM_ID, afterNextRender,
-  inject, input, signal, viewChild,
+  computed, effect, inject, input, signal, viewChild,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { UiDialog, UiIcon } from '../../ui';
+import { PAYMENTS } from '../../content/payments-config';
+import { AnalyticsService } from '../../core/analytics';
+import { PaymentsService, formatMinor, messageFor } from '../../core/payments';
+import { UiIcon } from '../../ui';
+import { CheckoutOutcome } from './checkout-outcome';
 import { ProSpotlight } from './pro-motion';
-import { ProForm } from './pro-form';
+
+/** Two labels either side of one @, no whitespace, and a dotted TLD. */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** What the card shows in place of its email row. */
+type Phase = 'form' | 'processing' | 'confirming' | 'paid' | 'failed';
 
 /**
  * One payment card of the fan behind the Pro card, as the design's CardStack
@@ -47,25 +56,30 @@ function fan(count = 5, angle = 8, spreadStep = 6, maxAngle = 20, turn = 90, off
  * The Pro card from the design, on its fanned stack of payment cards — used
  * by the home page's pricing section and the Pro page's registration section.
  *
- * The card is the design's, prices included. "Continue to payment" opens the
- * full registration form in a dialog, with the email from the card already
- * filled in; checkout needs more than an email, so the card cannot take the
- * payment itself.
+ * It runs the real payment, the way the design draws it: a work email,
+ * "Continue to payment", then the card itself shows the payment being started
+ * and hands the customer to the hosted checkout. On the way back (/pro with
+ * ?payment=…) the same card shows the outcome — confirming, reserved or
+ * declined — from CheckoutOutcome, which reads the payment ledger.
  *
- * The button is an anchor to /pro#register inside a .pro-nudge wrapper: that
- * is what analytics reports as pro_click, and without script it still takes
- * the reader to the form. The dialog is a 'sheet', so the form's clicks are
- * not mistaken for the download interstitial's.
+ * The page never names a price or a currency: it names the price point and the
+ * payment service prices it. The card's $9.00 is the design's copy; what is
+ * shown while authorising, and on the receipt, is the service's own figure. A
+ * checkout that comes back in any currency but US dollars is not started.
+ *
+ * "Continue to payment" is an anchor to /pro#register inside a .pro-nudge
+ * wrapper — analytics reports it as pro_click, and without script it still
+ * lands on this card on /pro.
  *
  * The fan opens when the stack scrolls into view. The prerendered page shows
- * it open; in the browser a stack that is still below the viewport is closed
- * first and opens on arrival, and under reduced motion it simply stays open.
+ * it open; in the browser a stack still below the viewport is closed first
+ * and opens on arrival, and under reduced motion it simply stays open.
  *
  * Styles: styles/bundles/_pro-reserve.css, imported by home.css and pro.css.
  */
 @Component({
   selector: 'app-pro-reserve',
-  imports: [UiDialog, UiIcon, ProSpotlight, ProForm],
+  imports: [UiIcon, ProSpotlight],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'rsv-host' },
   template: `
@@ -92,17 +106,59 @@ function fan(count = 5, angle = 8, spreadStep = 6, maxAngle = 20, turn = 90, off
               <span>per month, billed at launch</span>
             </div>
             <div class="rsv-due"><span>Due today to reserve</span><span class="rsv-due-v">$9.00</span></div>
-            <div class="rsv-form pro-nudge">
-              <label class="rsv-input">
-                <ui-icon name="envelope-simple" [size]="16" />
-                <input #email type="email" aria-label="Work email" placeholder="you&#64;company.com"
-                       autocomplete="email" (keydown.enter)="$event.preventDefault(); openForm(email.value)">
-              </label>
-              <a class="btn btn--primary" href="/pro#register"
-                 (click)="$event.preventDefault(); openForm(email.value)">
-                Continue to payment<ui-icon name="arrow-right" [size]="16" />
-              </a>
-            </div>
+
+            @switch (phase()) {
+              @case ('processing') {
+                <div class="rsv-box rsv-box--wait rsv-row" role="status" aria-live="polite">
+                  <span class="rsv-box-title"><span class="rsv-spin" aria-hidden="true"></span>Processing payment…</span>
+                  <span class="rsv-bar"><span class="rsv-bar-run"></span></span>
+                  <span class="rsv-box-foot"><span>Authorizing {{ charge() }}</span><span>Don't close this page</span></span>
+                </div>
+              }
+              @case ('confirming') {
+                <div class="rsv-box rsv-box--wait rsv-row" role="status" aria-live="polite">
+                  <span class="rsv-box-title"><span class="rsv-spin" aria-hidden="true"></span>Confirming payment…</span>
+                  <span class="rsv-bar"><span class="rsv-bar-run"></span></span>
+                  <span class="rsv-box-foot"><span>Checking with the payment ledger</span><span>Don't close this page</span></span>
+                </div>
+              }
+              @case ('paid') {
+                <div class="rsv-box rsv-box--ok rsv-pop" role="status">
+                  <span class="rsv-box-title"><ui-icon name="check-circle" [size]="20" />Seat reserved</span>
+                  <span class="rsv-box-text">{{ paidAmount() }} paid. Your receipt and invite are on the way to your inbox.</span>
+                  <span class="rsv-box-foot rsv-box-foot--rule"><span>Order {{ outcome.reference() }}</span><span>{{ outcome.ledgerConfirmed() ? 'Confirmed' : 'Confirmation pending' }}</span></span>
+                </div>
+              }
+              @case ('failed') {
+                <div class="rsv-box rsv-box--bad rsv-row" role="alert">
+                  <span class="rsv-box-title"><ui-icon name="x-circle" [size]="20" />Payment declined</span>
+                  <span class="rsv-box-text">The {{ paidAmount() }} charge did not go through. No money was taken.</span>
+                  <span class="rsv-box-foot rsv-box-foot--rule rsv-box-foot--act">
+                    <span class="rsv-box-code">Order {{ outcome.reference() }}</span>
+                    <button class="btn btn--outline btn--sm" type="button" (click)="tryAgain()">
+                      <ui-icon name="arrow-clockwise" [size]="14" />Try again
+                    </button>
+                  </span>
+                </div>
+              }
+              @default {
+                <div class="rsv-form pro-nudge">
+                  <label class="rsv-input" [class.is-invalid]="emailInvalid()">
+                    <ui-icon name="envelope-simple" [size]="16" />
+                    <input #email type="email" aria-label="Work email" placeholder="you&#64;company.com"
+                           autocomplete="email" [attr.aria-invalid]="emailInvalid() || null"
+                           (input)="started()" (keydown.enter)="$event.preventDefault(); pay(email.value)">
+                  </label>
+                  <a class="btn btn--primary" href="/pro#register"
+                     (click)="$event.preventDefault(); pay(email.value)">
+                    Continue to payment<ui-icon name="arrow-right" [size]="16" />
+                  </a>
+                </div>
+                @if (emailInvalid()) { <p class="rsv-err" role="alert">Enter your work email — the receipt and invite are sent there.</p> }
+                @if (error()) { <p class="rsv-err" role="alert">{{ error() }}</p> }
+              }
+            }
+
             <p class="rsv-fine">{{ fine() }}</p>
             <div class="rsv-includes">
               <p>Pro includes:</p>
@@ -116,16 +172,6 @@ function fan(count = 5, angle = 8, spreadStep = 6, maxAngle = 20, turn = 90, off
         </div>
       </div>
     </div>
-
-    @if (formOpen()) {
-      <div class="rsv-dialog">
-        <ui-dialog kind="sheet" label="Register for Pro" (close)="formOpen.set(false)">
-          <h3>Register for Pro</h3>
-          <p>A few details for checkout. We provision your workspace and send credentials by email.</p>
-          <app-pro-form [email]="prefill()" />
-        </ui-dialog>
-      </div>
-    }
   `,
 })
 export class ProReserve implements OnDestroy {
@@ -135,12 +181,33 @@ export class ProReserve implements OnDestroy {
   readonly fine = input('Refundable until launch');
 
   protected readonly cards = fan();
-  protected readonly formOpen = signal(false);
-  protected readonly prefill = signal('');
   protected readonly features = [
     'Raised CPS ceiling', 'Full algorithm set', 'Deep simulator tweaks',
     'Hosted cloud endpoints', 'Priority support', 'Team configuration sync',
   ];
+
+  protected readonly outcome = inject(CheckoutOutcome);
+  private readonly payments = inject(PaymentsService);
+  private readonly analytics = inject(AnalyticsService);
+
+  /** This card's own step, before the page leaves for checkout. */
+  private readonly local = signal<'form' | 'processing'>('form');
+  protected readonly emailInvalid = signal(false);
+  protected readonly error = signal<string | null>(null);
+  /** The amount the service quoted, shown while authorising. */
+  protected readonly charge = signal('$9.00');
+
+  /** A return from checkout outranks the card's own step. */
+  protected readonly phase = computed<Phase>(() => {
+    const state = this.outcome.state();
+    return state === 'idle' ? this.local() : state;
+  });
+
+  /** What was charged, from the quote this tab started; the card's own figure otherwise. */
+  protected readonly paidAmount = computed(() => {
+    const minor = this.outcome.amountPaise();
+    return minor === null ? '$9.00' : formatMinor(minor, this.outcome.currency());
+  });
 
   /** True while the fan is gathered into one stack, waiting to open. */
   protected readonly closed = signal(false);
@@ -150,6 +217,15 @@ export class ProReserve implements OnDestroy {
 
   constructor() {
     if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
+
+    // Coming back from checkout: bring the card that holds the answer into view.
+    let shown = false;
+    effect(() => {
+      if (shown || !this.outcome.active()) return;
+      shown = true;
+      setTimeout(() => this.stack().nativeElement.scrollIntoView({ block: 'center' }), 120);
+    });
+
     afterNextRender(() => {
       const el = this.stack().nativeElement;
       const view = el.ownerDocument.defaultView;
@@ -168,11 +244,91 @@ export class ProReserve implements OnDestroy {
     });
   }
 
-  protected openForm(email: string): void {
-    this.prefill.set(email.trim());
-    this.formOpen.set(true);
+  /** First keystroke = the form was started. trackOnce dedupes. */
+  protected started(): void {
+    this.emailInvalid.set(false);
+    this.analytics.reportFormStart();
+  }
+
+  protected tryAgain(): void {
+    this.local.set('form');
+    this.error.set(null);
+    this.outcome.dismiss();
+  }
+
+  /**
+   * Starts the real checkout for the reservation.
+   *
+   * Browser-only shape: the page names the price point, the service prices
+   * it, and the card shows the service's figure while it hands over. Nothing
+   * here sets an amount or a currency.
+   */
+  protected async pay(raw: string): Promise<void> {
+    if (this.local() === 'processing') return;
+    const email = raw.trim();
+    this.error.set(null);
+    if (!EMAIL.test(email)) {
+      this.emailInvalid.set(true);
+      this.analytics.reportFormSubmit(false);
+      this.analytics.reportFormError(['email']);
+      return;
+    }
+    this.emailInvalid.set(false);
+    this.analytics.reportFormSubmit(true, 9, 'USD');
+
+    if (!this.payments.configured) {
+      console.warn(`Pro checkout is off — ${this.payments.unconfiguredReason}`);
+      this.error.set('Payment is not connected yet. Write to admin@iso8583.studio and we will reserve your seat directly.');
+      return;
+    }
+
+    this.local.set('processing');
+    try {
+      const { checkoutUrl, amountPaise, currency } = await this.payments.createCheckout({
+        pricePoint: PAYMENTS.pricePoints[0],
+        quantity: 1,
+        email,
+        // No accounts here, so the customer's own email is the stable key.
+        ref: email,
+        notes: { source: 'pro-reserve-card' },
+      });
+
+      // The card promises dollars. A price point still priced in another
+      // currency would charge something the customer was never shown, so it
+      // is not started at all.
+      if (currency !== 'USD') {
+        this.payments.clearToken();
+        console.error(`Pro checkout: price point ${PAYMENTS.pricePoints[0]} is priced in ${currency}, `
+          + 'not USD. Reprice it in the payment service; the checkout was not started.');
+        this.analytics.reportCheckoutError('currency_not_usd');
+        this.local.set('form');
+        this.error.set('Checkout is not set up in US dollars yet, so no payment was started. Write to admin@iso8583.studio.');
+        return;
+      }
+
+      this.charge.set(formatMinor(amountPaise, currency));
+      // checkout_id stitches begin_checkout to the purchase on return; the
+      // redirect waits for the beacon (max 400ms).
+      const checkoutId = crypto.randomUUID();
+      this.payments.rememberCheckoutId(checkoutId);
+      this.analytics.reportBeginCheckout(amountPaise, checkoutId, () => {
+        location.assign(checkoutUrl);
+      }, currency);
+    } catch (err) {
+      this.local.set('form');
+      const e = err as { code?: string; message?: string; requestId?: string | null };
+      this.analytics.reportCheckoutError(e.code ?? 'network_or_cors');
+      if (e.code) {
+        console.error(`payments ${e.code} (request ${e.requestId ?? 'unknown'}): ${e.message}`);
+        this.error.set(messageFor(e as never));
+      } else {
+        // A blocked preflight looks identical to a network failure: only the
+        // deployed origin is allowlisted, so this is what a dev server sees.
+        console.warn(`Pro checkout: the request to ${PAYMENTS.baseUrl} did not complete.`, err);
+        this.error.set('Payment could not be started. Check your connection and try again.');
+      }
+    }
   }
 
   ngOnDestroy(): void { this.io?.disconnect(); }
 }
-

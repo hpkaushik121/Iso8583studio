@@ -37,6 +37,8 @@ export class CheckoutOutcome {
   readonly reference = signal<string | null>(null);
   /** The quote total, when this tab is the one that started the checkout. */
   readonly amountPaise = signal<number | null>(null);
+  /** The quote's currency; amountPaise is in its minor units. */
+  readonly currency = signal('INR');
   /**
    * Whether `/c/{token}/status` was actually read, rather than the outcome
    * being taken from the redirect. Both are shown as paid; only this one may
@@ -97,6 +99,7 @@ export class CheckoutOutcome {
     this.reference.set(ref);
     // Read before clearToken() wipes it — order matters here.
     this.amountPaise.set(this.payments.takeAmount());
+    this.currency.set(this.payments.takeCurrency());
     const checkoutId = this.payments.takeCheckoutId();
     this.analytics.reportPaymentResult(flag, ref);
 
@@ -115,7 +118,7 @@ export class CheckoutOutcome {
     if (!token) {
       // A different tab (UPI return) or cleared storage: the redirect already
       // said paid. Count it — value_known:'no' keeps the blind spot visible.
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
+      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId, this.currency());
       this.state.set('paid');
       return;
     }
@@ -134,11 +137,11 @@ export class CheckoutOutcome {
       // redirect already said paid, and a webhook that has not landed yet is
       // not a reason to tell the customer otherwise.
       this.ledgerConfirmed.set(out.status === 'paid');
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
+      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId, this.currency());
       this.state.set('paid');
     } catch {
       // The poll could not run. The redirect stands on its own.
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
+      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId, this.currency());
       this.state.set('paid');
     }
   }

@@ -41,6 +41,8 @@ const AMOUNT_KEY = 'iso8583studio.checkout_amount';
  * the token is the authorisation and must not reach any analytics payload.
  */
 const CHECKOUT_ID_KEY = 'iso8583studio.checkout_id';
+/** The quote's currency, kept beside its amount: minor units mean nothing without it. */
+const CURRENCY_KEY = 'iso8583studio.checkout_currency';
 
 export type CheckoutStatus = 'paid' | 'processing' | 'pending' | 'failed';
 
@@ -100,12 +102,14 @@ export class PaymentsService {
      * the customer for. A missing number costs them a screen before they can
      * pay, and records whatever they type rather than who we priced for.
      */
-    contact: string;
+    contact?: string;
     name?: string;
+    /** ISO 3166-1 alpha-2. Decides the tax treatment; omitted, the currency stands in. */
+    country?: string;
     /** Our own id for the customer; the natural key the service upserts on. */
     ref: string;
     notes?: Record<string, string>;
-  }): Promise<{ checkoutUrl: string; token: string; amountPaise: number }> {
+  }): Promise<{ checkoutUrl: string; token: string; amountPaise: number; currency: string }> {
     const origin = this.doc.defaultView?.location.origin ?? '';
 
     const body = JSON.stringify({
@@ -115,8 +119,9 @@ export class PaymentsService {
       customer: {
         ref: input.ref,
         email: input.email,
-        contact: input.contact,
+        ...(input.contact ? { contact: input.contact } : {}),
         ...(input.name ? { name: input.name } : {}),
+        ...(input.country ? { country: input.country } : {}),
       },
       success_url: `${origin}/pro?payment=done`,
       failure_url: `${origin}/pro?payment=failed`,
@@ -143,11 +148,15 @@ export class PaymentsService {
       if (res.ok) {
         const created = await res.json();
         this.rememberToken(created.checkout_token);
-        this.rememberAmount(created.amount_paise);
+        // The page cannot name a currency; the catalog prices the SKU in the
+        // tenant's. Whatever comes back is what will be charged.
+        const currency = String(created.currency ?? 'INR').toUpperCase();
+        this.rememberAmount(created.amount_paise, currency);
         return {
           checkoutUrl: created.checkout_url,
           token: created.checkout_token,
           amountPaise: created.amount_paise,
+          currency,
         };
       }
 
@@ -225,6 +234,7 @@ export class PaymentsService {
   clearToken(): void {
     this.remove(TOKEN_KEY);
     this.remove(AMOUNT_KEY);
+    this.remove(CURRENCY_KEY);
   }
 
   rememberCheckoutId(id: string): void {
@@ -238,9 +248,15 @@ export class PaymentsService {
     return id;
   }
 
-  rememberAmount(paise: number): void {
-    if (!Number.isFinite(paise)) return;
-    this.write(AMOUNT_KEY, String(paise));
+  rememberAmount(minor: number, currency = 'INR'): void {
+    if (!Number.isFinite(minor)) return;
+    this.write(AMOUNT_KEY, String(minor));
+    this.write(CURRENCY_KEY, currency);
+  }
+
+  /** The quote's currency, as the service returned it. */
+  takeCurrency(): string {
+    return this.read(CURRENCY_KEY) ?? 'INR';
   }
 
   /** The quote total, as the service froze it. */
@@ -299,17 +315,20 @@ export class PaymentsService {
 }
 
 /**
- * Paise as rupees.
- *
- * Zero paise are dropped by default, because the running total under the
- * amount field is read while it is being typed and `₹250.00` there is noise.
- * A receipt is the other way round: `exact` keeps the paise, since a figure
- * that has actually been charged is quoted in full.
+ * Minor units of `currency` in major units. The exponent comes from the
+ * currency itself — the guide is explicit that dividing by 100 regardless is
+ * wrong (yen have none).
  */
-export function formatPaise(paise: number, exact = false): string {
-  const r = paise / 100;
-  return `₹${!exact && Number.isInteger(r) ? r.toLocaleString('en-IN') : r.toLocaleString('en-IN', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function minorToMajor(minor: number, currency: string): number {
+  const digits = new Intl.NumberFormat('en-US', { style: 'currency', currency })
+    .resolvedOptions().maximumFractionDigits ?? 2;
+  return minor / 10 ** digits;
+}
+
+/** Minor units of `currency` as a display amount: 900 USD is "$9.00". */
+export function formatMinor(minor: number, currency: string): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency })
+    .format(minorToMajor(minor, currency));
 }
 
 /** What to tell the customer. Anything unlisted gets the generic line. */

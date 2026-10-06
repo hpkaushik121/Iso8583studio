@@ -2,6 +2,7 @@ import { DOCUMENT, Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { minorToMajor } from './payments';
 
 /**
  * GA4 + Google Ads tagging, ported from docs/assets/analytics.js.
@@ -627,9 +628,9 @@ export class AnalyticsService {
   // ------------------------------------------------------------- pro funnel
 
   /** view_item for the Pro pitch — once per navigation, skipped on returns. */
-  reportProView(): void {
+  reportProView(currency = 'USD'): void {
     this.trackOnce('pro_view', 'view_item', {
-      currency: 'INR',
+      currency,
       items: [{ item_id: 'pp_pro_initial', item_name: 'ISO8583Studio Pro — early access',
                 item_category: 'pro', item_brand: 'ISO8583Studio', quantity: 1 }],
     });
@@ -637,17 +638,10 @@ export class AnalyticsService {
 
   reportFormStart(): void { this.trackOnce('pro_form_start', 'form_start'); }
 
-  /** The pay-what-you-want signal: what people type, whether or not they pay. */
-  reportAmountEntered(rupees: number): void {
-    this.trackOnce('amount_entered', 'amount_entered', {
-      value: rupees, currency: 'INR', amount_bucket: amountBucket(rupees),
-    });
-  }
-
-  reportFormSubmit(valid: boolean, rupees?: number): void {
+  reportFormSubmit(valid: boolean, value?: number, currency = 'INR'): void {
     this.track('form_submit', {
       form_valid: valid ? 'yes' : 'no',
-      ...(valid && rupees ? { value: rupees, currency: 'INR' } : {}),
+      ...(valid && value ? { value, currency } : {}),
     });
   }
 
@@ -660,9 +654,9 @@ export class AnalyticsService {
    * begin_checkout + generate_lead, then `done` — which performs the redirect.
    * Fired with the amount the service froze, the only authoritative figure.
    */
-  reportBeginCheckout(amountPaise: number, checkoutId: string, done: () => void): void {
-    const rupees = amountPaise / 100;
-    this.track('generate_lead', { value: rupees, currency: 'INR' });
+  reportBeginCheckout(amountMinor: number, checkoutId: string, done: () => void, currency = 'INR'): void {
+    const value = minorToMajor(amountMinor, currency);
+    this.track('generate_lead', { value, currency });
 
     // Click-time Ads purchase conversion, so a payer who completes in the UPI
     // app but never returns to the result page is still counted. Keyed to the
@@ -672,17 +666,17 @@ export class AnalyticsService {
     if (this.adsEnabled && ADS_PURCHASE) {
       this.gtag('event', 'conversion', {
         send_to: `${ADS_ID}/${ADS_PURCHASE}`,
-        value: rupees,
-        currency: 'INR',
+        value,
+        currency,
         transaction_id: checkoutId,
       });
     }
     this.trackThen('begin_checkout', {
-      value: rupees, currency: 'INR',
-      amount_bucket: amountBucket(rupees),
+      value, currency,
+      amount_bucket: amountBucket(value),
       checkout_id: checkoutId,
       items: [{ item_id: 'pp_pro_initial', item_name: 'ISO8583Studio Pro — early access',
-                item_category: 'pro', price: rupees, quantity: 1 }],
+                item_category: 'pro', price: value, quantity: 1 }],
     }, done);
   }
 
@@ -695,7 +689,7 @@ export class AnalyticsService {
    * before the event fires, so a mid-flight failure fails closed. The ledger
    * is localStorage because a UPI app returns the customer in a new tab.
    */
-  reportPurchase(ref: string, amountPaise: number | null, checkoutId: string | null): void {
+  reportPurchase(ref: string, amountMinor: number | null, checkoutId: string | null, currency = 'INR'): void {
     const LEDGER = 'iso8583studio.purchases_reported';
     try {
       const seen: string[] = JSON.parse(this.lsGet(LEDGER) || '[]');
@@ -706,7 +700,7 @@ export class AnalyticsService {
     this.lsSet('iso8583_pro', '1');
     this.gtag('set', 'user_properties', { pro_customer: 'yes' });
 
-    const rupees = amountPaise === null ? undefined : amountPaise / 100;
+    const rupees = amountMinor === null ? undefined : minorToMajor(amountMinor, currency);
 
     // Google Ads purchase conversion. Behind the same ledger as the GA4 event,
     // and keyed to the checkout id so Google drops it as a duplicate of the
@@ -718,14 +712,14 @@ export class AnalyticsService {
       this.gtag('event', 'conversion', this.compact({
         send_to: `${ADS_ID}/${ADS_PURCHASE}`,
         value: rupees ?? 1.0,
-        currency: 'INR',
+        currency,
         transaction_id: checkoutId || ref,
       }));
     }
 
     this.track('purchase', {
       transaction_id: ref,
-      currency: 'INR',
+      currency,
       ...(rupees !== undefined ? { value: rupees, amount_bucket: amountBucket(rupees) } : {}),
       value_known: rupees !== undefined ? 'yes' : 'no',
       ...(checkoutId ? { checkout_id: checkoutId } : {}),

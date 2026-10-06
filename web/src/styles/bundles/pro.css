@@ -1,15 +1,11 @@
 @import './pro.tokens.css';
 @import './_pro-reserve.css';
-@import './_pro-form.css';
 
 /* ==========================================================================
    /pro — the Pro pitch, the registration form and the payment result.
 
    Bundles stay loaded once a page has been visited, so every rule here is
-   scoped to .page-pro or carries the pro- prefix. The form (.pf-*) and the
-   result screen (.pr-*) are complete in this file: they do not depend on the
-   older global rules of the same names in _components.css, and each sets
-   every property those rules set so it wins while both are loaded.
+   scoped to .page-pro or carries the pro- prefix.
    ========================================================================== */
 
 .page-pro { display: block; background: var(--canvas); }
@@ -642,8 +638,8 @@
 
 /* ---- Register: the design's Pro card ----------------------------------- */
 
-/* The card, its fan and the form dialog are app-pro-reserve
-   (_pro-reserve.css); the form itself is _pro-form.css. */
+/* The card, its fan and the payment states are app-pro-reserve
+   (_pro-reserve.css). */
 .page-pro #register { overflow-x: clip; }
 .page-pro .pro-reserve { margin-top: 24px; }
 
@@ -656,265 +652,12 @@
     .page-pro .accordion-a p { margin-right: 0; }
 }
 
-/* ==========================================================================
-   Payment result — the screen the customer lands on coming back from the
-   hosted checkout. It replaces the whole page body, so it is centred in the
-   viewport below the fixed header.
-   ========================================================================== */
-
-.pro-result {
-    max-width: var(--wrap-max);
-    margin: 0 auto;
-    padding: calc(var(--nav-h) + var(--sp-8)) var(--gutter) var(--sp-16);
-}
-
-/* The component's host element, which is inline by default. */
-.page-pro .pr-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    max-width: 600px;
-    min-height: 64vh;
-    margin: 0 auto;
-    padding: 0;
-}
-
-.page-pro .pr-card {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-    padding: 40px 36px 32px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-xl);
-    background: var(--bg-deep);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(159, 211, 255, .1);
-    --pr-glow: rgba(30, 136, 229, .14);
-}
-
-/* A wash in the colour of the outcome. Only a known failure is allowed red. */
-.page-pro .pr-card:has(.pr-disc-ok) { --pr-glow: rgba(94, 194, 106, .13); border-color: var(--green-line); }
-.page-pro .pr-card:has(.pr-disc-bad) { --pr-glow: rgba(229, 72, 77, .12); border-color: var(--red-line); }
-
-.page-pro .pr-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(80% 46% at 50% 0%, var(--pr-glow), transparent 72%);
-}
-
-.page-pro .pr-body { position: relative; width: 100%; }
-
-/* ---- The status disc ---------------------------------------------------- */
-
-.page-pro .pr-disc {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 72px;
-    height: 72px;
-    margin: 0 auto var(--sp-6);
-    border-radius: 50%;
-    animation: pro-pr-pop .5s cubic-bezier(.34, 1.4, .5, 1) both;
-}
-
-.page-pro .pr-disc-ok { border: 1px solid var(--green-line); background: var(--green-wash); }
-.page-pro .pr-disc-bad { border: 1px solid var(--red-line); background: var(--red-wash); }
-.page-pro .pr-disc-wait { border: 1px solid var(--blue-line); background: var(--blue-wash); }
-
-.page-pro .pr-icon { width: 32px; height: 32px; }
-
-/* The approved tick pulses outward once the disc has landed. */
-.page-pro .pr-ring {
-    position: absolute;
-    inset: -1px;
-    border: 1.5px solid var(--green-hi);
-    border-radius: 50%;
-    animation: pro-pr-ring 2.4s cubic-bezier(.2, .6, .3, 1) .4s infinite;
-}
-
-.page-pro .pr-draw { stroke-dasharray: 40; animation: pro-pr-draw .45s var(--ease) .3s both; }
-.page-pro .pr-draw-2 { animation-delay: .45s; }
-
-/* ---- Copy --------------------------------------------------------------- */
-
-.page-pro .pr-head { text-align: center; animation: pro-pr-rise .45s ease .25s both; }
-
-.page-pro .pr-head h2 {
-    margin: 0 0 var(--sp-2);
-    color: var(--text);
-    font-size: var(--fs-result-title);
-    font-weight: 500;
-    letter-spacing: var(--ls-tight);
-    line-height: 1.2;
-    text-wrap: balance;
-}
-
-/* Narrower than the card and deliberately so: centred text is only readable
-   short. */
-.page-pro .pr-head p {
-    max-width: 430px;
-    margin: 0 auto;
-    color: var(--muted);
-    font-size: var(--fs-base);
-    line-height: var(--lh-base);
-    text-wrap: pretty;
-}
-
-/* Still working: shown only while the ledger has not answered. */
-.page-pro .pr-bar {
-    position: relative;
-    display: block;
-    max-width: 430px;
-    height: 3px;
-    margin: var(--sp-6) auto 0;
-    overflow: hidden;
-    border-radius: 2px;
-    background: rgba(233, 236, 245, .08);
-}
-
-.page-pro .pr-bar span {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -40%;
-    width: 40%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, var(--blue-hi), transparent);
-    animation: pro-pr-indet 1.3s cubic-bezier(.65, 0, .35, 1) infinite;
-}
-
-.page-pro .pr-amount {
-    margin: var(--sp-6) 0;
-    text-align: center;
-    animation: pro-pr-rise .45s ease .32s both;
-}
-
-.page-pro .pr-amount-value {
-    color: var(--text);
-    font-size: var(--fs-result-amount);
-    font-weight: 500;
-    letter-spacing: var(--ls-tight);
-    font-variant-numeric: tabular-nums;
-    line-height: var(--lh-tight);
-}
-
-/* Only a captured payment gets to state the amount in full colour. */
-.page-pro .pr-amount-quiet .pr-amount-value { color: var(--muted); }
-
-.page-pro .pr-amount-note { margin-top: var(--sp-2); color: var(--faint); font-size: var(--fs-note); }
-
-/* ---- Advisory ----------------------------------------------------------- */
-
-/* Shown on every non-terminal state. A customer who reads "not known yet" as
-   "failed" pays a second time, so the instruction not to has its own box. The
-   top margin is its own: the amount above is absent whenever this tab did not
-   start the checkout. */
-.page-pro .pr-advisory {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--sp-3);
-    margin: var(--sp-6) 0 var(--sp-5);
-    padding: var(--sp-4);
-    border: 1px solid var(--amber-line);
-    border-radius: var(--r-lg);
-    background: var(--amber-wash);
-}
-
-.page-pro .pr-advisory svg { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 2px; }
-
-.page-pro .pr-advisory p {
-    margin: 0;
-    color: var(--text);
-    font-size: var(--fs-note);
-    line-height: var(--lh-snug);
-}
-
-/* ---- Details ------------------------------------------------------------ */
-
-.page-pro .pr-grid {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--sp-3) var(--sp-5);
-    margin: var(--sp-6) 0 0;
-    padding: var(--sp-5) 0;
-    border-top: 1px solid var(--line2);
-    border-bottom: 1px solid var(--line2);
-    font-size: var(--fs-note);
-}
-
-.page-pro .pr-grid dt { color: var(--muted); }
-.page-pro .pr-grid dd { margin: 0; color: var(--text); text-align: right; overflow-wrap: anywhere; }
-.page-pro .pr-mono { font-family: var(--mono); }
-
-/* The one line a QA engineer reads: it separates a confirmed capture from a
-   redirect that has not been confirmed. */
-.page-pro .pr-code {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--sp-2);
-    margin-top: var(--sp-4);
-    font-family: var(--mono);
-    font-size: var(--fs-xs);
-}
-
-.page-pro .pr-code-text { color: var(--faint); }
-
-.page-pro .pr-pill { padding: var(--sp-1) var(--sp-2); border-radius: var(--r-sm); white-space: nowrap; }
-.page-pro .pr-pill-ok { border: 1px solid var(--green-line); background: var(--green-wash); color: var(--green-hi); }
-.page-pro .pr-pill-bad { border: 1px solid var(--red-line); background: var(--red-wash); color: var(--red-hi); }
-.page-pro .pr-pill-wait { border: 1px solid var(--neutral-line); background: var(--neutral-wash); color: var(--text); }
-
-/* ---- Actions ------------------------------------------------------------ */
-
-.page-pro .pr-actions { display: flex; gap: var(--sp-3); margin-top: var(--sp-6); }
-.page-pro .pr-act { flex: 0 0 auto; text-decoration: none; }
-.page-pro .pr-act.btn--primary { flex: 1 1 auto; }
-
-/* On a phone the actions stack full width. */
-@media (max-width: 560px) {
-    .pro-result { padding-top: calc(var(--nav-h) + var(--sp-5)); padding-bottom: var(--sp-10); }
-    .page-pro .pr-wrap { min-height: 0; }
-    .page-pro .pr-card { padding: 28px 18px 22px; }
-    .page-pro .pr-actions { flex-direction: column; }
-    .page-pro .pr-act { width: 100%; }
-}
-
-@keyframes pro-pr-pop {
-    0% { transform: scale(.6); opacity: 0; }
-    60% { transform: scale(1.06); }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes pro-pr-draw { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
-
-@keyframes pro-pr-ring {
-    0% { transform: scale(.8); opacity: .55; }
-    70%, 100% { transform: scale(1.45); opacity: 0; }
-}
-
-@keyframes pro-pr-rise {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pro-pr-indet { from { left: -40%; } to { left: 100%; } }
-
 /* ---- Reduced motion ------------------------------------------------------ */
 
 /* The canvases hold one still frame (their components check the same query);
-   this stops what the stylesheet itself animates. The trace inside the waiting
-   disc is slowed rather than stopped by the mark's own rule: a still mark
-   would say the page had given up polling. */
+   this stops what the stylesheet itself animates. */
 @media (prefers-reduced-motion: reduce) {
     .pro-spot::before, .pro-spot::after, .pro-hero-dots .pro-hero-dots-hot { display: none; }
     .pro-orbit-sheen { animation: none; }
 
-    .page-pro .pr-disc, .page-pro .pr-head, .page-pro .pr-amount,
-    .page-pro .pr-draw, .page-pro .pr-ring { animation: none; }
-
-    .page-pro .pr-draw { stroke-dashoffset: 0; }
-    .page-pro .pr-bar span { left: 30%; animation: none; }
 }

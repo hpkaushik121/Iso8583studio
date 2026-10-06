@@ -18,10 +18,10 @@ const FOCUSABLE =
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog-ov" (click)="onBackdrop($event)">
-      <div #panel [class]="kind()" role="dialog" aria-modal="true" [attr.aria-label]="label()"
+      <div #panel class="dialog" role="dialog" aria-modal="true" [attr.aria-label]="label()"
            (keydown)="onKeydown($event)">
         <span class="dialog-glow" aria-hidden="true"></span>
-        <button [class]="kind() + '-x icon-btn'" type="button" aria-label="Close" (click)="close.emit('button')">
+        <button class="dialog-x icon-btn" type="button" aria-label="Close" (click)="close.emit('button')">
           <ui-icon name="x" [size]="15" />
         </button>
         <ng-content />
@@ -31,13 +31,6 @@ const FOCUSABLE =
 })
 export class UiDialog implements AfterViewInit, OnDestroy {
   readonly label = input.required<string>();
-  /**
-   * 'dialog' is the Pro download interstitial's panel. Analytics reads clicks
-   * inside a .dialog, and on .dialog-x, as that interstitial's actions, so any
-   * other modal is a 'sheet': the same look under class names analytics does
-   * not claim.
-   */
-  readonly kind = input<'dialog' | 'sheet'>('dialog');
   readonly close = output<'button' | 'backdrop' | 'escape'>();
 
   private readonly panel = viewChild.required<ElementRef<HTMLElement>>('panel');

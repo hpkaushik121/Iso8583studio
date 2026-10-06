@@ -315,8 +315,7 @@ footer { margin-top: var(--sp-section); }
     animation: ds-fade-in .3s var(--ease-out) both;
 }
 
-.dialog,
-.sheet {
+.dialog {
     position: relative;
     width: min(500px, 100%);
     max-height: calc(100vh - var(--sp-10));
@@ -336,14 +335,11 @@ footer { margin-top: var(--sp-section); }
     pointer-events: none;
 }
 
-.dialog > *:not(.dialog-glow, .dialog-x),
-.sheet > *:not(.dialog-glow, .sheet-x) { position: relative; }
+.dialog > *:not(.dialog-glow, .dialog-x) { position: relative; }
 
-.dialog-x,
-.sheet-x { position: absolute; top: var(--sp-6); right: var(--sp-6); z-index: 1; --ib-size: 30px; }
+.dialog-x { position: absolute; top: var(--sp-6); right: var(--sp-6); z-index: 1; --ib-size: 30px; }
 
-.dialog h3,
-.sheet h3 {
+.dialog h3 {
     margin: var(--sp-4) 0 0;
     font-size: var(--fs-2xl);
     font-weight: 500;
@@ -352,8 +348,7 @@ footer { margin-top: var(--sp-section); }
     text-wrap: pretty;
 }
 
-.dialog p,
-.sheet > p { margin: 10px 0 0; color: var(--muted); font-size: var(--fs-base); text-wrap: pretty; }
+.dialog p { margin: 10px 0 0; color: var(--muted); font-size: var(--fs-base); text-wrap: pretty; }
 
 .pm-list { display: grid; gap: var(--sp-2); margin: 18px 0 0; padding: 0; list-style: none; }
 
@@ -385,7 +380,7 @@ footer { margin-top: var(--sp-section); }
 .dialog .pm-note { margin-top: 14px; color: var(--faint); font-size: var(--fs-caption); text-align: right; }
 
 @media (max-width: 540px) {
-    .dialog, .sheet { padding: 22px; }
+    .dialog { padding: 22px; }
     .pm-actions { flex-direction: column-reverse; }
     .pm-actions .btn { width: 100%; white-space: normal; height: auto; min-height: 40px; padding-block: 10px; }
     .dialog .pm-note { text-align: center; }

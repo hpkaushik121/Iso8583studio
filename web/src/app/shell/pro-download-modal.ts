@@ -28,7 +28,7 @@ const DOWNLOAD_HREF = /releases\/latest|releases\/download|\.(dmg|exe|msi|deb|rp
         </ul>
         <div class="pm-actions">
           <a class="btn btn--secondary pm-skip" [href]="href" (click)="close()">Just download the free studio →</a>
-          <a class="btn btn--primary btn--glow" routerLink="/pro" (click)="close()">Register for Pro — from ₹2</a>
+          <a class="btn btn--primary btn--glow" routerLink="/pro" fragment="register" (click)="close()">Reserve a Pro seat — $9</a>
         </div>
         <p class="pm-note">Free download: native installers for macOS, Windows and Linux on GitHub releases.</p>
       </ui-dialog>

@@ -10,7 +10,6 @@
 @import './home.tokens.css';
 @import './_hero-dash.css';
 @import './_pro-reserve.css';
-@import './_pro-form.css';
 
 .page-home { display: block; background: var(--canvas); }
 .page-home home-journey, .page-home home-scroll-dots { display: block; }
