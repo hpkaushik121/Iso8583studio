@@ -5,6 +5,9 @@ import {
   AccordionItem, Crumb, UiAccordion, UiBadge, UiBreadcrumb, UiIcon, UiReveal, UiWords,
 } from '../../ui';
 import { ProReserve } from '../pro/pro-reserve';
+import {
+  GST_PERCENT, PRO_MONTHLY_LABEL, PRO_MONTHLY_USD, PRO_RESERVE_USD, RESERVE_LABEL,
+} from '../pro/pro-pricing';
 import { CheckoutOutcome } from '../pro/checkout-outcome';
 import { ProOrbit } from '../pro/pro-orbit';
 import { ProAlgos, ProLane, ProSpotlight } from '../pro/pro-motion';
@@ -75,8 +78,9 @@ const FAQ: AccordionItem[] = [
   },
   {
     q: 'How much does Pro cost?',
-    a: '$13.99 per month, billed once Pro launches. Reserving a seat today costs $9.00, charged in US '
-      + 'dollars at checkout.',
+    a: `${PRO_MONTHLY_LABEL} per month (about $${PRO_MONTHLY_USD}), billed once Pro launches. Reserving a `
+      + `seat today costs ${RESERVE_LABEL} (about $${PRO_RESERVE_USD}), including ${GST_PERCENT}% GST, `
+      + 'charged in rupees at checkout.',
   },
   {
     q: 'What happens after I pay?',

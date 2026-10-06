@@ -8,6 +8,9 @@ import { AnalyticsService } from '../../core/analytics';
 import { PaymentsService, formatMinor, messageFor } from '../../core/payments';
 import { UiIcon } from '../../ui';
 import { CheckoutOutcome } from './checkout-outcome';
+import {
+  GST_PERCENT, PRO_MONTHLY_LABEL, RESERVE_LABEL, RESERVE_TOTAL_PAISE, RESERVE_UNITS,
+} from './pro-pricing';
 import { ProSpotlight } from './pro-motion';
 
 /** Two labels either side of one @, no whitespace, and a dotted TLD. */
@@ -63,9 +66,10 @@ function fan(count = 5, angle = 8, spreadStep = 6, maxAngle = 20, turn = 90, off
  * declined — from CheckoutOutcome, which reads the payment ledger.
  *
  * The page never names a price or a currency: it names the price point and the
- * payment service prices it. The card's $9.00 is the design's copy; what is
- * shown while authorising, and on the receipt, is the service's own figure. A
- * checkout that comes back in any currency but US dollars is not started.
+ * payment service prices it — in rupees, as units of its ₹1 price point. The
+ * card's prices are the design's dollar figures converted once (pro-pricing.ts);
+ * what is shown while authorising, and on the receipt, is the service's own
+ * figure. A checkout that comes back in any currency but INR is not started.
  *
  * "Continue to payment" is an anchor to /pro#register inside a .pro-nudge
  * wrapper — analytics reports it as pro_click, and without script it still
@@ -102,10 +106,10 @@ function fan(count = 5, angle = 8, spreadStep = 6, maxAngle = 20, turn = 90, off
             <span class="rsv-kicker">✦ ISO8583Studio Pro</span>
             <p class="rsv-lede">Reserve a seat before launch. Pre-registration is paid and locks the founder rate for your first year.</p>
             <div class="rsv-price">
-              <strong>$13.99</strong>
+              <strong>{{ monthly }}</strong>
               <span>per month, billed at launch</span>
             </div>
-            <div class="rsv-due"><span>Due today to reserve</span><span class="rsv-due-v">$9.00</span></div>
+            <div class="rsv-due"><span>Due today to reserve, incl. {{ gst }}% GST</span><span class="rsv-due-v">{{ reserve }}</span></div>
 
             @switch (phase()) {
               @case ('processing') {
@@ -195,7 +199,10 @@ export class ProReserve implements OnDestroy {
   protected readonly emailInvalid = signal(false);
   protected readonly error = signal<string | null>(null);
   /** The amount the service quoted, shown while authorising. */
-  protected readonly charge = signal('$9.00');
+  protected readonly charge = signal(RESERVE_LABEL);
+  protected readonly monthly = PRO_MONTHLY_LABEL;
+  protected readonly reserve = RESERVE_LABEL;
+  protected readonly gst = GST_PERCENT;
 
   /** A return from checkout outranks the card's own step. */
   protected readonly phase = computed<Phase>(() => {
@@ -206,7 +213,7 @@ export class ProReserve implements OnDestroy {
   /** What was charged, from the quote this tab started; the card's own figure otherwise. */
   protected readonly paidAmount = computed(() => {
     const minor = this.outcome.amountPaise();
-    return minor === null ? '$9.00' : formatMinor(minor, this.outcome.currency());
+    return minor === null ? RESERVE_LABEL : formatMinor(minor, this.outcome.currency());
   });
 
   /** True while the fan is gathered into one stack, waiting to open. */
@@ -274,7 +281,7 @@ export class ProReserve implements OnDestroy {
       return;
     }
     this.emailInvalid.set(false);
-    this.analytics.reportFormSubmit(true, 9, 'USD');
+    this.analytics.reportFormSubmit(true, RESERVE_TOTAL_PAISE / 100, 'INR');
 
     if (!this.payments.configured) {
       console.warn(`Pro checkout is off — ${this.payments.unconfiguredReason}`);
@@ -286,24 +293,32 @@ export class ProReserve implements OnDestroy {
     try {
       const { checkoutUrl, amountPaise, currency } = await this.payments.createCheckout({
         pricePoint: PAYMENTS.pricePoints[0],
-        quantity: 1,
+        // A page may not name an amount: it names units of the ₹1 price point
+        // and the service prices them, tax included.
+        quantity: RESERVE_UNITS,
         email,
         // No accounts here, so the customer's own email is the stable key.
         ref: email,
         notes: { source: 'pro-reserve-card' },
       });
 
-      // The card promises dollars. A price point still priced in another
-      // currency would charge something the customer was never shown, so it
-      // is not started at all.
-      if (currency !== 'USD') {
+      // The card states rupees. A quote in any other currency would charge
+      // something the customer was never shown, so it is not started at all.
+      if (currency !== 'INR') {
         this.payments.clearToken();
-        console.error(`Pro checkout: price point ${PAYMENTS.pricePoints[0]} is priced in ${currency}, `
-          + 'not USD. Reprice it in the payment service; the checkout was not started.');
-        this.analytics.reportCheckoutError('currency_not_usd');
+        console.error(`Pro checkout: price point ${PAYMENTS.pricePoints[0]} came back in ${currency}, `
+          + 'not INR; the checkout was not started.');
+        this.analytics.reportCheckoutError('currency_mismatch');
         this.local.set('form');
-        this.error.set('Checkout is not set up in US dollars yet, so no payment was started. Write to admin@iso8583.studio.');
+        this.error.set('Checkout could not be priced in rupees, so no payment was started. Write to admin@iso8583.studio.');
         return;
+      }
+      // The service is the authority on tax. If it no longer agrees with the
+      // card, the customer still pays the service's figure, which the card
+      // shows next — but the card's own figure needs fixing.
+      if (amountPaise !== RESERVE_TOTAL_PAISE) {
+        console.warn(`Pro checkout: the card says ${RESERVE_LABEL} but the quote is `
+          + `${formatMinor(amountPaise, currency)}. PAYMENTS_TAX_BPS or the unit price is out of step.`);
       }
 
       this.charge.set(formatMinor(amountPaise, currency));

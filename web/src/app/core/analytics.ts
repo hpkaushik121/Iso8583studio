@@ -628,7 +628,7 @@ export class AnalyticsService {
   // ------------------------------------------------------------- pro funnel
 
   /** view_item for the Pro pitch — once per navigation, skipped on returns. */
-  reportProView(currency = 'USD'): void {
+  reportProView(currency = 'INR'): void {
     this.trackOnce('pro_view', 'view_item', {
       currency,
       items: [{ item_id: 'pp_pro_initial', item_name: 'ISO8583Studio Pro — early access',

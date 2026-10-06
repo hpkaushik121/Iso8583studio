@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { UiDialog } from '../ui/dialog';
 import { AnalyticsService } from '../core/analytics';
 import { UiIcon } from '../ui/icon';
+import { RESERVE_LABEL } from '../pages/pro/pro-pricing';
 
 const DOWNLOAD_HREF = /releases\/latest|releases\/download|\.(dmg|exe|msi|deb|rpm|jar|zip)(\?|$)/i;
 
@@ -28,7 +29,7 @@ const DOWNLOAD_HREF = /releases\/latest|releases\/download|\.(dmg|exe|msi|deb|rp
         </ul>
         <div class="pm-actions">
           <a class="btn btn--secondary pm-skip" [href]="href" (click)="close()">Just download the free studio →</a>
-          <a class="btn btn--primary btn--glow" routerLink="/pro" fragment="register" (click)="close()">Reserve a Pro seat — $9</a>
+          <a class="btn btn--primary btn--glow" routerLink="/pro" fragment="register" (click)="close()">Reserve a Pro seat — {{ reserve }}</a>
         </div>
         <p class="pm-note">Free download: native installers for macOS, Windows and Linux on GitHub releases.</p>
       </ui-dialog>
@@ -37,6 +38,7 @@ const DOWNLOAD_HREF = /releases\/latest|releases\/download|\.(dmg|exe|msi|deb|rp
 })
 export class ProDownloadModal {
   protected readonly pendingHref = signal<string | null>(null);
+  protected readonly reserve = RESERVE_LABEL;
   protected readonly perks = [
     { icon: 'gauge', text: 'Higher CPS — multi-threaded crypto for load & soak tests' },
     { icon: 'function', text: 'Full algorithm set: RSA, ECC, SHA-3, FPE, AES DUKPT' },

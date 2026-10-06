@@ -325,10 +325,16 @@ export function minorToMajor(minor: number, currency: string): number {
   return minor / 10 ** digits;
 }
 
-/** Minor units of `currency` as a display amount: 900 USD is "$9.00". */
-export function formatMinor(minor: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency })
-    .format(minorToMajor(minor, currency));
+/**
+ * Minor units of `currency` as a display amount: 900 USD is "$9.00", 86730
+ * INR is "₹867.30". Rupees use Indian digit grouping. `cents: false` drops the
+ * fraction, for list prices.
+ */
+export function formatMinor(minor: number, currency: string, cents = true): string {
+  return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', {
+    style: 'currency', currency,
+    ...(cents ? {} : { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+  }).format(minorToMajor(minor, currency));
 }
 
 /** What to tell the customer. Anything unlisted gets the generic line. */
