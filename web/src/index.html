@@ -23,9 +23,54 @@
     click and then showing that visitor display ads is both bad economics and
     the exact landing-page pattern Ads' quality signal punishes. The flag is
     kept in sessionStorage so the suppression survives in-site navigation.
+
+    This script is the single writer of that flag; core/analytics.ts only reads
+    it, through paidSession().
+
+    Consent Mode is set up here, before the AdSense loader, and not in
+    core/analytics.ts. AdSense reads consent off this same dataLayer, and the
+    Angular bundle does not run until long after this tag has loaded — so
+    defaults pushed from there arrived too late to govern it, and an EEA
+    visitor could be served personalised ads before the deny default existed.
+    The region list and the storage key are duplicated from
+    core/analytics.ts (CONSENT_DENY_REGIONS, CONSENT_KEY); keep the two in step.
   -->
   <script>
     (function () {
+      // The standard stub: it must push the `arguments` object, not an array —
+      // gtag.js ignores a plain array, which is the bug core/analytics.ts's
+      // own gtag() goes out of its way to avoid.
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      window.gtag = window.gtag || gtag;
+
+      // EU-27 + EEA three + UK + CH. The more specific default wins for a
+      // matching visitor, so declaration order does not matter.
+      gtag('consent', 'default', {
+        ad_storage: 'denied', ad_user_data: 'denied',
+        ad_personalization: 'denied', analytics_storage: 'denied',
+        region: ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR',
+                 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL',
+                 'PT', 'RO', 'SE', 'SI', 'SK', 'IS', 'LI', 'NO', 'GB', 'CH'],
+        wait_for_update: 500,
+      });
+      gtag('consent', 'default', {
+        ad_storage: 'granted', ad_user_data: 'granted',
+        ad_personalization: 'granted', analytics_storage: 'granted',
+      });
+      // Replay a stored choice now, so a returning visitor's decision also
+      // governs AdSense. Mirrors AnalyticsService.applyConsent.
+      try {
+        var choice = localStorage.getItem('iso8583-cookie-consent');
+        if (choice) {
+          var ad = choice === 'all' ? 'granted' : 'denied';
+          gtag('consent', 'update', {
+            ad_storage: ad, ad_user_data: ad, ad_personalization: ad,
+            analytics_storage: 'granted',
+          });
+        }
+      } catch (e) { /* private mode: the defaults above stand */ }
+
       var KEY = 'iso8583_paid_session';
       try {
         var q = new URLSearchParams(location.search);

@@ -31,25 +31,15 @@ const SOLUTION_PAGES = ['emv-certification', 'cloud-simulators', 'kernel', 'midd
 const DOWNLOAD_FILE = /\.(dmg|msi|exe|deb|rpm|jar|zip)(\?|#|$)/i;
 const RELEASE_LINK = /releases\/(latest|download)/i;
 const SCROLL_MARKS = [25, 50, 75, 90];
-/** Same key the cookie banner writes; analytics replays it into Consent Mode. */
-const CONSENT_KEY = 'iso8583-cookie-consent';
 /**
- * The only regions where the ad signals default to denied: EU-27, the EEA
- * three, the UK and Switzerland.
+ * Where the visitor's cookie choice is kept.
  *
- * Everywhere else they default to granted, because a global deny bought
- * nothing and cost everything — gtag never wrote `_gcl_aw`, so even a
- * correctly tagged ad click could not be attributed and remarketing lists
- * stayed empty. The banner still applies in both cases: outside these regions
- * it can only downgrade a granted default (see applyConsent).
+ * The cookie banner writes it and the inline script in index.html replays it
+ * into Consent Mode before the AdSense tag loads. Exported so the banner reads
+ * the same constant rather than its own copy of the string; index.html cannot
+ * import it, so that one copy is duplicated there on purpose.
  */
-const CONSENT_DENY_REGIONS = [
-  'AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR',
-  'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI',
-  'SK',               // EU-27
-  'IS', 'LI', 'NO',   // EEA non-EU
-  'GB', 'CH',
-];
+export const CONSENT_KEY = 'iso8583-cookie-consent';
 const PAID_SESSION_KEY = 'iso8583_paid_session';
 
 /** Buckets keep amount_bucket's cardinality at five. */
@@ -100,15 +90,9 @@ export class AnalyticsService {
       return;
     }
 
-    // A paid landing (?src=ads, or any Google click id) marks the whole
-    // session: the Pro modal and AdSense stay out of the way of traffic that
-    // was promised a download. sessionStorage, so organic visits are untouched.
-    try {
-      const q = new URLSearchParams(this.win.location.search);
-      if (q.get('src') === 'ads' || q.has('gclid') || q.has('gbraid') || q.has('wbraid')) {
-        this.win.sessionStorage.setItem(PAID_SESSION_KEY, '1');
-      }
-    } catch { /* private mode */ }
+    // The paid-session flag (?src=ads, or any Google click id) is written by
+    // the inline script in index.html, which runs before AdSense and therefore
+    // before this. paidSession() below only reads it.
 
     this.enabled = true;
     this.adsEnabled = !!ADS_ID && !ADS_ID.includes('XXXX');
@@ -277,7 +261,9 @@ export class AnalyticsService {
 
   private bootstrap(): void {
     this.win.dataLayer ||= [];
-    this.win.gtag = (...args: unknown[]) => this.gtag(...args);
+    // index.html installs the standard stub. Only stand in for it if that
+    // script did not run (a shell this file is used from without it).
+    this.win.gtag ||= (...args: unknown[]) => this.gtag(...args);
 
     const s = this.doc.createElement('script');
     s.async = true;
@@ -296,31 +282,11 @@ export class AnalyticsService {
 
     this.page = this.pageInfo(this.router.url);
 
-    // Consent Mode v2, region-scoped. The more specific default wins for a
-    // matching visitor, so declaration order here does not matter.
-    //
-    // In the deny regions nothing is stored until the banner answers, and
-    // wait_for_update holds the first events for it. That hold belongs only
-    // here: elsewhere the default is already granted, so stalling every page
-    // by 500ms would buy nothing.
-    this.gtag('consent', 'default', {
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
-      analytics_storage: 'denied',
-      region: CONSENT_DENY_REGIONS,
-      wait_for_update: 500,
-    });
-    this.gtag('consent', 'default', {
-      ad_storage: 'granted',
-      ad_user_data: 'granted',
-      ad_personalization: 'granted',
-      analytics_storage: 'granted',
-    });
-    // A stored choice is replayed immediately, so a returning visitor never
-    // loses a session to the banner — and can downgrade a granted default.
-    const consent = this.lsGet(CONSENT_KEY);
-    if (consent) this.applyConsent(consent === 'all');
+    // Consent Mode v2 defaults, and the replay of a stored choice, are set by
+    // the inline script in index.html — they have to be in place before the
+    // AdSense tag loads, which is long before this bundle runs. The region
+    // list and CONSENT_KEY are mirrored there; keep the two in step.
+    // applyConsent() below is what the banner calls at runtime.
 
     this.gtag('js', new Date());
     this.gtag('set', 'user_properties', this.compact({
