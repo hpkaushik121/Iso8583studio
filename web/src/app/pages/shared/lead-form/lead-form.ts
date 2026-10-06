@@ -25,6 +25,11 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  * trade for web-to-lead, and the reason the honeypot matters: it is cheaper to
  * drop a bot before Zoho sees it than to reconcile junk afterwards.
  *
+ * The maxlengths are Zoho's own column limits, read off the Leads module:
+ * Last Name 80, Email 100, Company 200. Capping them here means a long value
+ * is trimmed while it is still being typed, rather than rejected after the
+ * POST, where this form cannot see the failure.
+ *
  * Fields are Zoho's standard Leads names, spaces and all. Only standard ones
  * are used, so this works against a stock Leads module with no custom fields:
  * the surface and the message are folded into Description instead. `Last Name`
@@ -100,25 +105,25 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
             <label class="lead-field" [class.is-invalid]="invalid().includes('name')">
               <span class="lead-label">Name</span>
-              <input #name type="text" name="Last Name" autocomplete="name"
+              <input #name type="text" name="Last Name" autocomplete="name" maxlength="80"
                      placeholder="Your name" (input)="started()">
             </label>
 
             <label class="lead-field" [class.is-invalid]="invalid().includes('email')">
               <span class="lead-label">Work email</span>
-              <input #email type="email" name="Email" autocomplete="email"
+              <input #email type="email" name="Email" autocomplete="email" maxlength="100"
                      placeholder="you&#64;company.com" (input)="started()">
             </label>
 
             <label class="lead-field">
               <span class="lead-label">Company <span class="lead-opt">optional</span></span>
-              <input type="text" name="Company" autocomplete="organization"
+              <input type="text" name="Company" autocomplete="organization" maxlength="200"
                      placeholder="Acme Payments" (input)="started()">
             </label>
 
             <label class="lead-field">
               <span class="lead-label">Phone <span class="lead-opt">optional</span></span>
-              <input type="tel" name="Phone" autocomplete="tel"
+              <input type="tel" name="Phone" autocomplete="tel" maxlength="50"
                      placeholder="+91 98765 43210" (input)="started()">
             </label>
 
