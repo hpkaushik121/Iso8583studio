@@ -34,6 +34,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  * are used, so this works against a stock Leads module with no custom fields:
  * the surface and the message are folded into Description instead. `Last Name`
  * is mandatory in Zoho, which is why there is a single Name field mapped to it.
+ * Company is required here for the same reason: the Leads webform marks it
+ * mandatory, so an enquiry without one is refused — silently, as far as this
+ * form can tell.
  */
 @Component({
   selector: 'app-lead-form',
@@ -115,9 +118,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
                      placeholder="you&#64;company.com" (input)="started()">
             </label>
 
-            <label class="lead-field">
-              <span class="lead-label">Company <span class="lead-opt">optional</span></span>
-              <input type="text" name="Company" autocomplete="organization" maxlength="200"
+            <label class="lead-field" [class.is-invalid]="invalid().includes('company')">
+              <span class="lead-label">Company</span>
+              <input #company type="text" name="Company" autocomplete="organization" maxlength="200"
                      placeholder="Acme Payments" (input)="started()">
             </label>
 
@@ -161,6 +164,7 @@ export class LeadForm {
   private readonly trapEl = viewChild<ElementRef<HTMLInputElement>>('trap');
   private readonly nameEl = viewChild<ElementRef<HTMLInputElement>>('name');
   private readonly emailEl = viewChild<ElementRef<HTMLInputElement>>('email');
+  private readonly companyEl = viewChild<ElementRef<HTMLInputElement>>('company');
   private readonly messageEl = viewChild<ElementRef<HTMLTextAreaElement>>('message');
 
   protected readonly action = LEADS.action;
@@ -191,15 +195,23 @@ export class LeadForm {
     const missing: string[] = [];
     const name = this.nameEl()?.nativeElement.value.trim() ?? '';
     const email = this.emailEl()?.nativeElement.value.trim() ?? '';
+    const company = this.companyEl()?.nativeElement.value.trim() ?? '';
     if (!name) missing.push('name');
     if (!EMAIL.test(email)) missing.push('email');
+    // Mandatory in Zoho's Leads webform alongside Last Name. Leaving it
+    // optional here guaranteed a submission Zoho would refuse, and the iframe
+    // cannot report that refusal — so the page would have claimed success.
+    if (!company) missing.push('company');
 
     if (missing.length) {
       event.preventDefault();
       this.invalid.set(missing);
       this.error.set(
-        missing.length === 2 ? 'Add your name and a work email so we can reply.'
+        missing.includes('email') && missing.length > 1
+          ? 'We need your name, company and a valid work email to reply.'
+        : missing.length > 1 ? 'Add your name and company so we know who we are talking to.'
         : missing[0] === 'email' ? 'That email does not look right — we reply to this address.'
+        : missing[0] === 'company' ? 'Add your company — it is what the CRM files the enquiry under.'
         : 'Add your name so we know who we are talking to.');
       this.analytics.reportLeadError(this.surface(), missing);
       return;
