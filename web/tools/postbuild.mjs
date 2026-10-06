@@ -112,6 +112,17 @@ for (const [file, route] of legacy) {
  * ever maps to <slug>/index.html — so a redirect cannot loop. The stub is
  * noindex (it must not enter the sitemap); the canonical and the refresh both
  * point at the new home, which is what transfers the indexing.
+ *
+ * The inline script carries the query string and hash across, and the meta
+ * refresh is only the no-JS fallback. A meta refresh can only name a fixed
+ * URL, so on its own it dropped `?gclid=...` and `?src=ads` — which meant an
+ * ad click on an old URL arrived with no click id (unattributable, and filed
+ * as Direct) and never set the paid-session flag that suppresses AdSense and
+ * the Pro interstitial. The script runs during parse while a `content="0"`
+ * refresh is merely queued, so the script always wins; `replace` rather than
+ * `assign` keeps the stub out of history so Back does not bounce through it.
+ * check-links.mjs matches the refresh URL exactly, so that tag stays a bare
+ * path — do not append anything to it.
  */
 for (const [oldRoute, newRoute] of Object.entries(MOVED_ROUTES)) {
   if (!existsSync(join(DIST, newRoute.slice(1), 'index.html'))) {
@@ -125,6 +136,7 @@ for (const [oldRoute, newRoute] of Object.entries(MOVED_ROUTES)) {
     `<title>Moved to ${SITE}${newRoute} - ISO8583Studio</title>\n` +
     `<meta name="robots" content="noindex">\n` +
     `<link rel="canonical" href="${SITE}${newRoute}">\n` +
+    `<script>location.replace(${JSON.stringify(newRoute)}+location.search+location.hash)</script>\n` +
     `<meta http-equiv="refresh" content="0; url=${newRoute}">\n` +
     `</head>\n<body>\n` +
     `<p>This page has moved to <a href="${newRoute}">${SITE}${newRoute}</a>.</p>\n` +
