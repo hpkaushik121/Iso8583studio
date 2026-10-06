@@ -37,6 +37,15 @@ const token = (process.env.LEADS_ZOHO_TOKEN ?? '').trim();
 const action = (process.env.LEADS_ZOHO_ACTION ?? 'https://crm.zoho.com/crm/WebToLeadForm').trim();
 /* base64('Leads'). Zoho names the target module this way in its own forms. */
 const actionType = (process.env.LEADS_ZOHO_ACTION_TYPE ?? 'TGVhZHM=').trim();
+/* Optional, and empty by default on purpose: Lead Source is a picklist, and a
+   value outside it is not stored. This account's options (read from the CRM on
+   2026-10-06) are Advertisement, Cold Call, Employee Referral, External
+   Referral, Online Store, Partner, Public Relations, Sales Email Alias,
+   Seminar Partner, Internal Seminar, Trade Show, Web Download, Web Research,
+   Chat, X (Twitter), Facebook — none of which means "came from the website".
+   Either add one in Zoho and name it here, or leave this unset and let the
+   webform's own Lead Source setting apply. */
+const source = (process.env.LEADS_ZOHO_SOURCE ?? '').trim();
 
 if (/^1000\.[0-9a-f]{32}/i.test(token) || token.startsWith('1000.')) {
   throw new Error(
@@ -64,6 +73,8 @@ writeFileSync(join(OUT_DIR, 'leads-config.ts'),
   + '  readonly token: string;\n'
   + '  /** base64 of the target module, normally Leads. */\n'
   + '  readonly actionType: string;\n'
+  + '  /** A Lead Source picklist option, or empty to send none. */\n'
+  + '  readonly source: string;\n'
   + '  /** False when the form is not wired up; the UI says so instead of pretending. */\n'
   + '  readonly configured: boolean;\n'
   + '}\n\n'
@@ -72,6 +83,7 @@ writeFileSync(join(OUT_DIR, 'leads-config.ts'),
   + `  id: ${JSON.stringify(id)},\n`
   + `  token: ${JSON.stringify(token)},\n`
   + `  actionType: ${JSON.stringify(actionType)},\n`
+  + `  source: ${JSON.stringify(source)},\n`
   + `  configured: ${JSON.stringify(configured)},\n`
   + '};\n');
 

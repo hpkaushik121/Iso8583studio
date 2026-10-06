@@ -80,7 +80,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             <input type="hidden" name="xnQsjsdp" [value]="id">
             <input type="hidden" name="xmIwtLD" [value]="token">
             <input type="hidden" name="actionType" [value]="actionType">
-            <input type="hidden" name="Lead Source" value="Web Form">
+            <!-- Only when configured: Lead Source is a picklist, and a value
+                 outside its options is not stored. See build-leads-config. -->
+            @if (source) { <input type="hidden" name="Lead Source" [value]="source"> }
             <!-- Composed at submit time, not bound: the message is read from
                  the textarea then, and a binding would ship an empty string. -->
             <input #desc type="hidden" name="Description" value="">
@@ -160,6 +162,7 @@ export class LeadForm {
   protected readonly id = LEADS.id;
   protected readonly token = LEADS.token;
   protected readonly actionType = LEADS.actionType;
+  protected readonly source = LEADS.source;
   /** Stable across server and client, and unique while one surface holds one form. */
   protected readonly sinkName = computed(() => `lead-sink-${this.surface()}`);
 
