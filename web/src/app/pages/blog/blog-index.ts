@@ -8,6 +8,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { BLOG_POSTS, BLOG_TOPICS } from '../../content/blog-index';
 import { EXTERNAL } from '../../core/site-nav';
 import { UiBadge, UiCtaPanel, UiIcon, UiReveal, UiWords } from '../../ui';
+import { SitePage } from '../site/site-page';
 import { BlogCover } from './blog-cover';
 import { BlogMeta, BlogTopic, longDate, shortDate } from './blog-meta';
 
@@ -102,8 +103,11 @@ const TOPIC_TILES = BLOG_TOPICS.map((topic) => ({
   imports: [RouterLink, UiBadge, UiCtaPanel, UiIcon, UiReveal, UiWords, BlogCover],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'bl-page' },
+  // Same section funnel and router hand-off as every site page; see the note
+  // on blog-post.ts about the one-Route-per-page requirement.
+  hostDirectives: [SitePage],
   template: `
-    <header class="bl-hero">
+    <header class="bl-hero" data-sect="blog_hero">
       <span class="bl-hero-glow" aria-hidden="true"></span>
       <span class="bl-scan" aria-hidden="true"></span>
       <div class="bl-hero-in">
@@ -241,7 +245,7 @@ const TOPIC_TILES = BLOG_TOPICS.map((topic) => ({
         </div>
       }
 
-      <div class="bl-grid">
+      <div class="bl-grid" data-sect="blog_grid">
         @for (card of view().cards; track card.post.slug) {
           <article class="bl-card ds-fade" [class.is-featured]="card.featured"
                    [hidden]="card.hidden" [style.--d]="card.delay">

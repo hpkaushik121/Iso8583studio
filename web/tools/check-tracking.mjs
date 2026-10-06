@@ -46,9 +46,15 @@ function expect(route, doc, selector, need = 1, exact = false) {
   }
 }
 
-/** The names the section funnel would report, in document order. */
-function sectionNames(doc) {
-  const page = selectOne('.static-page', doc);
+/**
+ * The names the section funnel would report, in document order.
+ *
+ * The root is a parameter because the blog is not a `.static-page`: its hosts
+ * are `bp-page` and `bl-page`, so a hardcoded root returned [] there and the
+ * funnel went unguarded.
+ */
+function sectionNames(doc, rootSelector = '.static-page') {
+  const page = selectOne(rootSelector, doc);
   if (!page) return [];
   return selectAll('[data-sect], section, .doc-section', page).map((el, i) =>
     el.attribs['data-sect'] || el.attribs.id ||
@@ -56,8 +62,8 @@ function sectionNames(doc) {
     (selectOne('h2', el) && text(selectOne('h2', el))) || `section_${i + 1}`);
 }
 
-function expectSections(route, doc, names) {
-  const have = new Set(sectionNames(doc));
+function expectSections(route, doc, names, rootSelector) {
+  const have = new Set(sectionNames(doc, rootSelector));
   const missing = names.filter((n) => !have.has(n));
   if (missing.length) fail(`${route}: section_view would no longer report: ${missing.join(', ')}`);
 }
@@ -141,6 +147,17 @@ const GUIDE_SECTIONS = {
   '/pro': ['what', 'register', 'faq'],
 };
 
+/**
+ * The blog funnel. Only the sections that always render: post_series needs the
+ * post to have a neighbour in its topic series, which is per-post and not a
+ * stable assertion. Roots are the blog host classes, not `.static-page`.
+ */
+const BLOG_SECTIONS = {
+  '/blogs': { root: '.bl-page', names: ['blog_hero', 'blog_grid', 'final_cta'] },
+  '/blogs/what-is-iso8583-studio':
+    { root: '.bp-page', names: ['post_hero', 'post_body', 'post_related', 'final_cta'] },
+};
+
 /** Pages that close on a call to action, reported as final_cta_click. */
 const CLOSING_CTA = [
   '/', '/emv-certification', '/cloud-simulators', '/middleware', '/kernel',
@@ -184,6 +201,11 @@ for (const route of pages) {
   if (GUIDE_SECTIONS[route]) {
     expectSections(route, doc, GUIDE_SECTIONS[route]);
     expect(route, doc, '.breadcrumb a, .crumb a');
+  }
+
+  if (BLOG_SECTIONS[route]) {
+    const { root, names } = BLOG_SECTIONS[route];
+    expectSections(route, doc, names, root);
   }
 
   if (CLOSING_CTA.includes(route)) expect(route, doc, 'section.cta a');
