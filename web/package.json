@@ -7,7 +7,7 @@
     "build": "npm run build:content && ng build && node tools/postbuild.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "build:content": "node tools/build-blog-routes.mjs && node tools/build-payments-config.mjs && node tools/build-icons.mjs",
+    "build:content": "node tools/build-blog-routes.mjs && node tools/build-payments-config.mjs && node tools/build-leads-config.mjs && node tools/build-icons.mjs",
     "blog:images": "node tools/build-blog-routes.mjs --images",
     "check": "node tools/check-links.mjs && node tools/check-tracking.mjs",
     "lint:css": "stylelint \"src/**/*.css\"",

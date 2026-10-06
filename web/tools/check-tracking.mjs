@@ -111,10 +111,10 @@ function shell(route, doc) {
 // ---- Per-page expectations --------------------------------------------------
 
 const SOLUTION_SECTIONS = {
-  '/emv-certification': ['Certification Services', 'Complete EMV Certification Suite', 'Our Proven Methodology', 'Deep Technical Expertise', 'Ready to certify?'],
-  '/cloud-simulators': ['Hosted Test Infrastructure', 'Complete Simulator Suite', 'Testing-First Architecture', 'Why Cloud Simulator?', 'Ready to simulate?'],
-  '/middleware': ['Transaction Orchestration', 'Middleware Services Suite', 'Intelligent Transaction Flow', 'Middleware Advantages', 'Ready to orchestrate?'],
-  '/kernel': ['Engineering Services', 'Kernel Development Services', 'Technical Expertise Areas', 'Kernel Development Benefits', 'Ready to develop?'],
+  '/emv-certification': ['Certification Services', 'Complete EMV Certification Suite', 'Our Proven Methodology', 'Deep Technical Expertise', 'enquiry', 'Ready to certify?'],
+  '/cloud-simulators': ['Hosted Test Infrastructure', 'Complete Simulator Suite', 'Testing-First Architecture', 'Why Cloud Simulator?', 'enquiry', 'Ready to simulate?'],
+  '/middleware': ['Transaction Orchestration', 'Middleware Services Suite', 'Intelligent Transaction Flow', 'Middleware Advantages', 'enquiry', 'Ready to orchestrate?'],
+  '/kernel': ['Engineering Services', 'Kernel Development Services', 'Technical Expertise Areas', 'Kernel Development Benefits', 'enquiry', 'Ready to develop?'],
 };
 
 const GUIDE_SECTIONS = {
@@ -141,11 +141,19 @@ const GUIDE_SECTIONS = {
   '/tools/mac-tools': ['overview'],
   '/tools/card-validation': ['overview', 'concepts', 'cvc-mc', 'amex', 'service-codes', 'tips'],
   '/download': ['installers', 'whats-inside'],
-  '/contact': ['channels'],
+  '/contact': ['enquiry', 'channels'],
   '/privacy-policy': ['overview', 'data-collection', 'data-usage', 'data-sharing', 'security', 'retention', 'rights', 'cookies', 'international', 'minors', 'updates', 'compliance'],
   '/terms-and-conditions': [],
-  '/pro': ['what', 'register', 'faq'],
+  '/pro': ['what', 'register', 'faq', 'enquiry'],
 };
+
+/*
+ * On the lead form, only the section name is asserted, not the fields. The
+ * form renders an "email us instead" box when LEADS_ZOHO_ID is unset, so in a
+ * build without that variable there is no <form> to find — and that state is
+ * deliberate, not a regression. data-sect sits on the component host, so
+ * 'enquiry' is reported either way.
+ */
 
 /**
  * The blog funnel. Only the sections that always render: post_series needs the

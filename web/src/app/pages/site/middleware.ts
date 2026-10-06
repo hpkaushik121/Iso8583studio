@@ -5,6 +5,7 @@ import {
   ArtName, SolArt, SolBenefit, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolMark, SolStrip, solCycle,
 } from '../solutions';
 import { SitePage } from './site-page';
+import { LeadForm } from '../shared/lead-form';
 
 interface Service { n: string; kicker: string; img: ArtName; title: string; desc: string; items: string[]; }
 interface Stage {
@@ -54,6 +55,7 @@ const MARKS: SolMark[] = [
 @Component({
   selector: 'page-middleware',
   imports: [
+    LeadForm,
     RouterLink, UiAccordion, UiBadge, UiIcon, UiReveal, UiSectionHeading,
     SolArt, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolStrip,
   ],
@@ -179,6 +181,10 @@ const MARKS: SolMark[] = [
       <ui-section-heading heading="Middleware questions" sub="Routing, formats, deployment and what the switch layer owns." />
       <div class="sol-faq"><ui-accordion [items]="faq" [stagger]="110" [base]="500" /></div>
     </section>
+
+    <app-lead-form surface="middleware"
+                   heading="Talk to us about middleware"
+                   lede="Tell us what you are routing between, and the throughput you need to hold." />
 
     <sol-close sect="Ready to orchestrate?" kicker="Your next payment connection" cta="Plan your switch layer"
                text="Let's design the switch layer around your transaction volume, provider connections and routing requirements.">

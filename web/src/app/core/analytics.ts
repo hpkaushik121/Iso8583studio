@@ -684,12 +684,19 @@ export class AnalyticsService {
   }
 
   /**
-   * begin_checkout + generate_lead, then `done` — which performs the redirect.
-   * Fired with the amount the service froze, the only authoritative figure.
+   * begin_checkout and the click-time Ads conversion, then `done` — which
+   * performs the redirect. Fired with the amount the service froze, the only
+   * authoritative figure.
    */
   reportBeginCheckout(amountMinor: number, checkoutId: string, done: () => void, currency = 'INR'): void {
     const value = minorToMajor(amountMinor, currency);
-    this.track('generate_lead', { value, currency });
+
+    // No generate_lead here. A click on "pay" is purchase intent, which
+    // begin_checkout below already states; calling it a lead mixed the Pro
+    // funnel into the same event as a real enquiry from the contact form, and
+    // Google Ads imports by event name, so the two campaigns could not
+    // optimise against separate signals. generate_lead now belongs to the
+    // lead form alone — see reportLead().
 
     // Click-time Ads purchase conversion, so a payer who completes in the UPI
     // app but never returns to the result page is still counted. Keyed to the
@@ -711,6 +718,42 @@ export class AnalyticsService {
       items: [{ item_id: 'pp_pro_initial', item_name: 'ISO8583Studio Pro — early access',
                 item_category: 'pro', price: value, quantity: 1 }],
     }, done);
+  }
+
+  /**
+   * The lead funnel on the contact, solution and Pro pages.
+   *
+   * `generate_lead` is GA4's recommended event for exactly this and is what
+   * feeds its lead reports, so the real enquiry form owns it outright.
+   *
+   * Which page the lead came from needs no parameter: every event already
+   * carries page_group, content_group and content_id from track(). `surface`
+   * rides on cta_location — an already-registered dimension — because more
+   * than one form can share a page (/pro has both the reserve card and the
+   * enquiry form), so the funnel has to say which one it is. No new custom
+   * dimension is spent on this.
+   */
+  reportLeadStart(surface: string): void {
+    this.trackOnce(`lead_start:${surface}`, 'form_start', { cta_location: surface });
+  }
+
+  /** The enquiry actually left the browser. The lead conversion. */
+  reportLead(surface: string): void {
+    this.track('generate_lead', { cta_location: surface });
+  }
+
+  /**
+   * The submit was refused before anything was sent.
+   *
+   * Carries both halves: error_field says which fields, cta_location which
+   * form — the plain reportFormError above cannot say the latter, and /pro
+   * has two forms on the one page.
+   */
+  reportLeadError(surface: string, fields: string[]): void {
+    this.track('form_error', {
+      cta_location: surface,
+      error_field: this.trim100(fields.join('|')),
+    });
   }
 
   reportCheckoutError(code: string): void {

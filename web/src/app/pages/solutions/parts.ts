@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { EXTERNAL } from '../../core/site-nav';
 import { BadgeTone, UiBadge, UiIcon, UiReveal } from '../../ui';
 import { SolLive } from './cycle';
@@ -112,9 +112,17 @@ export class SolBenefits {
  * right, and named by `sect` — these pages report their closing section under
  * the headline they have always used, not 'final_cta'.
  *
- * Both actions are anchors: the primary to /contact, the secondary to the
- * release page. Project a footer line as `[solCloseFoot]` and the art as the
- * default content.
+ * Both actions are anchors: the primary to the page's own enquiry form, the
+ * secondary to the release page. It is an in-page anchor rather than a link to
+ * /contact because each solution page now carries the form itself — sending
+ * someone who is ready to talk off to another page was the long way round.
+ * The click still reports as final_cta_click: the listener matches on the
+ * enclosing section.cta before it ever looks at the href.
+ *
+ * routerLink with a fragment rather than a bare href="#enquiry": the document
+ * has <base href="/">, against which a bare fragment resolves to the site
+ * root, not to this page. check-links.mjs fails the build on that.
+ * Project a footer line as `[solCloseFoot]` and the art as the default content.
  */
 @Component({
   selector: 'sol-close',
@@ -132,7 +140,7 @@ export class SolBenefits {
           <h2>{{ sect() }}</h2>
           <p class="sol-close-text">{{ text() }}</p>
           <div class="sol-close-actions">
-            <a class="btn btn--primary btn--glow" routerLink="/contact">{{ cta() }}<ui-icon name="arrow-right" [size]="16" /></a>
+            <a class="btn btn--primary btn--glow" [routerLink]="[]" fragment="enquiry">{{ cta() }}<ui-icon name="arrow-right" [size]="16" /></a>
             <a class="btn btn--secondary" [href]="releases">Download Studio<ui-icon name="arrow-up-right" [size]="16" /></a>
           </div>
           <ng-content select="[solCloseFoot]" />
