@@ -1,9 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, afterNextRender, computed, inject, input, signal,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PAYMENTS } from '../../content/payments-config';
 import { PaymentsService, formatPaise, messageFor } from '../../core/payments';
 import { AnalyticsService } from '../../core/analytics';
 import { UiLogoMark } from '../../ui/logo-mark';
+import { UiIcon } from '../../ui/icon';
+import { ProQueue } from './pro-motion';
 
 /**
  * The Pro registration form.
@@ -24,10 +28,51 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 @Component({
   selector: 'app-pro-form',
-  imports: [ReactiveFormsModule, UiLogoMark],
+  imports: [ReactiveFormsModule, UiLogoMark, UiIcon, ProQueue],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form class="pro-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="pf-field pf-amount-panel">
+        <span class="pf-label">
+          <label for="proAmount">Amount to pay</label>
+          <span class="pf-tip-wrap">
+            <button type="button" class="pf-tip" aria-describedby="proAmountTip">
+              <span aria-hidden="true">i</span><span class="visually-hidden">Why the amount matters</span>
+            </button>
+            <span class="pf-tip-bubble" role="tooltip" id="proAmountTip">Pay what Pro is worth to
+              you. Early access is provisioned from a queue — <b>the higher the amount, the higher
+              your priority in it</b>, so a larger contribution gets your workspace, certification
+              packs and support channel opened sooner.</span>
+          </span>
+        </span>
+        <div class="pf-amount">
+          <span class="pf-cur">₹</span>
+          <input type="number" id="proAmount" formControlName="amount" step="1"
+                 min="2" max="100000" inputmode="numeric" placeholder="Enter amount"
+                 [attr.aria-invalid]="invalid('amount') || null"
+                 [attr.aria-describedby]="invalid('amount') ? 'err-amount' : 'hint-amount'">
+        </div>
+        @if (invalid('amount')) {
+          <em class="pf-err" id="err-amount">{{ amountError() }}</em>
+        } @else if (breakdown(); as b) {
+          <p class="pf-total" id="hint-amount">
+            <span>{{ b.subtotal }}</span>
+            <span class="pf-total-op">+</span>
+            <span>{{ b.tax }} GST</span>
+            <span class="pf-total-op">=</span>
+            <b>{{ b.total }}</b>
+            <span class="pf-total-note">confirmed at checkout</span>
+          </p>
+        } @else {
+          <p class="pf-hint" id="hint-amount">
+            <b>Higher amount → higher priority</b> in the early-access queue.
+            GST is added at checkout.
+          </p>
+        }
+        <!-- Decoration: draws the hint above. Reads the amount, never writes it. -->
+        <app-pro-queue [amount]="form.controls.amount.value" [min]="2" [max]="100000" />
+      </div>
+
       <div class="pf-grid">
         <label class="pf-field">
           <span>Full name</span>
@@ -39,6 +84,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
           }
         </label>
 
+        <!-- Not decoration: this is prefilled into Razorpay Checkout. Without
+             it Checkout opens on its own contact form and asks for a mobile
+             number before it will show a payment method. -->
         <label class="pf-field">
           <span>Work email</span>
           <input type="email" formControlName="email" autocomplete="email"
@@ -49,9 +97,6 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
           }
         </label>
 
-        <!-- Not decoration: this is prefilled into Razorpay Checkout. Without
-             it Checkout opens on its own contact form and asks for a mobile
-             number before it will show a payment method. -->
         <label class="pf-field">
           <span>Mobile</span>
           <input type="tel" formControlName="contact" autocomplete="tel"
@@ -80,6 +125,15 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
                  placeholder="Payments engineer">
         </label>
 
+        <label class="pf-field">
+          <span>Billing country</span>
+          <input type="text" formControlName="country" autocomplete="country-name"
+                 [attr.aria-invalid]="invalid('country') || null">
+          @if (invalid('country')) {
+            <em class="pf-err">Billing country is required.</em>
+          }
+        </label>
+
         <label class="pf-field pf-span">
           <span>What are you testing or certifying?</span>
           <textarea formControlName="usecase" rows="3"
@@ -89,54 +143,6 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
             {{ usecaseLeft() }} characters left
           </em>
         </label>
-
-        <div class="pf-field">
-          <span class="pf-label">
-            <label for="proAmount">Amount to pay</label>
-            <span class="pf-tip-wrap">
-              <button type="button" class="pf-tip" aria-describedby="proAmountTip">
-                <span aria-hidden="true">i</span><span class="sr-only">Why the amount matters</span>
-              </button>
-              <span class="pf-tip-bubble" role="tooltip" id="proAmountTip">Pay what Pro is worth to
-                you. Early access is provisioned from a queue — <b>the higher the amount, the higher
-                your priority in it</b>, so a larger contribution gets your workspace, certification
-                packs and support channel opened sooner.</span>
-            </span>
-          </span>
-          <div class="pf-amount">
-            <span class="pf-cur">₹</span>
-            <input type="number" id="proAmount" formControlName="amount" step="1"
-                   min="2" max="100000" inputmode="numeric" placeholder="Enter amount"
-                   [attr.aria-invalid]="invalid('amount') || null"
-                   [attr.aria-describedby]="invalid('amount') ? 'err-amount' : 'hint-amount'">
-          </div>
-          @if (invalid('amount')) {
-            <em class="pf-err" id="err-amount">{{ amountError() }}</em>
-          } @else if (breakdown(); as b) {
-            <p class="pf-total" id="hint-amount">
-              <span>{{ b.subtotal }}</span>
-              <span class="pf-total-op">+</span>
-              <span>{{ b.tax }} GST</span>
-              <span class="pf-total-op">=</span>
-              <b>{{ b.total }}</b>
-              <span class="pf-total-note">confirmed at checkout</span>
-            </p>
-          } @else {
-            <p class="pf-hint" id="hint-amount">
-              <b>Higher amount → higher priority</b> in the early-access queue.
-              GST is added at checkout.
-            </p>
-          }
-        </div>
-
-        <label class="pf-field">
-          <span>Billing country</span>
-          <input type="text" formControlName="country" autocomplete="country-name"
-                 [attr.aria-invalid]="invalid('country') || null">
-          @if (invalid('country')) {
-            <em class="pf-err">Billing country is required.</em>
-          }
-        </label>
       </div>
 
       @if (formError()) {
@@ -144,10 +150,12 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
       }
 
       <div class="pf-actions">
-        <button class="btn btn-blue" type="submit" [disabled]="busy()">
+        <button class="btn btn--primary btn--lg btn--glow" type="submit" [disabled]="busy()">
           @if (busy()) { <ui-logo-mark mode="trace" [size]="18" /> }
           <span>{{ busy() ? 'Starting payment…' : 'Continue to payment' }}</span>
+          @if (!busy()) { <ui-icon name="arrow-right" [size]="16" /> }
         </button>
+        <span class="pf-note"><ui-icon name="lock-simple" [size]="13" />Secure hosted checkout. Credentials arrive by email.</span>
       </div>
     </form>
   `,
@@ -179,6 +187,8 @@ export class ProForm {
   private readonly analytics = inject(AnalyticsService);
 
   protected readonly busy = signal(false);
+  /** An email already typed elsewhere (the Pro card), filled in on open. */
+  readonly email = input('');
   protected readonly formError = signal<string | null>(null);
 
   /** Re-read on every change so the template's error state stays current. */
@@ -186,6 +196,15 @@ export class ProForm {
   private readonly status = signal(this.form.status);
 
   constructor() {
+    // Filled in without an event, so arriving with an email does not count as
+    // starting the form — typing does.
+    afterNextRender(() => {
+      const email = this.email().trim();
+      if (!email) return;
+      this.form.controls.email.setValue(email, { emitEvent: false });
+      this.value.set(this.form.getRawValue());
+    });
+
     this.form.valueChanges.subscribe(() => {
       this.value.set(this.form.getRawValue());
       this.status.set(this.form.status);

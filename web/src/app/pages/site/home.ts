@@ -1,256 +1,385 @@
-import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, PLATFORM_ID, afterNextRender,
+  inject, viewChild,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { EXTERNAL } from '../../core/site-nav';
+import {
+  AccordionItem, UiAccordion, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
+} from '../../ui';
+import { HomeHeroDashboard } from '../home/hero-dashboard';
+import { HomeJourney } from '../home/journey';
+import { HomePrismBeam } from '../home/prism-beam';
+import { HomeScrollDots } from '../home/scroll-dots';
 import { SitePage } from './site-page';
+import { ProReserve } from '../pro/pro-reserve';
+
+/**
+ * The nine simulators in the strip under the hero. `short` is the label the
+ * design shows; `pre`/`post` complete it to the simulator's full name for
+ * screen readers — and for analytics, which reports the .st-name text content
+ * as sim_board_engage's simulator_type and has always sent the full name.
+ */
+interface Sim { icon: string; short: string; pre?: string; post?: string; }
+
+const SIMULATORS: Sim[] = [
+  { icon: 'device-mobile-camera', short: 'POS', post: ' Simulator' },
+  { icon: 'identification-card', short: 'APDU', post: ' Simulator' },
+  { icon: 'receipt', short: 'ECR', post: ' Simulator' },
+  { icon: 'arrows-left-right', short: 'Switch', post: ' Simulator' },
+  { icon: 'hard-drives', short: 'Host', post: ' Simulator' },
+  { icon: 'globe-hemisphere-west', short: 'Scheme', post: ' Simulator' },
+  { icon: 'lock-key', short: 'HSM', post: ' Simulator' },
+  { icon: 'terminal-window', short: 'Console', pre: 'HSM Command ' },
+  { icon: 'squares-four', short: 'ATM', post: ' Simulator' },
+];
+
+const PERSONAS = [
+  { n: '01', phase: 'Develop', title: 'Develop against simulators', desc: 'No test host? Simulate one. Build against local host, HSM and scheme endpoints with realistic responses.', who: 'For payment developers' },
+  { n: '02', phase: 'Test', title: 'Test to the bit', desc: 'Craft edge cases field by field, validate cryptograms and MACs, replay reversals. Deterministic and logged.', who: 'For QA & test engineers' },
+  { n: '03', phase: 'Certify', title: 'Fewer lab re-submissions', desc: 'EMV L2/L3 and scheme certification prep with kernel-level tooling. Cut lab time and re-submission cycles.', who: 'For certification teams' },
+];
+
+const CRYPTO_TILES: [icon: string, label: string][] = [
+  ['key', 'DUKPT'], ['lock-key', 'TR-31'], ['fingerprint', 'MAC'], ['shuffle', '3DES'],
+  ['cube', 'AES'], ['hash', 'KCV'], ['lock', 'RSA'], ['binary', 'SHA'],
+];
+
+const TRACE: [field: string, value: string][] = [
+  ['MTI', '0200'], ['P-02', '4761 7300 0000 0018'], ['P-03', '00 00 00'],
+  ['P-04', '0000 0000 1250'], ['P-55', '9F26 08 A1 B2 C3 D4 …'],
+];
+
+const KEYS: [tag: string, label: string, hex: string][] = [
+  ['BDK', 'Base derivation key', '0123 4567 89AB CDEF'],
+  ['IPEK', 'Initial PIN encryption key', '6AC2 92FA A131 5B4D'],
+  ['TXN', 'Transaction key · KSN 00031', 'C3F8 1E77 9D02 44A1'],
+  ['PIN', 'PIN block · ISO 9564 format 4', '4C2E 8A19 77B3 0F5D'],
+];
+
+const KEY_TAGS = ['TR-31', 'Thales', 'Futurex', 'KCV', 'Shares'];
+
+/** The six disciplines of the studio sidebar; the longest bar is the largest count. */
+const CATEGORIES = [
+  { name: 'Payment Simulators', n: 9, link: '/simulator' },
+  { name: 'EMV & Card Tools', n: 12, link: '/tools/emv-tools' },
+  { name: 'Cryptographic Tools', n: 7, link: '/tools/cipher-tools' },
+  { name: 'Key Management', n: 10, link: '/tools/key-tools' },
+  { name: 'Payment Utilities', n: 21, link: '/tools/pin-tools' },
+  { name: 'Data Converters', n: 6, link: '/tools/utility-tools' },
+].map((c) => ({ ...c, width: `${Math.round((c.n / 21) * 100)}%` }));
+
+const SOLUTIONS = [
+  { icon: 'certificate', title: 'EMV Certification', desc: 'End-to-end L1/L2/L3 and scheme certification, from test plans to sign-off.', link: '/emv-certification' },
+  { icon: 'cloud', title: 'Cloud Simulators', desc: 'Hosted host & HSM endpoints for CI pipelines and distributed teams.', link: '/cloud-simulators' },
+  { icon: 'arrows-left-right', title: 'Payment Middleware', desc: 'Switching, routing and protocol translation built on the Studio engine.', link: '/middleware' },
+  { icon: 'cpu', title: 'Kernel Development', desc: 'EMV L2 kernel engineering for terminals, from contact to contactless.', link: '/kernel' },
+];
+
+const FAQ: AccordionItem[] = [
+  { q: 'What is ISO8583Studio?', a: 'A desktop workbench for payment engineers: nine simulators (host, HSM, POS, APDU, switch, issuer, scheme, ATM, ECR) and 64 tools for ISO 8583, EMV, PIN, MAC and key work — on Windows, macOS and Linux, free and open source under the GNU AGPL v3.' },
+  { q: 'Can I test ISO 8583 transactions without a production host?', a: 'Yes. Stand up an authorization host on your laptop, script any MTI and response code, and run a full 0200 → 0210 flow with no bank connection, no lab booking and no scheme contact.' },
+  { q: 'Do I need a real payShield HSM to test PIN blocks and MACs?', a: 'No. The HSM Simulator implements payShield 10K host commands for key management, PIN block translation and ISO 9797 MAC verification, and its output matches a real appliance byte for byte.' },
+  { q: 'Does it help with EMV L2/L3 certification?', a: 'That is what it is built for. Drive APDU dialogues command by command, work through certification test cases, validate cryptograms and capture logs — so you cut lab time and re-submission cycles before you book a slot.' },
+  { q: 'Which protocols and message formats are supported?', a: 'Binary ISO 8583, hexadecimal, JSON, XML, key-value and YAML mapping, carried over TCP/IP, RS232, REST or dial-up — mapped on the way in and out.' },
+  { q: 'Can I run the simulators in CI?', a: 'Yes. Cloud Simulators expose hosted host and HSM endpoints so pipelines and distributed teams point at a stable URL instead of standing up an environment per branch.' },
+  { q: 'Is ISO8583Studio really free?', a: 'The desktop studio is free and open source under the GNU AGPL v3 — no trial, no seat limit. Pro adds hosted endpoints, a higher CPS ceiling, the full algorithm set and priority support.' },
+];
+
+/** Radius of the pointer's pool of light on the world map, in px. */
+const LIGHT_RADIUS = 210;
 
 @Component({
   selector: 'page-home',
+  imports: [
+    RouterLink, UiAccordion, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
+    HomeHeroDashboard, HomeJourney, HomePrismBeam, HomeScrollDots, ProReserve,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [SitePage],
   host: { class: 'static-page page-home' },
-  // <image-slot> is a styling-only element the design system owns; see
-  // _components.css. Drop this schema once it becomes part of ui-figure.
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  template: `<section class="hero" data-sect="hero">
-    <div class="hero-top">
-        <span class="hero-badge"><i></i>NINE SIMULATORS · ALL RUNNING</span>
-        <h1>Every field. Every bit.<br><span class="gr">Nothing hidden.</span></h1>
-        <p class="hero-sub">The payment engineer's workbench: <b>develop, test and certify</b> ISO 8583 integrations without a production host, HSM or card in sight. <b>Nine simulators</b> stand in for every party on the network, and <b>64 tools</b> handle the crypto, keys and parsing in between — free, open source, on your desktop.</p>
-        <div class="hero-ctas">
-            <a class="btn btn-blue btn-lg" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Download Studio</a>
-            <a class="btn btn-ghost btn-lg" href="/#toolbox">Explore 64 tools</a>
-        </div>
-        <div class="hero-meta"><span>◆ Windows</span><span>◆ macOS</span><span>◆ Linux</span><span>◆ AGPL v3 · open source</span></div>
-    </div>
-    <div class="monitor-wrap">
-        <span class="con-float" style="top:-13px;left:14px;animation-delay:.3s">SERVER · 0.0.0.0:8583</span>
-        <span class="con-float t" style="bottom:-13px;right:22px;animation-delay:1.6s">ISO 9797-1 MAC ✓</span>
-        <div class="simcon">
-            <div class="sim-head">
-                <div class="con-dots"><i></i><i></i><i></i></div>
-                <div class="ttl"><b>ISO8583Studio</b> · Simulators</div>
-                <div class="sim-run"><i></i>9 RUNNING</div>
-            </div>
-            <div class="simgrid" id="simGrid">
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="2" width="14" height="20" rx="2.5"/><rect x="8" y="5" width="8" height="4.5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg></span><div><div class="st-name">POS Simulator</div><div class="st-sub">EMV · entry 051</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">chip · 051</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2.5"/><rect x="5" y="9" width="5" height="5" rx="1"/><path d="M14 10h5M14 14h5"/></svg></span><div><div class="st-name">APDU Simulator</div><div class="st-sub">smart card · TLV</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">TLV</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9 8h6M9 12h6"/></svg></span><div><div class="st-name">ECR Simulator</div><div class="st-sub">cash register · RS232</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">232</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 12h.01M9 12h.01"/><path d="M16 12h4M16 9v6"/></svg></span><div><div class="st-name">Switch Simulator</div><div class="st-sub">routing · F32</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">route</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/></svg></span><div><div class="st-name">Host Simulator</div><div class="st-sub">TCP/IP · :8583</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">1,284 txns</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></span><div><div class="st-name">Scheme Simulator</div><div class="st-sub">auth → settle</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">0210</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M8 9V6a4 4 0 018 0v3"/><path d="M12 13v3"/></svg></span><div><div class="st-name">HSM Simulator</div><div class="st-sub">payShield 10K · :1500</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">35 cmds</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 9l3 3-3 3M12 15h5"/></svg></span><div><div class="st-name">HSM Command Console</div><div class="st-sub">interactive · console</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">GC · A0</span></div>
-                </div>
-                <div class="simtile">
-                    <div class="st-top"><span class="st-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="2"/><rect x="7" y="6" width="10" height="6" rx="1"/><path d="M8 16h8"/></svg></span><div><div class="st-name">ATM Simulator</div><div class="st-sub">NDC / DDC</div></div><span class="st-led"></span></div>
-                    <div class="st-bot"><div class="st-meter"></div><span class="st-metric">NDC</span></div>
-                </div>
-            </div>
-            <div class="sim-data">
-                <span class="proto iso" id="simProto">ISO 8583</span>
-                <span class="pkt-name" id="simActive">Host Simulator</span>
-                <div class="data-chips" id="simData"></div>
-                <span class="rcpill ok" id="simPill">00</span>
-            </div>
-            <div class="sim-foot">
-                <span>TCP/IP · RS232 · REST · dial-up</span>
-                <span class="res">ISO 8583 · APDU · payShield 10K · NDC/DDC</span>
-            </div>
-        </div>
-    </div>
-</section>
+  template: `
+    <section #hero class="hero" data-sect="hero">
+      <div #dots class="hp-dots" aria-hidden="true">
+        <div class="hp-dots-glow"></div>
+        <div class="hp-dots-map"></div>
+        <div class="hp-dots-hot"></div>
+      </div>
 
-<!-- 2D transaction path -->
-<section class="solid flow sec-pad" data-sect="transaction_path">
-    <div class="wrap">
-        <span class="kicker">What ISO8583Studio does</span>
-        <h2 class="sec">Model every hop of a transaction</h2>
-        <p class="sec-sub">From the chip on the card to the issuer's authorization host — spin up a simulator for every stage and watch the data packets flow. Scroll the rail to walk the path.</p>
-        <div class="rail-wrap">
-            <div class="rail" id="flowRail">
-                <div class="rail-track">
-                    <div class="rail-line"></div>
-                    <a class="node" href="/simulator/apdu">
-                        <div class="disc"><span class="n">1</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2.5"/><rect x="5" y="9" width="5" height="4" rx="1"/><path d="M14 9h5M14 13h5"/></svg></div>
-                        <h3>Card &amp; EMV</h3><p>Cryptograms, SDA/DDA, ATR &amp; tag parsing.</p>
-                        <div class="simchip"><span class="s">APDU Simulator</span><span class="pk">C-APDU · TLV</span></div>
-                    </a>
-                    <a class="node" href="/simulator/pos">
-                        <div class="disc"><span class="n">2</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="2" width="14" height="20" rx="2.5"/><rect x="8" y="5" width="8" height="5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg></div>
-                        <h3>Terminal</h3><p>POS, ECR &amp; APDU acceptance flows.</p>
-                        <div class="simchip"><span class="s">POS Simulator</span><span class="pk">EMV 9F02 · ARQC</span></div>
-                    </a>
-                    <a class="node" href="/simulator/hsm">
-                        <div class="disc"><span class="n">3</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="9" width="16" height="11" rx="2"/><path d="M8 9V6a4 4 0 018 0v3"/><path d="M12 13v3"/></svg></div>
-                        <h3>HSM &amp; keys</h3><p>PIN, MAC, DUKPT &amp; TR-31.</p>
-                        <div class="simchip"><span class="s">HSM Simulator</span><span class="pk">payShield M4 · CW</span></div>
-                    </a>
-                    <a class="node" href="/simulator/host">
-                        <div class="disc"><span class="n">4</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 12h.01M10 12h.01"/><path d="M17 12h3M17 9v6"/></svg></div>
-                        <h3>Switch &amp; host</h3><p>Server, client or proxy routing.</p>
-                        <div class="simchip"><span class="s">Host Simulator</span><span class="pk">ISO 8583 · 0200</span></div>
-                    </a>
-                    <a class="node" href="/cloud-simulators">
-                        <div class="disc"><span class="n">5</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></div>
-                        <h3>Scheme</h3><p>Network authorization &amp; clearing.</p>
-                        <div class="simchip"><span class="s">Scheme Simulator</span><span class="pk">Scheme · 0100→0110</span></div>
-                    </a>
-                    <a class="node" href="/simulator/issuer">
-                        <div class="disc"><span class="n">6</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-5 9 5"/><path d="M4 9v10M9 9v10M15 9v10M20 9v10"/><path d="M3 20h18"/></svg></div>
-                        <h3>Issuer</h3><p>Authorization, PIN &amp; stand-in decisioning.</p>
-                        <div class="simchip"><span class="s">Issuer Host</span><span class="pk">ISO 8583 · 0210 · F39</span></div>
-                    </a>
+      <div class="hp-hero-copy">
+        <span class="lit-capsule hp-hero-stat ds-fade" [style.--d]="250">9 simulators<span class="hp-hero-stat-rule" aria-hidden="true"></span>64 tools</span>
+        <h1 class="ds-in"><ui-words text="The payment engineer's workbench" [base]="350" /></h1>
+        <p class="hp-hero-line ds-fade" [style.--d]="900">Every field. Every bit. Nothing hidden.</p>
+        <p class="hp-hero-sub ds-fade" [style.--d]="1100">Develop, test and certify ISO 8583 integrations without a production host, HSM or card in sight.</p>
+        <div class="hero-ctas ds-fade" [style.--d]="1300">
+          <a class="btn btn--primary btn--glow" [href]="releases">Download Studio<ui-icon name="arrow-up-right" [size]="16" /></a>
+          <a class="btn btn--ghost" routerLink="/" fragment="toolbox">Browse the tools</a>
+        </div>
+      </div>
+
+      <div class="hp-stage">
+        <home-prism-beam [frame]="frame" />
+        <div #frame class="hp-frame ds-frame" [style.--d]="1700">
+          <div class="hp-frame-edge" aria-hidden="true"></div>
+          <home-hero-dashboard [delay]="2700" />
+          <div class="hp-frame-fade" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hp-strip" uiReveal>
+      <div class="ds-hold">
+        <p class="hp-strip-caption">Nine simulators ship in the box · open source under AGPL v3</p>
+        <div class="hp-marquee" id="simGrid">
+          <div class="hp-marquee-track ds-marquee">
+            @for (s of simulators; track s.short) {
+              <span class="hp-mark simtile">
+                <ui-icon [name]="s.icon" />
+                <span class="hp-mark-name st-name">@if (s.pre) {<span class="visually-hidden">{{ s.pre }}</span>}{{ s.short }}@if (s.post) {<span class="visually-hidden">{{ s.post }}</span>}</span>
+              </span>
+              <span class="hp-mark-rule" aria-hidden="true"></span>
+            }
+            <!-- The second copy only exists so the loop has no seam. -->
+            @for (s of simulators; track s.short) {
+              <span class="hp-mark" aria-hidden="true">
+                <ui-icon [name]="s.icon" />
+                <span class="hp-mark-name">{{ s.short }}</span>
+              </span>
+              <span class="hp-mark-rule" aria-hidden="true"></span>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <home-journey />
+
+    <section class="hp-sect" data-sect="lifecycle" uiReveal [uiRevealDelay]="250">
+      <ui-section-heading align="left" heading="Develop → Test → Certify"
+        sub="For the engineer writing the integration, the QA team proving it, and the manager signing it off." />
+      <div class="hp-personas">
+        <div class="hp-personas-line" aria-hidden="true"></div>
+        <div class="hp-personas-grid">
+          @for (p of personas; track p.n; let i = $index) {
+            <div class="hp-persona ds-item" [style.--d]="500 + i * 110">
+              <span class="hp-persona-dot" aria-hidden="true"></span>
+              <p class="hp-persona-phase">{{ p.n }} / {{ p.phase }}</p>
+              <h3>{{ p.title }}</h3>
+              <p class="hp-persona-desc">{{ p.desc }}</p>
+              <p class="hp-persona-who">{{ p.who }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section id="toolbox" class="hp-sect" data-sect="toolbox" uiReveal [uiRevealDelay]="250">
+      <ui-section-heading heading="What used to need a lab"
+        sub="The parts of the job that usually need a lab, a scheme contact and three weeks of waiting." />
+      <div class="hp-bento-grid">
+        <div class="hp-bento hp-bento--3 ds-item" [style.--d]="500" [style.--at]="'88% 6%'">
+          <div class="hp-bento-head">
+            <h3>Cryptographic workbench</h3>
+            <p>DUKPT, TR-31, ISO 9797 MAC, 3DES and AES in one panel, checked against payShield output.</p>
+          </div>
+          <div class="hp-bento-body">
+            <div class="hp-tiles">
+              @for (t of cryptoTiles; track t[1]) {
+                <div class="hp-tile"><ui-icon [name]="t[0]" [size]="18" /><span>{{ t[1] }}</span></div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="hp-bento hp-bento--3 ds-item" [style.--d]="620" [style.--at]="'6% 96%'">
+          <div class="hp-bento-head">
+            <h3>Byte-level trace</h3>
+            <p>Every field, subfield and bitmap beside the raw hex it came from.</p>
+          </div>
+          <div class="hp-bento-body">
+            <div class="hp-trace">
+              @for (line of trace; track line[0]) { <div><span>{{ line[0] }}</span> {{ line[1] }}</div> }
+            </div>
+          </div>
+        </div>
+
+        <div class="hp-bento hp-bento--2 hp-bento--plain ds-item" [style.--d]="870">
+          <div class="hp-bento-head">
+            <h3>EMV kernel tooling</h3>
+            <p>APDU scripting, CVM lists and TLV editing against a live card or a simulated one.</p>
+          </div>
+        </div>
+        <div class="hp-bento hp-bento--2 ds-item" [style.--d]="990" [style.--at]="'50% 108%'">
+          <div class="hp-bento-head">
+            <h3>Hosted endpoints</h3>
+            <p>Point your CI at a cloud host or HSM instead of standing one up per branch.</p>
+          </div>
+        </div>
+        <div class="hp-bento hp-bento--2 ds-item" [style.--d]="1110" [style.--at]="'104% 52%'">
+          <div class="hp-bento-head">
+            <h3>Deterministic replay</h3>
+            <p>Re-run yesterday's failing reversal with the same keys, clock and responses.</p>
+          </div>
+        </div>
+
+        <div class="hp-bento hp-bento--3 ds-item" [style.--d]="1150" [style.--at]="'-4% 12%'">
+          <div class="hp-bento-head">
+            <h3>Key management</h3>
+            <p>DUKPT derivation, TR-31 key blocks, key shares, KCVs, Thales and Futurex formats.</p>
+          </div>
+          <div class="hp-bento-body">
+            <div class="hp-keys">
+              @for (k of keys; track k[0]; let first = $first) {
+                <div class="hp-key" [class.is-on]="first">
+                  <span class="hp-key-tag">{{ k[0] }}</span>
+                  <span><span class="hp-key-label">{{ k[1] }}</span><span class="hp-key-hex">{{ k[2] }}</span></span>
                 </div>
+              }
+              <div class="hp-key-tags">
+                @for (t of keyTags; track t) { <span class="ui-tag">{{ t }}</span> }
+              </div>
             </div>
+          </div>
         </div>
-    </div>
-</section>
 
-<!-- toolbox -->
-<section class="solid sec-pad" id="toolbox" data-sect="toolbox">
-    <div class="wrap">
-        <span class="kicker">The full toolbox</span>
-        <h2 class="sec">64 tools, six disciplines</h2>
-        <p class="sec-sub">The same categories as the studio sidebar — every tool documented, every workflow covered.</p>
-        <div class="cat-grid">
-            <a class="cat reveal" href="/simulator/host"><span class="arrow">→</span>
-                <div class="cat-top"><span class="cat-ic">⇄</span><span class="cnt">9 tools</span></div>
-                <h3>Payment Simulators</h3><p>Host, HSM, POS, ATM, ECR, switch &amp; scheme over TCP/IP, RS232 and REST.</p>
-                <div class="chips"><span class="chip">Host</span><span class="chip">HSM</span><span class="chip">POS</span><span class="chip">APDU</span></div>
-            </a>
-            <a class="cat reveal" href="/tools/emv-tools"><span class="arrow">→</span>
-                <div class="cat-top"><span class="cat-ic">▣</span><span class="cnt">12 tools</span></div>
-                <h3>EMV &amp; Card Tools</h3><p>ARQC/TC validation, SDA &amp; DDA, ATR parsing, tag decoding, CVV/CVC3.</p>
-                <div class="chips"><span class="chip">EMV 4.1</span><span class="chip">SDA/DDA</span><span class="chip">Tags</span><span class="chip">CVV</span></div>
-            </a>
-            <a class="cat reveal" href="/tools/cipher-tools"><span class="arrow">→</span>
-                <div class="cat-top"><span class="cat-ic">⬡</span><span class="cnt">7 tools</span></div>
-                <h3>Cryptographic Tools</h3><p>AES, DES/3DES, RSA, format-preserving encryption, MD5/SHA hashing.</p>
-                <div class="chips"><span class="chip">AES</span><span class="chip">3DES</span><span class="chip">RSA</span><span class="chip">FPE</span></div>
-            </a>
-            <a class="cat reveal" href="/tools/key-tools"><span class="arrow">→</span>
-                <div class="cat-top"><span class="cat-ic">⚿</span><span class="cnt">10 tools</span></div>
-                <h3>Key Management</h3><p>DUKPT derivation, TR-31 key blocks, shares, KCVs, Thales &amp; Futurex.</p>
-                <div class="chips"><span class="chip">DUKPT</span><span class="chip">TR-31</span><span class="chip">Thales</span><span class="chip">Futurex</span></div>
-            </a>
-            <a class="cat reveal" href="/tools/pin-tools"><span class="arrow">→</span>
-                <div class="cat-top"><span class="cat-ic">▤</span><span class="cnt">21 tools</span></div>
-                <h3>Payment Utilities</h3><p>PIN blocks (ISO 9564 and OEM), AES PIN blocks, PIN translation, DUKPT PIN.</p>
-                <div class="chips"><span class="chip">PIN</span><span class="chip">ISO 9564</span><span class="chip">AES</span><span class="chip">DUKPT</span></div>
-            </a>
-            <a class="cat reveal" href="/tools/utility-tools"><span class="arrow">→</span>
-                <div class="cat-top"><span class="cat-ic">⇋</span><span class="cnt">6 tools</span></div>
-                <h3>Data Converters</h3><p>Base64, Base94, BCD, character encodings, check digits and Track 2.</p>
-                <div class="chips"><span class="chip">Base64</span><span class="chip">BCD</span><span class="chip">Luhn</span><span class="chip">Track 2</span></div>
-            </a>
-        </div>
-    </div>
-</section>
-
-<!-- screenshots -->
-<section class="solid sec-pad" style="padding-top:0" data-sect="screenshots">
-    <div class="wrap">
-        <span class="kicker">Inside the studio</span>
-        <h2 class="sec">A real desktop workbench</h2>
-        <p class="sec-sub">Configure gateways, watch live transactions, and edit ISO 8583 fields — cross-platform, built with Kotlin &amp; Compose.</p>
-        <div class="shots">
-            <div class="shot wide reveal">
-                <div class="shot-bar"><i></i><i></i><i></i><span>ISO8583Studio — Dashboard</span></div>
-                <img src="/images/img.png" alt="ISO8583Studio dashboard with tool categories and quick access" loading="lazy">
+        <div class="hp-bento hp-bento--3 ds-item" [style.--d]="1270" [style.--at]="'74% 104%'">
+          <div class="hp-bento-head">
+            <h3>64 tools, six disciplines</h3>
+            <p>The same categories as the studio sidebar — every tool documented, every workflow covered.</p>
+          </div>
+          <div class="hp-bento-body">
+            <div class="hp-count">
+              <div class="hp-count-top">
+                <strong>64</strong>
+                <span>tools shipped<br>in the studio</span>
+              </div>
+              <div class="hp-cats">
+                @for (c of categories; track c.name) {
+                  <a class="cat" [routerLink]="c.link">
+                    <h3>{{ c.name }}</h3>
+                    <span class="hp-cat-bar" aria-hidden="true"><span [style.--w]="c.width"></span></span>
+                    <span class="hp-cat-n">{{ c.n }}</span>
+                  </a>
+                }
+              </div>
             </div>
-            <div class="shot reveal">
-                <div class="shot-bar"><i></i><i></i><i></i><span>Host Simulator — Configuration</span></div>
-                <img src="/images/img_1.png" alt="Host Simulator gateway configuration" loading="lazy">
-            </div>
-            <div class="shot reveal">
-                <div class="shot-bar"><i></i><i></i><i></i><span>Transaction — Field editor</span></div>
-                <img src="/images/img_3.png" alt="ISO8583 transaction template field editor" loading="lazy">
-            </div>
+          </div>
         </div>
-    </div>
-</section>
+      </div>
+    </section>
 
-<!-- formats -->
-<section class="solid sec-pad" style="padding-top:0" data-sect="formats">
-    <div class="wrap">
-        <span class="kicker">Interoperable by default</span>
-        <h2 class="sec">Any format. Any channel.</h2>
-        <div class="fmt-band">
-            <span class="fmt"><i></i>Binary ISO 8583</span>
-            <span class="fmt"><i></i>Hexadecimal</span>
-            <span class="fmt t"><i></i>JSON</span>
-            <span class="fmt t"><i></i>XML</span>
-            <span class="fmt t"><i></i>Key-Value</span>
-            <span class="fmt g"><i></i>YAML mapping</span>
-            <span class="fmt a"><i></i>TCP/IP</span>
-            <span class="fmt a"><i></i>RS232</span>
-            <span class="fmt a"><i></i>Dial-up</span>
-            <span class="fmt a"><i></i>REST API</span>
+    <section class="hp-sect" data-sect="solutions" uiReveal [uiRevealDelay]="250">
+      <ui-section-heading heading="Solutions & services" />
+      <div class="hp-sol-grid">
+        @for (s of solutions; track s.title; let i = $index) {
+          <a class="sol ds-item" [routerLink]="s.link" [style.--d]="500 + i * 110">
+            <ui-icon [name]="s.icon" [size]="22" />
+            <h3>{{ s.title }}</h3>
+            <span class="hp-sol-desc">{{ s.desc }}</span>
+            <span class="hp-sol-go">Learn more →</span>
+          </a>
+        }
+      </div>
+    </section>
+
+    <section class="hp-sect hp-pricing" data-sect="pricing" uiReveal [uiRevealDelay]="250">
+      <ui-section-heading eyebrow="Early access" heading="Pre-register for Pro"
+        sub="Testing with a team, or certifying with a scheme? Pro raises the ceiling and adds hosted endpoints. Reserve a seat today to lock the founder rate." />
+      <app-pro-reserve class="hp-reserve" [stagger]="true" fine="Secure checkout · refundable until launch" />
+    </section>
+
+    <section class="hp-sect hp-faq" data-sect="faq" uiReveal [uiRevealDelay]="250">
+      <ui-section-heading heading="Frequently asked questions"
+        sub="ISO 8583 testing, EMV certification and HSM simulation — answered." />
+      <ui-accordion [items]="faq" [stagger]="110" [base]="500" />
+    </section>
+
+    <div class="hp-cta" uiReveal [uiRevealDelay]="250">
+      <ui-cta-panel>
+        <h2><ui-words [text]="ctaTitle" /></h2>
+        <p class="ds-hold" [style.--d]="250">Free and open source under the GNU AGPL v3. Download the studio, or star the repo and follow the roadmap.</p>
+        <div class="cta-actions ds-hold" [style.--d]="500">
+          <a class="btn btn--primary" [href]="releases">Download Studio<ui-icon name="arrow-up-right" [size]="16" /></a>
+          <a class="btn btn--secondary" [href]="repo" target="_blank" rel="noopener"><ui-icon name="star" [size]="16" />Star on GitHub</a>
         </div>
-    </div>
-</section>
-
-<!-- workflow -->
-<section class="solid sec-pad" style="padding-top:0" data-sect="lifecycle">
-    <div class="wrap">
-        <span class="kicker">One studio, whole lifecycle</span>
-        <h2 class="sec">Develop → Test → Certify</h2>
-        <p class="sec-sub">For the engineer writing the integration, the QA team proving it, and the manager signing it off.</p>
-        <div class="flow-grid">
-            <div class="step reveal"><span class="sn"></span><h3>Develop against simulators</h3><p>No test host? Simulate one. Build against local host, HSM and scheme endpoints with realistic responses.</p><span class="aud">FOR PAYMENT DEVELOPERS</span></div>
-            <div class="step reveal"><span class="sn"></span><h3>Test to the bit</h3><p>Craft edge cases field by field, validate cryptograms and MACs, replay reversals — deterministic and logged.</p><span class="aud">FOR QA &amp; TEST ENGINEERS</span></div>
-            <div class="step reveal"><span class="sn"></span><h3>Certify with confidence</h3><p>EMV L2/L3 and scheme certification prep with kernel-level tooling — cut lab time and re-submission cycles.</p><span class="aud">FOR CERTIFICATION TEAMS</span></div>
+        <div class="hp-os ds-hold" [style.--d]="600">
+          <span><ui-icon name="apple-logo" [size]="17" />macOS</span>
+          <span><ui-icon name="windows-logo" [size]="17" />Windows</span>
+          <span><ui-icon name="linux-logo" [size]="17" />Linux</span>
         </div>
+      </ui-cta-panel>
     </div>
-</section>
 
-<!-- solutions -->
-<section class="solid sec-pad" style="padding-top:0" data-sect="solutions">
-    <div class="wrap">
-        <span class="kicker">Beyond the toolbox</span>
-        <h2 class="sec">Solutions &amp; services</h2>
-        <div class="sol-grid">
-            <a class="sol reveal" href="/emv-certification"><span class="mi">✓</span><h3>EMV Certification</h3><p>End-to-end L1/L2/L3 and scheme certification, from test plans to sign-off.</p><span class="go">Learn more →</span></a>
-            <a class="sol reveal" href="/cloud-simulators"><span class="mi">☁</span><h3>Cloud Simulators</h3><p>Hosted host &amp; HSM endpoints for CI pipelines and distributed teams.</p><span class="go">Learn more →</span></a>
-            <a class="sol reveal" href="/middleware"><span class="mi">⇄</span><h3>Payment Middleware</h3><p>Switching, routing and protocol translation built on the Studio engine.</p><span class="go">Learn more →</span></a>
-            <a class="sol reveal" href="/kernel"><span class="mi">▦</span><h3>Kernel Development</h3><p>EMV L2 kernel engineering for terminals, from contact to contactless.</p><span class="go">Learn more →</span></a>
-        </div>
-    </div>
-</section>
-
-<section class="solid cta" data-sect="final_cta">
-    <div class="wrap">
-        <h2>Ship payment software<br>that just works</h2>
-        <p>Free and open source under the AGPL v3. Download the studio, or star the repo and follow the roadmap.</p>
-        <div class="row">
-            <a class="btn btn-blue btn-lg" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">Download for free</a>
-            <a class="btn btn-ghost btn-lg" href="https://github.com/hpkaushik121/Iso8583studio">★ Star on GitHub</a>
-        </div>
-        <div class="fine">java -jar ISO8583Studio.jar · Windows 10+ / macOS 10.14+ / Ubuntu 18.04+</div>
-    </div>
-</section>
-
-<aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,
+    <home-scroll-dots />
+  `,
 })
-export class HomePage {}
+export class HomePage {
+  protected readonly releases = EXTERNAL.releases;
+  protected readonly repo = EXTERNAL.repo;
+  protected readonly simulators = SIMULATORS;
+  protected readonly personas = PERSONAS;
+  protected readonly cryptoTiles = CRYPTO_TILES;
+  protected readonly trace = TRACE;
+  protected readonly keys = KEYS;
+  protected readonly keyTags = KEY_TAGS;
+  protected readonly categories = CATEGORIES;
+  protected readonly solutions = SOLUTIONS;
+  protected readonly faq = FAQ;
+  protected readonly ctaTitle = 'Download the studio.\nSend your first 0200.';
+
+  private readonly hero = viewChild.required<ElementRef<HTMLElement>>('hero');
+  private readonly dots = viewChild.required<ElementRef<HTMLElement>>('dots');
+
+  constructor() {
+    if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => destroyRef.onDestroy(this.lightTheMap()));
+  }
+
+  /**
+   * The dotted world map behind the hero brightens in a pool around the
+   * pointer. A small enhancement: the bright copy of the map is not even
+   * requested until the pointer first moves over the hero, and none of it runs
+   * under reduced motion or on a device without a fine pointer.
+   */
+  private lightTheMap(): () => void {
+    const hero = this.hero().nativeElement;
+    const layer = this.dots().nativeElement;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        !matchMedia('(hover: hover) and (pointer: fine)').matches) return () => {};
+
+    let raf = 0;
+    let x = 0;
+    let y = 0;
+    let lit = false;
+
+    const paint = () => {
+      raf = 0;
+      layer.style.setProperty('--mx', `${x}px`);
+      layer.style.setProperty('--my', `${y}px`);
+      layer.style.setProperty('--mr', `${LIGHT_RADIUS}px`);
+      layer.classList.add('is-armed');
+      layer.classList.toggle('is-lit', lit);
+    };
+    const move = (e: PointerEvent) => {
+      const r = hero.getBoundingClientRect();
+      x = e.clientX - r.left;
+      y = e.clientY - r.top;
+      lit = true;
+      if (!raf) raf = requestAnimationFrame(paint);
+    };
+    const leave = () => {
+      lit = false;
+      if (!raf) raf = requestAnimationFrame(paint);
+    };
+
+    hero.addEventListener('pointermove', move, { passive: true });
+    hero.addEventListener('pointerleave', leave);
+    return () => {
+      hero.removeEventListener('pointermove', move);
+      hero.removeEventListener('pointerleave', leave);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }
+}

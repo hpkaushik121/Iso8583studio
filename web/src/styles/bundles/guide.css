@@ -1,0 +1,826 @@
+@import './_hero-video.css';
+
+/* ==========================================================================
+   Guide shell — the hero, section rail, content column and doc blocks shared
+   by the tool guides, the simulator guides and the re-skinned docs pages.
+   Components: src/app/pages/shared/guide/. Every rule is prefixed gd-.
+
+   Nothing here depends on another bundle. A guide route loads this file plus
+   its family's own (tools, sims, preview, docs).
+
+   Guide sections are <section class="doc-section gd-section">, and
+   _components.css still styles bare p / ul / ol / li / h2 / h3 / h4 inside
+   .doc-section for the older pages. Where a gd- block would lose to one of
+   those rules it is written twice (".gd-p, .doc-section .gd-p") so it wins
+   inside a section and still works outside one.
+   ========================================================================== */
+
+/* ---- Hero --------------------------------------------------------------- */
+
+.gd-hero-host { display: block; }
+
+.gd-hero { position: relative; overflow: hidden; }
+.gd-hero-in { position: relative; z-index: 4; }
+
+.gd-hero-meta {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: .02em;
+    color: var(--faint);
+}
+
+.gd-hero-title {
+    margin: 18px 0 0;
+    font-size: var(--fs-hero);
+    font-weight: 500;
+    letter-spacing: var(--ls-tight);
+    line-height: 1.1;
+    color: var(--text);
+}
+
+/* The title flows inline so the status pill follows its last word, whether
+   the title takes one line or wraps to two. */
+.gd-hero-titlerow { max-width: 480px; margin-top: 18px; }
+.gd-hero-titlerow .gd-hero-title { display: inline; margin: 0; }
+.gd-hero--center .gd-hero-titlerow { max-width: 720px; margin-inline: auto; }
+.gd-hero-status { display: inline-flex; margin-left: 14px; vertical-align: middle; }
+
+.gd-hero-lede {
+    margin: 16px 0 0;
+    color: var(--muted);
+    font-size: var(--fs-md);
+    line-height: var(--lh-snug);
+    text-wrap: pretty;
+}
+
+.gd-hero-ctas {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* The shared breadcrumb, restyled: quiet links, the current page in full ink. */
+.gd-hero .breadcrumb {
+    gap: 8px;
+    margin: 0 0 18px;
+    color: var(--faint);
+    font-size: var(--fs-sm);
+}
+
+.gd-hero .breadcrumb a { color: var(--muted); }
+.gd-hero .breadcrumb a:hover { color: var(--text); }
+.gd-hero .breadcrumb [aria-current] { color: var(--text); }
+.gd-hero .breadcrumb-sep { opacity: 1; }
+
+/* Centred: copy in the middle, a visual rising underneath. */
+.gd-hero--center {
+    padding: calc(64px + var(--nav-h)) var(--gutter) 0;
+    text-align: center;
+}
+
+.gd-hero--center .breadcrumb { justify-content: center; }
+.gd-hero--center .gd-hero-title { max-width: 720px; margin-inline: auto; }
+.gd-hero--center .gd-hero-lede { max-width: 680px; margin-inline: auto; }
+.gd-hero--center .gd-hero-ctas { justify-content: center; margin-top: 24px; }
+
+/* Left: copy in a narrow column over a projected background. */
+.gd-hero--left {
+    display: flex;
+    align-items: center;
+    min-height: min(760px, 90vh);
+    text-align: left;
+}
+
+.gd-hero--left .gd-hero-in {
+    width: 100%;
+    max-width: var(--wrap-max);
+    margin: 0 auto;
+    padding: calc(72px + var(--nav-h)) var(--gutter) 112px;
+}
+
+.gd-hero--left .gd-hero-copy { max-width: 480px; }
+.gd-hero--left .gd-hero-title { max-width: 480px; }
+.gd-hero--left .gd-hero-lede { max-width: 440px; }
+.gd-hero--left .gd-hero-ctas { margin-top: 28px; }
+
+@media (max-width: 900px) {
+    .gd-hero--left { min-height: 0; }
+    .gd-hero--left .gd-hero-in { padding: calc(56px + var(--nav-h)) var(--gutter) 88px; }
+    .gd-hero--left .gd-hero-copy { max-width: 600px; }
+    .gd-hero--left .gd-hero-lede { max-width: 560px; }
+}
+
+/* Dot grid. The base layer is barely there; the hot layer is the same grid in
+   a brighter ink, shown only through a mask that follows the pointer. */
+.gd-hero-dots {
+    position: absolute;
+    inset: 0;
+    isolation: isolate;
+    pointer-events: none;
+    mask-image: linear-gradient(180deg, black 0, black 58%, transparent 92%);
+}
+
+.gd-hero-dots-base,
+.gd-hero-dots-hot {
+    position: absolute;
+    inset: 0;
+    background-size: 14px 14px;
+}
+
+.gd-hero-dots-base { background-image: radial-gradient(rgba(151, 168, 214, .04) 1px, transparent 1px); }
+
+.gd-hero-dots-hot {
+    background-image: radial-gradient(rgba(159, 211, 255, .55) 1px, transparent 1px);
+    opacity: 0;
+    mix-blend-mode: screen;
+    transition: opacity .3s var(--ease);
+    mask-image: radial-gradient(circle 210px at var(--gd-px, 50%) var(--gd-py, 30%), black 0%, rgba(0, 0, 0, .6) 46%, transparent 74%);
+}
+
+.gd-hero.is-lit .gd-hero-dots-hot { opacity: 1; }
+
+/* ---- Hero frame --------------------------------------------------------- */
+
+/* The block reserves the frame's height, so nothing below moves while the
+   frame rises into place. */
+.gd-frame-block {
+    position: relative;
+    display: block;
+    height: 740px;
+    margin-top: -14px;
+}
+
+.gd-frame {
+    position: absolute;
+    left: 50%;
+    top: 80px;
+    width: 980px;
+    max-width: 100%;
+    height: 700px;
+    overflow: hidden;
+    border: 1px solid rgba(233, 236, 245, .7);
+    border-bottom: 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    background: var(--bg-deep);
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, .6), 0 -24px 80px rgba(159, 211, 255, .45), 0 -80px 160px rgba(30, 136, 229, .28), var(--sh-card);
+    /* ds-frame-in ends on this transform; stating it keeps the frame centred
+       when the animation is switched off. */
+    transform: translateX(-50%);
+    mask-image: linear-gradient(180deg, black 42%, rgba(0, 0, 0, .55) 72%, rgba(0, 0, 0, .18) 88%, transparent 100%);
+}
+
+.gd-frame-edge {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 2;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, .2), white 50%, rgba(255, 255, 255, .2));
+}
+
+.gd-frame-fade {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(15, 16, 23, 0) 45%, rgba(15, 16, 23, .45) 75%, rgba(15, 16, 23, .8) 92%);
+}
+
+@media (max-width: 1200px) {
+    .gd-frame-block { height: 610px; }
+    .gd-frame { height: 510px; }
+}
+
+@media (max-width: 900px) {
+    .gd-frame-block { height: 464px; }
+    .gd-frame { top: 44px; height: 400px; }
+}
+
+/* ---- Layout: rail + content column -------------------------------------- */
+
+.gd-layout { display: block; }
+
+.gd-wrap {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    gap: 64px;
+    align-items: start;
+    max-width: var(--wrap-max);
+    margin: 0 auto;
+    padding: 56px var(--gutter) 96px;
+}
+
+/* A size container, so blocks inside switch column counts on the width of the
+   column they are actually in rather than on the viewport. */
+.gd-main {
+    min-width: 0;
+    container: gd-main / inline-size;
+}
+
+.gd-rail-col {
+    position: sticky;
+    top: 96px;
+    max-height: calc(100vh - 112px);
+    overflow-y: auto;
+}
+
+.gd-rail { display: grid; gap: 2px; align-content: start; }
+.gd-rail-badge { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 14px; }
+
+.gd-rail-label {
+    padding: 0 10px 10px;
+    font-size: var(--fs-caption);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+.gd-rail a {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 9px;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: var(--r-md);
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.gd-rail a .ui-icon { color: var(--faint); transition: color var(--dur) var(--ease); }
+.gd-rail a:hover { color: var(--text); }
+.gd-rail a.on { background: var(--neutral-wash); box-shadow: inset 0 0 0 1px var(--line2); color: var(--text); }
+.gd-rail a.on .ui-icon { color: var(--blue-hi); }
+.gd-rail a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The same list as a collapsed block, for widths with no room for a column. */
+.gd-toc {
+    display: none;
+    margin: 0 0 36px;
+    padding: 14px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+}
+
+.gd-toc > summary { cursor: pointer; color: var(--text); font-size: var(--fs-base); }
+.gd-toc .gd-rail { margin-top: 12px; }
+
+@media (max-width: 1040px) {
+    .gd-wrap { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 36px; }
+    .gd-rail-col { display: none; }
+    .gd-toc { display: block; }
+}
+
+/* ---- Section ------------------------------------------------------------ */
+
+.gd-section-host { display: block; }
+
+.gd-section,
+.doc-section.gd-section {
+    margin: 0;
+    padding-top: 72px;
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+}
+
+.gd-main > :first-child .gd-section { padding-top: 0; }
+
+.gd-eyebrow,
+.gd-label,
+.gd-caption {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    line-height: var(--lh-base);
+}
+
+.gd-eyebrow { margin-bottom: 14px; text-transform: uppercase; color: var(--teal-hi); }
+.gd-eyebrow--faint { color: var(--faint); }
+
+.gd-label,
+.doc-section .gd-label { margin: 28px 0 4px; text-transform: uppercase; color: var(--faint); }
+
+.gd-caption,
+.doc-section .gd-caption { margin: 12px 0 0; color: var(--faint); }
+
+.gd-h2,
+.doc-section > .gd-h2 {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: var(--fs-3xl);
+    font-weight: 500;
+    letter-spacing: var(--ls-tight);
+    line-height: 1.12;
+    color: var(--text);
+}
+
+.gd-lede,
+.doc-section .gd-lede,
+.gd-p,
+.doc-section .gd-p {
+    max-width: 70ch;
+    margin: 16px 0 0;
+    color: var(--muted);
+    font-size: var(--fs-md);
+    line-height: 1.65;
+    text-wrap: pretty;
+}
+
+.gd-p,
+.doc-section .gd-p { font-size: var(--fs-base); }
+
+.gd-h3,
+.doc-section .gd-h3 {
+    margin: 36px 0 14px;
+    font-size: var(--fs-xl);
+    font-weight: 500;
+    letter-spacing: var(--ls-snug);
+    line-height: 1.2;
+    color: var(--text);
+}
+
+.gd-h4,
+.doc-section .gd-h4 {
+    margin: 30px 0 10px;
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    letter-spacing: var(--ls-snug);
+    line-height: 1.3;
+    color: var(--text);
+}
+
+/* ---- Rich inline copy --------------------------------------------------- */
+
+.gd-rich code {
+    padding: 1px 5px;
+    border: 1px solid rgba(106, 183, 255, .24);
+    border-radius: 4px;
+    background: rgba(30, 136, 229, .09);
+    font: .92em var(--mono);
+    color: var(--blue-hi);
+}
+
+.gd-rich strong,
+.gd-bullets strong { font-weight: 500; color: var(--text); }
+
+/* ---- Blocks ------------------------------------------------------------- */
+
+.gd-blocks { display: block; }
+
+/* Table */
+.gd-table-wrap {
+    display: block;
+    margin-top: 16px;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+}
+
+.gd-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    text-align: left;
+}
+
+/* A column's stated width is its text width; the cell padding is added on. */
+.gd-table col { width: auto; }
+.gd-table col.gd-col-fixed { width: calc(var(--gd-w) + 18px); }
+.gd-table col.gd-col-fixed:first-child { width: calc(var(--gd-w) + 27px); }
+
+.gd-table th,
+.gd-table td { padding: 12px 9px; overflow-wrap: anywhere; vertical-align: top; }
+
+.gd-table th:first-child,
+.gd-table td:first-child { padding-left: 18px; }
+
+.gd-table th:last-child,
+.gd-table td:last-child { padding-right: 18px; }
+
+.gd-table th {
+    background: var(--card-deep);
+    font: var(--fs-xs)/1.5 var(--mono);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+.gd-table td { border-top: 1px solid var(--line2); }
+.gd-table td:first-child { color: var(--text); }
+
+/* Steps */
+.gd-steps,
+.doc-section .gd-steps {
+    display: grid;
+    gap: 10px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: gd-step;
+}
+
+.gd-steps > li,
+.doc-section .gd-steps > li {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--fs-base);
+    line-height: 1.65;
+}
+
+.gd-steps > li::before {
+    counter-increment: gd-step;
+    content: counter(gd-step, decimal-leading-zero);
+    display: grid;
+    place-items: center;
+    height: 26px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    font: var(--fs-caption)/1 var(--mono);
+    color: var(--blue-hi);
+}
+
+/* Bullets */
+.gd-bullets,
+.doc-section .gd-bullets {
+    display: grid;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gd-bullets--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+
+.gd-bullets > li,
+.doc-section .gd-bullets > li {
+    position: relative;
+    margin: 0;
+    padding-left: 18px;
+    color: var(--muted);
+    font-size: var(--fs-base);
+    line-height: 1.65;
+}
+
+.gd-bullets > li::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: .72em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--blue-hi);
+    opacity: .8;
+}
+
+/* Spec rows */
+.gd-specs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 32px;
+    margin: 0;
+}
+
+.gd-spec {
+    display: grid;
+    gap: 4px;
+    align-content: start;
+    padding: 12px 0 14px;
+    border-bottom: 1px solid var(--line2);
+}
+
+.gd-spec dt { color: var(--text); font-size: var(--fs-base); font-weight: 500; letter-spacing: var(--ls-snug); }
+.gd-spec dd { margin: 0; color: var(--muted); font-size: var(--fs-sm); line-height: 1.6; text-wrap: pretty; }
+
+/* Note */
+.gd-note {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 12px;
+    margin-top: 22px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+}
+
+.gd-note > .ui-icon { color: var(--muted); }
+.gd-note--blue { border-color: var(--blue-line); background: rgba(30, 136, 229, .08); }
+.gd-note--blue > .ui-icon { color: var(--blue-hi); }
+.gd-note--teal { border-color: var(--teal-line); background: rgba(38, 166, 154, .08); }
+.gd-note--teal > .ui-icon { color: var(--teal-hi); }
+.gd-note--warn { border-color: rgba(255, 183, 77, .3); background: rgba(255, 183, 77, .08); }
+.gd-note--warn > .ui-icon { color: var(--amber-hi); }
+.gd-note-title { display: block; margin-bottom: 4px; font-size: var(--fs-body); font-weight: 500; color: var(--text); }
+.gd-note-text { color: var(--muted); font-size: var(--fs-sm); line-height: 1.6; }
+
+/* Code */
+.gd-code {
+    position: relative;
+    display: block;
+    margin-top: 16px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-lg);
+    background: var(--card-deep);
+}
+
+.gd-code-pre {
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    border-radius: inherit;
+    font: var(--fs-sm)/1.7 var(--mono);
+    color: var(--muted);
+    white-space: pre;
+}
+
+.gd-code-hi { font-weight: 500; color: var(--teal-hi); }
+
+.gd-code-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    color: var(--muted);
+    font: var(--fs-caption)/1 var(--sans);
+    cursor: pointer;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.gd-code-copy:hover { border-color: var(--line-hi); background: var(--card); color: var(--text); }
+
+/* ---- Link cards --------------------------------------------------------- */
+
+.gd-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 32px;
+}
+
+.gd-card-cell { display: grid; min-width: 0; }
+
+.gd-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    padding: 22px;
+    border: 1px solid rgba(133, 181, 232, .22);
+    border-radius: var(--r-lg);
+    background-color: color-mix(in oklab, var(--surface) 55%, transparent);
+    backdrop-filter: blur(14px);
+    color: var(--text);
+    transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.gd-card:hover {
+    border-color: rgba(106, 183, 255, .45);
+    box-shadow: var(--sh-card);
+    color: var(--text);
+    transform: translateY(-3px);
+}
+
+.gd-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gd-card-top > .ui-icon { color: var(--blue-hi); }
+.gd-card-tags { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.gd-card-tag {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    text-align: right;
+    text-transform: uppercase;
+    color: var(--teal-hi);
+}
+
+.gd-card-name { margin-top: 4px; font-size: var(--fs-lg); font-weight: 500; letter-spacing: var(--ls-snug); line-height: var(--lh-snug); }
+.gd-card-desc { color: var(--muted); font-size: var(--fs-sm); line-height: var(--lh-snug); text-wrap: pretty; }
+
+.gd-card-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 10px;
+    color: var(--blue-hi);
+    font-size: var(--fs-sm);
+    transition: color var(--dur) var(--ease);
+}
+
+.gd-card:hover .gd-card-go { color: var(--teal-hi); }
+
+/* ---- Fact cards --------------------------------------------------------- */
+
+.gd-features {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.gd-feature {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+    height: 100%;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    box-shadow: inset 0 1px 0 rgba(233, 236, 245, .05);
+}
+
+.gd-feature-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    color: var(--blue-hi);
+}
+
+.gd-feature-text { display: grid; gap: 4px; }
+.gd-feature-text strong { color: var(--text); font-size: var(--fs-base); font-weight: 500; letter-spacing: var(--ls-snug); }
+.gd-feature-text span { color: var(--muted); font-size: var(--fs-sm); line-height: 1.55; text-wrap: pretty; }
+
+/* A closing line after the fact cards. */
+.gd-features + .gd-p,
+.doc-section .gd-features + .gd-p { margin-top: 26px; }
+
+/* ---- Tips --------------------------------------------------------------- */
+
+.gd-tips-host { display: block; margin-top: 24px; }
+
+.gd-tips,
+.doc-section .gd-tips { margin: 0; padding: 0; list-style: none; }
+
+.gd-tip,
+.doc-section .gd-tip {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 14px;
+    margin: 0;
+    padding: 18px 22px;
+    border-top: 1px solid var(--line2);
+}
+
+.gd-tip:first-child { border-top: 0; }
+
+.gd-tip-n {
+    padding-top: 3px;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    color: var(--blue-hi);
+}
+
+.gd-tip-text { color: var(--muted); font-size: var(--fs-base); line-height: 1.65; text-wrap: pretty; }
+
+/* ---- Closing CTA -------------------------------------------------------- */
+
+/* ui-cta-panel is a centred, full-width marketing band. Inside a guide it
+   sits in the content column, left-aligned, with the Pro block beside it. */
+.gd-cta-host { display: block; }
+.gd-cta { padding-top: 72px; }
+
+.gd-cta .cta-panel {
+    width: 100%;
+    margin: 0;
+    padding: 56px 52px;
+    text-align: left;
+}
+
+.gd-cta-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+    gap: 44px;
+    align-items: center;
+}
+
+.gd-cta--solo .gd-cta-grid { grid-template-columns: minmax(0, 1fr); }
+
+.gd-cta .cta-panel h2 {
+    max-width: none;
+    margin: 0 0 18px;
+    font-size: var(--fs-display);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    line-height: 1.12;
+}
+
+.gd-cta .cta-panel .gd-cta-text {
+    max-width: 46ch;
+    margin: 0 0 26px;
+    color: var(--muted);
+    font-size: var(--fs-md);
+    line-height: var(--lh-snug);
+    text-wrap: pretty;
+}
+
+.gd-cta .cta-actions { justify-content: flex-start; gap: 10px; margin-top: 0; }
+
+/* .pro-nudge is the class analytics reads for pro_click; every property of the
+   old banner look in _components.css is reset here. */
+.gd-cta .pro-nudge {
+    display: block;
+    width: auto;
+    margin: 0;
+    padding: 26px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    box-shadow: var(--sh-glass);
+}
+
+.gd-cta-pro-tag {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--blue-hi);
+}
+
+.gd-cta .cta-panel .gd-cta-pro-text {
+    max-width: none;
+    margin: 12px 0 16px;
+    color: var(--muted);
+    font-size: var(--fs-base);
+    line-height: 1.65;
+    text-wrap: pretty;
+}
+
+.gd-cta .pro-nudge a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--blue-hi);
+    font-size: var(--fs-base);
+    font-weight: 400;
+}
+
+.gd-cta .pro-nudge a:hover { color: var(--teal-hi); }
+
+/* ---- Column counts, on the width of the content column ------------------ */
+
+@container gd-main (max-width: 899px) {
+    .gd-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gd-cta .cta-panel { padding: 30px; }
+    .gd-cta-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+
+@container gd-main (max-width: 639px) {
+    .gd-cards,
+    .gd-features,
+    .gd-specs,
+    .gd-bullets--2 { grid-template-columns: minmax(0, 1fr); }
+
+    /* A table too narrow to read as columns becomes a list of rows, each cell
+       on its own line. Past two columns the cells name their column. */
+    .gd-table,
+    .gd-table tbody,
+    .gd-table tr,
+    .gd-table td { display: block; }
+
+    .gd-table colgroup,
+    .gd-table thead { display: none; }
+
+    .gd-table tr { padding: 12px 18px; border-top: 1px solid var(--line2); }
+    .gd-table tr:first-child { border-top: 0; }
+    .gd-table td, .gd-table td:first-child, .gd-table td:last-child { padding: 0; border: 0; }
+    .gd-table td + td { margin-top: 4px; }
+
+    .gd-table tr:has(td:nth-child(3)) td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font: var(--fs-2xs)/1.6 var(--mono);
+        letter-spacing: var(--ls-wide);
+        text-transform: uppercase;
+        color: var(--faint);
+    }
+}

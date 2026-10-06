@@ -10,8 +10,8 @@ export interface NavLink {
   link: string;
   /** Short descriptor shown in the mega-menus. */
   desc?: string;
-  /** Glyph shown in the icon tile. */
-  glyph?: string;
+  /** Phosphor icon shown in the menu tile and the drawer. */
+  icon?: string;
   /** Status or count chip, e.g. 'Available', 'Beta', '12'. */
   chip?: string;
 }
@@ -23,35 +23,35 @@ export interface NavGroup {
 }
 
 export const SIMULATORS: NavLink[] = [
-  { label: 'Host Simulator', link: '/simulator/host', glyph: '⇄', chip: 'Available', desc: 'Acquirer / issuer host, proxy' },
-  { label: 'HSM Simulator', link: '/simulator/hsm', glyph: '⚿', chip: 'Available', desc: 'payShield 10K keys, PIN, MAC' },
-  { label: 'HSM Command Console', link: '/simulator/hsm-command-console', glyph: '›_', chip: 'Beta', desc: 'Host-command client' },
-  { label: 'POS Simulator', link: '/simulator/pos', glyph: '▤', chip: 'Available', desc: 'Terminal, EMV & contactless' },
-  { label: 'APDU Simulator', link: '/simulator/apdu', glyph: '▣', chip: 'Available', desc: 'Card session & TLV' },
-  { label: 'Switch Simulator', link: '/simulator/payment-switch', glyph: '⇆', chip: 'Dev', desc: 'Routing & translation' },
-  { label: 'Issuer System', link: '/simulator/issuer', glyph: '◈', chip: 'Dev', desc: 'Authorization decisioning' },
-  { label: 'ATM Simulator', link: '/simulator/atm', glyph: '▧', chip: 'Dev', desc: 'Cash withdrawal, NDC/DDC' },
-  { label: 'ECR Simulator', link: '/simulator/ecr', glyph: '▦', chip: 'Dev', desc: 'Register ↔ POS integration' },
+  { label: 'Host Simulator', link: '/simulator/host', icon: 'arrows-left-right', chip: 'Available', desc: 'Acquirer / issuer host, proxy' },
+  { label: 'HSM Simulator', link: '/simulator/hsm', icon: 'key', chip: 'Available', desc: 'payShield 10K keys, PIN, MAC' },
+  { label: 'HSM Command Console', link: '/simulator/hsm-command-console', icon: 'terminal-window', chip: 'Beta', desc: 'Host-command client' },
+  { label: 'POS Simulator', link: '/simulator/pos', icon: 'credit-card', chip: 'Beta', desc: 'Terminal, EMV & contactless' },
+  { label: 'APDU Simulator', link: '/simulator/apdu', icon: 'sim-card', chip: 'Beta', desc: 'Card session & TLV' },
+  { label: 'Switch Simulator', link: '/simulator/payment-switch', icon: 'shuffle', chip: 'Dev', desc: 'Routing & translation' },
+  { label: 'Issuer System', link: '/simulator/issuer', icon: 'bank', chip: 'Dev', desc: 'Authorization decisioning' },
+  { label: 'ATM Simulator', link: '/simulator/atm', icon: 'money', chip: 'Dev', desc: 'Cash withdrawal, NDC/DDC' },
+  { label: 'ECR Simulator', link: '/simulator/ecr', icon: 'printer', chip: 'Dev', desc: 'Register ↔ POS integration' },
 ];
 
 export const TOOLS: NavLink[] = [
-  { label: 'Payment Simulators', link: '/simulator', glyph: '⇄', chip: '9', desc: 'Host, HSM, POS, ATM, switch & scheme' },
-  { label: 'EMV & Card Tools', link: '/tools/emv-tools', glyph: '▣', chip: '12', desc: 'Cryptograms, SDA/DDA, ATR, tags, CVV' },
-  { label: 'Cryptographic Tools', link: '/tools/cipher-tools', glyph: '⬡', chip: '7', desc: 'AES, DES/3DES, RSA, FPE, hashing' },
-  { label: 'Key Management', link: '/tools/key-tools', glyph: '⚿', chip: '10', desc: 'DUKPT, TR-31, shares, Thales, Futurex' },
-  { label: 'Payment Utilities', link: '/tools/pin-tools', glyph: '▤', chip: '21', desc: 'PIN blocks, PVV, MAC, parsing' },
-  { label: 'Data Converters', link: '/tools/utility-tools', glyph: '⇋', chip: '5', desc: 'Base64, hex, EBCDIC, BCD' },
+  { label: 'Payment Simulators', link: '/simulator', icon: 'plugs-connected', chip: '9', desc: 'Host, HSM, POS, ATM, switch & scheme' },
+  { label: 'EMV & Card Tools', link: '/tools/emv-tools', icon: 'cards', chip: '12', desc: 'Cryptograms, SDA/DDA, ATR, tags, CVV' },
+  { label: 'Cryptographic Tools', link: '/tools/cipher-tools', icon: 'lock-key', chip: '7', desc: 'AES, DES/3DES, RSA, FPE, hashing' },
+  { label: 'Key Management', link: '/tools/key-tools', icon: 'key', chip: '10', desc: 'DUKPT, TR-31, shares, Thales, Futurex' },
+  { label: 'Payment Utilities', link: '/tools/pin-tools', icon: 'keyboard', chip: '21', desc: 'PIN blocks, PVV, MAC, parsing' },
+  { label: 'Data Converters', link: '/tools/utility-tools', icon: 'swap', chip: '6', desc: 'Base64, Base94, BCD, check digits, Track 2' },
   // Previously absent from both nav and footer despite being live pages.
-  { label: 'Card Validation', link: '/tools/card-validation', glyph: '◫', chip: '4', desc: 'PAN, Luhn, IIN and check digits' },
-  { label: 'DUKPT Tools', link: '/tools/dukpt-tools', glyph: '⚙', chip: '6', desc: 'BDK, IPEK and transaction keys' },
-  { label: 'MAC Tools', link: '/tools/mac-tools', glyph: '⛊', chip: '5', desc: 'ISO 9797, X9.9/X9.19, retail MAC' },
+  { label: 'Card Validation', link: '/tools/card-validation', icon: 'identification-card', chip: '4', desc: 'PAN, Luhn, IIN and check digits' },
+  { label: 'DUKPT Tools', link: '/tools/dukpt-tools', icon: 'tree-structure', chip: '6', desc: 'BDK, IPEK and transaction keys' },
+  { label: 'MAC Tools', link: '/tools/mac-tools', icon: 'seal-check', chip: '5', desc: 'ISO 9797, X9.9/X9.19, retail MAC' },
 ];
 
 export const SOLUTIONS: NavLink[] = [
-  { label: 'EMV Certification', link: '/emv-certification', glyph: '✓', desc: 'L1/L2/L3 & scheme certification' },
-  { label: 'Cloud Simulators', link: '/cloud-simulators', glyph: '☁', desc: 'Hosted test endpoints for CI' },
-  { label: 'Payment Middleware', link: '/middleware', glyph: '⇄', desc: 'Switching, routing, translation' },
-  { label: 'Kernel Development', link: '/kernel', glyph: '▦', desc: 'EMV L2 kernel engineering' },
+  { label: 'EMV Certification', link: '/emv-certification', icon: 'check-circle', desc: 'L1/L2/L3 & scheme certification' },
+  { label: 'Cloud Simulators', link: '/cloud-simulators', icon: 'cloud', desc: 'Hosted test endpoints for CI' },
+  { label: 'Payment Middleware', link: '/middleware', icon: 'arrows-left-right', desc: 'Switching, routing, translation' },
+  { label: 'Kernel Development', link: '/kernel', icon: 'cpu', desc: 'EMV L2 kernel engineering' },
 ];
 
 export const RESOURCES: NavLink[] = [

@@ -66,6 +66,10 @@ import { UiLogoMark } from '../../ui/logo-mark';
           <p>{{ copy().body }}</p>
         </div>
 
+        @if (tone() === 'wait') {
+          <span class="pr-bar" aria-hidden="true"><span></span></span>
+        }
+
         @if (amount(); as a) {
           <div class="pr-amount" [class.pr-amount-quiet]="state() !== 'paid'">
             <div class="pr-amount-value">{{ a }}</div>
@@ -99,11 +103,11 @@ import { UiLogoMark } from '../../ui/logo-mark';
 
         <div class="pr-actions">
           @if (state() === 'failed') {
-            <button type="button" class="pr-btn pr-btn-primary" (click)="tryAgain()">Try again</button>
+            <button type="button" class="btn btn--primary btn--lg pr-act" (click)="tryAgain()">Try again</button>
           } @else if (state() === 'paid') {
-            <a class="pr-btn pr-btn-primary" href="/">Back to the studio</a>
+            <a class="btn btn--primary btn--lg pr-act" href="/">Back to the studio</a>
           }
-          <a class="pr-btn pr-btn-quiet" [href]="supportHref()">Contact support</a>
+          <a class="btn btn--outline btn--lg pr-act" [href]="supportHref()">Contact support</a>
         </div>
       </div>
     </div>

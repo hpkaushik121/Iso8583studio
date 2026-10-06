@@ -62,6 +62,12 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        val desktopTest by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(compose.desktop.uiTestJUnit4)
+            }
+        }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
@@ -128,6 +134,9 @@ compose.desktop {
                 }
             }
             jvmArgs.addAll(listOf(
+                // Explicit ceiling: the JVM default is 25% of physical RAM, so the same build
+                // behaved differently on every machine.
+                "-Xmx2g",
                 "-Dfile.encoding=UTF-8",
                 "-Dsun.java2d.d3d=false",
                 "-Dsun.java2d.opengl=false",

@@ -1,0 +1,882 @@
+/* ==========================================================================
+   Concept guides for the simulators still in development — Switch, Issuer
+   System, ATM, ECR. Component: src/app/pages/shared/preview/.
+
+   Loaded after guide.css, whose grid, rail, section heading, note and bullet
+   classes (gd-) the page reuses. Everything here is prefixed sp-. Rules that
+   adjust a gd- or hero-video class are written under .sp-page / .sp-hero so
+   they win whichever bundle happens to load first.
+
+   Section bodies sit inside <section class="doc-section">, where
+   _components.css still styles bare p and h3; the sp- rules for those
+   elements therefore carry .sp-page and set every property they depend on.
+   ========================================================================== */
+
+.sp-page { display: block; }
+
+.sp-wrap {
+    width: 100%;
+    max-width: var(--wrap-max);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+}
+
+/* ---- Hero: the product loop full-bleed, copy on the left over a scrim ---- */
+
+.sp-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: min(760px, 90vh);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* The shared clip's scrim is tuned for the released guides; this hero keeps
+   more of the hardware visible on the right. */
+.sp-hero .hero-video-scrim {
+    background:
+        linear-gradient(90deg, var(--canvas) 0, rgba(15, 16, 23, .93) 24%, rgba(15, 16, 23, .64) 41%, rgba(15, 16, 23, .14) 61%, rgba(15, 16, 23, 0) 76%),
+        linear-gradient(180deg, rgba(15, 16, 23, .35), transparent 26%, transparent 68%, var(--canvas) 100%);
+}
+
+.sp-hero-inner {
+    position: relative;
+    z-index: 1;
+    padding-top: calc(72px + var(--nav-h));
+    padding-bottom: 112px;
+}
+
+.sp-hero-copy { max-width: 520px; }
+
+.sp-hero .breadcrumb {
+    gap: 8px;
+    margin: 0 0 18px;
+    color: var(--faint);
+    font-size: var(--fs-sm);
+}
+
+.sp-hero .breadcrumb a { color: var(--muted); }
+.sp-hero .breadcrumb a:hover { color: var(--text); }
+.sp-hero .breadcrumb [aria-current] { color: var(--text); }
+.sp-hero .breadcrumb-sep { opacity: 1; }
+
+.sp-hero-meta {
+    margin: 0;
+    font: var(--fs-xs)/1.6 var(--mono);
+    letter-spacing: .02em;
+    color: var(--faint);
+}
+
+.sp-hero-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.sp-hero h1 {
+    max-width: 520px;
+    margin: 0;
+    font: 500 var(--fs-hero)/1.1 var(--sans);
+    letter-spacing: var(--ls-tight);
+    color: var(--text);
+}
+
+.sp-hero-badge { display: inline-flex; }
+
+.sp-lede {
+    max-width: 440px;
+    margin: 16px 0 28px;
+    color: var(--muted);
+    font-size: var(--fs-md);
+    line-height: var(--lh-snug);
+    text-wrap: pretty;
+}
+
+.sp-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.sp-hero-note {
+    margin: 18px 0 0;
+    color: var(--faint);
+    font-size: var(--fs-caption);
+}
+
+/* ---- Rail ---------------------------------------------------------------- */
+
+.sp-guide-main { min-width: 0; }
+
+.sp-rail-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 10px 14px;
+}
+
+.sp-page .sp-rail-related {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line2);
+}
+
+.sp-page .sp-mobile-rail .sp-rail { margin-top: 18px; }
+
+/* ---- Sections ------------------------------------------------------------ */
+
+.sp-page .sp-development-note { margin-top: 24px; }
+
+.sp-workflow-host,
+.sp-development-item { display: block; margin-top: 28px; }
+
+.sp-mono {
+    font: var(--fs-2xs)/1.5 var(--mono);
+    letter-spacing: .03em;
+    color: var(--faint);
+    white-space: nowrap;
+}
+
+/* ---- Workflow: a glass panel above four step cards ----------------------- */
+
+.sp-workflow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+}
+
+.sp-steps {
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+/* Every scenario's cards and every step's payloads are in the page; only the
+   selected ones show. */
+.sp-steps[hidden],
+.sp-exchange[hidden] { display: none; }
+
+.sp-steps > .ds-item { min-width: 0; }
+
+.sp-step {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 12px;
+    align-content: start;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    box-shadow: var(--sh-glass);
+    color: var(--muted);
+    font-family: var(--sans);
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.sp-step:hover { background: var(--neutral-wash); border-color: var(--line-hi); }
+
+.sp-step.is-active,
+.sp-step.is-active:hover { background: var(--blue-wash); border-color: rgba(106, 183, 255, .38); }
+
+.sp-step-copy { display: grid; gap: 7px; min-width: 0; }
+.sp-step strong { color: var(--text); font-size: var(--fs-base); font-weight: 500; line-height: 1.4; }
+.sp-step-body { font-size: var(--fs-sm); line-height: 1.65; }
+.sp-step-index { font: var(--fs-xs)/1.8 var(--mono); color: var(--faint); }
+.sp-step.is-active .sp-step-index { color: var(--blue-hi); }
+
+/* The glass frame: three drifting colour fields behind a blurred pane. */
+.sp-stage { position: relative; width: 100%; }
+.sp-demo { grid-row: 1; min-width: 0; }
+
+.sp-glass-wrap {
+    position: relative;
+    isolation: isolate;
+    padding: 6px;
+}
+
+.sp-glass-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    border-radius: 22px;
+    pointer-events: none;
+}
+
+.sp-glass-bg span {
+    position: absolute;
+    width: 48%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    filter: blur(34px);
+    opacity: .85;
+    will-change: transform;
+    animation: sp-drift 18s ease-in-out infinite;
+}
+
+.sp-glass-bg span:nth-child(1) { left: -10%; top: -28%; background: radial-gradient(circle, rgba(30, 136, 229, .6), transparent 62%); }
+.sp-glass-bg span:nth-child(2) { right: -12%; bottom: -32%; background: radial-gradient(circle, rgba(38, 166, 154, .4), transparent 62%); animation-delay: -9s; animation-duration: 22s; }
+.sp-glass-bg span:nth-child(3) { left: 36%; top: 22%; width: 36%; background: radial-gradient(circle, rgba(106, 183, 255, .3), transparent 62%); animation-delay: -4s; animation-duration: 26s; }
+
+.sp-stage.off .sp-glass-bg span,
+.sp-stage.off .sp-sheen::after { animation-play-state: paused; }
+
+.sp-glass {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    border: 1px solid rgba(133, 181, 232, .24);
+    border-radius: 16px;
+    background: linear-gradient(160deg, rgba(47, 49, 66, .4), rgba(30, 31, 46, .66));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 24px 60px rgba(0, 0, 0, .36);
+    text-align: left;
+    backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.sp-glass::before {
+    content: '';
+    position: absolute;
+    z-index: 6;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(233, 236, 245, .62) 50%, transparent);
+    pointer-events: none;
+}
+
+.sp-glass-dots {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: radial-gradient(rgba(151, 168, 214, .2) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+    mask-image: radial-gradient(ellipse at 72% 24%, black 18%, transparent 72%);
+    pointer-events: none;
+}
+
+.sp-sheen {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.sp-sheen::after {
+    content: '';
+    position: absolute;
+    top: -40%;
+    left: -30%;
+    width: 20%;
+    height: 180%;
+    background: linear-gradient(90deg, transparent, rgba(226, 240, 255, .09), transparent);
+    transform: rotate(16deg);
+    animation: sp-sheen 10s 2.5s ease-in-out infinite;
+}
+
+.sp-glass-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(151, 168, 214, .09);
+    color: var(--muted);
+    font-size: var(--fs-sm);
+}
+
+.sp-demo-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.sp-window-dots { display: flex; flex-shrink: 0; gap: 5px; margin-right: 4px; }
+.sp-window-dots i { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--card-hi); }
+
+.sp-tabs {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 0 12px;
+    border-bottom: 1px solid rgba(151, 168, 214, .09);
+}
+
+.sp-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    padding: 10px 12px 11px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: var(--fs-xs);
+    white-space: nowrap;
+    cursor: pointer;
+    appearance: none;
+    transition: color var(--dur) var(--ease);
+}
+
+.sp-tab.on { color: var(--text); }
+.sp-tab:hover { color: var(--blue-hi); }
+
+.sp-tab.on::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--blue-hi);
+    box-shadow: 0 0 10px var(--blue-hi);
+}
+
+/* Three devices and the two wires between them. */
+.sp-network {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding: 38px 24px 30px;
+}
+
+.sp-node {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 7px;
+    min-width: 0;
+    text-align: center;
+}
+
+.sp-node-device {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 74px;
+    height: 66px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line-hi);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    box-shadow: 0 5px 0 var(--card-deep), 0 6px 0 var(--line);
+    color: var(--muted);
+    transition: color .35s var(--ease), border-color .35s var(--ease), background .35s var(--ease), box-shadow .35s var(--ease);
+}
+
+.sp-node-led {
+    position: absolute;
+    right: 9px;
+    bottom: 8px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--faint);
+    transition: background .35s var(--ease), box-shadow .35s var(--ease);
+}
+
+.sp-node.is-active .sp-node-device {
+    border-color: rgba(106, 183, 255, .55);
+    background: var(--card-deep);
+    box-shadow: 0 5px 0 var(--card-deep), 0 6px 0 var(--line), 0 0 22px rgba(30, 136, 229, .28);
+    color: var(--blue-hi);
+}
+
+.sp-node.is-active .sp-node-led { background: var(--blue-hi); box-shadow: 0 0 8px var(--blue-hi); }
+.sp-node strong { max-width: 100%; color: var(--text); font-size: var(--fs-sm); font-weight: 500; line-height: 1.4; }
+.sp-node-detail { max-width: 100%; font: var(--fs-2xs)/1.5 var(--mono); color: var(--faint); }
+
+.sp-wire {
+    position: absolute;
+    top: 70px;
+    width: 30%;
+    height: 1px;
+    overflow: hidden;
+    background: var(--line-hi);
+    transition: background .35s var(--ease);
+}
+
+.sp-wire-one { left: 20%; }
+.sp-wire-two { left: 50%; }
+.sp-wire.is-lit { background: var(--blue-deep); }
+
+.sp-wire > span {
+    position: absolute;
+    left: -25%;
+    width: 25%;
+    height: 100%;
+    background: var(--blue-hi);
+    box-shadow: 0 0 8px var(--blue-hi);
+    opacity: 0;
+}
+
+.sp-workflow[data-running='true'] .sp-wire.is-lit > span { opacity: 1; animation: sp-transmit 1.6s linear infinite; }
+.sp-workflow[data-running='true'] .sp-wire-two.is-lit > span { animation-delay: .6s; }
+.sp-workflow[data-running='true'] .sp-network[data-reverse='true'] .sp-wire.is-lit > span { animation-direction: reverse; }
+
+/* The sample exchange for the current step. */
+.sp-exchange {
+    position: relative;
+    min-height: 170px;
+    margin: 0 18px 18px;
+    animation: sp-exchange-in var(--dur-slow) var(--ease-out);
+}
+
+.sp-exchange-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px 12px;
+}
+
+.sp-exchange-state { color: var(--blue-hi); font-size: var(--fs-xs); }
+
+.sp-payloads {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    min-height: 140px;
+}
+
+.sp-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(151, 168, 214, .08);
+    border-radius: 10px;
+    background: rgba(15, 16, 23, .32);
+}
+
+.sp-pane-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 12px;
+    font-size: var(--fs-badge);
+    font-weight: 600;
+}
+
+.sp-pane-h--req { background: rgba(30, 136, 229, .14); color: var(--blue-hi); }
+.sp-pane-h--rsp { background: rgba(38, 166, 154, .14); color: var(--teal-hi); }
+
+.sp-pane pre {
+    margin: 0;
+    padding: 12px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--muted);
+    font: 11px/1.8 var(--mono);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.sp-pane:last-child pre { color: var(--teal-hi); }
+
+.sp-demo-controls {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    border-top: 1px solid rgba(151, 168, 214, .09);
+    background: rgba(15, 16, 23, .28);
+}
+
+.sp-playback-buttons { display: flex; gap: 6px; }
+
+.sp-demo-controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 0 11px;
+    border: 1px solid rgba(151, 168, 214, .18);
+    border-radius: var(--r-pill);
+    background: rgba(151, 168, 214, .08);
+    color: var(--muted);
+    font: var(--fs-xs)/1 var(--sans);
+    cursor: pointer;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.sp-demo-controls button:hover:not(:disabled) { border-color: var(--line-hi); color: var(--text); }
+.sp-demo-controls button:disabled { color: var(--faint); cursor: default; }
+.sp-motion-caption { font: var(--fs-2xs)/1.5 var(--mono); color: var(--faint); }
+
+/* One segment per step; the current one fills over the 3.2 s the step lasts. */
+.sp-timeline {
+    position: relative;
+    display: flex;
+    gap: 3px;
+    height: 3px;
+    background: var(--card-deep);
+}
+
+.sp-timeline > span { position: relative; flex: 1; overflow: hidden; background: rgba(151, 168, 214, .14); }
+.sp-timeline > span.is-complete { background: var(--blue-deep); }
+
+.sp-timeline i {
+    position: absolute;
+    inset: 0;
+    background: var(--blue-hi);
+    transform: scaleX(0);
+    transform-origin: left;
+}
+
+/* Two identical keyframes: a replay swaps between them, which restarts the
+   fill even when the step has not changed. */
+.sp-workflow[data-running='true'] .sp-timeline i.is-current { animation: sp-progress 3.2s linear both; }
+.sp-workflow[data-running='true'] .sp-timeline.is-alt i.is-current { animation-name: sp-progress-alt; }
+
+.sp-page .sp-caption {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 16px 0 0;
+    color: var(--faint);
+    font-size: var(--fs-xs);
+    line-height: 1.7;
+}
+
+.sp-caption > .ui-icon { flex-shrink: 0; margin-top: 3px; }
+
+/* ---- Planned capabilities ------------------------------------------------ */
+
+.sp-capabilities {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 28px;
+}
+
+.sp-capabilities > .ds-item { min-width: 0; }
+
+.sp-capability {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    box-shadow: var(--sh-glass);
+}
+
+.sp-capability-top { display: flex; align-items: center; justify-content: space-between; }
+
+.sp-capability-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    color: var(--blue-hi);
+}
+
+.sp-page .sp-capability h3 {
+    margin: 18px 0 10px;
+    color: var(--text);
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    letter-spacing: var(--ls-snug);
+    line-height: 1.3;
+}
+
+.sp-page .sp-capability p {
+    margin: 0 0 20px;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    line-height: 1.65;
+}
+
+.sp-capability-status {
+    align-self: start;
+    margin-top: auto;
+    font: var(--fs-2xs)/1.5 var(--mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+/* ---- Development status -------------------------------------------------- */
+
+.sp-development {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--r-xl);
+    background: var(--bg-deep);
+    box-shadow: var(--sh-glass);
+}
+
+.sp-development-copy { padding: 28px; }
+
+.sp-page .sp-development h3 {
+    margin: 20px 0 0;
+    color: var(--text);
+    font: 500 var(--fs-2xl)/1.2 var(--sans);
+    letter-spacing: var(--ls-snug);
+}
+
+.sp-page .sp-development-copy > p {
+    max-width: 48ch;
+    margin: 18px 0;
+    color: var(--muted);
+    font-size: var(--fs-base);
+    line-height: 1.65;
+}
+
+.sp-release-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 22px 0 18px;
+    color: var(--faint);
+    font-size: var(--fs-caption);
+}
+
+.sp-release-note > .ui-icon { flex-shrink: 0; margin-top: 1px; }
+
+.sp-available {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 18px;
+    padding: 28px;
+    border-left: 1px solid var(--line);
+    background: var(--bg);
+}
+
+.sp-available-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: var(--fs-2xs)/1.5 var(--mono);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.sp-available-dot {
+    flex-shrink: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--green-hi);
+    box-shadow: 0 0 8px var(--green-hi);
+}
+
+.sp-page .sp-available h3 { margin: 0; font-size: var(--fs-xl); }
+
+.sp-page .sp-available p {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    line-height: 1.65;
+}
+
+.sp-text-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue-hi);
+    font-size: var(--fs-sm);
+}
+
+.sp-text-link:hover { color: var(--teal-hi); }
+
+.sp-next {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 40px;
+    padding-top: 36px;
+    border-top: 1px solid var(--line);
+}
+
+.sp-next > span { color: var(--faint); font-size: var(--fs-sm); }
+
+.sp-next > a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text);
+    font-size: var(--fs-lg);
+    transition: color var(--dur) var(--ease);
+}
+
+.sp-next > a:hover { color: var(--blue-hi); }
+
+/* ---- Motion -------------------------------------------------------------- */
+
+@keyframes sp-drift {
+    0%, 100% { translate: 0 0; scale: 1; }
+    50% { translate: 7% 9%; scale: 1.14; }
+}
+
+@keyframes sp-sheen {
+    0%, 62% { left: -30%; }
+    100% { left: 125%; }
+}
+
+@keyframes sp-transmit {
+    from { left: -25%; }
+    to { left: 110%; }
+}
+
+@keyframes sp-progress {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes sp-progress-alt {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes sp-exchange-in {
+    from { opacity: .7; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* ---- Breakpoints (the prototype's, on the viewport) ---------------------- */
+
+@media (min-width: 1500px) {
+    .sp-page .sp-hero .hero-video > .hero-video-poster,
+    .sp-page .sp-hero .hero-video > .hero-video-clip { object-position: 60% 50%; }
+}
+
+/* A narrower rail while it is still a column. */
+@media (min-width: 1041px) and (max-width: 1150px) {
+    .sp-page .sp-guide-grid { grid-template-columns: 220px minmax(0, 1fr); gap: 40px; }
+}
+
+/* Beside the rail the content column is too narrow for three cards, so they
+   stack as rows; once the rail folds away at 1040px there is room again. */
+@media (min-width: 1041px) and (max-width: 1150px), (max-width: 600px) {
+    .sp-capabilities { grid-template-columns: minmax(0, 1fr); }
+    .sp-capability { display: grid; grid-template-columns: 36px 1fr; column-gap: 16px; padding: 18px; }
+    .sp-capability-top { grid-row: 1 / 4; align-items: start; }
+    .sp-capability-top > .sp-mono { display: none; }
+    .sp-page .sp-capability h3 { margin: 0 0 8px; }
+    .sp-page .sp-capability p { margin-bottom: 12px; }
+    .sp-development { grid-template-columns: minmax(0, 1fr); }
+    .sp-available { border-top: 1px solid var(--line); border-left: 0; }
+}
+
+@media (max-width: 900px) {
+    .sp-hero { align-items: flex-start; min-height: 700px; }
+    .sp-hero-inner { padding-top: calc(56px + var(--nav-h)); padding-bottom: 220px; }
+    .sp-hero-copy { max-width: 600px; }
+    .sp-lede { max-width: 560px; }
+
+    .sp-page .sp-hero .hero-video > .hero-video-poster,
+    .sp-page .sp-hero .hero-video > .hero-video-clip { object-position: 66% 65%; }
+
+    /* The last layer is a flat 20% veil: it dims the clip the way an .8
+       opacity would, without letting the poster ghost through the video. */
+    .sp-hero .hero-video-scrim {
+        background:
+            linear-gradient(90deg, rgba(15, 16, 23, .84), rgba(15, 16, 23, .5) 65%, rgba(15, 16, 23, .2)),
+            linear-gradient(180deg, rgba(15, 16, 23, .66) 0%, rgba(15, 16, 23, .5) 52%, rgba(15, 16, 23, .05) 76%, var(--canvas) 100%),
+            linear-gradient(rgba(15, 16, 23, .2), rgba(15, 16, 23, .2));
+    }
+}
+
+@media (max-width: 600px) {
+    .sp-hero { min-height: 760px; }
+    .sp-hero-inner { padding-top: calc(44px + var(--nav-h)); padding-bottom: 250px; }
+    .sp-hero-copy { max-width: 100%; }
+    .sp-hero .breadcrumb { gap: 7px; font-size: var(--fs-badge); }
+    .sp-hero-meta { font-size: var(--fs-2xs); }
+    .sp-hero-title { gap: 12px; }
+    .sp-lede { margin: 16px 0 24px; line-height: 1.6; }
+    .sp-hero-note { max-width: 32ch; line-height: 1.6; }
+
+    /* The clip drops to the lower half, under the copy. */
+    .sp-page .sp-hero .hero-video > .hero-video-poster,
+    .sp-page .sp-hero .hero-video > .hero-video-clip {
+        inset: auto 0 0;
+        height: 50%;
+        object-position: 75% 100%;
+    }
+
+    .sp-hero .hero-video-scrim {
+        background: linear-gradient(180deg, var(--canvas) 0%, var(--canvas) 42%, rgba(15, 16, 23, .55) 64%, rgba(15, 16, 23, .06) 80%, var(--canvas) 100%);
+    }
+
+    .sp-page .sp-guide-grid { padding-top: 26px; padding-bottom: 48px; }
+    .sp-page .gd-main .doc-section.gd-section { padding-top: 56px; }
+    .sp-page .gd-main > :first-child .doc-section.gd-section { padding-top: 0; }
+    .sp-page .gd-section > .gd-h2 { font-size: 1.75rem; }
+    .sp-page .gd-section > .gd-lede { font-size: var(--fs-base); line-height: 1.7; }
+
+    .sp-glass-head { padding: 13px 12px; font-size: var(--fs-badge); }
+    .sp-demo-name { gap: 7px; }
+    .sp-window-dots { gap: 3px; }
+    .sp-window-dots i { width: 5px; height: 5px; }
+    .sp-tabs { padding-inline: 6px; }
+    .sp-tab { padding: 11px 9px; font-size: var(--fs-2xs); }
+    .sp-network { gap: 10px; padding: 28px 12px 26px; }
+    .sp-node-device { width: 54px; height: 54px; }
+    .sp-node strong { font-size: var(--fs-badge); }
+    .sp-node-detail { font: 8px/1.5 var(--mono); }
+    .sp-wire { top: 55px; }
+    .sp-exchange { margin: 0 12px 14px; }
+    .sp-payloads { grid-template-columns: minmax(0, 1fr); gap: 10px; min-height: 0; }
+    .sp-pane pre { padding: 11px 12px; font: 10px/1.8 var(--mono); }
+    .sp-demo-controls { padding: 12px; }
+    .sp-motion-caption { display: none; }
+    .sp-steps { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .sp-step { gap: 10px; padding: 16px; }
+
+    .sp-capability { column-gap: 14px; }
+    .sp-development-copy, .sp-available { padding: 24px; }
+    .sp-page .sp-development h3 { font-size: 1.4375rem; }
+
+    .sp-next { flex-direction: column; align-items: start; gap: 13px; margin-top: 28px; padding-top: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sp-exchange { animation: none; }
+    .sp-wire > span, .sp-sheen { display: none; }
+    .sp-glass-bg span { animation: none; }
+    .sp-timeline i.is-current { transform: scaleX(1); }
+}

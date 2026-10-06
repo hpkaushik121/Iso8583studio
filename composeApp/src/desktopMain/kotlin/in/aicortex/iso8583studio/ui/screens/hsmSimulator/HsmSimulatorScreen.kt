@@ -23,6 +23,7 @@ import kotlinx.coroutines.delay
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import `in`.aicortex.iso8583studio.ui.screens.components.SimulatorHandlerTab
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogTab
+import `in`.aicortex.iso8583studio.logging.LogHistory
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -274,6 +275,16 @@ fun HsmSimulator(
                         HsmSimulatorTabs.SECURE_COMMANDS -> HsmSecureCommandsTab(hsm = hsm)
                         HsmSimulatorTabs.LOGS -> LogTab(
                             logEntries = hsmState.value.rawRequest,
+                            history = remember(
+                                hsm.configuration.logFileName,
+                                hsm.configuration.maxLogSizeInMB
+                            ) {
+                                LogHistory.of(
+                                    hsm.configuration.logFileName,
+                                    hsm.configuration.maxLogSizeInMB
+                                )
+                            },
+                            liveEntryCap = AppSettings.maxLiveLogEntries,
                             onClearClick = { hsm.clearLogs() },
                             connectionCount = 0,
                             bytesIncoming = 0L,

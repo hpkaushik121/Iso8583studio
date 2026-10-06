@@ -1,0 +1,12 @@
+[
+  { "id": "getting-started", "name": "Getting Started", "icon": "flag", "summary": "What the studio is, how to install it on Windows, macOS and Linux, and how it compares with manual testing." },
+  { "id": "iso8583-fundamentals", "name": "ISO8583 Fundamentals", "icon": "binary", "summary": "Message anatomy, bitmaps, MTIs, field formats, processing and response codes, and parsing messages in the studio." },
+  { "id": "host-simulator", "name": "Host Simulator", "icon": "arrows-left-right", "summary": "Gateways and modes, TCP/IP and TLS, REST mode, transaction rules, unsolicited messages and reversals." },
+  { "id": "hsm-simulator", "name": "HSM Simulator", "icon": "key", "summary": "Why teams simulate payShield 10K, its host commands, key management, PIN operations and testing without hardware." },
+  { "id": "emv-tools", "name": "EMV Tools", "icon": "cards", "summary": "BER-TLV parsing, ARQC and ARPC, SDA and DDA, ATR decoding and APDU commands." },
+  { "id": "cryptography", "name": "Cryptography", "icon": "lock-key", "summary": "DES and 3DES, AES modes, RSA key pairs, format-preserving encryption and hash functions." },
+  { "id": "key-management", "name": "Key Management", "icon": "vault", "summary": "Thales and Futurex key calculators, TR-31 key blocks, key shares and DEA key hierarchies." },
+  { "id": "pin-security", "name": "PIN Security", "icon": "password", "summary": "ISO 9564 PIN block formats, PIN block calculators, IBM 3624 offsets, Visa PVV and DUKPT derivation." },
+  { "id": "payment-security", "name": "Payment Security", "icon": "shield-check", "summary": "MAC algorithms, HMAC versus CMAC, CVV and CVC generation, and Mastercard CVC3 for contactless." },
+  { "id": "use-cases", "name": "Use Cases", "icon": "briefcase", "summary": "Integration testing workflows, the developer toolkit, PCI DSS support and transaction troubleshooting." }
+]

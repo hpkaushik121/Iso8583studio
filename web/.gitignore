@@ -46,3 +46,6 @@ Thumbs.db
 # Generated from content/blog/*.md by tools/build-blog-routes.mjs. Regenerated
 # by `npm run build` / `npm start`; committing them would churn on every post.
 /src/app/content/
+
+# Built from the Phosphor set by tools/build-icons.mjs on every build.
+/public/icons.svg

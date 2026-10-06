@@ -1,0 +1,78 @@
+/* ==========================================================================
+   Motion — the reveal vocabulary.
+
+   Every page is prerendered, so nothing here may hide content by default: a
+   reader without script, or a crawler, gets the settled page. Hiding happens
+   in two ways only.
+
+     1. Load animations (.ds-fade, .ds-rise, .ds-frame ...) start from their
+        first keyframe and run on their own. CSS alone, so they finish whether
+        or not script ever loads.
+     2. Scroll reveals hide their children only once the uiReveal directive has
+        armed the block (.ds-armed), which it does only for blocks still below
+        the viewport. It then adds .ds-in when the block scrolls into view.
+
+   A block that carries .ds-in in the prerendered markup plays on load.
+   ========================================================================== */
+
+@keyframes ds-word-in { from { opacity: 0; filter: blur(10px); transform: translateY(6px); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes ds-text-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes ds-item-in { from { opacity: .35; filter: blur(8px); transform: translateY(28px) scale(.98); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes ds-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ds-drop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes ds-rise-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes ds-beam-in { 0% { opacity: 0; transform: translateX(-50%) scaleX(.03); } 60% { opacity: 1; } 100% { opacity: 1; transform: translateX(-50%) scaleX(1); } }
+@keyframes ds-glow-in { from { opacity: 0; transform: translateX(-50%) scale(.15); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+@keyframes ds-frame-in { from { opacity: 0; transform: translateX(-50%) translateY(180px) scale(.9); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+@keyframes ds-shot-in { from { opacity: 0; filter: blur(14px); } to { opacity: .92; filter: blur(0); } }
+@keyframes ds-layer-in { from { opacity: .35; filter: blur(8px); transform: translateY(22px); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes ds-tile-in { from { opacity: .35; filter: blur(8px); transform: translateY(18px); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes ds-marquee { to { transform: translateX(-50%); } }
+
+/* ---- Scroll reveals ---------------------------------------------------- */
+
+.ds-word { display: inline-block; }
+a .ds-word { text-decoration: inherit; }
+
+.ds-armed .ds-word,
+.ds-armed .ds-hold { opacity: 0; }
+.ds-armed .ds-item { opacity: .35; filter: blur(8px); }
+
+.ds-in .ds-word { animation: ds-word-in .7s var(--ease-out) both; }
+.ds-in .ds-word.ds-soft { animation-name: ds-text-in; animation-duration: .6s; }
+.ds-in .ds-item { animation: ds-item-in .9s var(--ease-out) both; }
+.ds-in .ds-hold { animation: ds-fade-in .6s var(--ease-out) both; }
+
+/* ---- Load animations --------------------------------------------------- */
+
+.ds-fade { animation: ds-fade-in .6s var(--ease-out) both; }
+.ds-drop { animation: ds-drop-in .6s var(--ease-out) both; }
+.ds-rise { animation: ds-rise-in var(--dur-slow) var(--ease-out) both; }
+.ds-beam { animation: ds-beam-in .8s var(--ease-out) both; }
+.ds-glow { animation: ds-glow-in 1.6s var(--ease-out) both; }
+.ds-frame { animation: ds-frame-in 1.2s var(--ease-out) both; }
+.ds-shot { animation: ds-shot-in 1.3s var(--ease-out) both; }
+.ds-layer { animation: ds-layer-in .85s var(--ease-out) both; }
+.ds-tile { animation: ds-tile-in .6s var(--ease-out) both; }
+.ds-marquee { animation: ds-marquee 28s linear infinite; }
+
+/* ---- Delays ------------------------------------------------------------ */
+
+/* Set per element through --d, in milliseconds, so a template writes
+   [style.--d]="120" rather than an inline animation-delay. This has to come
+   after the animation shorthands above, and match their specificity: a
+   shorthand resets the delay, so declared any earlier it is silently lost. */
+.ds-in .ds-word, .ds-in .ds-item, .ds-in .ds-hold,
+.ds-fade, .ds-drop, .ds-rise, .ds-beam, .ds-glow, .ds-frame, .ds-shot, .ds-layer, .ds-tile {
+    animation-delay: calc(var(--d, 0) * 1ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ds-word, .ds-item, .ds-fade, .ds-drop, .ds-hold, .ds-rise, .ds-beam, .ds-glow,
+    .ds-frame, .ds-shot, .ds-layer, .ds-tile, .ds-marquee, .ds-fan {
+        animation: none !important;
+        opacity: 1 !important;
+        filter: none !important;
+        transition: none !important;
+    }
+}

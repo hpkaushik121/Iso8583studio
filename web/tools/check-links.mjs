@@ -87,7 +87,7 @@ for (const file of pages) {
   const html = readFileSync(join(DIST, file), 'utf8');
   const from = `/${file.replace(/index\.html$/, '')}`;
 
-  for (const m of html.matchAll(/\b(?:href|src)="([^"]+)"/g)) {
+  for (const m of html.matchAll(/\b(?:href|src|poster)="([^"]+)"/g)) {
     const url = m[1];
     if (/^(https?:|mailto:|tel:|data:|javascript:|#)/i.test(url)) continue;
     // Every page carries <base href="/">, so a relative URL — which is how the

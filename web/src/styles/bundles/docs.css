@@ -1,0 +1,262 @@
+/* ==========================================================================
+   docs — the pages the redesign has no mock-up for, built on the guide shell:
+   /tools/dukpt-tools, /tools/mac-tools, /tools/card-validation (screenshot
+   references), /simulator (the index of the nine simulators) and /download.
+   Loaded after guide.css. Every rule is prefixed dx-; each page wraps its
+   template in .dx-page.
+
+   Blocks that sit inside a guide section are written ".gd-section .dx-…" so
+   they win over the bare p / ul / li rules _components.css still applies
+   inside .doc-section.
+   ========================================================================== */
+
+/* ---- Hero --------------------------------------------------------------- */
+
+/* These heroes have no frame rising underneath, so they close themselves:
+   room under the CTAs for the button halo, a hairline, a wash from the top. */
+.dx-page .gd-hero--center {
+    padding-bottom: 56px;
+    border-bottom: 1px solid var(--line2);
+}
+
+.dx-page .gd-hero--center::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(58% 70% at 50% -12%, rgba(30, 136, 229, .16), transparent 70%);
+}
+
+/* ---- Screenshot figures ------------------------------------------------- */
+
+.dx-fig { display: block; margin-top: 28px; }
+
+.dx-shot {
+    width: 100%;
+    max-width: var(--dx-w, 100%);
+    margin: 0;
+}
+
+/* The card look, around a picture: hairline, 12px radius, lit top edge. */
+.dx-shot-frame {
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-deep);
+    box-shadow: var(--sh-glass), var(--sh-card);
+}
+
+.dx-shot-frame img { display: block; width: 100%; height: auto; }
+
+/* A narrow form screenshot with the blocks that describe it alongside. */
+.dx-fig--split {
+    display: grid;
+    grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+}
+
+.gd-section .dx-fig-side > :first-child { margin-top: 0; }
+
+@container gd-main (max-width: 719px) {
+    .dx-fig--split { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .gd-section .dx-fig-side > :first-child { margin-top: 28px; }
+}
+
+/* ---- Links inside hand-written copy ------------------------------------- */
+
+.dx-page .gd-rich a,
+.dx-page .dx-link { color: var(--blue-hi); transition: color var(--dur) var(--ease); }
+
+.dx-page .gd-rich a:hover,
+.dx-page .dx-link:hover { color: var(--teal-hi); }
+
+/* ---- /simulator: the nine simulator cards ------------------------------- */
+
+.dx-sims {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 28px;
+}
+
+.dx-sim-cell { display: grid; min-width: 0; }
+
+/* .hub-card is the class analytics reads for hub_card_click; everything it
+   looks like is set here. The status tints follow the docs hub. */
+.dx-sim.hub-card {
+    --dx-ink: var(--blue-hi);
+    --dx-wash: rgba(30, 136, 229, .16);
+    --dx-edge: rgba(106, 183, 255, .42);
+    --dx-halo: 0 0 16px rgba(30, 136, 229, .28);
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    padding: 22px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    box-shadow: var(--sh-glass);
+    color: var(--text);
+    transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.dx-sim.hub-card:hover {
+    border-color: rgba(106, 183, 255, .34);
+    box-shadow: var(--sh-glass), var(--sh-card);
+    color: var(--text);
+    transform: translateY(-2px);
+}
+
+.dx-sim--live.hub-card {
+    --dx-ink: var(--teal-hi);
+    --dx-wash: rgba(38, 198, 170, .14);
+    --dx-edge: rgba(38, 198, 170, .42);
+    --dx-halo: 0 0 16px rgba(38, 198, 170, .26);
+}
+
+.dx-sim--dev.hub-card {
+    --dx-ink: var(--faint);
+    --dx-wash: var(--surface);
+    --dx-edge: var(--line2);
+    --dx-halo: none;
+}
+
+.dx-sim-ico {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--dx-edge);
+    border-radius: var(--r-md);
+    background: var(--dx-wash);
+    color: var(--dx-ink);
+    transition: box-shadow var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+
+.dx-sim--dev .dx-sim-ico { opacity: .7; }
+.dx-sim:hover .dx-sim-ico { box-shadow: var(--dx-halo); opacity: 1; }
+
+.dx-sim .hub-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 9px;
+    margin-top: 4px;
+    color: var(--text);
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    letter-spacing: var(--ls-snug);
+    line-height: var(--lh-snug);
+}
+
+.dx-sim-desc {
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    text-wrap: pretty;
+}
+
+.dx-sim-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 10px;
+    color: var(--blue-hi);
+    font-size: var(--fs-sm);
+    transition: color var(--dur) var(--ease);
+}
+
+.dx-sim-go .ui-icon { transition: transform var(--dur) var(--ease); }
+.dx-sim:hover .dx-sim-go { color: var(--teal-hi); }
+.dx-sim:hover .dx-sim-go .ui-icon { transform: translateX(3px); }
+
+/* The status key under the grid: badges inline in a sentence. */
+.dx-status .badge { margin: 0 2px; vertical-align: 1px; }
+
+/* ---- /download: platform cards ------------------------------------------ */
+
+.dx-platforms {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 28px;
+}
+
+.dx-platform-cell { display: grid; min-width: 0; }
+
+.dx-platform.card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    padding: 24px;
+}
+
+.dx-platform-ico {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    color: var(--blue-hi);
+}
+
+.dx-platform-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 4px;
+    color: var(--text);
+    font-size: var(--fs-xl);
+    letter-spacing: var(--ls-snug);
+    line-height: 1.2;
+}
+
+.dx-platform-name strong { font-weight: 500; }
+
+.dx-platform-req {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    color: var(--faint);
+}
+
+.gd-section .dx-platform-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    text-wrap: pretty;
+}
+
+.dx-platform-note em { font-style: normal; color: var(--text); }
+
+.dx-platform-get {
+    display: flex;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.dx-platform-get .btn { width: 100%; }
+
+/* ---- Column counts, on the width of the content column ------------------ */
+
+@container gd-main (max-width: 799px) {
+    .dx-sims,
+    .dx-platforms { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container gd-main (max-width: 559px) {
+    .dx-sims,
+    .dx-platforms { grid-template-columns: minmax(0, 1fr); }
+}

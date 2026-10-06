@@ -11,7 +11,7 @@ import { AnalyticsService } from './core/analytics';
 
 /** Height of the fixed header plus a little breathing room — keep in step with
  *  --nav-h and --sp-5 in _tokens.css. */
-const SCROLL_OFFSET = 84;
+const SCROLL_OFFSET = 92;
 
 @Component({
   selector: 'app-root',

@@ -1,79 +1,203 @@
-import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { AccordionItem, UiAccordion, UiIcon, UiReveal, UiSectionHeading } from '../../ui';
+import {
+  ArtName, SolArt, SolBenefit, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolMark, SolStrip, solCycle,
+} from '../solutions';
 import { SitePage } from './site-page';
+
+interface Service { n: string; kicker: string; img: ArtName; title: string; desc: string; items: string[]; }
+interface Area { title: string; blurb: string; tag: string; image: ArtName; description: string; points: string[]; }
+
+const SERVICES: Service[] = [
+  { n: '01', kicker: 'Platform engineering', img: 'stack', title: 'Android Kernel Customization', desc: 'Adapt Android to your smart POS platform, from system builds and access policies to device lockdown.', items: ['Device-specific AOSP builds', 'SELinux policy integration', 'Payment device configuration'] },
+  { n: '02', kicker: 'Board to application', img: 'nfc', title: 'Hardware Integration', desc: 'Connect payment peripherals to the platform and work through device bring-up and integration testing.', items: ['NFC and secure elements', 'MSR, printers and PIN pads', 'Hardware interface bring-up'] },
+  { n: '03', kicker: 'Peripheral control', img: 'driver', title: 'Device Driver Development', desc: 'Develop and maintain the Linux drivers that connect your payment hardware to the rest of the system.', items: ['Custom peripheral drivers', 'Embedded platform support', 'Device performance tuning'] },
+];
+
+const AREAS: Area[] = [
+  { title: 'Android internals', blurb: 'HALs, services and system apps', tag: 'Android platform', image: 'stack', description: 'Connect hardware-facing interfaces to the Android framework, with platform services and system applications tailored to payment devices.', points: ['HALs', 'HIDL / AIDL', 'System services'] },
+  { title: 'Linux kernel', blurb: 'Drivers, power and real-time patches', tag: 'Device & system layer', image: 'driver', description: 'Develop peripheral drivers and adapt power management and real-time behavior to the needs of an embedded payment platform.', points: ['Custom drivers', 'Power management', 'Real-time patches'] },
+  { title: 'ARM architecture', blurb: 'TrustZone, secure boot and TEE', tag: 'Trusted computing', image: 'chip', description: 'Work with ARM-based platforms to integrate secure boot, trusted execution environments and the boundary between secure and normal worlds.', points: ['TrustZone', 'Secure boot', 'TEE integration'] },
+  { title: 'Communication protocols', blurb: 'Card, peripheral and network links', tag: 'Peripheral connectivity', image: 'nfc', description: 'Bring card interfaces, contactless controllers, serial peripherals and network connections into a coherent device communication layer.', points: ['ISO 7816', 'NFC / ISO 14443', 'RS232 · USB · TCP/IP'] },
+  { title: 'Security implementation', blurb: 'Keys, storage and attestation', tag: 'Platform protection', image: 'shield', description: 'Integrate key provisioning, protected storage and device attestation while aligning the design with payment hardware security requirements.', points: ['Key injection', 'Secure storage', 'PCI PTS alignment'] },
+  { title: 'Real-time systems', blurb: 'Predictable transaction paths', tag: 'Timing & predictability', image: 'terminal', description: 'Engineer transaction paths around defined timing budgets, with attention to scheduling, peripheral response and predictable system behavior.', points: ['Latency budgets', 'Deterministic paths', 'Timing analysis'] },
+];
+
+const BENEFITS: SolBenefit[] = [
+  ['01', 'Hardware optimization', 'Tune the platform to make effective use of the processor, memory and peripherals available on your device.'],
+  ['02', 'Security integration', 'Integrate platform security into the system architecture, device interfaces and operating policies.'],
+  ['03', 'Performance tuning', 'Measure and improve boot time, contactless interaction and peripheral response for your target device.'],
+  ['04', 'Custom solutions', 'Build around your board and product requirements, with interfaces that fit your payment application.'],
+  ['05', 'Scalable architecture', 'Design reusable platform components for related hardware models and future device generations.'],
+  ['06', 'Development support', 'Keep the platform maintainable through security patches, operating-system updates and ongoing engineering.'],
+];
+
+const FAQ: AccordionItem[] = [
+  { q: 'What does an engagement usually start from?', a: 'A board and a target product. We work through bring-up of the interfaces that matter first — card reader, contactless controller, PIN pad, printer — then build the platform around them.' },
+  { q: 'Do you build the Android platform itself?', a: 'Yes. Device-specific AOSP builds, HAL and HIDL/AIDL work, SELinux policy, platform services and device lockdown for a payment terminal rather than a general-purpose phone.' },
+  { q: 'Can you work with our existing kernel tree?', a: 'That is the common case. We take the vendor tree, add or maintain the peripheral drivers, and adapt power management and real-time behaviour to the timing budgets a transaction needs.' },
+  { q: 'How does this relate to EMV certification?', a: 'Kernel engineering and certification usually run together: the L2 kernel and the platform it sits on are developed here, then taken through pre-certification and lab submission on the EMV certification service.' },
+  { q: 'What about secure boot, TEE and key injection?', a: 'We integrate secure boot, TrustZone and trusted execution, protected storage, key provisioning and attestation, and align the design with payment hardware security requirements such as PCI PTS.' },
+  { q: 'What do we get at the end?', a: 'A maintainable platform: source, build configuration, driver and integration documentation, plus ongoing support for security patches, OS updates and the next hardware revision.' },
+];
+
+const MARKS: SolMark[] = [
+  ['device-mobile', 'Android'], ['cpu', 'ARM'], ['hard-drive', 'Linux'], ['broadcast', 'NFC'],
+  ['sim-card', 'Secure element'], ['printer', 'Peripherals'], ['lock-key', 'TEE'], ['timer', 'Real-time'],
+  ['wrench', 'Bring-up'],
+];
 
 @Component({
   selector: 'page-kernel',
+  imports: [
+    RouterLink, UiAccordion, UiIcon, UiReveal, UiSectionHeading,
+    SolArt, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolStrip,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [SitePage],
   host: { class: 'static-page page-kernel' },
-  // <image-slot> is a styling-only element the design system owns; see
-  // _components.css. Drop this schema once it becomes part of ui-figure.
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  template: `<section class="page-hero">
-    <div class="wrap ph-grid">
-        <div>
-            <div class="crumb"><a href="/">HOME</a> / <span>KERNEL DEVELOPMENT</span></div>
-            <span class="kicker">Engineering Services</span>
-            <h1 style="margin-top:12px">Kernel development &amp; <span class="gr">hardware integration</span></h1>
-            <p class="ph-sub">EMV kernels, Android internals and device drivers for payment hardware — from contact L2 to contactless, from bootloader to acceptance.</p>
-            <div class="ph-ctas"><a class="btn btn-blue btn-lg" href="/contact">Talk to us</a><a class="btn btn-ghost btn-lg" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">Download Studio</a></div>
+  template: `
+    <sol-hero sect="Engineering Services" crumb="Kernel development" eyebrow="EMV L2 · Android · Embedded Linux"
+              heading="Android and Linux platforms for payment terminals"
+              sub="Build the software inside your payment device: EMV processing, Android platforms, Linux drivers and hardware integration. From the first boot to the next tap."
+              cta="Discuss your board" [headingMax]="760" [subMax]="650" [padBottom]="46" [explode]="640">
+      <a solHeroCta class="btn btn--secondary" routerLink="/kernel" fragment="expertise">Explore the engineering layers<ui-icon name="arrow-down" [size]="16" /></a>
+      <div class="sol-kn-stage" role="img"
+           aria-label="Exploded payment platform stack — platform, kernel and hardware layers — wired to an NFC module and a smart POS terminal">
+        <div class="sol-kn-ambient"></div>
+        <div class="sol-kn-floor"></div>
+        <svg class="sol-kn-wires" viewBox="0 0 720 520" preserveAspectRatio="none" aria-hidden="true">
+          <path class="sol-kn-track" d="M468 198H597Q612 198 612 184V132" />
+          <path class="sol-kn-track" d="M136 404H185Q200 404 200 390V376" />
+          <path class="sol-kn-flow" d="M468 198H597Q612 198 612 184V132" />
+          <path class="sol-kn-flow sol-kn-flow--b" d="M200 376V390Q200 404 185 404H136" />
+        </svg>
+        <div class="sol-kn-obj sol-kn-o-stack"><img solArt="stack" priority sizes="(max-width: 720px) 62vw, 446px"></div>
+        <div class="sol-kn-obj sol-kn-o-nfc"><img solArt="nfc" eager sizes="(max-width: 720px) 16vw, 115px"><span>NFC</span></div>
+        <div class="sol-kn-obj sol-kn-o-term"><img solArt="terminal" eager sizes="(max-width: 720px) 15vw, 108px"><span>SMART POS</span></div>
+        <div class="sol-kn-scan" aria-hidden="true"></div>
+        <div class="sol-kn-layer sol-kn-layer--platform"><i></i>PLATFORM</div>
+        <div class="sol-kn-layer sol-kn-layer--kernel"><i></i>KERNEL</div>
+        <div class="sol-kn-layer sol-kn-layer--hardware"><i></i>HARDWARE</div>
+        <span class="sol-kn-caption">ENGINEERED FROM THE INSIDE</span>
+        <span class="sol-kn-marker">EMV · ANDROID · LINUX · ARM</span>
+      </div>
+    </sol-hero>
+
+    <sol-strip [tight]="true" caption="AOSP · SELinux · Linux drivers · TrustZone · ISO 7816 · ISO 14443" [marks]="marks" />
+
+    <section class="sol-sec" id="services" data-sect="Kernel Development Services" uiReveal [uiRevealDelay]="250" solLive>
+      <ui-section-heading heading="Kernel, hardware and drivers for your board"
+                          sub="Bring the operating system, device interfaces and payment peripherals together as one engineered platform." />
+      <div class="sol-grid3">
+        @for (s of services; track s.n; let i = $index) {
+          <sol-bento class="sol-kn-card ds-item" [style.--d]="500 + i * 120" [heading]="s.title" [badge]="s.n"
+                     [desc]="s.desc" [glow]="i === 0" [radial]="i === 1">
+            <div class="sol-mono sol-mono--teal sol-kicker">{{ s.kicker }}</div>
+            <ul class="sol-checks">
+              @for (t of s.items; track t) { <li><ui-icon name="check" [size]="15" />{{ t }}</li> }
+            </ul>
+            <div class="sol-kn-svc" aria-hidden="true"><img [solArt]="s.img" sizes="158px"></div>
+          </sol-bento>
+        }
+      </div>
+    </section>
+
+    <section class="sol-sec" id="expertise" data-sect="Technical Expertise Areas" uiReveal [uiRevealDelay]="250" solLive>
+      <ui-section-heading align="left" [heading]="areasHeading"
+                          sub="Explore the engineering disciplines behind a payment device, from low-level interfaces to system services." />
+      <div class="sol-picker sol-picker--even ds-hold">
+        <div class="sol-picker-list">
+          @for (a of areas; track a.title; let n = $index) {
+            <button type="button" class="sol-pick" aria-controls="area-detail"
+                    [class.is-active]="n === cycle.index()" [attr.aria-pressed]="n === cycle.index()"
+                    (click)="cycle.pick(n)">
+              <span class="sol-pick-n">{{ pad(n) }}</span>
+              <span class="sol-pick-text">
+                <span class="sol-pick-label">{{ a.title }}</span>
+                <span class="sol-pick-blurb">{{ a.blurb }}</span>
+              </span>
+            </button>
+          }
         </div>
-        <div class="ph-3d"><div class="ph-emblem">
-    <span class="emb-corner tl"></span><span class="emb-corner tr"></span><span class="emb-corner bl"></span><span class="emb-corner br"></span>
-    <span class="emb-tag" style="top:16px;left:18px">KERNEL · L2</span>
-    <span class="emb-tag" style="bottom:16px;right:18px">ISO 8583</span>
-    <span class="emb-scan"></span>
-    <div class="emb-badge"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
-    <div class="emb-chips"><span>NFC</span><span>TEE</span><span>ARM</span></div>
-  </div></div>
-    </div>
-</section>
-<section class="sec-pad">
-    <div class="wrap">
-        <span class="kicker">Kernel Development Services</span>
-        <h2 class="sec">Three core services</h2>
-        <div class="grid-3">
-            <div class="tile reveal"><span class="mi">▦</span><h3>Android Kernel Customization</h3><p>AOSP builds, SELinux policies and payment-grade lockdown for smart POS devices.</p></div>
-            <div class="tile reveal"><span class="mi">⬡</span><h3>Hardware Integration</h3><p>Secure elements, NFC controllers, MSR heads, printers and PIN pads brought up and certified.</p></div>
-            <div class="tile reveal"><span class="mi">>_</span><h3>Device Driver Development</h3><p>Linux kernel drivers for payment peripherals — stable, performant, maintainable.</p></div>
+        <div #scene class="sol-panel" id="area-detail">
+          <span class="sol-panel-radial" aria-hidden="true"></span>
+          <div class="sol-kn-art" aria-hidden="true">
+            @for (a of areas; track a.title; let n = $index) {
+              <img [solArt]="a.image" sizes="186px" [hidden]="n !== cycle.index()">
+            }
+          </div>
+          <div class="sol-detail-copy">
+            @for (a of areas; track a.title; let n = $index) {
+              <div class="sol-step-copy sol-kn-area" [hidden]="n !== cycle.index()">
+                <div class="sol-detail-head">
+                  <span class="sol-mono sol-mono--teal">{{ a.tag }}</span>
+                  <span class="sol-mono">{{ pad(n) }} / 06</span>
+                </div>
+                <h3>{{ a.title }}</h3>
+                <p>{{ a.description }}</p>
+                <div class="sol-tags sol-kn-points">
+                  @for (p of a.points; track p) { <span class="sol-kn-point">{{ p }}</span> }
+                </div>
+              </div>
+            }
+          </div>
         </div>
-    </div>
-</section>
-<section class="sec-pad" style="background:var(--bg-deep);border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)">
-    <div class="wrap">
-        <span class="kicker">Technical Expertise Areas</span>
-        <h2 class="sec">Where we go deep</h2>
-        <div class="grid-3">
-            <div class="tile reveal"><span class="mi">▣</span><h3>Android Internals</h3><p>HALs, HIDL/AIDL, framework services and system apps for payment devices.</p></div>
-            <div class="tile reveal"><span class="mi">◉</span><h3>Linux Kernel</h3><p>Custom drivers, power management and real-time patches for embedded targets.</p></div>
-            <div class="tile reveal"><span class="mi">◈</span><h3>ARM Architecture</h3><p>TrustZone, secure boot chains and TEE integration on ARM SoCs.</p></div>
-            <div class="tile reveal"><span class="mi">⇄</span><h3>Communication Protocols</h3><p>ISO 7816, NFC/ISO 14443, RS232, USB and TCP/IP stacks.</p></div>
-            <div class="tile reveal"><span class="mi">⬡</span><h3>Security Implementation</h3><p>Key injection, secure storage, attestation and PCI PTS alignment.</p></div>
-            <div class="tile reveal"><span class="mi">◷</span><h3>Real-time Systems</h3><p>Deterministic transaction paths with strict latency budgets.</p></div>
-        </div>
-    </div>
-</section>
-<section class="sec-pad">
-    <div class="wrap">
-        <span class="kicker">Kernel Development Benefits</span>
-        <h2 class="sec">Why teams bring us in</h2>
-        <div class="grid-3">
-            <div class="tile reveal"><span class="mi">▲</span><h3>Hardware Optimization</h3><p>Squeeze full performance from constrained payment hardware.</p></div>
-            <div class="tile reveal"><span class="mi">▣</span><h3>Security Integration</h3><p>Security designed in at kernel level, not bolted on.</p></div>
-            <div class="tile reveal"><span class="mi">◷</span><h3>Performance Excellence</h3><p>Fast boot, fast tap, fast print — measured and tuned.</p></div>
-            <div class="tile reveal"><span class="mi">⌘</span><h3>Custom Solutions</h3><p>Purpose-built for your device, not a generic BSP.</p></div>
-            <div class="tile reveal"><span class="mi">⟳</span><h3>Scalable Architecture</h3><p>One codebase across device families and generations.</p></div>
-            <div class="tile reveal"><span class="mi">✓</span><h3>Development Support</h3><p>Long-term maintenance, CVE patching and platform upgrades.</p></div>
-        </div>
-    </div>
-</section>
-<section class="cta">
-    <div class="wrap">
-        <h2>Ready to develop?</h2>
-        <p>Bring us your board, your kernel panic or your certification deadline.</p>
-        <div class="row"><a class="btn btn-blue btn-lg" href="/contact">Talk to us</a><a class="btn btn-ghost btn-lg" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">Download Studio</a></div>
-    </div>
-</section>
-<aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,
+      </div>
+      <div class="sol-foot-row">
+        <p class="sol-mono sol-mono--plain">Six disciplines, one platform team.</p>
+        <button type="button" class="btn btn--secondary btn--sm sol-cycle-toggle" (click)="cycle.toggle()">
+          @if (cycle.paused()) {
+            <ui-icon name="play" [size]="14" />Play preview
+          } @else {
+            <ui-icon name="pause" [size]="14" />Pause preview
+          }
+        </button>
+      </div>
+    </section>
+
+    <section class="sol-sec" id="benefits" data-sect="Kernel Development Benefits" uiReveal [uiRevealDelay]="250">
+      <ui-section-heading align="left" heading="A platform your team can maintain after handover"
+                          sub="Give your team control over the platform's performance, security and long-term evolution." />
+      <sol-benefits [items]="benefits" />
+    </section>
+
+    <section class="sol-sec sol-sec--faq" id="faq" data-sect="faq" uiReveal [uiRevealDelay]="250">
+      <ui-section-heading heading="Platform engineering questions" sub="Boards, Android builds, drivers and what we hand over." />
+      <div class="sol-faq"><ui-accordion [items]="faq" [stagger]="110" [base]="500" /></div>
+    </section>
+
+    <sol-close sect="Ready to develop?" kicker="Your next device platform" cta="Discuss your board"
+               text="Bring your board, your platform challenge or your next payment device. Let's work through the engineering together.">
+      <p solCloseFoot class="pro-nudge sol-pro-line">
+        <a routerLink="/pro">ISO8583Studio Pro</a>
+        <span>Advanced testing tools, hosted endpoints and priority support for your team.</span>
+      </p>
+      <div class="sol-kn-close">
+        <img class="sol-i-base" solArt="base" sizes="(max-width: 900px) 65vw, 370px">
+        <img class="sol-i-stack" solArt="stack" sizes="(max-width: 900px) 39vw, 220px">
+      </div>
+    </sol-close>
+  `,
 })
-export class KernelPage {}
+export class KernelPage {
+  protected readonly services = SERVICES;
+  protected readonly areas = AREAS;
+  protected readonly benefits = BENEFITS;
+  protected readonly faq = FAQ;
+  protected readonly marks = MARKS;
+  protected readonly areasHeading = 'Six disciplines inside\na payment terminal';
+
+  private readonly scene = viewChild<ElementRef<HTMLElement>>('scene');
+
+  /** Areas advance every 5.2 s until the reader picks one or pauses. */
+  protected readonly cycle = solCycle(
+    { count: AREAS.length, interval: 5200 },
+    () => this.scene()?.nativeElement,
+  );
+
+  protected pad(i: number): string {
+    return String(i + 1).padStart(2, '0');
+  }
+}

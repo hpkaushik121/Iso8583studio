@@ -19,6 +19,7 @@ private data class AppSettingsData(
     val autoClearLogsEnabled: Boolean = true,
     val autoClearLogsIntervalMinutes: Int = 5,
     val deleteLogFileOnClear: Boolean = true,
+    val maxLiveLogEntries: Int = 5_000,
     /** Serialized [AnalyticsConsent]. Stored as a String so unknown future values degrade to UNSET. */
     val analyticsConsent: String = "UNSET",
     /** Random, regenerable device identifier used as the GA4 user_id. Not derived from any hardware ID. */
@@ -48,6 +49,14 @@ object AppSettings {
 
     private var _deleteLogFileOnClear by mutableStateOf(true)
     val deleteLogFileOnClear: Boolean get() = _deleteLogFileOnClear
+
+    /**
+     * How many log entries a live view keeps in memory. This is a display window, not a retention
+     * limit — everything trimmed from it is still on disk and still scrollable, so raising it buys
+     * nothing but memory. See [in.aicortex.iso8583studio.logging.LogHistory].
+     */
+    private var _maxLiveLogEntries by mutableStateOf(5_000)
+    val maxLiveLogEntries: Int get() = _maxLiveLogEntries
 
     private var _analyticsConsent by mutableStateOf(AnalyticsConsent.UNSET)
     val analyticsConsent: AnalyticsConsent get() = _analyticsConsent
@@ -82,6 +91,11 @@ object AppSettings {
 
     fun updateDeleteLogFileOnClear(value: Boolean) {
         _deleteLogFileOnClear = value
+        persistAsync()
+    }
+
+    fun updateMaxLiveLogEntries(value: Int) {
+        _maxLiveLogEntries = value.coerceIn(500, 100_000)
         persistAsync()
     }
 
@@ -127,6 +141,7 @@ object AppSettings {
             _autoClearLogsEnabled = data.autoClearLogsEnabled
             _autoClearLogsIntervalMinutes = data.autoClearLogsIntervalMinutes
             _deleteLogFileOnClear = data.deleteLogFileOnClear
+            _maxLiveLogEntries = data.maxLiveLogEntries.coerceIn(500, 100_000)
             _analyticsConsent = AnalyticsConsent.parse(data.analyticsConsent)
             _analyticsClientId = data.analyticsClientId
             _installDate = data.installDate
@@ -143,6 +158,7 @@ object AppSettings {
                     autoClearLogsEnabled = _autoClearLogsEnabled,
                     autoClearLogsIntervalMinutes = _autoClearLogsIntervalMinutes,
                     deleteLogFileOnClear = _deleteLogFileOnClear,
+                    maxLiveLogEntries = _maxLiveLogEntries,
                     analyticsConsent = _analyticsConsent.name,
                     analyticsClientId = _analyticsClientId,
                     installDate = _installDate,

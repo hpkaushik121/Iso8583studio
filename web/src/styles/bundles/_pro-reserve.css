@@ -1,0 +1,176 @@
+/* The Pro card on its fan of payment cards (pages/pro/pro-reserve.ts), used by
+   the home pricing section and the /pro registration section. Numbers are the
+   design's CardStack, Card and Spotlight, one for one. */
+
+.rsv-host { display: block; text-align: center; }
+
+.rsv {
+    --k: 1;
+    position: relative;
+    display: inline-block;
+    width: 420px;
+    max-width: 100%;
+    text-align: left;
+}
+
+/* ---- The fan ----------------------------------------------------------- */
+
+.rsv-fan {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(420px * var(--k));
+    height: calc(272px * var(--k));
+    margin: calc(-136px * var(--k)) 0 0 calc(-210px * var(--k));
+    border: 1px solid var(--line);
+    border-radius: calc(22px * var(--k));
+    background: linear-gradient(135deg, var(--card), var(--bg-deep));
+    box-shadow: inset 0 1px 0 rgba(233, 236, 245, .12), var(--sh-card);
+    opacity: var(--o);
+    transform: translate(calc(var(--dx) * var(--k) * 1px), calc(var(--dy) * var(--k) * 1px)) rotate(calc(var(--rot) * 1deg));
+    transition:
+        transform 1.1s var(--ease-out) calc(var(--fd) * 1ms),
+        opacity .7s var(--ease) calc(var(--fd) * 1ms);
+    pointer-events: none;
+}
+
+.rsv.is-closed .rsv-fan { opacity: 0; transform: rotate(90deg); transition: none; }
+
+.rsv-fan-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: calc(24px * var(--k));
+}
+
+.rsv-fan-top { display: flex; align-items: flex-start; justify-content: space-between; color: var(--faint); }
+.rsv-fan-top .ui-icon { transform: rotate(90deg); }
+.rsv-fan-disc { width: 36px; height: 36px; border-radius: var(--r-pill); background: rgba(151, 168, 214, .1); }
+.rsv-fan-amount { color: var(--muted); font-family: var(--mono); font-size: var(--fs-2xl); font-weight: var(--fw-medium); }
+.rsv-fan-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--faint); font-size: var(--fs-sm); }
+.rsv-fan-pill { padding: 4px 10px; border: 1px solid var(--line2); border-radius: var(--r-pill); background: var(--surface); font-size: var(--fs-2xs); }
+
+/* ---- The card ---------------------------------------------------------- */
+
+.rsv-front { position: relative; z-index: 1; display: grid; }
+
+/* Spotlight: a lit border and a soft wash that follow the pointer. */
+.rsv-spot { position: relative; width: 100%; border-radius: var(--r-lg); --mx: 50%; --my: 0px; --sp: 0; }
+
+.rsv-spot-edge,
+.rsv-spot-wash {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: var(--sp);
+    pointer-events: none;
+    transition: opacity .5s var(--ease);
+}
+
+.rsv-spot-edge {
+    padding: 1px;
+    background: radial-gradient(280px circle at var(--mx) var(--my), rgba(159, 211, 255, .95), transparent 62%);
+    mask: linear-gradient(black 0 0) content-box exclude, linear-gradient(black 0 0);
+}
+
+.rsv-spot-wash { background: radial-gradient(460px circle at var(--mx) var(--my), rgba(30, 136, 229, .1), transparent 60%); }
+
+.rsv-card {
+    position: relative;
+    overflow: hidden;
+    padding: 32px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    box-shadow: var(--sh-glass);
+    text-align: left;
+}
+
+.rsv-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue-hi);
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+}
+
+.rsv-lede { margin: 14px 0 0; color: var(--muted); font-size: var(--fs-md); line-height: var(--lh-snug); }
+
+.rsv-price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 20px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line2);
+}
+
+.rsv-price strong { color: var(--text); font-size: clamp(32px, 4vw, 42px); font-weight: var(--fw-medium); letter-spacing: var(--ls-tight); line-height: 1; }
+.rsv-price span { color: var(--muted); font-size: var(--fs-sm); }
+
+.rsv-due { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; color: var(--muted); font-size: var(--fs-sm); }
+.rsv-due-v { color: var(--text); font-family: var(--mono); }
+
+.rsv-fine { margin: 12px 0 0; color: var(--muted); font-family: var(--mono); font-size: var(--fs-xs); }
+
+.rsv-includes { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line2); }
+.rsv-includes p { margin: 0 0 12px; color: var(--text); font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+.rsv-includes-list { display: grid; gap: 9px; }
+.rsv-includes-list span { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: var(--fs-sm); }
+.rsv-includes-list .ui-icon { color: var(--teal-hi); }
+
+/* ---- The email row: the design's Input and "Continue to payment" -------- */
+
+.rsv-form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+
+.rsv-input {
+    display: flex;
+    flex: 1 1 200px;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--card-deep);
+    color: var(--faint);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.rsv-input:focus-within { border-color: var(--blue-hi); box-shadow: 0 0 0 3px var(--blue-wash); }
+.rsv-input.is-invalid { border-color: var(--red); }
+
+.rsv-input input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: var(--fs-base);
+}
+
+.rsv-input input::placeholder { color: var(--faint); }
+
+/* ---- The form dialog -------------------------------------------------- */
+
+/* Wider than the default dialog: the form sets its fields two to a row. */
+.rsv-dialog .sheet { width: min(640px, 100%); text-align: left; }
+.rsv-dialog .pro-form { margin-top: 22px; }
+
+@media (max-width: 600px) {
+    .rsv { --k: .62; }
+    .rsv-card { padding: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rsv-fan { transition: none; }
+    .rsv-spot-edge, .rsv-spot-wash { display: none; }
+}

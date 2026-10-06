@@ -20,6 +20,7 @@ const CONTENT = join(ROOT, 'content/blog');
 const OUT_POSTS = join(ROOT, 'src/app/content/posts');
 const OUT_DIR = join(ROOT, 'src/app/content');
 const OUT_IMAGES = join(ROOT, 'public/images/blog');
+const OUT_THUMBS = join(ROOT, 'public/media/blog');
 const SITE = 'https://iso8583.studio';
 
 /* ---- Post images ---------------------------------------------------------
@@ -153,13 +154,37 @@ const md = new MarkdownIt({ html: true, linkify: true, typographer: false });
 md.renderer.rules.table_open = () => '<div class="table-wrapper"><table>';
 md.renderer.rules.table_close = () => '</table></div>';
 
+// Fenced code becomes a captioned figure: the language, when the fence names
+// one, sits in a header strip above the block.
+md.renderer.rules.fence = (tokens, i) => {
+  const token = tokens[i];
+  const lang = token.info.trim().split(/\s+/)[0] ?? '';
+  return '<figure class="code-block">'
+    + (lang ? `<figcaption>${md.utils.escapeHtml(lang)}</figcaption>` : '')
+    + `<pre><code>${md.utils.escapeHtml(token.content)}</code></pre></figure>\n`;
+};
+
+/** The words of a heading as a reader sees them: no backticks, no emphasis. */
+const plainText = (inline) => (inline?.children ?? [])
+  .filter((t) => t.type === 'text' || t.type === 'code_inline')
+  .map((t) => t.content).join('').replace(/\s+/g, ' ').trim();
+
 // Headings get slug ids so in-page anchors and the scroll-margin rule work.
+// `env` is per post (see the render call): it carries the ids already handed
+// out, so a heading repeated within a post gets -2, -3 rather than a duplicate
+// id, and it collects the h2s as the post's table of contents.
 const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 md.renderer.rules.heading_open = (tokens, i, opts, env, self) => {
   const token = tokens[i];
   if (token.tag === 'h2' || token.tag === 'h3') {
-    const text = tokens[i + 1]?.content ?? '';
-    if (text) token.attrSet('id', slugify(text));
+    const base = slugify(tokens[i + 1]?.content ?? '');
+    if (base) {
+      let id = base;
+      for (let n = 2; env.ids.has(id); n++) id = `${base}-${n}`;
+      env.ids.add(id);
+      token.attrSet('id', id);
+      if (token.tag === 'h2') env.toc.push({ id, text: plainText(tokens[i + 1]) });
+    }
   }
   return self.renderToken(tokens, i, opts);
 };
@@ -181,6 +206,17 @@ md.renderer.rules.link_open = (tokens, i, opts, env, self) => {
 const files = readdirSync(CONTENT).filter((f) => f.endsWith('.md')).sort();
 if (!files.length) throw new Error(`no markdown found in ${CONTENT}`);
 
+/* The topics the blog is browsed by: one per frontmatter `category`, in the
+   order the series was written, each with its icon and a one-line summary.
+   Kept beside the posts because it is content, not code. */
+const topics = JSON.parse(readFileSync(join(CONTENT, 'topics.json'), 'utf8'));
+const topicByName = new Map(topics.map((t) => [t.name, t]));
+for (const t of topics) {
+  if (t.id !== slugify(t.name)) {
+    throw new Error(`topics.json: id "${t.id}" is not the slug of "${t.name}" (${slugify(t.name)})`);
+  }
+}
+
 const posts = files.map((file) => {
   const slug = basename(file, '.md');
   const raw = readFileSync(join(CONTENT, file), 'utf8');
@@ -189,21 +225,32 @@ const posts = files.map((file) => {
     ? data.tags.map(String)
     : String(data.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean);
 
+  const category = String(data.category ?? 'General');
+  const topic = topicByName.get(category);
+  if (!topic) {
+    throw new Error(`${file}: category "${category}" has no entry in content/blog/topics.json`);
+  }
+  const readTime = String(data.read_time ?? '5 min read');
+  const env = { ids: new Set(), toc: [] };
+
   return {
     slug,
     path: `/blogs/${slug}`,
     title: String(data.title ?? slug),
     description: String(data.description ?? ''),
     date: String(data.date ?? ''),
-    category: String(data.category ?? 'General'),
+    category,
+    topicId: topic.id,
     author: String(data.author ?? 'AiCortex Team'),
-    readTime: String(data.read_time ?? '5 min read'),
+    readTime,
+    minutes: Number.parseInt(readTime, 10) || 5,
     tags,
     // Section headings drive the infographic prompt; they are the closest
     // thing the post has to an outline of what the picture should show.
     headings: [...content.matchAll(/^#{2,3}\s+(.+?)\s*$/gm)]
       .map((m) => m[1].replace(/[`*_]/g, '').trim()),
-    html: md.render(content),
+    html: md.render(content, env),
+    toc: env.toc,
   };
 });
 
@@ -214,9 +261,14 @@ if (WANT_IMAGES) await generateMissing(posts);
 
 // Read from disk rather than from whether generation ran, so a build with no
 // key still wires up every image that is already committed.
+// `image` is the full-size JPG: the post's cover and its social card. `thumb`
+// is the 640px WebP tools/optimize-media.mjs derives from it, for the cards.
 for (const post of posts) {
   post.image = existsSync(join(OUT_IMAGES, `${post.slug}.jpg`))
     ? `/images/blog/${post.slug}.jpg`
+    : null;
+  post.thumb = existsSync(join(OUT_THUMBS, `${post.slug}.webp`))
+    ? `/media/blog/${post.slug}.webp`
     : null;
 }
 
@@ -228,16 +280,23 @@ const banner = '// GENERATED by tools/build-blog-routes.mjs — do not edit.\n';
 for (const post of posts) {
   writeFileSync(
     join(OUT_POSTS, `${post.slug}.ts`),
-    `${banner}export const html = ${JSON.stringify(post.html)};\n`,
+    `${banner}export const html = ${JSON.stringify(post.html)};\n\n` +
+    `export const toc: { id: string; text: string }[] = ${JSON.stringify(post.toc)};\n`,
   );
 }
 
-const meta = posts.map(({ html, headings, ...rest }) => rest);
+const meta = posts.map(({ html, headings, toc, ...rest }) => rest);
+
+const blogTopics = topics.map(({ id, name, icon, summary }) => ({
+  id, name, icon, summary,
+  count: meta.filter((p) => p.topicId === id).length,
+}));
 
 writeFileSync(
   join(OUT_DIR, 'blog-index.ts'),
-  `${banner}import type { BlogMeta } from '../pages/blog/blog-meta';\n\n` +
+  `${banner}import type { BlogMeta, BlogTopic } from '../pages/blog/blog-meta';\n\n` +
   `export const BLOG_POSTS: BlogMeta[] = ${JSON.stringify(meta, null, 2)};\n\n` +
+  `export const BLOG_TOPICS: BlogTopic[] = ${JSON.stringify(blogTopics, null, 2)};\n\n` +
   `export const BLOG_CATEGORIES: string[] = ${JSON.stringify(
     [...new Set(meta.map((p) => p.category))].sort(), null, 2)};\n`,
 );
@@ -269,8 +328,8 @@ const routeEntries = posts.map((p) => {
   };
   return `  {
     path: 'blogs/${p.slug}',
-    component: BlogPost,
-    resolve: { html: postResolver },
+    loadComponent: loadBlogPost,
+    resolve: { post: postResolver, styles: blogStyles },
     data: {
       seo: ${JSON.stringify(seo)},
       slug: ${JSON.stringify(p.slug)},
@@ -279,13 +338,19 @@ const routeEntries = posts.map((p) => {
   },`;
 });
 
+// The post component is loaded lazily, like every other page: it imports the
+// whole post index (for the series navigation and related posts), which would
+// otherwise ride in the initial bundle of every page on the site.
 writeFileSync(
   join(OUT_DIR, 'blog-routes.ts'),
   `${banner}import { Routes } from '@angular/router';\n` +
-  `import { BlogPost } from '../pages/blog/blog-post';\n` +
+  `import { styleBundles } from '../core/route-styles';\n` +
   `import { postResolver } from '../pages/blog/post-resolver';\n\n` +
+  `const loadBlogPost = () => import('../pages/blog/blog-post').then((m) => m.BlogPost);\n` +
+  `const blogStyles = styleBundles('blog');\n\n` +
   `export const blogRoutes: Routes = [\n${routeEntries.join('\n')}\n];\n`,
 );
 
-console.log(`blog: ${posts.length} posts, ${new Set(posts.map((p) => p.category)).size} categories, `
-  + `${posts.filter((p) => p.image).length} with an image`);
+console.log(`blog: ${posts.length} posts, ${blogTopics.length} topics, `
+  + `${posts.filter((p) => p.image).length} with an image, `
+  + `${posts.filter((p) => p.thumb).length} with a thumbnail`);

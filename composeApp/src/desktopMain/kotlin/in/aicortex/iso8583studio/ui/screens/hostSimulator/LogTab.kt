@@ -17,11 +17,16 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.HorizontalScrollbar
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.Icon
@@ -69,15 +74,23 @@ import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Checkbox
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import `in`.aicortex.iso8583studio.logging.LogHistory
+import `in`.aicortex.iso8583studio.logging.LogLineRenderer
+import `in`.aicortex.iso8583studio.logging.LogRows
+import `in`.aicortex.iso8583studio.logging.RenderedLine
+import `in`.aicortex.iso8583studio.logging.SpanRole
+import `in`.aicortex.iso8583studio.logging.rememberLogRows
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.logging.LogEntry
 import `in`.aicortex.iso8583studio.logging.LogType
-import `in`.aicortex.iso8583studio.logging.formatLogDetails
-import `in`.aicortex.iso8583studio.logging.formatLogMessage
-import `in`.aicortex.iso8583studio.logging.formatPlainTextLogs
 import `in`.aicortex.iso8583studio.ui.screens.components.themedScrollbarStyle
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -96,11 +109,12 @@ fun LogTab(
     concurrentConnections: Int,
     bytesIncoming: Long,
     bytesOutgoing: Long,
-    logEntries: SnapshotStateList<LogEntry> // New parameter for structured logs
+    logEntries: SnapshotStateList<LogEntry>, // Live tail; full history comes from [history]
+    history: LogHistory? = null,
+    liveEntryCap: Int = 0
 ) {
     var isStatsVisible by remember { mutableStateOf(false) }
     var selectedLogTypes by remember { mutableStateOf(LogType.values().toSet()) }
-    println(logEntries.size)
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Log viewer takes entire window space
@@ -113,6 +127,8 @@ fun LogTab(
                 label = label,
                 onClearClick = onClearClick,
                 logEntries = logEntries,
+                history = history,
+                liveEntryCap = liveEntryCap,
                 selectedLogTypes = selectedLogTypes,
                 onLogTypesChanged = { selectedLogTypes = it },
                 isStatsVisible = isStatsVisible,
@@ -187,6 +203,8 @@ internal fun LogPanelWithAutoScroll(
     label: String? = null,
     onClearClick: () -> Unit,
     logEntries: List<LogEntry> = emptyList(),
+    history: LogHistory? = null,
+    liveEntryCap: Int = 0,
     selectedLogTypes: Set<LogType> = LogType.values().toSet(),
     onLogTypesChanged: (Set<LogType>) -> Unit = {},
     onBack: (() -> Unit)? = null,
@@ -196,58 +214,49 @@ internal fun LogPanelWithAutoScroll(
     var isAutoScrollEnabled by remember { mutableStateOf(true) }
     var showFilterMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
 
-    // Filter log entries
-    val filteredLogEntries = logEntries.filter { it.type in selectedLogTypes }
+    // Rows come from the on-disk index when one exists, so the scrollbar spans the whole retained
+    // history rather than just what is still in memory.
+    val rows = rememberLogRows(history, logEntries, selectedLogTypes, liveEntryCap)
 
-    // Simple and reliable auto-scroll - triggers on ANY change to filtered entries
-    LaunchedEffect(filteredLogEntries) {
-        if (isAutoScrollEnabled && filteredLogEntries.isNotEmpty()) {
-            // Wait a bit for UI to render
-            kotlinx.coroutines.delay(50)
+    // Coarse key: stat-ing the segments on every appended row would be pointless syscall traffic.
+    val historyBytes = remember(history, rows.count / 512) {
+        history?.index?.value?.segments?.sumOf { it.length() }
+            ?: logEntries.sumOf { it.message.length.toLong() }
+    }
 
-            // Try multiple times to ensure it works
-            repeat(3) {
-                if (scrollState.maxValue > 0) {
-                    scrollState.animateScrollTo(scrollState.maxValue)
-                }
-                kotlinx.coroutines.delay(50)
-            }
+    // Follow the tail while pinned to the bottom. scrollToItem, not animateScrollTo: rows arrive
+    // every flush interval and an animation would restart before it ever finished.
+    LaunchedEffect(rows.count, isAutoScrollEnabled) {
+        if (isAutoScrollEnabled && rows.count > 0) {
+            listState.scrollToItem(rows.count - 1)
         }
     }
 
-    // Detect manual scrolling with better logic
-    var isUserScrolling by remember { mutableStateOf(false) }
+    // Leaving the bottom stops the follow; returning to it resumes.
+    val isAtBottom by remember {
+        derivedStateOf {
+            val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            rows.count == 0 || last >= rows.count - 2
+        }
+    }
 
-    LaunchedEffect(scrollState.isScrollInProgress) {
-        if (scrollState.isScrollInProgress) {
-            isUserScrolling = true
-        } else {
-            // When scrolling stops, check position after a delay
-            kotlinx.coroutines.delay(100)
-
-            if (scrollState.maxValue > 0) {
-                val isNearBottom = scrollState.value >= (scrollState.maxValue - 100)
-
-                if (!isNearBottom && isUserScrolling) {
-                    // User scrolled away from bottom and stopped - disable auto-scroll
-                    isAutoScrollEnabled = false
-                }
-
-                if (isNearBottom && !isAutoScrollEnabled) {
-                    // User scrolled back to bottom - re-enable auto-scroll
-                    isAutoScrollEnabled = true
-                }
-            }
-
-            isUserScrolling = false
+    // Only a scroll the user actually performed may switch following off. Without the guard this
+    // effect fires once on first composition, when nothing has been laid out yet and isAtBottom is
+    // still false, and the view stops following the tail the moment it opens.
+    var hasScrolled by remember { mutableStateOf(false) }
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) {
+            hasScrolled = true
+        } else if (hasScrolled) {
+            isAutoScrollEnabled = isAtBottom
         }
     }
 
     // Reset auto-scroll when logs are cleared
-    LaunchedEffect(logEntries.isEmpty()) {
-        if (logEntries.isEmpty()) {
+    LaunchedEffect(rows.count == 0) {
+        if (rows.count == 0) {
             isAutoScrollEnabled = true
         }
     }
@@ -406,10 +415,10 @@ internal fun LogPanelWithAutoScroll(
                 modifier = Modifier.clickable {
                     isAutoScrollEnabled = !isAutoScrollEnabled
 
-                    // If enabling auto-scroll, immediately scroll to bottom
-                    if (isAutoScrollEnabled) {
+                    // If enabling auto-scroll, immediately jump to the newest row
+                    if (isAutoScrollEnabled && rows.count > 0) {
                         coroutineScope.launch {
-                            scrollState.animateScrollTo(scrollState.maxValue)
+                            listState.scrollToItem(rows.count - 1)
                         }
                     }
                 }
@@ -447,8 +456,10 @@ internal fun LogPanelWithAutoScroll(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Clear logs button
+            // Clear logs button. When the panel renders from disk, clearing only the in-memory
+            // list would look like nothing happened — the purge has to reach the files.
             IconButton(onClick = {
+                history?.clear()
                 onClearClick()
                 isAutoScrollEnabled = true
             }) {
@@ -476,36 +487,34 @@ internal fun LogPanelWithAutoScroll(
                 .fillMaxWidth()
                 .weight(1f)
         ) {
-            SelectionContainer {
-                Box {
-                    if(filteredLogEntries.isEmpty()) {
+            if (rows.count == 0) {
+                Text(
+                    text = "No logs yet. Start using the application to see logs here.",
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    style = MaterialTheme.typography.body2,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+                )
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Truncation is never silent. Only reachable with no log file configured — with
+                    // one, trimmed entries are still on disk and still scrolled to.
+                    if (rows.truncatedBefore) {
                         Text(
-                            text = "No logs yet. Start using the application to see logs here.",
+                            text = "Showing the most recent $liveEntryCap entries " +
+                                "(no log file configured, so older entries were not retained)",
+                            style = MaterialTheme.typography.caption,
+                            color = WarningYellow,
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                        )
-                    } else {
-                        Text(
-                            text = buildStructuredLogText(filteredLogEntries),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .verticalScroll(scrollState),
-                            style = MaterialTheme.typography.body2,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            color = MaterialTheme.colors.onSurface
+                                .fillMaxWidth()
+                                .background(WarningYellow.copy(alpha = 0.08f))
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
                         )
                     }
-
-                    VerticalScrollbar(
-                        adapter = rememberScrollbarAdapter(scrollState),
-                        modifier = Modifier.align(Alignment.TopEnd),
-                        style = themedScrollbarStyle()
+                    VirtualizedLogList(
+                        rows = rows,
+                        listState = listState,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -521,13 +530,14 @@ internal fun LogPanelWithAutoScroll(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Entries: ${filteredLogEntries.size}/${logEntries.size}",
+                "Rows: ${rows.count}",
                 style = MaterialTheme.typography.caption,
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
             )
 
+            // Read from the index rather than by walking the entries on every recomposition.
             Text(
-                "Size: ${formatBytes(logEntries.sumOf { it.message.length }.toLong())}",
+                "History: ${formatBytes(historyBytes)}",
                 style = MaterialTheme.typography.caption,
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
             )
@@ -584,51 +594,6 @@ private fun FloatingStatItem(
     }
 }
 
-@Composable
-private fun buildStructuredLogText(logEntries: List<LogEntry>) = buildAnnotatedString {
-    logEntries.forEach { entry ->
-        // Timestamp
-        withStyle(SpanStyle(color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f))) {
-            append("[${entry.timestamp}] ")
-        }
-
-        // Log type with color coding - use fixed width for alignment
-        withStyle(
-            SpanStyle(
-                color = entry.type.color,
-                fontWeight = FontWeight.Bold
-            )
-        ) {
-            val logTypeName = entry.type.displayName.uppercase()
-            val paddedLogType = logTypeName.padEnd(12) // Fixed width of 12 characters
-            append("$paddedLogType: ")
-        }
-
-        // Calculate base indent size - now consistent for all log types
-        val baseIndent = "[${entry.timestamp}] ".length + 12 + 2  // timestamp + padded log type + ": "
-
-        // Message with proper indentation for multi-line content
-        withStyle(SpanStyle(color = MaterialTheme.colors.onSurface)) {
-            append(formatLogMessage(entry.message, baseIndent))
-        }
-
-        // Details if available with proper multi-line handling
-        entry.details?.let { details ->
-            append("\n")
-            withStyle(
-                SpanStyle(
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.8f),
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
-            ) {
-                append(" ".repeat(baseIndent))
-                append(formatLogDetails(details, baseIndent))
-            }
-        }
-
-        append("\n")
-    }
-}
 /**
  * Helper function to create log entries - can be used in your application
  */
@@ -695,4 +660,137 @@ private fun formatBytes(bytes: Long): String {
         bytes < 1024 * 1024 -> "${bytes / 1024} KB"
         else -> String.format("%.2f MB", bytes / (1024.0 * 1024.0))
     }
+}
+
+/**
+ * The log surface: one fixed-height row per rendered line, virtualized.
+ *
+ * Uniform row height is deliberate. It lets `LazyColumn` compute total content height from the row
+ * count alone, so the scrollbar thumb is exact and a fling to an arbitrary position resolves in one
+ * index lookup instead of a measure pass over everything before it. It also means a row that has not
+ * been decoded yet can be drawn as blank space of identical height — the list never reflows around a
+ * cache miss.
+ *
+ * Horizontal scrolling is shared across rows via a single fixed content width rather than a
+ * per-row scroll modifier, which would give each row its own conflicting scroll range. Because the
+ * panel is monospaced, that width is derived from the longest visible line's character count and is
+ * only ever allowed to grow, so it does not twitch while scrolling.
+ */
+@Composable
+private fun VirtualizedLogList(
+    rows: LogRows,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    modifier: Modifier = Modifier
+) {
+    val style = MaterialTheme.typography.body2.copy(
+        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+    )
+    val density = LocalDensity.current
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+
+    val charWidthPx = remember(style) {
+        measurer.measure(AnnotatedString("0".repeat(100)), style).size.width / 100f
+    }
+    val rowHeight: Dp = remember(style, density) {
+        with(density) { (style.fontSize.toPx() * 1.5f).toDp() }
+    }
+
+    val visibleMaxChars by remember(rows) {
+        derivedStateOf {
+            listState.layoutInfo.visibleItemsInfo.maxOfOrNull { info ->
+                rows.rowAt(info.index)?.let { LogLineRenderer.charLength(it) } ?: 0
+            } ?: 0
+        }
+    }
+    var maxChars by remember(rows.count == 0) { mutableStateOf(80) }
+    LaunchedEffect(visibleMaxChars) {
+        if (visibleMaxChars > maxChars) maxChars = visibleMaxChars
+    }
+
+    val hScroll = rememberScrollState()
+
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier) {
+        val viewportWidth = maxWidth
+        val contentWidth = maxOf(viewportWidth, with(density) { (maxChars * charWidthPx).toDp() })
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .horizontalScroll(hScroll)
+        ) {
+            SelectionContainer {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.width(contentWidth).fillMaxHeight()
+                ) {
+                    items(rows.count) { rowIndex ->
+                        LogRowView(
+                            line = rows.rowAt(rowIndex),
+                            rowHeight = rowHeight,
+                            style = style
+                        )
+                    }
+                }
+            }
+        }
+
+        VerticalScrollbar(
+            adapter = rememberScrollbarAdapter(listState),
+            modifier = Modifier.align(Alignment.TopEnd),
+            style = themedScrollbarStyle()
+        )
+
+        HorizontalScrollbar(
+            adapter = rememberScrollbarAdapter(hScroll),
+            modifier = Modifier.align(Alignment.BottomStart),
+            style = themedScrollbarStyle()
+        )
+    }
+}
+
+@Composable
+private fun LogRowView(
+    line: RenderedLine?,
+    rowHeight: Dp,
+    style: androidx.compose.ui.text.TextStyle
+) {
+    if (line == null) {
+        // Same height as a real row, so a pending decode cannot shift what is on screen.
+        Spacer(modifier = Modifier.height(rowHeight).fillMaxWidth())
+        return
+    }
+
+    val onSurface = MaterialTheme.colors.onSurface
+    val text = buildAnnotatedString {
+        line.spans.forEach { span ->
+            withStyle(
+                SpanStyle(
+                    color = when (span.role) {
+                        SpanRole.TIMESTAMP -> onSurface.copy(alpha = 0.7f)
+                        SpanRole.TYPE -> line.type.color
+                        SpanRole.MESSAGE -> onSurface
+                        SpanRole.DETAILS -> onSurface.copy(alpha = 0.8f)
+                    },
+                    fontWeight = if (span.role == SpanRole.TYPE) FontWeight.Bold else null,
+                    fontStyle = if (span.role == SpanRole.DETAILS) {
+                        androidx.compose.ui.text.font.FontStyle.Italic
+                    } else {
+                        null
+                    }
+                )
+            ) {
+                append(span.text)
+            }
+        }
+    }
+
+    Text(
+        text = text,
+        style = style,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        modifier = Modifier.height(rowHeight)
+    )
 }

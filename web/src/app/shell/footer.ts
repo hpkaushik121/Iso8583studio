@@ -1,28 +1,36 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EXTERNAL, LEGAL, RESOURCES, SIMULATORS, SOLUTIONS, TOOLS } from '../core/site-nav';
-import { ICON_PATHS } from './icons';
 import { UiLogoMark } from '../ui/logo-mark';
+import { UiIcon } from '../ui/icon';
 
+/**
+ * Site footer.
+ *
+ * Analytics reads a footer link's nav_group from the <b> inside its .f-col
+ * (or 'Social' inside .f-social), and an icon-only link's text from its
+ * title — so the column heads stay <b>, the legal links in the bottom bar get
+ * a hidden one, and every social link keeps its title.
+ */
 @Component({
   selector: 'app-footer',
-  imports: [RouterLink, UiLogoMark],
+  imports: [RouterLink, UiLogoMark, UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer>
-      <div class="wrap">
+      <div class="f-in">
         <div class="f-grid">
           <div class="f-brand">
-            <a class="brand" routerLink="/"><ui-logo-mark [size]="27" />ISO8583Studio</a>
+            <a class="brand" routerLink="/"><ui-logo-mark [size]="24" mode="still" />ISO8583Studio</a>
             <p>Professional ISO 8583 payment transaction processing, simulation and testing.
                Built with Kotlin Multiplatform &amp; Compose Desktop.</p>
-            <a class="btn btn--primary" [href]="external.releases">Download</a>
+            <a class="btn btn--secondary btn--sm" [href]="external.releases">
+              <ui-icon name="download-simple" [size]="14" />Download
+            </a>
             <div class="f-social">
               @for (s of social; track s.title) {
-                <a [href]="s.href" [title]="s.title" rel="noopener">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path [attr.d]="s.path"/>
-                  </svg>
+                <a class="icon-btn icon-btn--filled icon-btn--round" [href]="s.href" [title]="s.title" rel="noopener">
+                  <ui-icon [name]="s.icon" [size]="18" />
                   <span class="visually-hidden">{{ s.title }}</span>
                 </a>
               }
@@ -39,25 +47,30 @@ import { UiLogoMark } from '../ui/logo-mark';
           }
         </div>
         <div class="f-btm">
-          <span>© {{ year }} AiCortex · ISO8583Studio</span>
-          <span class="mono">Built with ❤ for the payments community</span>
+          <span>© {{ year }} AiCortex · ISO8583Studio · Built with ❤ for the payments community</span>
+          <span class="f-col f-legal">
+            <b class="visually-hidden">Legal</b>
+            @for (item of legal; track item.link) {
+              <a [routerLink]="item.link">{{ item.label }}</a>
+            }
+          </span>
         </div>
       </div>
     </footer>
   `,
 })
 export class Footer {
-  /** Derived, so the footer can never drift out of date the way the two
-   *  hard-coded years ("2024" in the blog, "2026" in site.js) did. */
+  /** Derived, so the footer can never drift out of date. */
   protected readonly year = new Date().getFullYear();
 
   protected readonly external = EXTERNAL;
+  protected readonly legal = LEGAL;
 
   protected readonly social = [
-    { title: 'Roadmap', href: EXTERNAL.roadmap, path: ICON_PATHS.roadmap },
-    { title: 'LinkedIn', href: EXTERNAL.linkedin, path: ICON_PATHS.linkedin },
-    { title: 'GitHub', href: EXTERNAL.github, path: ICON_PATHS.github },
-    { title: 'Medium', href: EXTERNAL.medium, path: ICON_PATHS.medium },
+    { title: 'Roadmap', href: EXTERNAL.roadmap, icon: 'map-trifold' },
+    { title: 'LinkedIn', href: EXTERNAL.linkedin, icon: 'linkedin-logo' },
+    { title: 'GitHub', href: EXTERNAL.github, icon: 'github-logo' },
+    { title: 'Medium', href: EXTERNAL.medium, icon: 'medium-logo' },
   ];
 
   protected readonly columns = [
@@ -65,6 +78,5 @@ export class Footer {
     { title: 'Tools', items: TOOLS },
     { title: 'Solutions', items: SOLUTIONS },
     { title: 'Resources', items: RESOURCES },
-    { title: 'Legal', items: LEGAL },
   ];
 }

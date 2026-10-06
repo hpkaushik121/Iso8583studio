@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, afterNextRender, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { inject } from '@angular/core';
-import { UiButton, UiCard, UiIconTile } from '../../ui';
+import { RouterLink } from '@angular/router';
+import { UiButton, UiIcon } from '../../ui';
 
 interface Destination {
   label: string;
   link: string;
-  glyph: string;
+  icon: string;
   desc: string;
 }
 
@@ -14,30 +15,63 @@ interface Destination {
  * The 404. Prerendered to /404.html and also served for any unmatched client
  * route, so it has to read correctly both as a standalone document and as an
  * in-app navigation.
+ *
+ * Its routes load no stylesheet bundle, so everything it needs beyond the
+ * global primitives (.btn, .card) is in the component styles.
  */
 @Component({
   selector: 'app-not-found',
-  imports: [UiButton, UiCard, UiIconTile],
+  imports: [RouterLink, UiButton, UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     /* Short pages otherwise leave the footer floating mid-viewport. */
     .nf {
-      min-height: calc(100svh - var(--nav-h) - var(--sp-20));
+      position: relative;
       display: grid;
       /* minmax(0, …) so the nowrap request line cannot widen the whole page. */
       grid-template-columns: minmax(0, 1fr);
       align-content: center;
+      justify-items: center;
+      min-height: 100svh;
+      max-width: var(--wrap-max);
+      margin: 0 auto;
+      padding: calc(var(--nav-h) + var(--sp-16)) var(--gutter) var(--sp-20);
       text-align: center;
     }
 
-    /* Grid items with auto margins are sized to fit-content, so these two
-       need an explicit width before max-width can centre them. */
-    .nf-head { width: 100%; max-width: 640px; margin-inline: auto; }
-    .nf-kicker { justify-content: center; }
-    .nf-title { margin-bottom: var(--sp-4); }
-    .nf-desc { margin-inline: auto; margin-bottom: var(--sp-8); }
+    /* The status, in the register of the app's own logs. */
+    .nf-code {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: clamp(96px, 20vw, 184px);
+      font-weight: 500;
+      line-height: .9;
+      letter-spacing: -.04em;
+      background: linear-gradient(180deg, var(--text) 10%, rgba(151, 168, 214, .14) 96%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
 
-    /* The request that failed, in the same register as the app's own logs. */
+    .nf-title {
+      margin: var(--sp-6) 0 0;
+      font-size: var(--fs-3xl);
+      font-weight: 500;
+      letter-spacing: var(--ls-tight);
+      line-height: 1.12;
+      color: var(--text);
+    }
+
+    .nf-desc {
+      max-width: 520px;
+      margin: var(--sp-4) 0 0;
+      color: var(--muted);
+      font-size: var(--fs-md);
+      line-height: var(--lh-snug);
+      text-wrap: pretty;
+    }
+
+    /* The request that failed. */
     .nf-request {
       display: flex;
       align-items: center;
@@ -45,114 +79,98 @@ interface Destination {
       width: 100%;
       max-width: 560px;
       min-width: 0;
-      margin: 0 auto var(--sp-8);
+      margin: var(--sp-8) 0 0;
       padding: var(--sp-3) var(--sp-4);
-      background: var(--card-deep);
       border: 1px solid var(--line);
-      border-radius: var(--r-md);
+      border-radius: var(--r-lg);
+      background: var(--card-deep);
+      box-shadow: var(--sh-glass);
       font-family: var(--mono);
       font-size: var(--fs-sm);
       text-align: left;
     }
 
-    .nf-method { color: var(--teal-hi); flex: none; }
+    .nf-method { flex: none; color: var(--teal-hi); }
 
     .nf-path {
-      color: var(--text);
       flex: 1;
       min-width: 0;
       overflow: hidden;
+      color: var(--text);
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .nf-status {
-      flex: none;
-      padding: 2px var(--sp-2);
-      border-radius: var(--r-sm);
-      background: rgba(229, 72, 77, .12);
-      color: var(--red-hi);
-      font-size: var(--fs-badge);
-      font-weight: 600;
-      letter-spacing: .04em;
-    }
-
     .nf-actions {
       display: flex;
-      gap: var(--sp-3);
-      justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: var(--sp-16);
+      justify-content: center;
+      gap: 10px;
+      margin-top: var(--sp-8);
     }
 
     .nf-label {
-      justify-content: center;
-      margin-bottom: var(--sp-5);
+      margin: var(--sp-16) 0 var(--sp-5);
+      font-family: var(--mono);
+      font-size: var(--fs-xs);
+      letter-spacing: var(--ls-wide);
+      text-transform: uppercase;
+      color: var(--faint);
     }
 
     /* Fixed column counts rather than auto-fit: four destinations wrap to a
        lone orphan card on any width that fits three. */
     .nf-links {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      /* Equal rows, so a two-line title does not make one card taller. */
-      grid-auto-rows: 1fr;
-      gap: var(--sp-4);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      width: 100%;
       text-align: left;
     }
 
-    @media (min-width: 1000px) {
-      .nf-links { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .nf-card { display: grid; gap: 10px; align-content: start; height: 100%; }
+    .nf-card .ui-icon { color: var(--blue-hi); }
+    .nf-card-title { font-size: var(--fs-lg); font-weight: 500; letter-spacing: var(--ls-snug); color: var(--text); }
+    .nf-card-desc { color: var(--muted); font-size: var(--fs-sm); line-height: 1.6; text-wrap: pretty; }
+
+    @media (max-width: 999px) {
+      .nf-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @media (max-width: 560px) {
+      .nf { min-height: 0; padding-bottom: var(--sp-16); }
+      .nf-label { margin-top: var(--sp-12); }
       .nf-links { grid-template-columns: minmax(0, 1fr); }
-    }
-
-    .nf-card-head {
-      display: flex;
-      align-items: center;
-      gap: var(--sp-3);
-      margin-bottom: var(--sp-3);
-    }
-
-    @media (max-width: 768px) {
-      .nf { min-height: 0; }
-      .nf-actions { margin-bottom: var(--sp-12); }
     }
   `],
   template: `
-    <div class="doc-body nf">
-      <div class="nf-head">
-        <p class="kicker nf-kicker">Error 404</p>
-        <h1 class="page-title nf-title">Page not found</h1>
-        <p class="page-description nf-desc">
-          Nothing on this site answers to that address. It may have been renamed,
-          moved into the documentation, or never existed at all.
-        </p>
-      </div>
+    <div class="nf">
+      <p class="nf-code" aria-hidden="true">404</p>
+      <h1 class="nf-title">Page not found</h1>
+      <p class="nf-desc">
+        Nothing on this site answers to that address. It may have been renamed,
+        moved into the documentation, or never existed at all.
+      </p>
 
       <p class="nf-request">
         <span class="nf-method">GET</span>
         <span class="nf-path">{{ path() }}</span>
-        <span class="nf-status">404</span>
+        <span class="badge badge--red badge--mono">404</span>
       </p>
 
       <div class="nf-actions">
-        <ui-button routerLink="/docs">Browse the docs</ui-button>
-        <ui-button variant="ghost" routerLink="/">Go home</ui-button>
+        <ui-button routerLink="/docs" iconRight="arrow-right">Browse the docs</ui-button>
+        <ui-button variant="secondary" routerLink="/">Go home</ui-button>
       </div>
 
-      <p class="kicker nf-label">Popular destinations</p>
+      <p class="nf-label">Popular destinations</p>
       <div class="nf-links">
         @for (d of destinations; track d.link) {
-          <ui-card variant="tile" [routerLink]="d.link">
-            <span class="nf-card-head">
-              <ui-icon-tile [glyph]="d.glyph" />
-              <span class="ui-card-title" style="margin-bottom:0">{{ d.label }}</span>
-            </span>
-            <span class="ui-card-desc" style="margin-bottom:0">{{ d.desc }}</span>
-          </ui-card>
+          <a class="card card--interactive nf-card" [routerLink]="d.link">
+            <ui-icon [name]="d.icon" [size]="22" />
+            <span class="nf-card-title">{{ d.label }}</span>
+            <span class="nf-card-desc">{{ d.desc }}</span>
+          </a>
         }
       </div>
     </div>
@@ -166,10 +184,10 @@ export class NotFound {
   protected readonly path = signal('/404');
 
   protected readonly destinations: Destination[] = [
-    { label: 'Documentation', link: '/docs', glyph: '▤', desc: 'Install, configure and run every module.' },
-    { label: 'Payment Simulators', link: '/simulator', glyph: '⇄', desc: 'Host, HSM, POS, ATM and switch endpoints.' },
-    { label: 'EMV & Card Tools', link: '/tools/emv-tools', glyph: '▣', desc: 'Cryptograms, SDA/DDA, ATR, tags and CVV.' },
-    { label: 'Blog', link: '/blogs', glyph: '✎', desc: 'Guides on testing, cryptography and EMV.' },
+    { label: 'Documentation', link: '/docs', icon: 'book-open', desc: 'Install, configure and run every module.' },
+    { label: 'Payment Simulators', link: '/simulator', icon: 'plugs-connected', desc: 'Host, HSM, POS, ATM and switch endpoints.' },
+    { label: 'EMV & Card Tools', link: '/tools/emv-tools', icon: 'cards', desc: 'Cryptograms, SDA/DDA, ATR, tags and CVV.' },
+    { label: 'Blog', link: '/blogs', icon: 'article', desc: 'Guides on testing, cryptography and EMV.' },
   ];
 
   constructor() {

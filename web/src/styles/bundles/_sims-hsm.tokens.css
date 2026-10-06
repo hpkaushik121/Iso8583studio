@@ -1,0 +1,28 @@
+/* Literal colours of the simulator glass screens (HSM Simulator, Host
+   Simulator, HSM Command Console): the inks of the desktop app they redraw.
+   Named here so _sims-hsm.css carries no hex of its own. */
+:root {
+    /* Toggle knob (off) and the "empty" counter. */
+    --hg-knob: #aeb4c8;
+    /* Legend swatch for an empty slot; the "not set" bit. */
+    --hg-slate: #8a90a6;
+    /* A disconnected / idle status dot. */
+    --hg-idle: #5d6478;
+    /* LMK and key-management accents. */
+    --hg-purple: #c58af9;
+    --hg-violet-a: #9c5cf0;
+    --hg-violet-b: #7b3fd6;
+    /* Stop / Disconnect buttons and delete icons. */
+    --hg-red: #ef5350;
+    --hg-red-lo: #d32f2f;
+    /* The Launch button. */
+    --hg-teal-a: #2bb3a5;
+    --hg-teal-b: #26a69a;
+    /* The Authorize Console button. */
+    --hg-amber-a: #f0a04b;
+    --hg-amber-b: #dd8a2f;
+    --hg-amber-ink: #1b1206;
+    /* "Not authorized" and failure inks. */
+    --hg-salmon: #ff9e80;
+    --hg-coral: #ff8a80;
+}

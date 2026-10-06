@@ -1,0 +1,938 @@
+/* ==========================================================================
+   home — the landing page (/).
+
+   Everything is namespaced under .page-home. Class names the analytics layer
+   or the three.js journey engine looks up (.hero, .hero-ctas, .simtile,
+   .st-name, .node, .cat, .sol, .story-stage, .scene-view ...) are kept as
+   they are and only ever styled through that prefix.
+   ========================================================================== */
+
+@import './home.tokens.css';
+@import './_hero-dash.css';
+@import './_pro-reserve.css';
+@import './_pro-form.css';
+
+.page-home { display: block; background: var(--canvas); }
+.page-home home-journey, .page-home home-scroll-dots { display: block; }
+.page-home home-prism-beam { display: contents; }
+
+/* The header is fixed, so a section the dot rail scrolls to has to clear it. */
+.page-home [data-sect] { scroll-margin-top: calc(var(--nav-h) + var(--sp-5)); }
+.page-home .hero { scroll-margin-top: 0; }
+
+/* ---- Hero -------------------------------------------------------------- */
+
+.page-home .hero {
+    position: relative;
+    overflow: hidden;
+    padding: calc(72px + var(--nav-h)) var(--gutter) 0;
+    text-align: center;
+}
+
+/* The dotted world map. The bright copy is only requested once the pointer
+   has moved over the hero (.is-armed), and only shows inside the pool of
+   light around it (--mx/--my, set from script). */
+.page-home .hp-dots {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    mask-image: linear-gradient(180deg, black 0, black 58%, transparent 92%);
+}
+
+.page-home .hp-dots-glow,
+.page-home .hp-dots-map,
+.page-home .hp-dots-hot { position: absolute; inset: 0; }
+
+.page-home .hp-dots-map {
+    background: url('/media/hero/world-dots-1440.webp') 50% -40px / 1500px auto no-repeat;
+    background-image: image-set(url('/media/hero/world-dots-1440.webp') 1x, url('/media/hero/world-dots-2880.webp') 2x);
+    opacity: .12;
+}
+
+.page-home .hp-dots-glow {
+    background: radial-gradient(circle var(--mr, 210px) at var(--mx, 50%) var(--my, 50%), rgba(106, 183, 255, .1), transparent 72%);
+    opacity: 0;
+    transition: opacity .3s var(--ease);
+}
+
+.page-home .hp-dots-hot {
+    opacity: 0;
+    mix-blend-mode: screen;
+    transition: opacity .3s var(--ease);
+    mask-image: radial-gradient(circle var(--mr, 210px) at var(--mx, 50%) var(--my, 50%), black 0%, rgba(0, 0, 0, .6) 46%, transparent 74%);
+}
+
+.page-home .hp-dots.is-armed .hp-dots-hot {
+    background: url('/media/hero/world-dots-hot-1440.webp') 50% -40px / 1500px auto no-repeat;
+    background-image: image-set(url('/media/hero/world-dots-hot-1440.webp') 1x, url('/media/hero/world-dots-hot-2880.webp') 2x);
+}
+
+.page-home .hp-dots.is-lit .hp-dots-glow,
+.page-home .hp-dots.is-lit .hp-dots-hot { opacity: 1; }
+
+.page-home .hp-hero-copy { position: relative; z-index: 4; }
+
+.page-home .hp-hero-stat { gap: 10px; padding: 5px 14px; color: var(--muted); font-size: var(--fs-xs); }
+.page-home .hp-hero-stat-rule { width: 1px; height: 12px; background: var(--line-hi); }
+
+.page-home .hero h1 {
+    max-width: 720px;
+    margin: 18px auto 0;
+    font-size: var(--fs-hero);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    line-height: 1.1;
+}
+
+.page-home .hp-hero-line {
+    max-width: 660px;
+    margin: 14px auto 0;
+    color: var(--text);
+    font-size: var(--fs-lg);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-snug);
+    line-height: 1.3;
+}
+
+.page-home .hp-hero-sub { max-width: 560px; margin: 14px auto 0; color: var(--muted); font-size: var(--fs-sm); }
+
+.page-home .hero-ctas {
+    position: relative;
+    z-index: 3;
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+/* The block under the copy: the beam, and the frame it lands on. --hp-gap is
+   the beam's height above the frame, --hp-shot the frame's height; the block
+   is cut a little short of the frame so its faded foot overlaps what follows. */
+.page-home .hp-stage {
+    --hp-gap: 80px;
+    --hp-shot: 700px;
+    position: relative;
+    height: calc(var(--hp-gap) + var(--hp-shot) - 40px);
+    margin-top: -14px;
+}
+
+.page-home .hp-frame {
+    position: absolute;
+    left: 50%;
+    top: var(--hp-gap);
+    z-index: 1;
+    width: 980px;
+    max-width: 100%;
+    height: var(--hp-shot);
+    overflow: hidden;
+    /* Also the resting state of .ds-frame's animation, so the frame is still
+       centred when animations are switched off. */
+    transform: translateX(-50%);
+    border: 1px solid rgba(233, 236, 245, .7);
+    border-bottom: 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    background: var(--bg-deep);
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, .6), 0 -24px 80px rgba(159, 211, 255, .45), 0 -80px 160px rgba(30, 136, 229, .28), var(--sh-card);
+    mask-image: linear-gradient(180deg, black 42%, rgba(0, 0, 0, .55) 72%, rgba(0, 0, 0, .18) 88%, transparent 100%);
+}
+
+.page-home .hp-frame-edge {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 2;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, .2), white 50%, rgba(255, 255, 255, .2));
+}
+
+.page-home .hp-frame-fade {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(15, 16, 23, 0) 45%, rgba(15, 16, 23, .45) 75%, rgba(15, 16, 23, .8) 92%);
+}
+
+/* ---- Prism beam -------------------------------------------------------- */
+
+/* The wash lights the backdrop behind the beam at every width. */
+.page-home .pb-wash {
+    --d: 3092;
+    --pb-edge: 68%;
+    --pb-edge-in: 48%;
+    position: absolute;
+    left: calc(-1 * var(--gutter));
+    right: calc(-1 * var(--gutter));
+    top: -656px;
+    z-index: 0;
+    height: calc(656px + var(--hp-gap) + var(--hp-shot) * .5);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    animation-duration: 1.6s;
+    background:
+        radial-gradient(58% 42% at 50% var(--pb-edge), rgba(234, 242, 255, .11), rgba(106, 183, 255, .05) 46%, transparent 78%),
+        linear-gradient(180deg, transparent 0, rgba(234, 242, 255, .02) var(--pb-edge-in), rgba(234, 242, 255, .05) var(--pb-edge), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, black 9%, black 91%, transparent 100%);
+}
+
+/* The WebGL canvas: the beam gap plus the frame, extended 96px above the
+   block so the plume has room. It screen-blends, and fades out at both ends
+   and both sides so the light never stops on a hard edge. */
+.page-home .pb-host {
+    --pb-top: 10%;
+    position: absolute;
+    left: calc(-1 * var(--gutter));
+    right: calc(-1 * var(--gutter));
+    top: -96px;
+    z-index: 0;
+    height: calc(96px + var(--hp-gap) + var(--hp-shot));
+    pointer-events: none;
+    mix-blend-mode: screen;
+    mask-image:
+        linear-gradient(180deg, transparent 0, black var(--pb-top), black 74%, transparent 99%),
+        linear-gradient(90deg, transparent 0, black 9%, black 91%, transparent 100%);
+    mask-repeat: no-repeat;
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+}
+
+.page-home .pb-host canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+
+/* What stands in for the beam until (or instead of) the canvas: a soft flare
+   on the frame's top edge with a thin shaft above it. */
+.page-home .pb-static {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--hp-gap) - 70px);
+    z-index: 0;
+    width: min(640px, 70%);
+    height: 140px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    background: radial-gradient(closest-side, rgba(234, 242, 255, .42), rgba(106, 183, 255, .2) 38%, rgba(30, 136, 229, .08) 62%, transparent 78%);
+}
+
+.page-home .pb-static::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 50%;
+    width: 2px;
+    height: calc(var(--hp-gap) + 56px);
+    margin-left: -1px;
+    border-radius: 1px;
+    background: linear-gradient(180deg, transparent, var(--art-beam-core));
+    opacity: .8;
+}
+
+.page-home home-prism-beam.is-live .pb-static { display: none; }
+
+@media (max-width: 1200px) {
+    .page-home .hp-stage { --hp-shot: 510px; height: calc(var(--hp-gap) + var(--hp-shot) + 20px); }
+    .page-home .pb-wash { --pb-edge: 74%; --pb-edge-in: 52%; }
+    .page-home .pb-host { --pb-top: 13%; }
+}
+
+/* Phones and tablets get the lit backdrop only: no beam, no canvas. */
+@media (max-width: 900px) {
+    .page-home .hp-stage { --hp-gap: 44px; --hp-shot: 400px; }
+
+    .page-home .pb-wash {
+        --d: 2100;
+        top: -280px;
+        height: calc(280px + var(--hp-gap) + var(--hp-shot) * .55);
+        background: radial-gradient(74% 46% at 50% 62%, rgba(234, 242, 255, .1), rgba(106, 183, 255, .06) 44%, transparent 76%);
+        mask-image: linear-gradient(180deg, transparent 0, black 24%, rgba(0, 0, 0, .75) 62%, transparent 100%);
+    }
+
+    .page-home .pb-host, .page-home .pb-static { display: none; }
+}
+
+/* ---- Simulator strip --------------------------------------------------- */
+
+.page-home .hp-strip { max-width: var(--wrap-max); margin: 0 auto; padding: 48px var(--gutter) 64px; text-align: center; }
+
+.page-home .hp-strip-caption {
+    color: var(--text);
+    font-size: var(--fs-h2);
+    font-weight: var(--fw-regular);
+    letter-spacing: var(--ls-tight);
+    line-height: var(--lh-tight);
+}
+
+/* Marks dim toward both edges and brighten through the middle as the row loops. */
+.page-home .hp-marquee {
+    overflow: hidden;
+    margin-top: clamp(40px, 5.5vw, 76px);
+    mask-image: linear-gradient(90deg, transparent 0, rgba(0, 0, 0, .25) 7%, rgba(0, 0, 0, .75) 18%, black 30%, black 70%, rgba(0, 0, 0, .75) 82%, rgba(0, 0, 0, .25) 93%, transparent 100%);
+}
+
+.page-home .hp-marquee-track { display: flex; align-items: center; width: max-content; }
+
+.page-home .hp-mark {
+    --icon-size: 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: clamp(5px, .7vw, 7px);
+    margin: 0 34px;
+    opacity: .6;
+    white-space: nowrap;
+}
+
+.page-home .hp-mark-name { font-size: 1.0625rem; font-weight: var(--fw-semibold); letter-spacing: -.02em; }
+.page-home .hp-mark-rule { flex: none; width: 1px; height: clamp(18px, 2vw, 26px); background: var(--line); }
+
+@media (max-width: 1200px) {
+    .page-home .hp-strip { padding-top: 20px; padding-bottom: 28px; }
+}
+
+/* ---- Payment journey --------------------------------------------------- */
+
+.page-home .payment-story {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    /* 48px more at the foot than the design, whose closing line and button
+       (hung 96px below the last stage) otherwise touch the next heading. */
+    padding: 104px 0 160px;
+    color: var(--text);
+}
+
+.page-home .hj-wash {
+    position: absolute;
+    inset: -6% -10% 8% 20%;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 60% 30%, rgba(30, 136, 229, .16), transparent 62%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 26%);
+}
+
+.page-home .hj-top-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 0;
+    height: 200px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--canvas), transparent);
+}
+
+.page-home .story-stages {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 120px;
+    width: min(var(--wrap-max), 100%);
+    margin: 0 auto;
+}
+
+/* The wire: one curve threading the stage art. The engine writes its path. */
+.page-home .journey-trail {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: visible;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.page-home .journey-trail .jf-blue { stop-color: var(--blue-hi); }
+.page-home .journey-trail .jf-deep { stop-color: var(--blue); }
+.page-home .journey-trail .jf-teal { stop-color: var(--teal-hi); }
+.page-home .journey-trail .trail-packet-halo { fill: var(--blue-hi); }
+.page-home .journey-trail .trail-packet { fill: var(--art-packet); }
+
+.page-home .story-stage {
+    position: relative;
+    width: 100%;
+    height: 440px;
+    scroll-margin-top: calc(var(--nav-h) + 30px);
+}
+
+.page-home .story-stage.is-tall { height: 600px; }
+
+.page-home .stage-num {
+    position: absolute;
+    left: 6%;
+    top: -24px;
+    z-index: 0;
+    color: rgba(151, 168, 214, .07);
+    font-size: clamp(110px, 16vw, 232px);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    line-height: 1;
+    pointer-events: none;
+}
+
+.page-home .story-stage[data-align='left'] .stage-num { left: auto; right: 6%; }
+.page-home .story-stage[data-align='center'] .stage-num { top: 120px; }
+
+.page-home .stage-copy { position: absolute; z-index: 4; }
+.page-home .story-stage[data-align='left'] .stage-copy { left: 5%; top: 46%; width: 42%; transform: translateY(-50%); }
+.page-home .story-stage[data-align='right'] .stage-copy { left: 58%; top: 48%; width: 38%; transform: translateY(-50%); }
+.page-home .story-stage[data-align='center'] .stage-copy { left: 5%; top: 0; width: 90%; text-align: center; }
+.page-home .story-stage[data-align='center'] .stage-br { display: none; }
+
+.page-home .stage-eyebrow {
+    color: var(--blue-hi);
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-wide);
+    line-height: 1.65;
+    text-transform: uppercase;
+}
+
+.page-home .stage-lead { margin-bottom: 24px; color: var(--faint); white-space: nowrap; }
+
+.page-home .stage-copy h3 {
+    margin-top: 12px;
+    font-size: var(--fs-display);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    line-height: var(--lh-tight);
+}
+
+.page-home .stage-desc {
+    max-width: 440px;
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: var(--fs-md);
+    line-height: var(--lh-snug);
+    text-wrap: pretty;
+}
+
+.page-home .story-stage[data-align='center'] .stage-desc { margin-left: auto; margin-right: auto; }
+
+.page-home .stage-link {
+    display: inline-block;
+    margin-top: 22px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--blue-hi);
+    color: var(--text);
+    font-size: var(--fs-md);
+}
+
+.page-home .stage-link .ui-icon { display: inline-block; color: var(--blue-hi); vertical-align: -2px; }
+.page-home .stage-link:hover { color: var(--blue-hi); }
+
+.page-home .scene-art { position: absolute; z-index: 2; }
+.page-home .story-stage[data-align='left'] .scene-art { right: 5%; top: 12px; width: 60%; height: 340px; }
+.page-home .story-stage[data-align='right'] .scene-art { left: 2%; top: 6px; width: 56%; height: 400px; }
+.page-home .story-stage[data-align='center'] .scene-art { left: 4%; top: 150px; width: 92%; height: 450px; }
+
+.page-home .scene-view { position: absolute; inset: 0; }
+.page-home .scene-view.has-messages { right: 26%; }
+.page-home .scene-view canvas { display: block; width: 100%; height: 100%; }
+
+/* The flat plate. It is what the prerendered page shows in place of each 3D
+   scene, and what stays where WebGL is missing or motion is reduced; the
+   engine adds .journey-live to the section once its scenes are drawing. */
+.page-home .model-fallback {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* A card-shaped plate whatever the scene's box: the design's inset plate
+       became a slab across the wide centred stages. */
+    width: min(76%, 340px);
+    aspect-ratio: 1.586 / 1;
+    padding: 20px;
+    border: 1px solid rgba(140, 197, 255, .4);
+    border-radius: 14px;
+    background: linear-gradient(140deg, var(--hp-plate-hi), var(--hp-plate-lo));
+    transform: translate(-50%, -50%) rotate(-8deg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: var(--fs-badge);
+}
+
+.page-home .model-fallback strong { font-size: var(--fs-base); font-weight: var(--fw-medium); letter-spacing: .05em; }
+.page-home .model-fallback small { color: var(--hp-plate-ink); font-size: .625rem; }
+.page-home .payment-story.journey-live .model-fallback { display: none; }
+
+.page-home .handshake {
+    position: absolute;
+    left: 48%;
+    top: 11px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: rgba(37, 40, 54, .55);
+    backdrop-filter: blur(8px);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+}
+
+.page-home .handshake b { visibility: hidden; color: var(--teal-hi); font-weight: var(--fw-medium); }
+
+/* The glass the floating panels and labels share. */
+.page-home .hj-glass {
+    border: 1px solid rgba(133, 181, 232, .5);
+    border-radius: var(--r-md);
+    background: linear-gradient(120deg, rgba(117, 155, 217, .18), rgba(32, 43, 66, .61));
+    box-shadow: inset 0 0 16px rgba(159, 211, 255, .05), 0 6px 30px rgba(6, 19, 37, .19);
+    backdrop-filter: blur(10px);
+    color: var(--text);
+}
+
+.page-home .hj-tick {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--teal-hi);
+    box-shadow: 0 0 20px rgba(100, 216, 203, .2);
+    color: var(--art-check-ink);
+    font-size: 1.0625rem;
+}
+
+.page-home .stage-labels { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+
+.page-home .hj-label {
+    --icon-size: 20px;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 17px;
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+}
+
+.page-home .hj-label .ui-icon { color: var(--blue-hi); }
+.page-home .hj-label small { display: block; margin-top: 3px; color: var(--muted); font-size: var(--fs-xs); }
+.page-home .hj-label.verified { color: var(--teal-lo); }
+.page-home .hj-label[data-place='left'] { left: 0; top: 45%; }
+.page-home .hj-label[data-place='right'] { right: 0; top: 30%; }
+.page-home .hj-label[data-place='from'] { left: 7%; top: 39%; }
+.page-home .hj-label[data-place='to'] { left: 67%; top: 77%; }
+.page-home .hj-label[data-place='verified'] { right: 8%; top: 64%; }
+
+.page-home .message-threads { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }
+.page-home .message-threads path { stroke: var(--blue-hi); }
+
+.page-home .message-stack {
+    position: absolute;
+    right: 1%;
+    top: 14%;
+    z-index: 5;
+    display: grid;
+    gap: 12px;
+    width: 33%;
+    transform: perspective(800px) rotateY(-8deg);
+}
+
+.page-home .hj-message { display: flex; align-items: center; gap: 13px; padding: 13px 17px; text-align: left; }
+.page-home .hj-glyph { color: var(--blue-hi); font-size: 1.375rem; line-height: 1; }
+.page-home .hj-message b { font-size: var(--fs-lg); font-weight: var(--fw-medium); }
+.page-home .hj-message small { display: block; margin-top: 3px; color: var(--muted); font-size: var(--fs-sm); }
+
+.page-home .response-panel {
+    position: absolute;
+    right: -4%;
+    top: 34%;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: 1fr 40px;
+    gap: 12px;
+    width: 46%;
+    padding: 18px 22px;
+    transform: perspective(800px) rotateY(-10deg) rotateZ(3deg);
+}
+
+.page-home .hj-mti { font-family: var(--mono); font-size: var(--fs-2xl); font-weight: var(--fw-medium); }
+.page-home .response-panel strong { display: block; margin-top: 3px; color: var(--muted); font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+.page-home .response-panel em { margin-left: 4px; color: var(--teal-hi); font-style: normal; }
+.page-home .response-panel .hj-tick { width: 32px; height: 32px; font-size: 1.125rem; }
+.page-home .response-panel small { grid-column: 1 / -1; padding-top: 10px; border-top: 1px solid rgba(106, 183, 255, .19); color: var(--muted); font-size: var(--fs-xs); }
+
+.page-home .request-panel {
+    position: absolute;
+    right: -2%;
+    top: 16%;
+    z-index: 5;
+    width: 62%;
+    padding: 17px 21px;
+    transform: perspective(800px) rotateY(-10deg) rotateZ(3deg);
+}
+
+.page-home .hj-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(141, 198, 255, .25);
+    font-size: var(--fs-md);
+    letter-spacing: var(--ls-snug);
+}
+
+.page-home .hj-panel-head span { color: var(--blue-hi); }
+.page-home .request-panel dl { display: grid; grid-template-columns: 64px 1fr; gap: 8px; margin-top: 12px; font-family: var(--mono); font-size: var(--fs-xs); }
+.page-home .request-panel dt { color: var(--faint); }
+.page-home .request-panel dd { color: var(--text); overflow-wrap: anywhere; }
+
+.page-home .stage-end { position: absolute; left: 0; bottom: -96px; z-index: 5; width: 100%; text-align: center; }
+.page-home .stage-end p { margin-bottom: 22px; color: var(--muted); font-size: var(--fs-lg); }
+.page-home .stage-note { position: absolute; left: 13%; bottom: 8%; z-index: 5; color: var(--faint); font-size: var(--fs-xs); }
+
+@media (max-width: 1000px) {
+    .page-home .story-stage { height: 340px; }
+    .page-home .story-stage.is-tall { height: 470px; }
+    .page-home .story-stage[data-align='left'] .scene-art { top: 6px; height: 270px; }
+    .page-home .story-stage[data-align='right'] .scene-art { top: 0; height: 300px; }
+    .page-home .story-stage[data-align='center'] .scene-art { height: 320px; }
+}
+
+/* Phones: each stage is copy, then its scene, then its panels, in a column. */
+@media (max-width: 700px) {
+    .page-home .payment-story { padding: 64px 0 76px; }
+    .page-home .hj-top-fade { height: 120px; }
+    .page-home .story-stages { gap: 72px; padding: 0 var(--gutter); }
+    .page-home .story-stage, .page-home .story-stage.is-tall { height: auto; }
+
+    .page-home .story-stage[data-align] .stage-num {
+        left: auto;
+        right: 0;
+        top: -6px;
+        color: rgba(151, 168, 214, .1);
+        font-size: clamp(64px, 20vw, 112px);
+    }
+
+    .page-home .story-stage[data-align] .stage-copy { position: relative; left: auto; top: auto; width: auto; transform: none; text-align: left; }
+    .page-home .story-stage[data-align='center'] .stage-desc { margin-left: 0; }
+    .page-home .stage-lead { white-space: normal; }
+
+    .page-home .story-stage[data-align] .scene-art {
+        position: relative;
+        left: auto;
+        right: auto;
+        top: auto;
+        display: grid;
+        gap: 14px;
+        width: 100%;
+        height: auto;
+        margin-top: 26px;
+    }
+
+    .page-home .scene-view, .page-home .scene-view.has-messages { position: relative; inset: auto; width: 100%; height: 250px; }
+    .page-home .handshake { left: 8px; }
+    .page-home .message-threads { display: none; }
+    .page-home .message-stack { position: static; gap: 10px; width: 100%; transform: none; }
+    .page-home .response-panel, .page-home .request-panel { position: relative; right: auto; top: auto; width: 100%; transform: none; }
+
+    .page-home .stage-labels { position: static; display: flex; flex-wrap: wrap; gap: 8px; }
+    .page-home .story-stage .hj-label { --icon-size: 17px; position: static; gap: 9px; padding: 9px 13px; backdrop-filter: none; box-shadow: none; white-space: normal; }
+    .page-home .hj-label small { display: inline; margin: 0 0 0 6px; font-size: inherit; }
+    .page-home .hj-label .hj-tick { width: 22px; height: 22px; box-shadow: none; font-size: var(--fs-sm); }
+
+    .page-home .stage-end { position: static; margin-top: 10px; }
+    .page-home .stage-note { position: static; display: block; }
+}
+
+/* ---- Page sections ----------------------------------------------------- */
+
+.page-home .hp-sect { max-width: var(--wrap-max); margin: 0 auto; padding: 0 var(--gutter) 96px; }
+
+/* Develop / Test / Certify */
+.page-home .hp-personas { position: relative; margin-top: 52px; }
+
+.page-home .hp-personas-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 5px;
+    height: 1px;
+    background: linear-gradient(to right, var(--blue-hi), rgba(106, 183, 255, .35) 55%, transparent);
+}
+
+.page-home .hp-personas-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; }
+.page-home .hp-persona { position: relative; padding: 34px 36px 0; border-left: 1px solid var(--line2); }
+.page-home .hp-persona:first-child { padding-left: 0; border-left: 0; }
+
+.page-home .hp-persona-dot {
+    position: absolute;
+    left: 36px;
+    top: 0;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--blue-hi);
+    box-shadow: 0 0 0 4px rgba(30, 136, 229, .16), 0 0 18px rgba(30, 136, 229, .5);
+}
+
+.page-home .hp-persona:first-child .hp-persona-dot { left: 0; }
+
+.page-home .hp-persona-phase,
+.page-home .hp-persona-who {
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+}
+
+.page-home .hp-persona-phase { color: var(--blue-hi); }
+.page-home .hp-persona-who { margin-top: 20px; color: var(--faint); }
+.page-home .hp-persona h3 { margin-top: 14px; font-size: var(--fs-2xl); font-weight: var(--fw-medium); letter-spacing: var(--ls-snug); line-height: var(--lh-tight); }
+.page-home .hp-persona-desc { margin-top: 12px; color: var(--muted); font-size: var(--fs-md); line-height: var(--lh-snug); text-wrap: pretty; }
+
+/* Tools: glass cards, each with a blue bloom placed by --at. */
+.page-home .hp-bento-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; margin-top: 40px; }
+
+.page-home .hp-bento {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(133, 181, 232, .22);
+    border-radius: var(--r-lg);
+    background-color: color-mix(in oklab, var(--surface) 55%, transparent);
+    background-image: radial-gradient(58% 52% at var(--at, 50% 50%), rgba(30, 136, 229, .3), transparent 72%);
+    box-shadow: var(--sh-glass);
+    backdrop-filter: blur(14px);
+}
+
+.page-home .hp-bento--plain { background-image: none; }
+.page-home .hp-bento--3 { grid-column: span 3; }
+.page-home .hp-bento--2 { grid-column: span 2; }
+.page-home .hp-bento-head { position: relative; padding: 22px; }
+.page-home .hp-bento-head:not(:last-child) { padding-bottom: 0; }
+.page-home .hp-bento-head h3 { font-size: var(--fs-xl); font-weight: var(--fw-medium); letter-spacing: var(--ls-snug); line-height: var(--lh-base); }
+.page-home .hp-bento-head p { margin-top: 4px; color: var(--muted); font-size: var(--fs-sm); text-wrap: pretty; }
+.page-home .hp-bento-body { position: relative; flex: 1; min-height: 0; margin-top: 20px; }
+
+.page-home .hp-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 0 22px 22px; }
+
+.page-home .hp-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 4px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    color: var(--blue-hi);
+}
+
+.page-home .hp-tile span { color: var(--muted); font-size: var(--fs-2xs); }
+
+.page-home .hp-trace {
+    margin: 0 22px 22px;
+    padding: 16px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-md);
+    background: var(--card-deep);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    line-height: 1.9;
+    mask-image: radial-gradient(130% 118% at 50% 12%, black 52%, transparent 100%);
+}
+
+.page-home .hp-trace span { display: inline-block; min-width: 5ch; color: var(--blue-hi); }
+
+.page-home .hp-keys { display: grid; gap: 8px; margin: 0 22px 20px; }
+
+.page-home .hp-key {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 14px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-md);
+    background: var(--card-deep);
+}
+
+.page-home .hp-key.is-on { border-color: rgba(106, 183, 255, .38); }
+.page-home .hp-key-tag { color: var(--blue-hi); font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: var(--ls-wide); }
+.page-home .hp-key-label { display: block; color: var(--text); font-size: var(--fs-sm); }
+.page-home .hp-key-hex { display: block; margin-top: 2px; color: var(--muted); font-family: var(--mono); font-size: var(--fs-xs); }
+.page-home .hp-key-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+.page-home .hp-count { display: grid; gap: 14px; padding: 0 22px 20px; }
+.page-home .hp-count-top { display: flex; align-items: flex-end; gap: 16px; }
+.page-home .hp-count-top strong { color: var(--blue-hi); font-size: clamp(42px, 5vw, 62px); font-weight: var(--fw-medium); letter-spacing: var(--ls-tight); line-height: .85; }
+
+.page-home .hp-count-top span {
+    padding-bottom: 8px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    line-height: var(--lh-snug);
+    text-transform: uppercase;
+}
+
+.page-home .hp-cats { display: grid; gap: 7px; }
+
+/* One row per discipline; .cat and its h3 are what tool_category_click reads. */
+.page-home .cat {
+    display: grid;
+    grid-template-columns: 1fr 74px 26px;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--line2);
+    color: var(--text);
+}
+
+.page-home .cat h3 { color: var(--text); font-size: var(--fs-sm); font-weight: var(--fw-regular); letter-spacing: 0; line-height: var(--lh-base); transition: color var(--dur) var(--ease); }
+.page-home .cat:hover h3 { color: var(--blue-hi); }
+.page-home .hp-cat-bar { overflow: hidden; height: 4px; border-radius: 2px; background: var(--line2); }
+.page-home .hp-cat-bar span { display: block; width: var(--w, 0%); height: 100%; background: var(--blue-hi); }
+.page-home .hp-cat-n { color: var(--muted); font-family: var(--mono); font-size: var(--fs-xs); text-align: right; }
+
+/* Solutions */
+.page-home .hp-sol-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 14px; margin-top: 40px; }
+
+.page-home .sol {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    padding: 22px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.page-home .sol:hover { border-color: var(--line-hi); background: var(--surface); color: var(--text); }
+.page-home .sol .ui-icon { color: var(--blue-hi); }
+.page-home .sol h3 { font-size: var(--fs-lg); font-weight: var(--fw-medium); letter-spacing: var(--ls-snug); line-height: var(--lh-snug); }
+.page-home .hp-sol-desc { color: var(--muted); font-size: var(--fs-sm); line-height: var(--lh-snug); text-wrap: pretty; }
+.page-home .hp-sol-go { margin-top: auto; padding-top: 14px; color: var(--blue-hi); font-size: var(--fs-sm); }
+
+/* Pricing: the Pro card on its fan of payment cards — the shared
+   app-pro-reserve component, styled in _pro-reserve.css. */
+.page-home .hp-pricing { overflow-x: clip; text-align: center; }
+.page-home .hp-reserve { margin-top: 56px; }
+
+/* FAQ */
+.page-home .hp-faq { max-width: 860px; }
+.page-home .hp-faq .accordion { margin-top: 36px; }
+
+/* Closing CTA. The panel brings its own top margin for pages that stack it
+   under prose; here the section above already ends in 96px. */
+.page-home .hp-cta { padding-bottom: 96px; }
+.page-home .hp-cta .cta-panel { margin-top: 0; }
+.page-home .hp-cta .cta-panel h2 { font-size: var(--fs-hero); }
+.page-home .hp-os { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 22px; margin-top: 22px; color: var(--muted); font-size: var(--fs-sm); }
+.page-home .hp-os span { display: inline-flex; align-items: center; gap: 8px; }
+.page-home .hp-os .ui-icon { color: var(--blue-hi); }
+
+@media (max-width: 900px) {
+    .page-home .hp-personas-grid { grid-template-columns: 1fr; gap: 40px; }
+    .page-home .hp-persona { padding-left: 0; padding-right: 0; border-left: 0; }
+    .page-home .hp-persona-dot { left: 0; }
+    .page-home .hp-bento-grid, .page-home .hp-sol-grid { grid-template-columns: 1fr; }
+    .page-home .hp-bento--3, .page-home .hp-bento--2 { grid-column: auto; }
+}
+
+/* ---- Scroll dots ------------------------------------------------------- */
+
+@keyframes hp-dot-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.page-home .scroll-dots {
+    position: fixed;
+    right: 22px;
+    top: 50%;
+    z-index: var(--z-menu);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    transform: translateY(-50%);
+}
+
+.page-home .scroll-dot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--faint);
+    cursor: pointer;
+}
+
+/* The mark is 6px wide; this widens what can be clicked without moving it. */
+.page-home .scroll-dot::after { content: ''; position: absolute; inset: -5px -10px; }
+.page-home .scroll-dot.is-on { color: var(--text); }
+
+.page-home .scroll-dot-label {
+    position: absolute;
+    right: 100%;
+    margin-right: 10px;
+    opacity: 0;
+    transform: translateX(6px);
+    transition: opacity .18s, transform .18s;
+    pointer-events: none;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.page-home .scroll-dot:hover .scroll-dot-label,
+.page-home .scroll-dot:focus-visible .scroll-dot-label { opacity: 1; transform: none; }
+
+.page-home .scroll-dot-mark {
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(151, 168, 214, .35);
+    transition: height .28s var(--ease), width .24s, background .2s;
+}
+
+.page-home .scroll-dot.is-on .scroll-dot-mark { height: 22px; background: var(--blue-hi); box-shadow: 0 0 12px rgba(30, 136, 229, .55); }
+
+/* Inside the journey the rail belongs to the transaction: only its eight
+   stage dots show. Everywhere else the journey is a single dot. */
+.page-home .scroll-dot-stages { display: none; flex-direction: column; align-items: flex-end; gap: 5px; padding: 3px 0; }
+.page-home .scroll-dots.in-journey .scroll-dot-stages { display: flex; }
+.page-home .scroll-dots.in-journey > .scroll-dot { display: none; }
+.page-home .scroll-dot--stage { animation: hp-dot-in .26s both; animation-delay: calc(var(--d, 0) * 1ms); }
+.page-home .scroll-dot--stage .scroll-dot-mark { width: 4px; height: 4px; background: rgba(151, 168, 214, .45); }
+.page-home .scroll-dot--stage.is-on .scroll-dot-mark { width: 6px; height: 14px; }
+
+@media (max-width: 760px) {
+    .page-home .scroll-dots { display: none; }
+}
+
+/* ---- Motion ------------------------------------------------------------ */
+
+/* Per-element delays (--d, in ms). _motion.css declares this too, but before
+   the animation shorthands that reset animation-delay, so it is restated here
+   where it wins. */
+.page-home :is(.ds-word, .ds-item, .ds-hold, .ds-fade, .ds-rise, .ds-beam, .ds-glow, .ds-frame, .ds-shot, .ds-layer, .ds-tile) {
+    animation-delay: calc(var(--d, 0) * 1ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-home .scroll-dot--stage { animation: none; }
+}

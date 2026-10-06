@@ -1,0 +1,8 @@
+/* home — literal colours of the home page's own drawings. */
+
+:root {
+    /* The flat plate that stands in for a payment-journey 3D scene. */
+    --hp-plate-hi: #497fb3;
+    --hp-plate-lo: #173650;
+    --hp-plate-ink: #afcdea;
+}

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from
 import { RouterLink } from '@angular/router';
 import { UiDialog } from '../ui/dialog';
 import { AnalyticsService } from '../core/analytics';
+import { UiIcon } from '../ui/icon';
 
 const DOWNLOAD_HREF = /releases\/latest|releases\/download|\.(dmg|exe|msi|deb|rpm|jar|zip)(\?|$)/i;
 
@@ -11,31 +12,37 @@ const DOWNLOAD_HREF = /releases\/latest|releases\/download|\.(dmg|exe|msi|deb|rp
  */
 @Component({
   selector: 'app-pro-download-modal',
-  imports: [UiDialog, RouterLink],
+  imports: [UiDialog, RouterLink, UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (pendingHref(); as href) {
       <ui-dialog label="Try ISO8583Studio Pro" (close)="dismiss($event)">
-        <span class="pn-tag">✦ Pro</span>
+        <span class="badge badge--blue pm-badge"><ui-icon name="sparkle" [size]="11" />Pro</span>
         <h3>Before you download — try Pro</h3>
         <p>The studio is free forever. Pro raises the ceiling — more cryptographic throughput,
            the full algorithm set, deeper simulator tuning, and hosted endpoints your CI can reach.</p>
         <ul class="pm-list">
-          <li>Higher CPS — multi-threaded crypto for load &amp; soak tests</li>
-          <li>Full algorithm set: RSA, ECC, SHA-3, FPE, AES DUKPT</li>
-          <li>Deep tweaks: field overrides, latency &amp; error injection</li>
-          <li>Hosted endpoints, scheme test packs, priority support</li>
+          @for (perk of perks; track perk.text) {
+            <li><span class="pm-tile" aria-hidden="true"><ui-icon [name]="perk.icon" [size]="16" /></span>{{ perk.text }}</li>
+          }
         </ul>
         <div class="pm-actions">
-          <a class="btn btn--primary" routerLink="/pro" (click)="close()">Register for Pro — from ₹2</a>
-          <a class="pm-skip" [href]="href" (click)="close()">Just download the free studio →</a>
+          <a class="btn btn--secondary pm-skip" [href]="href" (click)="close()">Just download the free studio →</a>
+          <a class="btn btn--primary btn--glow" routerLink="/pro" (click)="close()">Register for Pro — from ₹2</a>
         </div>
+        <p class="pm-note">Free download: native installers for macOS, Windows and Linux on GitHub releases.</p>
       </ui-dialog>
     }
   `,
 })
 export class ProDownloadModal {
   protected readonly pendingHref = signal<string | null>(null);
+  protected readonly perks = [
+    { icon: 'gauge', text: 'Higher CPS — multi-threaded crypto for load & soak tests' },
+    { icon: 'function', text: 'Full algorithm set: RSA, ECC, SHA-3, FPE, AES DUKPT' },
+    { icon: 'sliders-horizontal', text: 'Deep tweaks: field overrides, latency & error injection' },
+    { icon: 'cloud', text: 'Hosted endpoints, scheme test packs, priority support' },
+  ];
   private readonly analytics = inject(AnalyticsService);
 
   /** Capture phase, so the interception happens before any other handler. */

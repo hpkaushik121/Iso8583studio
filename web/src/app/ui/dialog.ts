@@ -2,6 +2,7 @@ import {
   AfterViewInit, ChangeDetectionStrategy, Component, DOCUMENT, ElementRef,
   OnDestroy, inject, input, output, viewChild,
 } from '@angular/core';
+import { UiIcon } from './icon';
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
@@ -13,12 +14,16 @@ const FOCUSABLE =
  */
 @Component({
   selector: 'ui-dialog',
+  imports: [UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog-ov" (click)="onBackdrop($event)">
-      <div #panel class="dialog" role="dialog" aria-modal="true" [attr.aria-label]="label()"
+      <div #panel [class]="kind()" role="dialog" aria-modal="true" [attr.aria-label]="label()"
            (keydown)="onKeydown($event)">
-        <button class="dialog-x" type="button" aria-label="Close" (click)="close.emit('button')">×</button>
+        <span class="dialog-glow" aria-hidden="true"></span>
+        <button [class]="kind() + '-x icon-btn'" type="button" aria-label="Close" (click)="close.emit('button')">
+          <ui-icon name="x" [size]="15" />
+        </button>
         <ng-content />
       </div>
     </div>
@@ -26,6 +31,13 @@ const FOCUSABLE =
 })
 export class UiDialog implements AfterViewInit, OnDestroy {
   readonly label = input.required<string>();
+  /**
+   * 'dialog' is the Pro download interstitial's panel. Analytics reads clicks
+   * inside a .dialog, and on .dialog-x, as that interstitial's actions, so any
+   * other modal is a 'sheet': the same look under class names analytics does
+   * not claim.
+   */
+  readonly kind = input<'dialog' | 'sheet'>('dialog');
   readonly close = output<'button' | 'backdrop' | 'escape'>();
 
   private readonly panel = viewChild.required<ElementRef<HTMLElement>>('panel');

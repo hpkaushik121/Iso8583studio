@@ -1,36 +1,55 @@
-import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { SitePage } from './site-page';
-import { UiSection } from '../../ui/section';
+import { UiBadge, UiCtaPanel, UiIcon, UiReveal, UiWords } from '../../ui';
+import { LONGFORM } from '../shared/longform';
+
+interface Channel { icon: string; eyebrow: string; title: string; body: string; cta: string; href: string; wide?: boolean; }
 
 @Component({
   selector: 'page-contact',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiSection],
+  imports: [...LONGFORM, RouterLink, UiBadge, UiCtaPanel, UiIcon, UiReveal, UiWords],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-contact' },
-  // <image-slot> is a styling-only element the design system owns; see
-  // _components.css. Drop this schema once it becomes part of ui-figure.
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  template: `<main class="doc-body">
-        <div class="breadcrumb">
-            <a href="/">Home</a><span class="breadcrumb-sep">/</span>
-            <span>Contact</span>
+  template: `
+    <lf-header layout="split" [crumbs]="crumbs" title="Talk to us"
+               lede="Certification engagements, middleware and kernel work, support, or just a question about the studio — pick the channel that fits." />
+
+    <lf-body>
+      <section id="channels" uiReveal [uiRevealThreshold]="0.08">
+        <div class="lf-channels">
+          @for (ch of channels; track ch.href; let i = $index) {
+            <lf-link-card class="ds-item" [style.--d]="520 + i * 120" [wide]="!!ch.wide" [icon]="ch.icon"
+                          [eyebrow]="ch.eyebrow" [title]="ch.title" [body]="ch.body" [cta]="ch.cta" [href]="ch.href" />
+          }
         </div>
+        <lf-note class="ds-hold" [style.--d]="1000" tone="neutral" icon="clock" title="Response time">Issues and discussions are usually answered within a couple of days. For engagement email, expect a reply within one business week.</lf-note>
+      </section>
 
-        <h1 class="page-title">Talk to us</h1>
-        <p class="page-description">Certification engagements, middleware and kernel work, support, or just a question about the studio — pick the channel that fits.</p>
-
-        <ui-section anchor="channels">
-            <div class="hub-grid">
-                <a class="hub-card" href="mailto:admin@iso8583.studio"><div class="hub-body"><div class="hub-title">Email <span class="badge badge-teal">Engagements</span></div><p class="hub-desc">For certification, middleware and kernel engagements, or anything private — write to us directly.</p><span class="hub-link">admin@iso8583.studio →</span></div></a>
-                <a class="hub-card" href="https://github.com/hpkaushik121/Iso8583studio/issues"><div class="hub-body"><div class="hub-title">GitHub Issues <span class="badge badge-blue">Bugs &amp; features</span></div><p class="hub-desc">Found a bug or want a feature in a simulator or tool? Open an issue — it lands straight on the roadmap.</p><span class="hub-link">Open an issue →</span></div></a>
-                <a class="hub-card" href="https://github.com/hpkaushik121/Iso8583studio/discussions"><div class="hub-body"><div class="hub-title">Discussions <span class="badge badge-blue">Q&amp;A</span></div><p class="hub-desc">Usage questions, ISO 8583 head-scratchers, and show-and-tell with the community.</p><span class="hub-link">Start a discussion →</span></div></a>
-                <a class="hub-card" href="https://www.linkedin.com/company/iso8583-studio"><div class="hub-body"><div class="hub-title">LinkedIn <span class="badge badge-purple">Direct</span></div><p class="hub-desc">Follow the ISO8583Studio company page — announcements, releases, and consulting conversations.</p><span class="hub-link">Connect →</span></div></a>
+      <div class="lf-cta">
+        <ui-cta-panel>
+          <div class="lf-cta-in" uiReveal>
+            <div class="ds-hold"><ui-badge tone="blue" icon="sparkle">Pro</ui-badge></div>
+            <h2><ui-words text="Looking for a supported, hosted setup?" /></h2>
+            <p class="ds-hold" [style.--d]="320">Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p>
+            <div class="pro-nudge ds-hold" [style.--d]="440">
+              <a class="btn btn--primary btn--lg btn--glow" routerLink="/pro">Register for Pro <ui-icon name="arrow-up-right" [size]="16" /></a>
             </div>
-            <div class="info-card note"><div class="info-card-title">Response time</div><p>Issues and discussions are usually answered within a couple of days. For engagement email, expect a reply within one business week.</p></div>
-        </ui-section>
-</main>
-
-<aside class="pro-nudge"><span class="pn-tag">✦ Pro</span><p>Looking for a supported, hosted setup? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p><a href="/pro">Register for Pro →</a></aside>`,
+          </div>
+        </ui-cta-panel>
+      </div>
+    </lf-body>
+  `,
 })
-export class ContactPage {}
+export class ContactPage {
+  protected readonly crumbs = [{ label: 'Home', link: '/' }, { label: 'Contact' }];
+
+  /** Eyebrow + title are the old cards' title + badge, which analytics reports. */
+  protected readonly channels: Channel[] = [
+    { icon: 'envelope-simple', eyebrow: 'Email', title: 'Engagements', body: 'For certification, middleware and kernel engagements, or anything private — write to us directly.', cta: 'admin@iso8583.studio', href: 'mailto:admin@iso8583.studio', wide: true },
+    { icon: 'bug', eyebrow: 'GitHub Issues', title: 'Bugs & features', body: 'Found a bug or want a feature in a simulator or tool? Open an issue — it lands straight on the roadmap.', cta: 'Open an issue', href: 'https://github.com/hpkaushik121/Iso8583studio/issues' },
+    { icon: 'chats-circle', eyebrow: 'Discussions', title: 'Q&A', body: 'Usage questions, ISO 8583 head-scratchers, and show-and-tell with the community.', cta: 'Start a discussion', href: 'https://github.com/hpkaushik121/Iso8583studio/discussions' },
+    { icon: 'linkedin-logo', eyebrow: 'LinkedIn', title: 'Direct', body: 'Follow the ISO8583Studio company page — announcements, releases, and consulting conversations.', cta: 'Connect', href: 'https://www.linkedin.com/company/iso8583-studio' },
+  ];
+}

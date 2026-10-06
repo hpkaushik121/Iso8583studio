@@ -142,7 +142,9 @@ fun GlobalSettingsScreen(onBack: () -> Unit) {
                                 Text("Delete log file on auto-clear", fontWeight = FontWeight.Medium)
                                 Text(
                                     "Also delete the log file and rotated log files from disk when " +
-                                            "auto-clearing, to free storage space.",
+                                            "auto-clearing, to free storage space. Log views scroll " +
+                                            "through these files, so deleting them discards the " +
+                                            "history they show.",
                                     style = MaterialTheme.typography.caption,
                                     color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
                                 )
@@ -154,6 +156,33 @@ fun GlobalSettingsScreen(onBack: () -> Unit) {
                                 colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colors.primary)
                             )
                         }
+                    }
+
+                    Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Live log entries in memory", fontWeight = FontWeight.Medium)
+                            Text(
+                                "How many entries a log view holds in memory. This is only a display " +
+                                        "window \u2014 older entries stay on disk and remain scrollable, " +
+                                        "so raising it costs memory without adding history.",
+                                style = MaterialTheme.typography.caption,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        StyledTextField(
+                            value = AppSettings.maxLiveLogEntries.toString(),
+                            onValueChange = {
+                                val entries = it.toIntOrNull() ?: return@StyledTextField
+                                AppSettings.updateMaxLiveLogEntries(entries)
+                            },
+                            modifier = Modifier.width(100.dp)
+                        )
                     }
                 }
             }

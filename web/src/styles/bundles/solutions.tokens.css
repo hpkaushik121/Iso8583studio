@@ -1,0 +1,12 @@
+/* Literal colours of the solution-page art. Each belongs to one drawing; they
+   are named here so solutions.css carries no hex of its own. */
+:root {
+    /* Fill of the mono chips that sit on top of the rendered scenes. */
+    --sol-ink-chip: #192336;
+    /* Fill of the L1/L2/L3 badges on the EMV hero assembly. */
+    --sol-ink-badge: #151e32;
+    /* A completed step in the EMV process rail. */
+    --sol-ink-done: #17343e;
+    /* The white-hot centre of the scan lines. */
+    --sol-scan-core: #e2ffff;
+}

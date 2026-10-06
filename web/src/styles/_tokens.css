@@ -13,12 +13,16 @@
     --card: #2f3142;
     --card-hi: #383b50;
     --card-deep: #1e1f2e;
+    /* The page itself. One step below --bg-deep, so sections and cards lift
+       off it without needing a border to be seen. */
+    --canvas: #0f1017;
 
     /* ---- Lines --------------------------------------------------------- */
     /* Translucent so borders read correctly on every surface above. The
        retired blog palette used opaque #3d3d3d, which banded on dark cards. */
     --line: rgba(151, 168, 214, .14);
     --line2: rgba(151, 168, 214, .07);
+    --line-hi: rgba(151, 168, 214, .28);
 
     /* ---- Text ---------------------------------------------------------- */
     --text: #e9ecf5;
@@ -62,6 +66,48 @@
     --amber-wash: rgba(255, 152, 0, .08);
     --amber-line: rgba(255, 152, 0, .24);
     --neutral-line: rgba(151, 168, 214, .22);
+    --teal-wash: rgba(38, 166, 154, .14);
+    --teal-line: rgba(100, 216, 203, .3);
+    --blue-line: rgba(106, 183, 255, .3);
+
+    /* Hero spotlight and CTA halo. */
+    --glow: radial-gradient(60% 60% at 50% 100%, rgba(30, 136, 229, .55), rgba(0, 92, 178, .25) 45%, transparent 75%);
+    --bloom: radial-gradient(circle at 50% 50%, rgba(106, 183, 255, .2), rgba(30, 136, 229, .11) 36%, rgba(0, 92, 178, .045) 60%, transparent 78%);
+
+    /* Artwork colours. Literal because they belong to one drawing each, named
+       so the drawing's stylesheet does not need a hex of its own. */
+    --art-window-dot: #3c4256;
+    --art-check-ink: #184a55;
+    --art-beam-core: #eaf2ff;
+    --art-packet: #d5f3ff;
+    --red-hover: #f05a5f;
+    --white: #fff;
+    --black: #000;
+
+    /* ---- Semantic aliases ---------------------------------------------- */
+    /* What a surface or a piece of text is for, rather than which step of the
+       scale it sits on. Ported page styles resolve against these. */
+    --surface-page: var(--canvas);
+    --surface-section: var(--bg-deep);
+    --surface-card: var(--bg);
+    --surface-card-raised: var(--surface);
+    --surface-input: var(--card-deep);
+    --surface-overlay: rgba(21, 22, 31, .72);
+    --text-body: var(--text);
+    --text-secondary: var(--muted);
+    --text-tertiary: var(--faint);
+    --text-link: var(--blue-hi);
+    --text-link-hover: var(--teal-hi);
+    --accent: var(--blue);
+    --accent-hover: var(--blue-hover);
+    --accent-secondary: var(--teal);
+    --status-up: var(--green-hi);
+    --status-down: var(--red-hi);
+    --status-warn: var(--amber-hi);
+    --border-default: var(--line);
+    --border-subtle: var(--line2);
+    --border-strong: var(--line-hi);
+    --focus-ring: var(--blue-hi);
 
     /* ---- Typography ---------------------------------------------------- */
     --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -99,6 +145,15 @@
     --fs-display: clamp(34px, 4.4vw, 48px);
     --fs-h2: clamp(24px, 3vw, 30px);
     --fs-hero: clamp(32px, 6vw, 52px);
+    --fs-hero-xl: clamp(40px, 6.4vw, 72px);
+
+    --fw-regular: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+
+    --font-display: var(--sans);
+    --font-body: var(--sans);
+    --font-numeric: var(--mono);
 
     --lh-tight: 1.2;
     --lh-snug: 1.4;
@@ -123,12 +178,15 @@
     --sp-14: 56px;
     --sp-16: 64px;
     --sp-20: 80px;
+    /* The vertical rhythm between the sections of a marketing page. */
+    --sp-section: 112px;
 
     /* ---- Radius -------------------------------------------------------- */
     --r-sm: 6px;
     --r-md: 9px;
     --r-lg: 12px;
     --r-xl: 16px;
+    --r-2xl: 24px;
     --r-pill: 99px;
 
     /* ---- Shadow -------------------------------------------------------- */
@@ -136,11 +194,15 @@
     --sh-menu: 0 24px 60px rgba(0, 0, 0, .5);
     --sh-modal: 0 30px 80px rgba(0, 0, 0, .6);
     --sh-card: 0 12px 32px rgba(0, 0, 0, .3);
+    --sh-glass: inset 0 1px 0 rgba(255, 255, 255, .06), 0 1px 0 rgba(0, 0, 0, .4);
+    --sh-halo: 0 0 0 1px rgba(106, 183, 255, .25), 0 0 48px rgba(30, 136, 229, .45);
 
     /* ---- Motion -------------------------------------------------------- */
     --dur-fast: .16s;
     --dur: .18s;
+    --dur-slow: .4s;
     --ease: cubic-bezier(.4, 0, .2, 1);
+    --ease-out: cubic-bezier(.16, 1, .3, 1);
 
     /* ---- Layout -------------------------------------------------------- */
     /* The page's side gutter. .wrap, .doc-body and the Pro aside all resolve
@@ -150,11 +212,17 @@
     --nav-max: 1300px;
     --doc-max: 1000px;
     --prose-max: 800px;
-    --nav-h: 64px;
+    /* 72px on desktop, 64px once the nav collapses to the drawer. SCROLL_OFFSET
+       in app.ts is this plus --sp-5 and has to move with it. */
+    --nav-h: 72px;
 
     /* ---- Z-index ------------------------------------------------------- */
     --z-nav: 100;
     --z-menu: 99;
     --z-modal: 200;
     --z-toast: 300;
+}
+
+@media (max-width: 860px) {
+    :root { --nav-h: 64px; }
 }

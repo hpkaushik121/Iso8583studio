@@ -52,6 +52,8 @@ import `in`.aicortex.iso8583studio.data.Iso8583Data
 import `in`.aicortex.iso8583studio.data.convertToDest
 import `in`.aicortex.iso8583studio.data.ResultDialogInterface
 import `in`.aicortex.iso8583studio.data.model.AppSettings
+import `in`.aicortex.iso8583studio.logging.LogHistory
+import `in`.aicortex.iso8583studio.logging.addBounded
 import `in`.aicortex.iso8583studio.data.model.GatewayConfig
 import `in`.aicortex.iso8583studio.data.model.GatewayType
 import `in`.aicortex.iso8583studio.data.rememberIsoCoroutineScope
@@ -234,9 +236,15 @@ fun HostSimulator(
     gw.beforeReceive {
     }
 
+    // The on-disk history behind this gateway's log view. The log panel starts and refreshes it.
+    val logHistory = remember(gw.configuration.logFileName, gw.configuration.maxLogSizeInMB) {
+        LogHistory.of(gw.configuration.logFileName, gw.configuration.maxLogSizeInMB)
+    }
+
     gw.beforeWriteLog {
         if (AppSettings.enableGlobalLogging) {
-            logText.add(it)
+            // Bounded window only; the full history is on disk and stays scrollable via LogHistory.
+            logText.addBounded(it)
         }
     }
 
@@ -285,22 +293,10 @@ fun HostSimulator(
                 delay(intervalMs)
                 if (AppSettings.autoClearLogsEnabled) {
                     logText.clear()
+                    // Only purge the files when the user asked for that; otherwise the history
+                    // stays and the panel keeps showing it, which is the point of keeping it.
                     if (AppSettings.deleteLogFileOnClear) {
-                        try {
-                            val logFile = java.io.File(gw.configuration.logFileName)
-                            if (logFile.exists()) {
-                                logFile.delete()
-                            }
-                            val parent = logFile.parentFile ?: java.io.File(".")
-                            val baseName = logFile.nameWithoutExtension
-                            val ext = logFile.extension
-                            for (i in 1..10) {
-                                val rotated = java.io.File(parent, "$baseName$i.$ext")
-                                if (rotated.exists()) {
-                                    rotated.delete()
-                                }
-                            }
-                        } catch (_: Exception) { }
+                        logHistory?.clear()
                     }
                 }
             }
@@ -447,6 +443,8 @@ fun HostSimulator(
 
                 HostSimulatorTabs.LOGS -> LogTab(
                     logEntries = logText,
+                    history = logHistory,
+                    liveEntryCap = AppSettings.maxLiveLogEntries,
                     onClearClick = { logText.clear() },
                     connectionCount = connectionCount.get(),
                     bytesIncoming = bytesIncoming.get().toLong(),

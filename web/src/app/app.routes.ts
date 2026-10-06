@@ -1,8 +1,8 @@
 import { Routes } from '@angular/router';
 import { siteRoutes } from './pages/site/site-routes';
 import { blogRoutes } from './content/blog-routes';
-import { BlogIndex } from './pages/blog/blog-index';
 import { PageSeo } from './core/seo';
+import { styleBundles } from './core/route-styles';
 
 const BLOG_INDEX_SEO: PageSeo = {
   title: 'Blog - ISO8583Studio | Payment Testing & Fintech Guides',
@@ -27,7 +27,13 @@ const BLOG_INDEX_SEO: PageSeo = {
 
 export const routes: Routes = [
   ...siteRoutes,
-  { path: 'blogs', component: BlogIndex, data: { seo: BLOG_INDEX_SEO } },
+  {
+    path: 'blogs',
+    // Lazy, like the posts: the index imports every post's metadata.
+    loadComponent: () => import('./pages/blog/blog-index').then((m) => m.BlogIndex),
+    resolve: { styles: styleBundles('blog') },
+    data: { seo: BLOG_INDEX_SEO },
+  },
   ...blogRoutes,
   {
     path: 'design-system',

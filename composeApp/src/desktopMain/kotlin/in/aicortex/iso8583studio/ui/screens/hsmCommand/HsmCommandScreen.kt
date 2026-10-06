@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.data.model.AppSettings
+import `in`.aicortex.iso8583studio.logging.addBounded
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.ConnectionState
 import `in`.aicortex.iso8583studio.domain.service.hsmCommandService.HsmCommandClientService
 import `in`.aicortex.iso8583studio.logging.LogEntry
@@ -55,7 +56,7 @@ fun HsmCommandScreen(
 
     LaunchedEffect(hsmService) {
         if (AppSettings.enableGlobalLogging) {
-            hsmService.beforeWriteLog = { entry -> logText.add(entry) }
+            hsmService.beforeWriteLog = { entry -> logText.addBounded(entry) }
         }
     }
 

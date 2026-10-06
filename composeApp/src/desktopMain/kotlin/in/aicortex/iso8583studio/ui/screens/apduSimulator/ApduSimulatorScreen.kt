@@ -54,6 +54,7 @@ import `in`.aicortex.iso8583studio.data.rememberCardCoroutineScope
 import `in`.aicortex.iso8583studio.domain.service.apduSimulatorService.CardServiceImpl
 import `in`.aicortex.iso8583studio.domain.utils.ApduUtil
 import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.addBounded
 import `in`.aicortex.iso8583studio.ui.navigation.NavigationController
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
 import kotlinx.coroutines.delay
@@ -217,7 +218,7 @@ fun APDUSimulator(
     }
 
     cardService.beforeWriteLog = {
-        logText.add(it)
+        logText.addBounded(it)
     }
 
     // Update metrics periodically following HostSimulator pattern

@@ -53,14 +53,12 @@
       }
     },
     {
-      "comment": "Quarantined legacy: styles lifted from the old docs/ pages and from site.css/solutions.css. They no longer declare tokens, but their remaining literals and font sizes are page-specific artwork that has not been migrated to the scale. New code must not add to these files.",
+      "comment": "Artwork palettes. A page family may name the literal colours of its own drawings here, as custom properties, and nowhere else.",
       "files": [
-        "src/styles/_page-home.css",
-        "src/styles/_legacy.css"
+        "src/styles/bundles/*.tokens.css"
       ],
       "rules": {
-        "color-no-hex": null,
-        "declaration-property-value-disallowed-list": null
+        "color-no-hex": null
       }
     }
   ],

@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
+import { styleBundles } from '../../core/route-styles';
 
 /** One lazy component per page. */
 export const siteRoutes: Routes = [
   {
     path: "",
     loadComponent: () => import('./home').then((c) => c.HomePage),
+    resolve: { styles: styleBundles('home') },
     data: { seo: {
       "title": "ISO8583Studio — Payment Testing & Simulation Platform",
       "description": "ISO8583Studio — the payment engineer's workbench. Watch a live 0200 parse to the bit, then simulate hosts, HSMs and switches. 64 tools & 9 simulators for ISO 8583, EMV, HSM and keys on Windows, macOS & Linux.",
@@ -57,6 +59,7 @@ export const siteRoutes: Routes = [
   {
     path: "privacy-policy",
     loadComponent: () => import('./privacy-policy').then((c) => c.PrivacyPolicyPage),
+    resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Privacy Policy - ISO8583Studio",
       "description": "ISO8583Studio Privacy Policy - How we protect your data. Desktop-first application with local data processing. GDPR, CCPA compliant. No transaction data collection. Transparent data practices for fintech software.",
@@ -70,6 +73,7 @@ export const siteRoutes: Routes = [
   {
     path: "terms-and-conditions",
     loadComponent: () => import('./terms-and-conditions').then((c) => c.TermsAndConditionsPage),
+    resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Terms and Conditions - ISO8583Studio",
       "description": "ISO8583Studio Terms and Conditions - Open source software agreement under the GNU Affero General Public License v3.0. Free to use, modify, and distribute under copyleft terms. No warranties. Professional fintech desktop application.",
@@ -83,6 +87,7 @@ export const siteRoutes: Routes = [
   {
     path: "cloud-simulators",
     loadComponent: () => import('./cloud-simulators').then((c) => c.CloudSimulatorsPage),
+    resolve: { styles: styleBundles('solutions') },
     data: { seo: {
       "title": "Cloud Payment Simulators — Host, HSM, POS, Issuer | ISO8583Studio",
       "description": "Hosted host, HSM, POS, card, acquirer and issuer simulators. Scriptable, CI-ready payment ecosystem testing without hardware.",
@@ -93,6 +98,7 @@ export const siteRoutes: Routes = [
   {
     path: "contact",
     loadComponent: () => import('./contact').then((c) => c.ContactPage),
+    resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Contact Us - ISO8583Studio",
       "description": "Talk to the ISO8583Studio team — certification and middleware engagements, support, bug reports and feature requests.",
@@ -103,6 +109,7 @@ export const siteRoutes: Routes = [
   {
     path: "download",
     loadComponent: () => import('./download').then((c) => c.DownloadPage),
+    resolve: { styles: styleBundles('guide', 'docs') },
     data: { seo: {
       "title": "Download ISO8583Studio — Free Payment Testing Studio",
       "description": "Download ISO8583Studio for Windows, macOS or Linux. Free, open-source payment testing: 9 simulators and 64 tools for ISO 8583, EMV, HSM and key operations.",
@@ -114,6 +121,7 @@ export const siteRoutes: Routes = [
   {
     path: "emv-certification",
     loadComponent: () => import('./emv-certification').then((c) => c.EmvCertificationPage),
+    resolve: { styles: styleBundles('solutions') },
     data: { seo: {
       "title": "EMV Certification Services — L1, L2, L3 | ISO8583Studio",
       "description": "EMV Level 1, 2 and 3 certification and development services: kernel expertise, pre-certification testing and lab submission support.",
@@ -124,6 +132,7 @@ export const siteRoutes: Routes = [
   {
     path: "kernel",
     loadComponent: () => import('./kernel').then((c) => c.KernelPage),
+    resolve: { styles: styleBundles('solutions') },
     data: { seo: {
       "title": "Kernel Development & Hardware Integration | ISO8583Studio",
       "description": "Android kernel customization, device driver development and payment hardware integration for smart POS devices.",
@@ -134,6 +143,7 @@ export const siteRoutes: Routes = [
   {
     path: "middleware",
     loadComponent: () => import('./middleware').then((c) => c.MiddlewarePage),
+    resolve: { styles: styleBundles('solutions') },
     data: { seo: {
       "title": "Payment Middleware & Transaction Orchestration | ISO8583Studio",
       "description": "Payment middleware: intelligent routing, protocol translation between ISO 8583, JSON, XML and REST, with full transaction transparency.",
@@ -144,6 +154,7 @@ export const siteRoutes: Routes = [
   {
     path: "pro",
     loadComponent: () => import('./pro').then((c) => c.ProPage),
+    resolve: { styles: styleBundles('pro') },
     data: { seo: {
       "title": "ISO8583Studio Pro — register for early access",
       "description": "ISO8583Studio Pro — hosted simulator endpoints, scheme certification packs, unlimited scripted test suites, priority support. Register for access.",
@@ -154,6 +165,7 @@ export const siteRoutes: Routes = [
   {
     path: "docs",
     loadComponent: () => import('./docs').then((c) => c.DocsPage),
+    resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Documentation - ISO8583Studio",
       "description": "ISO8583Studio documentation hub — guides for all nine payment simulators, tool references for EMV, cryptography, keys and payment utilities, plus certification and middleware services.",
@@ -166,6 +178,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/apdu",
     loadComponent: () => import('./docs-apdu-simulator').then((c) => c.DocsApduSimulatorPage),
+    resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "APDU Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio APDU Simulator documentation - run an EMV card profile in-process, drive a real card through a PC/SC reader, or emulate a contact card on STM32 firmware for an external POS terminal. Trace every APDU exchange, run test plans and export an L3 report.",
@@ -178,6 +191,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/atm",
     loadComponent: () => import('./docs-atm-simulator').then((c) => c.DocsAtmSimulatorPage),
+    resolve: { styles: styleBundles('guide', 'preview') },
     data: { seo: {
       "title": "ATM Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio ATM Simulator (in development) - drive ATM cash-withdrawal, balance and PIN-change transactions to a host over ISO 8583 with NDC/DDC device flows.",
@@ -189,6 +203,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/card-validation",
     loadComponent: () => import('./docs-card-validation').then((c) => c.DocsCardValidationPage),
+    resolve: { styles: styleBundles('guide', 'docs') },
     data: { seo: {
       "title": "Card Validation Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio Card Validation tools documentation - Generate and validate MasterCard dynamic CVC3 and American Express CSC card security codes.",
@@ -201,6 +216,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/cipher-tools",
     loadComponent: () => import('./docs-cipher-tools').then((c) => c.DocsCipherToolsPage),
+    resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "Cryptographic Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio Cryptographic Tools documentation - AES, DES/3DES, RSA, ECDSA, and Format-Preserving Encryption (FPE) calculators for payment system testing.",
@@ -213,6 +229,7 @@ export const siteRoutes: Routes = [
   {
     path: "docs/contributing",
     loadComponent: () => import('./docs-contributing').then((c) => c.DocsContributingPage),
+    resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "How to Contribute - ISO8583Studio",
       "description": "Contribute to ISO8583Studio — Kotlin Multiplatform development setup, prerequisites, project layout, code style and the pull-request flow.",
@@ -223,6 +240,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/dukpt-tools",
     loadComponent: () => import('./docs-dukpt-tools').then((c) => c.DocsDukptToolsPage),
+    resolve: { styles: styleBundles('guide', 'docs') },
     data: { seo: {
       "title": "DUKPT Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio DUKPT Tools documentation - Derive transaction keys from BDK and KSN for both DUKPT AES (X9.24-3) and DUKPT ISO 9797 (X9.24-1) variants.",
@@ -235,6 +253,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/ecr",
     loadComponent: () => import('./docs-ecr-simulator').then((c) => c.DocsEcrSimulatorPage),
+    resolve: { styles: styleBundles('guide', 'preview') },
     data: { seo: {
       "title": "ECR Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio ECR Simulator (in development) - simulate an electronic cash register integrated with a payment terminal, exchanging sale, void and refund messages.",
@@ -246,6 +265,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/emv-tools",
     loadComponent: () => import('./docs-emv-tools').then((c) => c.DocsEmvToolsPage),
+    resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "EMV Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio EMV Tools documentation - SDA and DDA verification, EMV 4.1 / 4.2 / M-Chip / VSDC cryptogram calculators, issuer script secure messaging, CAP token computation and Visa HCE contactless keys.",
@@ -258,6 +278,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/host",
     loadComponent: () => import('./docs-host-simulator').then((c) => c.DocsHostSimulatorPage),
+    resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "Host Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio Host Simulator documentation - Simulate acquirer and issuer host responses for POS terminals and ATMs. Configure Server/Client/Proxy gateways, transaction rules, ISO 8583 templates, and dynamic placeholders.",
@@ -296,6 +317,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/hsm-command-console",
     loadComponent: () => import('./docs-hsm-command-console').then((c) => c.DocsHsmCommandConsolePage),
+    resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "HSM Command Console Documentation - ISO8583Studio",
       "description": "ISO8583Studio HSM Command Console - a host-command client for Thales payShield, Futurex, SafeNet Luna, Utimaco and nCipher HSMs. Send commands, chain scenarios, and run load tests over TCP/IP with optional TLS.",
@@ -307,6 +329,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/hsm",
     loadComponent: () => import('./docs-hsm-simulator').then((c) => c.DocsHsmSimulatorPage),
+    resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "HSM Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio HSM Simulator documentation - Emulate a payment HSM from a device profile: pick vendor, model and firmware, then drive the Thales payShield command engine. 35+ host commands: key management, PIN operations, MAC generation, RSA, encryption, DUKPT, and LMK storage.",
@@ -345,6 +368,7 @@ export const siteRoutes: Routes = [
   {
     path: "docs/installation",
     loadComponent: () => import('./docs-installation').then((c) => c.DocsInstallationPage),
+    resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Installation - ISO8583Studio",
       "description": "How to install ISO8583Studio on Windows, macOS and Linux — prerequisites (JDK 11+), the release JAR, and building the Kotlin Multiplatform source with Gradle.",
@@ -355,6 +379,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/issuer",
     loadComponent: () => import('./docs-issuer-simulator').then((c) => c.DocsIssuerSimulatorPage),
+    resolve: { styles: styleBundles('guide', 'preview') },
     data: { seo: {
       "title": "Issuer System Documentation - ISO8583Studio",
       "description": "ISO8583Studio Issuer System (in development) - issuer-side authorization host that approves or declines transactions, verifies PINs and returns ISO 8583 0210 responses.",
@@ -366,6 +391,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/key-tools",
     loadComponent: () => import('./docs-key-tools').then((c) => c.DocsKeyToolsPage),
+    resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "Key Management Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio Key Management Tools documentation - DEA / 3DES key utilities, TR-31 and Thales key blocks, vendor-specific key calculators (Thales, Futurex, Atalla, Safenet), keyshare generation, and SSL/X.509 certificate workflows.",
@@ -378,6 +404,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/mac-tools",
     loadComponent: () => import('./docs-mac-tools').then((c) => c.DocsMacToolsPage),
+    resolve: { styles: styleBundles('guide', 'docs') },
     data: { seo: {
       "title": "MAC Tools Documentation - ISO8583Studio",
       "description": "ISO8583Studio MAC Tools documentation - HMAC, ISO/IEC 9797-1, ANSI X9.9 / X9.19 and TDES CBC-MAC calculators for payment integrity testing.",
@@ -390,6 +417,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator",
     loadComponent: () => import('./docs-payment-simulators').then((c) => c.DocsPaymentSimulatorsPage),
+    resolve: { styles: styleBundles('guide', 'docs') },
     data: { seo: {
       "title": "Payment Simulators - ISO8583Studio",
       "description": "All nine ISO8583Studio payment simulators — host, HSM, HSM command console, POS, APDU, switch, issuer, ATM and ECR — with documentation for each.",
@@ -401,6 +429,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/payment-switch",
     loadComponent: () => import('./docs-payment-switch').then((c) => c.DocsPaymentSwitchPage),
+    resolve: { styles: styleBundles('guide', 'preview') },
     data: { seo: {
       "title": "Payment Switch Documentation - ISO8583Studio",
       "description": "ISO8583Studio Payment Switch (in development) - route and translate ISO 8583 traffic between acquirers and issuers with BIN routing and protocol translation.",
@@ -412,6 +441,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/pin-tools",
     loadComponent: () => import('./docs-pin-tools').then((c) => c.DocsPinToolsPage),
+    resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "Payment Utilities Documentation - ISO8583Studio",
       "description": "ISO8583Studio Payment Utilities documentation - PIN block calculators (ISO 9564 formats 0-4, OEM variants), AES PIN block, TPK-to-ZPK PIN block translation and DUKPT PIN encryption.",
@@ -424,6 +454,7 @@ export const siteRoutes: Routes = [
   {
     path: "simulator/pos",
     loadComponent: () => import('./docs-pos-simulator').then((c) => c.DocsPosSimulatorPage),
+    resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "POS Simulator Documentation - ISO8583Studio",
       "description": "ISO8583Studio POS Simulator - boot a real Android terminal in an emulator. Pick a PAX, Ingenico, Sunmi, Verifone, Kozen or Newland model, apply its screen, memory, peripherals and spoofed build identity, then install and run your payment app against it.",
@@ -435,6 +466,7 @@ export const siteRoutes: Routes = [
   {
     path: "tools/utility-tools",
     loadComponent: () => import('./docs-utility-tools').then((c) => c.DocsUtilityToolsPage),
+    resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "Data Converters Documentation - ISO8583Studio",
       "description": "ISO8583Studio Data Converters documentation - Base64 and Base94 encoders, BCD converter, character encoding, Luhn check digits and the Track 2 codec for EMV tag 57.",
@@ -447,6 +479,7 @@ export const siteRoutes: Routes = [
   {
     path: "docs/versions",
     loadComponent: () => import('./docs-versions').then((c) => c.DocsVersionsPage),
+    resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Versions - ISO8583Studio",
       "description": "ISO8583Studio release versions — current release, download links and the release channel on GitHub.",
