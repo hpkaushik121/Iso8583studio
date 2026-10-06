@@ -54,6 +54,9 @@ export const routes: Routes = [
     path: '404',
     loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
     data: {
+      // The wildcard route does not change the URL, so pageInfo() would file
+      // /docs/<typo> as a successful docs_guide view. Declared here instead.
+      pageGroup: 'not_found',
       seo: {
         title: 'Page not found - ISO8583Studio',
         description: 'That page does not exist.',
@@ -66,6 +69,9 @@ export const routes: Routes = [
     path: '**',
     loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
     data: {
+      // The wildcard route does not change the URL, so pageInfo() would file
+      // /docs/<typo> as a successful docs_guide view. Declared here instead.
+      pageGroup: 'not_found',
       seo: {
         title: 'Page not found - ISO8583Studio',
         description: 'That page does not exist.',
