@@ -1,22 +1,18 @@
 /**
- * Emits the Zoho CRM Web-to-Lead configuration the browser bundle is built
- * against. Same reasoning as build-payments-config.mjs: the bundle is static
- * files on a CDN, so the values are baked in at build time from the
- * environment, falling back to the repo-root .env for local builds.
+ * Emits the lead-delivery configuration the browser bundle is built against.
  *
- * Nothing here is a secret. Zoho's Web-to-Lead tokens (`xnQsjsdp`, `xmIwtLD`)
- * are public by construction — they ship in the HTML of any Zoho-generated
- * webform. What bounds the endpoint is Zoho's own spam handling and the
- * honeypot, not secrecy. A Zoho *API* token or client secret must never come
- * through here; the check below refuses the obvious shapes loudly.
+ * Same reasoning as build-payments-config.mjs: the bundle is static files on a
+ * CDN, so the values are baked in at build time from the environment, falling
+ * back to the repo-root .env for local builds.
  *
- * With LEADS_ZOHO_ID unset the build still succeeds and the form reports that
- * it is not connected, rather than shipping a submit button that silently
- * drops what someone typed.
+ * The Web3Forms access key is public by construction — it ships in the markup
+ * of any client-side form that uses it, and Web3Forms only accepts submissions
+ * from a browser, refusing server-side callers outright. What bounds it is
+ * that it can do nothing except post a message to the address that owns it.
  *
- * Where the values come from: Zoho CRM → Setup → Developer Hub → Webforms →
- * the Leads form → Embed/Source. Copy the three hidden input values and the
- * form's action URL out of the generated HTML.
+ * With LEADS_WEB3FORMS_KEY unset the build still succeeds and the form reports
+ * that it is not connected, rather than shipping a submit button that drops
+ * what someone typed.
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -25,67 +21,45 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = join(ROOT, 'src/app/content');
 
-if (!process.env.LEADS_ZOHO_ID && typeof process.loadEnvFile === 'function') {
+if (!process.env.LEADS_WEB3FORMS_KEY && typeof process.loadEnvFile === 'function') {
   try { process.loadEnvFile(join(ROOT, '..', '.env')); } catch { /* no .env: CI */ }
 }
 
-const id = (process.env.LEADS_ZOHO_ID ?? '').trim();
-const token = (process.env.LEADS_ZOHO_TOKEN ?? '').trim();
-/* Zoho is region-sharded and the data centre is fixed per account: .com, .in,
-   .eu, .com.au, .jp. Posting to the wrong one answers 200 and drops the lead,
-   so this is read from the generated form rather than guessed. */
-const action = (process.env.LEADS_ZOHO_ACTION ?? 'https://crm.zoho.com/crm/WebToLeadForm').trim();
-/* base64('Leads'). Zoho names the target module this way in its own forms. */
-const actionType = (process.env.LEADS_ZOHO_ACTION_TYPE ?? 'TGVhZHM=').trim();
-/* Optional, and empty by default on purpose: Lead Source is a picklist, and a
-   value outside it is not stored. This account's options (read from the CRM on
-   2026-10-06) are Advertisement, Cold Call, Employee Referral, External
-   Referral, Online Store, Partner, Public Relations, Sales Email Alias,
-   Seminar Partner, Internal Seminar, Trade Show, Web Download, Web Research,
-   Chat, X (Twitter), Facebook — none of which means "came from the website".
-   Either add one in Zoho and name it here, or leave this unset and let the
-   webform's own Lead Source setting apply. */
-const source = (process.env.LEADS_ZOHO_SOURCE ?? '').trim();
+const key = (process.env.LEADS_WEB3FORMS_KEY ?? '').trim();
+const endpoint = (process.env.LEADS_WEB3FORMS_ENDPOINT ?? 'https://api.web3forms.com/submit').trim();
+/** Where Web3Forms delivers. Shown in the UI as the fallback address, nothing more. */
+const inbox = (process.env.LEADS_INBOX ?? 'admin@aicortex.in').trim();
 
-if (/^1000\.[0-9a-f]{32}/i.test(token) || token.startsWith('1000.')) {
-  throw new Error(
-    'LEADS_ZOHO_TOKEN looks like a Zoho OAuth token, not a webform token. An OAuth '
-    + 'token must never reach a browser bundle. Use the xmIwtLD value from the '
-    + 'generated Web-to-Lead form.');
+/* An access key is a UUID. Anything else is a paste accident, and the failure
+   it causes is silent — Web3Forms answers 200 for an unknown key. */
+if (key && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+  throw new Error(`LEADS_WEB3FORMS_KEY should be a UUID (got "${key.slice(0, 12)}…").`);
 }
-if (action && !/^https:\/\/crm\.zoho\.[a-z.]+\/crm\/WebToLeadForm$/.test(action)) {
-  throw new Error(
-    `LEADS_ZOHO_ACTION should be a Zoho WebToLeadForm URL for your data centre `
-    + `(got "${action}"). Copy it from the generated form's <form action="…">.`);
+if (!/^https:\/\//.test(endpoint)) {
+  throw new Error(`LEADS_WEB3FORMS_ENDPOINT must be https (got "${endpoint}").`);
 }
 
-const configured = !!(id && token);
+const configured = !!key;
 
 mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(join(OUT_DIR, 'leads-config.ts'),
   '// GENERATED by tools/build-leads-config.mjs — do not edit.\n'
   + 'export interface LeadsConfig {\n'
-  + '  /** Zoho WebToLeadForm endpoint for this account\'s data centre. */\n'
-  + '  readonly action: string;\n'
-  + '  /** Zoho\'s xnQsjsdp — the form identifier. Public by construction. */\n'
-  + '  readonly id: string;\n'
-  + '  /** Zoho\'s xmIwtLD — the form token. Public by construction. */\n'
-  + '  readonly token: string;\n'
-  + '  /** base64 of the target module, normally Leads. */\n'
-  + '  readonly actionType: string;\n'
-  + '  /** A Lead Source picklist option, or empty to send none. */\n'
-  + '  readonly source: string;\n'
-  + '  /** False when the form is not wired up; the UI says so instead of pretending. */\n'
+  + '  /** Web3Forms submit endpoint. */\n'
+  + '  readonly endpoint: string;\n'
+  + '  /** The access key. Public by construction; browser-only by policy. */\n'
+  + '  readonly key: string;\n'
+  + '  /** The address Web3Forms delivers to, shown as the manual fallback. */\n'
+  + '  readonly inbox: string;\n'
+  + '  /** False when lead delivery is not wired up; the UI says so instead of pretending. */\n'
   + '  readonly configured: boolean;\n'
   + '}\n\n'
   + 'export const LEADS: LeadsConfig = {\n'
-  + `  action: ${JSON.stringify(action)},\n`
-  + `  id: ${JSON.stringify(id)},\n`
-  + `  token: ${JSON.stringify(token)},\n`
-  + `  actionType: ${JSON.stringify(actionType)},\n`
-  + `  source: ${JSON.stringify(source)},\n`
+  + `  endpoint: ${JSON.stringify(endpoint)},\n`
+  + `  key: ${JSON.stringify(key)},\n`
+  + `  inbox: ${JSON.stringify(inbox)},\n`
   + `  configured: ${JSON.stringify(configured)},\n`
   + '};\n');
 
-console.log(`leads: ${configured ? 'Zoho webform configured' : 'NOT configured — lead form disabled'}`
-  + `, ${action}`);
+console.log(`leads: ${configured ? 'Web3Forms configured' : 'NOT configured — form disabled'}`
+  + `, ${endpoint} -> ${inbox}`);
