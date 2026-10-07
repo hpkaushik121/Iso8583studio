@@ -5,6 +5,8 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { PAYMENTS } from '../../content/payments-config';
 import { AnalyticsService } from '../../core/analytics';
+import { PaymentNotice } from '../../core/payment-notice';
+import { randomId } from '../../core/payments';
 import { PaymentsService, formatMinor, messageFor } from '../../core/payments';
 import { UiIcon } from '../../ui';
 import { CheckoutOutcome } from './checkout-outcome';
@@ -206,6 +208,7 @@ export class ProReserve implements OnDestroy {
   protected readonly outcome = inject(CheckoutOutcome);
   private readonly payments = inject(PaymentsService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly notice = inject(PaymentNotice);
 
   /** This card's own step, before the page leaves for checkout. */
   private readonly local = signal<'form' | 'processing'>('form');
@@ -311,7 +314,7 @@ export class ProReserve implements OnDestroy {
       // Minted before the call so it can be round-tripped on the return URL
       // as `cid`, not just stashed in localStorage. It stitches begin_checkout
       // to the purchase and is the transaction_id both GA4 and Ads key on.
-      const checkoutId = crypto.randomUUID();
+      const checkoutId = randomId();
       this.payments.rememberCheckoutId(checkoutId);
       // Held for the Enhanced Conversions match only; gtag hashes it. Never a
       // GA4 parameter, and never in the URL.
@@ -353,6 +356,7 @@ export class ProReserve implements OnDestroy {
       // Enhanced Conversions data for the click-time Ads fire below, so an
       // abandoned-but-attributable checkout still carries a match key.
       this.analytics.setAdsUserData(email);
+      this.notice.started({ email, amountMinor: amountPaise, currency, checkoutId });
       // The redirect waits for the beacon (max 400ms).
       this.analytics.reportBeginCheckout(amountPaise, checkoutId, () => {
         location.assign(checkoutUrl);
