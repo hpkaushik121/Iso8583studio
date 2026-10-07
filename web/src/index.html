@@ -13,6 +13,57 @@
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
   <!--
+    New Relic browser agent.
+
+    The configuration is exactly the snippet New Relic generates for this app;
+    only the agent itself is loaded from their CDN instead of being pasted
+    inline. The inline copy is ~80KB of script in the document, and this site
+    prerenders 105 of them, so none of it would ever be cached. From the CDN it
+    is 28KB gzipped once, with a one-year cache, shared by every page.
+
+    nr-loader-spa is the right build: the site is an Angular SPA, so route
+    changes are soft navigations rather than document loads.
+
+    Before the AdSense tag and immediately after the consent defaults, so the
+    agent is watching early enough to catch errors from the rest of the head.
+
+    The licence key here is a browser key (NRJS- prefix) and is public by
+    construction, like the AdSense client id below.
+
+    Worth knowing: browser_consent_mode is off and cookies are enabled in this
+    config, so the agent collects regardless of the cookie banner — unlike the
+    Google tags above, which the banner gates. Session replay masks all text
+    and all inputs, so the enquiry form's contents are not captured, but the
+    session is still recorded.
+  -->
+  <script>
+    window.NREUM || (NREUM = {});
+    NREUM.init = {
+      browser_consent_mode: { enabled: false },
+      privacy: { cookies_enabled: true },
+      session_replay: {
+        enabled: true, block_selector: '', mask_text_selector: '*',
+        sampling_rate: 10.0, error_sampling_rate: 100.0, mask_all_inputs: true,
+        collect_fonts: true, inline_images: false, inline_stylesheet: true,
+        fix_stylesheets: true, preload: false, mask_input_options: {},
+      },
+      distributed_tracing: { enabled: true },
+      performance: { capture_measures: true },
+      // Without this the agent would instrument its own beacon and loop.
+      ajax: { deny_list: ['bam.eu01.nr-data.net'], capture_payloads: 'none' },
+    };
+    NREUM.loader_config = {
+      accountID: '8593848', trustKey: '8593848', agentID: '538911667',
+      licenseKey: 'NRJS-b77fb49cda40242b5bd', applicationID: '538911667',
+    };
+    NREUM.info = {
+      beacon: 'bam.eu01.nr-data.net', errorBeacon: 'bam.eu01.nr-data.net',
+      licenseKey: 'NRJS-b77fb49cda40242b5bd', applicationID: '538911667', sa: 1,
+    };
+  </script>
+  <script async src="https://js-agent.newrelic.com/nr-loader-spa-1.323.0.min.js"></script>
+
+  <!--
     Google AdSense. Here rather than injected from a component because every
     route is prerendered from this one shell, so this is the only place that
     reaches all of them — including the legacy .html aliases postbuild writes.

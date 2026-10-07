@@ -1,12 +1,17 @@
 import {
-  ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, signal, viewChild,
+  ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, inject, input, signal,
+  viewChild,
 } from '@angular/core';
 import { AnalyticsService } from '../../../core/analytics';
+import { Observability } from '../../../core/observability';
 import { LEADS } from '../../../content/leads-config';
 import { UiIcon } from '../../../ui';
 
 /** Good enough to catch a typo; the real check is whether the reply arrives. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** How long to wait for the iframe before calling the submission hung. */
+const RESPONSE_TIMEOUT_MS = 15000;
 
 /**
  * The enquiry form, posted straight into Zoho CRM as a lead.
@@ -151,7 +156,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     </div>
   `,
 })
-export class LeadForm {
+export class LeadForm implements OnDestroy {
   /** Which page this sits on; reported as cta_location and folded into Description. */
   readonly surface = input.required<string>();
   readonly heading = input('Talk to us');
@@ -160,6 +165,7 @@ export class LeadForm {
   readonly anchor = input('enquiry');
 
   private readonly analytics = inject(AnalyticsService);
+  private readonly obs = inject(Observability);
   private readonly descEl = viewChild<ElementRef<HTMLInputElement>>('desc');
   private readonly trapEl = viewChild<ElementRef<HTMLInputElement>>('trap');
   private readonly nameEl = viewChild<ElementRef<HTMLInputElement>>('name');
@@ -182,6 +188,8 @@ export class LeadForm {
 
   /** Set when we submit, so the iframe's own blank first load is not read as a reply. */
   private awaiting = false;
+  private sentAt = 0;
+  private timeout: ReturnType<typeof setTimeout> | undefined;
 
   protected started(): void {
     this.analytics.reportLeadStart(this.surface());
@@ -190,7 +198,11 @@ export class LeadForm {
   protected onSubmit(event: Event): void {
     // A filled trap is a bot. Drop it silently — no error, no analytics, and
     // above all no POST, so Zoho never sees the record.
-    if (this.trapEl()?.nativeElement.value) { event.preventDefault(); return; }
+    if (this.trapEl()?.nativeElement.value) {
+      event.preventDefault();
+      this.obs.action('lead_submit_blocked', { surface: this.surface(), reason: 'honeypot' });
+      return;
+    }
 
     const missing: string[] = [];
     const name = this.nameEl()?.nativeElement.value.trim() ?? '';
@@ -214,6 +226,9 @@ export class LeadForm {
         : missing[0] === 'company' ? 'Add your company — it is what the CRM files the enquiry under.'
         : 'Add your name so we know who we are talking to.');
       this.analytics.reportLeadError(this.surface(), missing);
+      this.obs.action('lead_submit_blocked', {
+        surface: this.surface(), reason: 'validation', fields: missing.join('|'),
+      });
       return;
     }
 
@@ -225,14 +240,41 @@ export class LeadForm {
     this.invalid.set([]);
     this.error.set(null);
     this.awaiting = true;
+    this.sentAt = Date.now();
     this.state.set('sending');
     // Not prevented: the browser now performs the POST into the hidden iframe.
     this.analytics.reportLead(this.surface());
+    this.obs.action('lead_submit_sent', { surface: this.surface(), endpoint: this.action });
+
+    // A hung POST would otherwise leave the button on "Sending…" for ever and
+    // report nothing at all. This is the only failure the page can actually
+    // observe — a response that comes back is opaque, so a *delivered* lead
+    // still has to be reconciled against the count in the CRM.
+    clearTimeout(this.timeout);
+    this.timeout = setTimeout(() => {
+      if (!this.awaiting) return;
+      this.awaiting = false;
+      this.obs.error('lead submission got no response', {
+        surface: this.surface(), endpoint: this.action, waitedMs: RESPONSE_TIMEOUT_MS,
+      });
+      this.state.set('form');
+      this.error.set('That did not go through. Try again, or email admin@iso8583.studio.');
+    }, RESPONSE_TIMEOUT_MS);
   }
 
   protected onSinkLoad(): void {
     if (!this.awaiting) return;   // the iframe's own blank first load
     this.awaiting = false;
+    clearTimeout(this.timeout);
+    this.obs.action('lead_submit_delivered', {
+      surface: this.surface(),
+      endpoint: this.action,
+      durationMs: this.sentAt ? Date.now() - this.sentAt : undefined,
+    });
     this.state.set('sent');
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.timeout);
   }
 }
