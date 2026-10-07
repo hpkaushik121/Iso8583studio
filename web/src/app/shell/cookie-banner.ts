@@ -3,11 +3,10 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AnalyticsService } from '../core/analytics';
-
-/** Same storage key as the previous implementation, so visitors who already
- *  chose are not asked again. */
-const KEY = 'iso8583-cookie-consent';
+// Same storage key as the previous implementation, so visitors who already
+// chose are not asked again. Shared with analytics, which documents who else
+// reads it.
+import { AnalyticsService, CONSENT_KEY as KEY } from '../core/analytics';
 
 @Component({
   selector: 'app-cookie-banner',

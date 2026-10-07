@@ -5,6 +5,7 @@ import {
   ArtName, SolArt, SolBenefit, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolMark, SolStrip, solCycle,
 } from '../solutions';
 import { SitePage } from './site-page';
+import { LeadForm } from '../shared/lead-form';
 
 interface Service { n: string; kicker: string; img: ArtName; title: string; desc: string; items: string[]; }
 interface Area { title: string; blurb: string; tag: string; image: ArtName; description: string; points: string[]; }
@@ -51,6 +52,7 @@ const MARKS: SolMark[] = [
 @Component({
   selector: 'page-kernel',
   imports: [
+    LeadForm,
     RouterLink, UiAccordion, UiIcon, UiReveal, UiSectionHeading,
     SolArt, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolStrip,
   ],
@@ -167,6 +169,12 @@ const MARKS: SolMark[] = [
       <ui-section-heading heading="Platform engineering questions" sub="Boards, Android builds, drivers and what we hand over." />
       <div class="sol-faq"><ui-accordion [items]="faq" [stagger]="110" [base]="500" /></div>
     </section>
+
+    <div class="sol-sec">
+      <app-lead-form surface="kernel"
+                     heading="Talk to us about kernel work"
+                     lede="Tell us the chipset, the scheme targets and where the current kernel stands." />
+    </div>
 
     <sol-close sect="Ready to develop?" kicker="Your next device platform" cta="Discuss your board"
                text="Bring your board, your platform challenge or your next payment device. Let's work through the engineering together.">

@@ -4,6 +4,7 @@ import { EXTERNAL } from '../../core/site-nav';
 import { AccordionItem, UiAccordion, UiIcon, UiReveal, UiSectionHeading } from '../../ui';
 import { SolArt, SolBento, SolClose, SolHero, SolLive, SolMark, SolStrip, solCycle } from '../solutions';
 import { SitePage } from './site-page';
+import { LeadForm } from '../shared/lead-form';
 
 interface Level { tag: string; title: string; desc: string; tokens: string[]; }
 interface Step { label: string; kicker: string; title: string; text: string; tokens: string[]; }
@@ -56,6 +57,7 @@ const SPARKS: [x: string, rise: string][] = [
 @Component({
   selector: 'page-emv-certification',
   imports: [
+    LeadForm,
     RouterLink, UiAccordion, UiIcon, UiReveal, UiSectionHeading,
     SolArt, SolBento, SolClose, SolHero, SolLive, SolStrip,
   ],
@@ -258,6 +260,12 @@ const SPARKS: [x: string, rise: string][] = [
       <p>Testing with a team, or certifying with a scheme? Pro raises the CPS ceiling, unlocks the full algorithm set and deep simulator tweaks, plus hosted endpoints and priority support.</p>
       <a routerLink="/pro">Register for Pro<ui-icon name="arrow-right" [size]="14" /></a>
     </aside>
+
+    <div class="sol-sec">
+      <app-lead-form surface="emv-certification"
+                     heading="Scope your certification"
+                     lede="Tell us about the terminal, kernel or host project and we will map the route to sign-off." />
+    </div>
 
     <sol-close sect="Ready to certify?" kicker="Your next milestone" cta="Scope your certification"
                text="Tell us about your terminal, kernel or host project. We map the fastest route to certification and where Studio tooling removes lab cycles.">

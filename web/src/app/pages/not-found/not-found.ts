@@ -3,6 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import { inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { UiButton, UiIcon } from '../../ui';
+import { AnalyticsService } from '../../core/analytics';
 
 interface Destination {
   label: string;
@@ -178,6 +179,7 @@ interface Destination {
 })
 export class NotFound {
   private readonly doc = inject(DOCUMENT);
+  private readonly analytics = inject(AnalyticsService);
 
   /** Filled in after hydration so the prerendered 404.html reports the address
    *  the visitor actually asked for, not the /404 it was rendered at. */
@@ -194,6 +196,10 @@ export class NotFound {
     afterNextRender(() => {
       const loc = this.doc.defaultView?.location;
       if (loc) this.path.set(loc.pathname + loc.search);
+      // afterNextRender, not the constructor: the prerendered 404.html has no
+      // URL to read on the server, which is why `path` is filled in here too.
+      this.analytics.reportNotFound(
+        loc ? loc.pathname + loc.search : '/404', this.doc.referrer);
     });
   }
 }

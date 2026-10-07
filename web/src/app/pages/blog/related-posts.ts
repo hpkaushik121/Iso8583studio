@@ -24,7 +24,7 @@ const ICON = new Map(BLOG_TOPICS.map((t) => [t.id, t.icon]));
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (related().length) {
-      <section class="bp-related" uiReveal [uiRevealThreshold]="0.1">
+      <section class="bp-related" data-sect="post_related" uiReveal [uiRevealThreshold]="0.1">
         <div class="bp-related-head ds-hold">
           <h2><ui-words text="Related Articles" /></h2>
           <span class="bp-related-rule" aria-hidden="true"></span>

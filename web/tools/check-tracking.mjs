@@ -46,9 +46,15 @@ function expect(route, doc, selector, need = 1, exact = false) {
   }
 }
 
-/** The names the section funnel would report, in document order. */
-function sectionNames(doc) {
-  const page = selectOne('.static-page', doc);
+/**
+ * The names the section funnel would report, in document order.
+ *
+ * The root is a parameter because the blog is not a `.static-page`: its hosts
+ * are `bp-page` and `bl-page`, so a hardcoded root returned [] there and the
+ * funnel went unguarded.
+ */
+function sectionNames(doc, rootSelector = '.static-page') {
+  const page = selectOne(rootSelector, doc);
   if (!page) return [];
   return selectAll('[data-sect], section, .doc-section', page).map((el, i) =>
     el.attribs['data-sect'] || el.attribs.id ||
@@ -56,8 +62,8 @@ function sectionNames(doc) {
     (selectOne('h2', el) && text(selectOne('h2', el))) || `section_${i + 1}`);
 }
 
-function expectSections(route, doc, names) {
-  const have = new Set(sectionNames(doc));
+function expectSections(route, doc, names, rootSelector) {
+  const have = new Set(sectionNames(doc, rootSelector));
   const missing = names.filter((n) => !have.has(n));
   if (missing.length) fail(`${route}: section_view would no longer report: ${missing.join(', ')}`);
 }
@@ -105,10 +111,10 @@ function shell(route, doc) {
 // ---- Per-page expectations --------------------------------------------------
 
 const SOLUTION_SECTIONS = {
-  '/emv-certification': ['Certification Services', 'Complete EMV Certification Suite', 'Our Proven Methodology', 'Deep Technical Expertise', 'Ready to certify?'],
-  '/cloud-simulators': ['Hosted Test Infrastructure', 'Complete Simulator Suite', 'Testing-First Architecture', 'Why Cloud Simulator?', 'Ready to simulate?'],
-  '/middleware': ['Transaction Orchestration', 'Middleware Services Suite', 'Intelligent Transaction Flow', 'Middleware Advantages', 'Ready to orchestrate?'],
-  '/kernel': ['Engineering Services', 'Kernel Development Services', 'Technical Expertise Areas', 'Kernel Development Benefits', 'Ready to develop?'],
+  '/emv-certification': ['Certification Services', 'Complete EMV Certification Suite', 'Our Proven Methodology', 'Deep Technical Expertise', 'enquiry', 'Ready to certify?'],
+  '/cloud-simulators': ['Hosted Test Infrastructure', 'Complete Simulator Suite', 'Testing-First Architecture', 'Why Cloud Simulator?', 'enquiry', 'Ready to simulate?'],
+  '/middleware': ['Transaction Orchestration', 'Middleware Services Suite', 'Intelligent Transaction Flow', 'Middleware Advantages', 'enquiry', 'Ready to orchestrate?'],
+  '/kernel': ['Engineering Services', 'Kernel Development Services', 'Technical Expertise Areas', 'Kernel Development Benefits', 'enquiry', 'Ready to develop?'],
 };
 
 const GUIDE_SECTIONS = {
@@ -135,10 +141,29 @@ const GUIDE_SECTIONS = {
   '/tools/mac-tools': ['overview'],
   '/tools/card-validation': ['overview', 'concepts', 'cvc-mc', 'amex', 'service-codes', 'tips'],
   '/download': ['installers', 'whats-inside'],
-  '/contact': ['channels'],
+  '/contact': ['enquiry', 'channels'],
   '/privacy-policy': ['overview', 'data-collection', 'data-usage', 'data-sharing', 'security', 'retention', 'rights', 'cookies', 'international', 'minors', 'updates', 'compliance'],
   '/terms-and-conditions': [],
-  '/pro': ['what', 'register', 'faq'],
+  '/pro': ['what', 'register', 'faq', 'enquiry'],
+};
+
+/*
+ * On the lead form, only the section name is asserted, not the fields. The
+ * form renders an "email us instead" box when LEADS_ZOHO_ID is unset, so in a
+ * build without that variable there is no <form> to find — and that state is
+ * deliberate, not a regression. data-sect sits on the component host, so
+ * 'enquiry' is reported either way.
+ */
+
+/**
+ * The blog funnel. Only the sections that always render: post_series needs the
+ * post to have a neighbour in its topic series, which is per-post and not a
+ * stable assertion. Roots are the blog host classes, not `.static-page`.
+ */
+const BLOG_SECTIONS = {
+  '/blogs': { root: '.bl-page', names: ['blog_hero', 'blog_grid', 'final_cta'] },
+  '/blogs/what-is-iso8583-studio':
+    { root: '.bp-page', names: ['post_hero', 'post_body', 'post_related', 'final_cta'] },
 };
 
 /** Pages that close on a call to action, reported as final_cta_click. */
@@ -184,6 +209,11 @@ for (const route of pages) {
   if (GUIDE_SECTIONS[route]) {
     expectSections(route, doc, GUIDE_SECTIONS[route]);
     expect(route, doc, '.breadcrumb a, .crumb a');
+  }
+
+  if (BLOG_SECTIONS[route]) {
+    const { root, names } = BLOG_SECTIONS[route];
+    expectSections(route, doc, names, root);
   }
 
   if (CLOSING_CTA.includes(route)) expect(route, doc, 'section.cta a');

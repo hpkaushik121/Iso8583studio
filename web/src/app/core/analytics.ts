@@ -31,8 +31,15 @@ const SOLUTION_PAGES = ['emv-certification', 'cloud-simulators', 'kernel', 'midd
 const DOWNLOAD_FILE = /\.(dmg|msi|exe|deb|rpm|jar|zip)(\?|#|$)/i;
 const RELEASE_LINK = /releases\/(latest|download)/i;
 const SCROLL_MARKS = [25, 50, 75, 90];
-/** Same key the cookie banner writes; analytics replays it into Consent Mode. */
-const CONSENT_KEY = 'iso8583-cookie-consent';
+/**
+ * Where the visitor's cookie choice is kept.
+ *
+ * The cookie banner writes it and the inline script in index.html replays it
+ * into Consent Mode before the AdSense tag loads. Exported so the banner reads
+ * the same constant rather than its own copy of the string; index.html cannot
+ * import it, so that one copy is duplicated there on purpose.
+ */
+export const CONSENT_KEY = 'iso8583-cookie-consent';
 const PAID_SESSION_KEY = 'iso8583_paid_session';
 
 /** Buckets keep amount_bucket's cardinality at five. */
@@ -83,15 +90,9 @@ export class AnalyticsService {
       return;
     }
 
-    // A paid landing (?src=ads, or any Google click id) marks the whole
-    // session: the Pro modal and AdSense stay out of the way of traffic that
-    // was promised a download. sessionStorage, so organic visits are untouched.
-    try {
-      const q = new URLSearchParams(this.win.location.search);
-      if (q.get('src') === 'ads' || q.has('gclid') || q.has('gbraid') || q.has('wbraid')) {
-        this.win.sessionStorage.setItem(PAID_SESSION_KEY, '1');
-      }
-    } catch { /* private mode */ }
+    // The paid-session flag (?src=ads, or any Google click id) is written by
+    // the inline script in index.html, which runs before AdSense and therefore
+    // before this. paidSession() below only reads it.
 
     this.enabled = true;
     this.adsEnabled = !!ADS_ID && !ADS_ID.includes('XXXX');
@@ -260,7 +261,9 @@ export class AnalyticsService {
 
   private bootstrap(): void {
     this.win.dataLayer ||= [];
-    this.win.gtag = (...args: unknown[]) => this.gtag(...args);
+    // index.html installs the standard stub. Only stand in for it if that
+    // script did not run (a shell this file is used from without it).
+    this.win.gtag ||= (...args: unknown[]) => this.gtag(...args);
 
     const s = this.doc.createElement('script');
     s.async = true;
@@ -279,17 +282,11 @@ export class AnalyticsService {
 
     this.page = this.pageInfo(this.router.url);
 
-    // Consent Mode v2. Denied until the visitor chooses; a stored choice is
-    // replayed immediately, so returning visitors never lose a session.
-    this.gtag('consent', 'default', {
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
-      analytics_storage: 'denied',
-      wait_for_update: 500,
-    });
-    const consent = this.lsGet(CONSENT_KEY);
-    if (consent) this.applyConsent(consent === 'all');
+    // Consent Mode v2 defaults, and the replay of a stored choice, are set by
+    // the inline script in index.html — they have to be in place before the
+    // AdSense tag loads, which is long before this bundle runs. The region
+    // list and CONSENT_KEY are mirrored there; keep the two in step.
+    // applyConsent() below is what the banner calls at runtime.
 
     this.gtag('js', new Date());
     this.gtag('set', 'user_properties', this.compact({
@@ -310,7 +307,7 @@ export class AnalyticsService {
     });
 
     if (this.adsEnabled) {
-      this.gtag('config', ADS_ID, { allow_enhanced_conversions: false });
+      this.gtag('config', ADS_ID, { allow_enhanced_conversions: true });
     }
   }
 
@@ -329,6 +326,37 @@ export class AnalyticsService {
     this.gtag('event', name, p);
   }
 
+  /** The deepest activated route's data, read synchronously at NavigationEnd. */
+  private routeData(): Record<string, unknown> {
+    let r = this.router.routerState.snapshot.root;
+    while (r.firstChild) r = r.firstChild;
+    return r.data as Record<string, unknown>;
+  }
+
+  /**
+   * page_location carrying only the parameters that mean something here.
+   *
+   * Everything else is dropped, so no query parameter can become a GA4
+   * dimension by accident — the payment ref did exactly that, putting customer
+   * email addresses into page_location. It also keeps /pro's cardinality
+   * sane: a unique location per checkout made its landing-page report useless.
+   *
+   * The click ids stay because GA4 reads them from page_location for its own
+   * attribution (gtag's linker reads the real URL, not this).
+   */
+  private cleanLocation(): string {
+    const KEEP = new Set(['gclid', 'gbraid', 'wbraid', 'src']);
+    try {
+      const url = new URL(this.win.location.href);
+      for (const key of [...url.searchParams.keys()]) {
+        if (!KEEP.has(key) && !key.startsWith('utm_')) url.searchParams.delete(key);
+      }
+      return url.href;
+    } catch {
+      return this.win.location.href;
+    }
+  }
+
   private trackOnce(key: string, name: string, params: Record<string, unknown> = {}): void {
     if (this.fired.has(key)) return;
     this.fired.add(key);
@@ -339,11 +367,16 @@ export class AnalyticsService {
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
-        this.page = this.pageInfo(e.urlAfterRedirects);
+        // A route may declare its own group when the URL cannot imply one —
+        // the 404 wildcard keeps the address it was asked for.
+        const declared = this.routeData()['pageGroup'];
+        this.page = typeof declared === 'string'
+          ? { group: declared, id: '404' }
+          : this.pageInfo(e.urlAfterRedirects);
         // A new view starts a new once-per-page budget.
         this.fired.clear();
         this.gtag('event', 'page_view', {
-          page_location: this.win.location.href,
+          page_location: this.cleanLocation(),
           page_title: this.doc.title,
           page_group: this.page.group,
           content_group: this.page.group,
@@ -651,12 +684,19 @@ export class AnalyticsService {
   }
 
   /**
-   * begin_checkout + generate_lead, then `done` — which performs the redirect.
-   * Fired with the amount the service froze, the only authoritative figure.
+   * begin_checkout and the click-time Ads conversion, then `done` — which
+   * performs the redirect. Fired with the amount the service froze, the only
+   * authoritative figure.
    */
   reportBeginCheckout(amountMinor: number, checkoutId: string, done: () => void, currency = 'INR'): void {
     const value = minorToMajor(amountMinor, currency);
-    this.track('generate_lead', { value, currency });
+
+    // No generate_lead here. A click on "pay" is purchase intent, which
+    // begin_checkout below already states; calling it a lead mixed the Pro
+    // funnel into the same event as a real enquiry from the contact form, and
+    // Google Ads imports by event name, so the two campaigns could not
+    // optimise against separate signals. generate_lead now belongs to the
+    // lead form alone — see reportLead().
 
     // Click-time Ads purchase conversion, so a payer who completes in the UPI
     // app but never returns to the result page is still counted. Keyed to the
@@ -680,6 +720,42 @@ export class AnalyticsService {
     }, done);
   }
 
+  /**
+   * The lead funnel on the contact, solution and Pro pages.
+   *
+   * `generate_lead` is GA4's recommended event for exactly this and is what
+   * feeds its lead reports, so the real enquiry form owns it outright.
+   *
+   * Which page the lead came from needs no parameter: every event already
+   * carries page_group, content_group and content_id from track(). `surface`
+   * rides on cta_location — an already-registered dimension — because more
+   * than one form can share a page (/pro has both the reserve card and the
+   * enquiry form), so the funnel has to say which one it is. No new custom
+   * dimension is spent on this.
+   */
+  reportLeadStart(surface: string): void {
+    this.trackOnce(`lead_start:${surface}`, 'form_start', { cta_location: surface });
+  }
+
+  /** The enquiry actually left the browser. The lead conversion. */
+  reportLead(surface: string): void {
+    this.track('generate_lead', { cta_location: surface });
+  }
+
+  /**
+   * The submit was refused before anything was sent.
+   *
+   * Carries both halves: error_field says which fields, cta_location which
+   * form — the plain reportFormError above cannot say the latter, and /pro
+   * has two forms on the one page.
+   */
+  reportLeadError(surface: string, fields: string[]): void {
+    this.track('form_error', {
+      cta_location: surface,
+      error_field: this.trim100(fields.join('|')),
+    });
+  }
+
   reportCheckoutError(code: string): void {
     this.track('checkout_error', { error_code: this.trim100(code) });
   }
@@ -689,12 +765,16 @@ export class AnalyticsService {
    * before the event fires, so a mid-flight failure fails closed. The ledger
    * is localStorage because a UPI app returns the customer in a new tab.
    */
-  reportPurchase(ref: string, amountMinor: number | null, checkoutId: string | null, currency = 'INR'): void {
+  reportPurchase(orderRef: string, amountMinor: number | null, checkoutId: string | null, currency = 'INR'): void {
     const LEDGER = 'iso8583studio.purchases_reported';
+    // Keyed on the checkout, not the customer. Keyed on the customer it
+    // suppressed their *second* genuine purchase forever; keyed on the
+    // checkout it still drops a reload, which is all it was ever for.
+    const key = checkoutId || orderRef;
     try {
       const seen: string[] = JSON.parse(this.lsGet(LEDGER) || '[]');
-      if (seen.includes(ref)) return;
-      this.lsSet(LEDGER, JSON.stringify([...seen, ref].slice(-20)));
+      if (seen.includes(key)) return;
+      this.lsSet(LEDGER, JSON.stringify([...seen, key].slice(-20)));
     } catch { /* private mode: transaction_id still dedupes server-side */ }
 
     this.lsSet('iso8583_pro', '1');
@@ -704,7 +784,7 @@ export class AnalyticsService {
 
     // Google Ads purchase conversion. Behind the same ledger as the GA4 event,
     // and keyed to the checkout id so Google drops it as a duplicate of the
-    // click-time fire in reportBeginCheckout when both arrive. The payment ref
+    // click-time fire in reportBeginCheckout when both arrive. The order ref
     // is the fallback key for flows that never had a checkout id. Falls back
     // to the conversion action's default value (1.0) when the amount is
     // unknown.
@@ -713,12 +793,14 @@ export class AnalyticsService {
         send_to: `${ADS_ID}/${ADS_PURCHASE}`,
         value: rupees ?? 1.0,
         currency,
-        transaction_id: checkoutId || ref,
+        transaction_id: checkoutId || orderRef,
       }));
     }
 
     this.track('purchase', {
-      transaction_id: ref,
+      // The same id as the Ads fire above, or the GA4-to-Ads import cannot
+      // dedupe the two against each other.
+      transaction_id: checkoutId || orderRef,
       currency,
       ...(rupees !== undefined ? { value: rupees, amount_bucket: amountBucket(rupees) } : {}),
       value_known: rupees !== undefined ? 'yes' : 'no',
@@ -727,6 +809,23 @@ export class AnalyticsService {
                 item_category: 'pro', ...(rupees !== undefined ? { price: rupees } : {}),
                 quantity: 1 }],
     });
+  }
+
+  /**
+   * Google Ads Enhanced Conversions user-provided data.
+   *
+   * gtag normalises and SHA-256-hashes this locally before transmission, and
+   * Consent Mode gates it on ad_user_data — so a visitor in a deny region who
+   * has not accepted sends nothing. Deliberately not routed through track():
+   * this value must never become a GA4 event parameter. It is the sanctioned
+   * home for the email that transaction_id was previously misused for.
+   *
+   * A no-op until Enhanced Conversions is enabled on the conversion action in
+   * the Ads UI, so it is safe to ship ahead of that.
+   */
+  setAdsUserData(email: string): void {
+    if (!this.enabled || !this.adsEnabled || !email) return;
+    this.gtag('set', 'user_data', { email: email.trim().toLowerCase() });
   }
 
   reportPaymentFailed(ref: string): void {
@@ -749,7 +848,38 @@ export class AnalyticsService {
       cta_location: ctaLocation,
       ...(fileExtension ? { file_extension: fileExtension } : {}),
     });
+
+    // The primary campaign goal, fired natively rather than left to the GA4
+    // import: the import lands hours later, which is exactly the latency
+    // Smart Bidding cannot absorb on the goal it optimises against.
+    //
+    // No transaction_id and no value — the conversion action is set to
+    // Count = One, so three builds grabbed by one visitor count once, and the
+    // value is owned in the Ads UI rather than hard-coded here.
+    //
+    // The GA4 app_download key event must NOT also be imported into the same
+    // Ads account; that would count this click twice. An empty
+    // ADS_CONVERSION makes this a no-op, so it ships before the label exists.
+    if (this.adsEnabled && ADS_CONVERSION) {
+      this.gtag('event', 'conversion', { send_to: `${ADS_ID}/${ADS_CONVERSION}` });
+    }
   }
+  /**
+   * A page nobody asked for.
+   *
+   * Reuses link_url and link_text, which are already registered custom
+   * dimensions, rather than spending two more slots: link_url is the address
+   * that missed, link_text the referrer's host. Worth marking as a key event
+   * in GA4 — it is what catches a broken ad final URL in hours rather than at
+   * the end of a billing cycle.
+   */
+  reportNotFound(path: string, referrer: string): void {
+    this.trackOnce('not_found', 'page_not_found', {
+      link_url: this.trim100(path),
+      link_text: this.trim100(referrer ? this.domainOf(referrer) : '(direct)'),
+    });
+  }
+
   reportSectionView(name: string, index: number): void {
     this.trackOnce(`sect:${name}`, 'section_view', { section_name: name.slice(0, 100), section_index: index });
   }

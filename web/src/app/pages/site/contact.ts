@@ -3,13 +3,14 @@ import { RouterLink } from '@angular/router';
 import { SitePage } from './site-page';
 import { UiBadge, UiCtaPanel, UiIcon, UiReveal, UiWords } from '../../ui';
 import { LONGFORM } from '../shared/longform';
+import { LeadForm } from '../shared/lead-form';
 
 interface Channel { icon: string; eyebrow: string; title: string; body: string; cta: string; href: string; wide?: boolean; }
 
 @Component({
   selector: 'page-contact',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [...LONGFORM, RouterLink, UiBadge, UiCtaPanel, UiIcon, UiReveal, UiWords],
+  imports: [...LONGFORM, LeadForm, RouterLink, UiBadge, UiCtaPanel, UiIcon, UiReveal, UiWords],
   hostDirectives: [SitePage],
   host: { class: 'static-page page-contact' },
   template: `
@@ -17,6 +18,10 @@ interface Channel { icon: string; eyebrow: string; title: string; body: string; 
                lede="Certification engagements, middleware and kernel work, support, or just a question about the studio — pick the channel that fits." />
 
     <lf-body>
+      <app-lead-form surface="contact"
+                     heading="Send us an enquiry"
+                     lede="Certification, middleware or kernel work — tell us the shape of it and we will come back with specifics." />
+
       <section id="channels" uiReveal [uiRevealThreshold]="0.08">
         <div class="lf-channels">
           @for (ch of channels; track ch.href; let i = $index) {

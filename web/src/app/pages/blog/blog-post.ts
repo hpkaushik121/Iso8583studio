@@ -8,6 +8,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { BLOG_POSTS, BLOG_TOPICS } from '../../content/blog-index';
 import { EXTERNAL } from '../../core/site-nav';
 import { Crumb, UiBadge, UiBreadcrumb, UiCtaPanel, UiIcon, UiReveal, UiWords } from '../../ui';
+import { SitePage } from '../site/site-page';
 import { RelatedPosts } from './related-posts';
 import { BlogMeta, PostContent, longDate } from './blog-meta';
 
@@ -29,11 +30,17 @@ const two = (n: number) => String(n).padStart(2, '0');
   imports: [RouterLink, UiBadge, UiBreadcrumb, UiCtaPanel, UiIcon, UiReveal, UiWords, RelatedPosts],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'bp-page' },
+  // The section funnel and the router hand-off, same as every site page. The
+  // directive snapshots its section list in ngAfterViewInit, which is safe
+  // only because each post has its own Route object and so its own component
+  // instance — collapsing these to a parameterised blogs/:slug route would
+  // leave that snapshot stale and silently kill blog section_view.
+  hostDirectives: [SitePage],
   template: `
     @if (post(); as p) {
       <span #progress class="bp-progress" aria-hidden="true"></span>
 
-      <header #hero class="bp-hero">
+      <header #hero class="bp-hero" data-sect="post_hero">
         <div class="bp-dots" aria-hidden="true">
           <span class="bp-dots-base"></span>
           <span class="bp-dots-hot"></span>
@@ -74,14 +81,14 @@ const two = (n: number) => String(n).padStart(2, '0');
 
         <div class="bp-layout" [class.bp-layout--solo]="!hasToc()">
           <article #article class="bp-article">
-            <div class="prose bp-prose" [innerHTML]="body()"></div>
+            <div class="prose bp-prose" data-sect="post_body" [innerHTML]="body()"></div>
 
             <div class="bp-tags">
               @for (tag of p.tags; track tag) { <span class="bp-tag">{{ tag }}</span> }
             </div>
 
             @if (prev() || next()) {
-              <div class="bp-series">
+              <div class="bp-series" data-sect="post_series">
                 @if (prev(); as before) {
                   <a class="bp-step bp-step--prev" [routerLink]="before.path">
                     <span class="bp-step-label"><ui-icon name="arrow-left" [size]="13" />Previous</span>

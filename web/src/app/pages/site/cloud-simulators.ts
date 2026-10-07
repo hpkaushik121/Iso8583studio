@@ -6,6 +6,7 @@ import {
   ArtName, SolArt, SolBenefit, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolMark, SolStrip, solCycle,
 } from '../solutions';
 import { SitePage } from './site-page';
+import { LeadForm } from '../shared/lead-form';
 
 interface EcoNode { key: string; img: ArtName; label: string; }
 interface Sim { n: string; kicker: string; img: ArtName; title: string; desc: string; }
@@ -85,6 +86,7 @@ const TRACE_FRAMES = 8;
 @Component({
   selector: 'page-cloud-simulators',
   imports: [
+    LeadForm,
     RouterLink, UiAccordion, UiBadge, UiIcon, UiReveal, UiSectionHeading,
     SolArt, SolBenefits, SolBento, SolClose, SolHero, SolLive, SolStrip,
   ],
@@ -222,6 +224,12 @@ const TRACE_FRAMES = 8;
       <ui-section-heading heading="Hosted simulation, answered" sub="Endpoints, CI, data and what runs where." />
       <div class="sol-faq"><ui-accordion [items]="faq" [stagger]="110" [base]="500" /></div>
     </section>
+
+    <div class="sol-sec">
+      <app-lead-form surface="cloud-simulators"
+                     heading="Talk to us about hosted simulators"
+                     lede="Tell us which endpoints you need and the volume you are testing at." />
+    </div>
 
     <sol-close sect="Ready to simulate?" kicker="Connect your next test environment" cta="Request a hosted endpoint"
                text="Get hosted endpoints for your team, or run simulators locally with the desktop Studio.">

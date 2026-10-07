@@ -308,14 +308,25 @@ export class ProReserve implements OnDestroy {
 
     this.local.set('processing');
     try {
+      // Minted before the call so it can be round-tripped on the return URL
+      // as `cid`, not just stashed in localStorage. It stitches begin_checkout
+      // to the purchase and is the transaction_id both GA4 and Ads key on.
+      const checkoutId = crypto.randomUUID();
+      this.payments.rememberCheckoutId(checkoutId);
+      // Held for the Enhanced Conversions match only; gtag hashes it. Never a
+      // GA4 parameter, and never in the URL.
+      this.payments.rememberEcEmail(email);
+
       const { checkoutUrl, amountPaise, currency } = await this.payments.createCheckout({
         pricePoint: PAYMENTS.pricePoints[0],
         // A page may not name an amount: it names units of the ₹1 price point
         // and the service prices them, tax included.
         quantity: RESERVE_UNITS,
         email,
-        // No accounts here, so the customer's own email is the stable key.
-        ref: email,
+        // No accounts here, so a hash of the email is the stable key. Not the
+        // address itself: the service echoes ref back on the return URL.
+        ref: await this.payments.customerRef(email),
+        checkoutId,
         notes: { source: 'pro-reserve-card' },
       });
 
@@ -339,10 +350,10 @@ export class ProReserve implements OnDestroy {
       }
 
       this.charge.set(formatMinor(amountPaise, currency));
-      // checkout_id stitches begin_checkout to the purchase on return; the
-      // redirect waits for the beacon (max 400ms).
-      const checkoutId = crypto.randomUUID();
-      this.payments.rememberCheckoutId(checkoutId);
+      // Enhanced Conversions data for the click-time Ads fire below, so an
+      // abandoned-but-attributable checkout still carries a match key.
+      this.analytics.setAdsUserData(email);
+      // The redirect waits for the beacon (max 400ms).
       this.analytics.reportBeginCheckout(amountPaise, checkoutId, () => {
         location.assign(checkoutUrl);
       }, currency);

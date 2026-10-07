@@ -43,6 +43,23 @@ const AMOUNT_KEY = 'iso8583studio.checkout_amount';
 const CHECKOUT_ID_KEY = 'iso8583studio.checkout_id';
 /** The quote's currency, kept beside its amount: minor units mean nothing without it. */
 const CURRENCY_KEY = 'iso8583studio.checkout_currency';
+/**
+ * The work email, held across the redirect for one purpose: the Google Ads
+ * Enhanced Conversions match.
+ *
+ * localStorage for the same reason as the token — a UPI or netbanking app
+ * returns the customer in a different tab. gtag normalises and SHA-256-hashes
+ * this before it leaves the browser; it is never a GA4 parameter and never
+ * enters a URL. Read-and-cleared on return, and dropped with the token when a
+ * checkout is abandoned, so it is not left sitting there.
+ */
+const EC_EMAIL_KEY = 'iso8583studio.ec_email';
+/**
+ * Fallback customer key for contexts without `crypto.subtle` (insecure
+ * origins). Per-browser rather than per-person, which is the cost of not
+ * having a hash — see customerRef().
+ */
+const CUSTOMER_REF_KEY = 'iso8583studio.customer_ref';
 
 export type CheckoutStatus = 'paid' | 'processing' | 'pending' | 'failed';
 
@@ -106,11 +123,27 @@ export class PaymentsService {
     name?: string;
     /** ISO 3166-1 alpha-2. Decides the tax treatment; omitted, the currency stands in. */
     country?: string;
-    /** Our own id for the customer; the natural key the service upserts on. */
+    /**
+     * Our own id for the customer; the natural key the service upserts on.
+     *
+     * Must not be the email. The service echoes `ref` back on the return URL,
+     * so whatever goes in here lands in `page_location`, in browser history
+     * and in logs — see customerRef().
+     */
     ref: string;
+    /**
+     * Analytics-only correlation id, echoed back on the return URL as `cid`.
+     *
+     * Non-PII, and not the token. It is round-tripped through the URL as well
+     * as localStorage because the localStorage copy is defeated by exactly the
+     * cases that matter: a provider webview with its own storage jar, private
+     * mode, and a return in a different tab.
+     */
+    checkoutId?: string;
     notes?: Record<string, string>;
   }): Promise<{ checkoutUrl: string; token: string; amountPaise: number; currency: string }> {
     const origin = this.doc.defaultView?.location.origin ?? '';
+    const cid = input.checkoutId ? `&cid=${encodeURIComponent(input.checkoutId)}` : '';
 
     const body = JSON.stringify({
       line_items: [{ price_point: input.pricePoint, quantity: input.quantity ?? 1 }],
@@ -123,11 +156,12 @@ export class PaymentsService {
         ...(input.name ? { name: input.name } : {}),
         ...(input.country ? { country: input.country } : {}),
       },
-      success_url: `${origin}/pro?payment=done`,
-      failure_url: `${origin}/pro?payment=failed`,
+      // `cid` is ours; the service appends its own `ref` alongside it.
+      success_url: `${origin}/pro?payment=done${cid}`,
+      failure_url: `${origin}/pro?payment=failed${cid}`,
       // Flagged, so the card can say the checkout was closed rather than
       // showing the page as if nothing had happened.
-      cancel_url: `${origin}/pro?payment=cancelled`,
+      cancel_url: `${origin}/pro?payment=cancelled${cid}`,
       ...(input.notes ? { notes: input.notes } : {}),
     });
 
@@ -237,6 +271,51 @@ export class PaymentsService {
     this.remove(TOKEN_KEY);
     this.remove(AMOUNT_KEY);
     this.remove(CURRENCY_KEY);
+    this.remove(EC_EMAIL_KEY);
+  }
+
+  /**
+   * A non-PII customer key for `customer.ref`.
+   *
+   * The service echoes `ref` back on the return URL, so it must be something
+   * that can safely appear in `page_location`, in history and in logs. It used
+   * to be the email itself, which put the customer's address into GA4 and
+   * Google Ads as `transaction_id` — a policy breach on both.
+   *
+   * SHA-256 of the normalised address, truncated: stable for one person across
+   * devices and retries, so the service still upserts a single customer, and
+   * not reversible. `crypto.subtle` needs a secure context, so an insecure one
+   * falls back to a durable per-browser id — weaker (a second device looks like
+   * a second customer) but never PII, and it keeps dev servers working.
+   */
+  async customerRef(email: string): Promise<string> {
+    const normalised = email.trim().toLowerCase();
+    try {
+      const bytes = new TextEncoder().encode(normalised);
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      const hex = Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      return `web_${hex.slice(0, 32)}`;
+    } catch {
+      const existing = this.read(CUSTOMER_REF_KEY);
+      if (existing) return existing;
+      const minted = `web_${crypto.randomUUID().replace(/-/g, '')}`;
+      this.write(CUSTOMER_REF_KEY, minted);
+      return minted;
+    }
+  }
+
+  /** Held only for the Enhanced Conversions match; see EC_EMAIL_KEY. */
+  rememberEcEmail(email: string): void {
+    this.write(EC_EMAIL_KEY, email.trim().toLowerCase());
+  }
+
+  /** Read-and-clear: the address is needed once, on return, and then gone. */
+  takeEcEmail(): string | null {
+    const email = this.read(EC_EMAIL_KEY);
+    this.remove(EC_EMAIL_KEY);
+    return email;
   }
 
   rememberCheckoutId(id: string): void {
