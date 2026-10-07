@@ -81,6 +81,8 @@ jobs:
           # means that notice is not sent; the checkout is unaffected.
           PAYMENTS_WEB3FORMS_STARTED_KEY: ${{ vars.PAYMENTS_WEB3FORMS_STARTED_KEY || secrets.PAYMENTS_WEB3FORMS_STARTED_KEY }}
           PAYMENTS_WEB3FORMS_PAID_KEY: ${{ vars.PAYMENTS_WEB3FORMS_PAID_KEY || secrets.PAYMENTS_WEB3FORMS_PAID_KEY }}
+          PAYMENTS_WEB3FORMS_FAILED_KEY: ${{ vars.PAYMENTS_WEB3FORMS_FAILED_KEY || secrets.PAYMENTS_WEB3FORMS_FAILED_KEY }}
+          PAYMENTS_WEB3FORMS_CANCELLED_KEY: ${{ vars.PAYMENTS_WEB3FORMS_CANCELLED_KEY || secrets.PAYMENTS_WEB3FORMS_CANCELLED_KEY }}
 
       # Replaces the old file-existence check. Fails the deploy if a route is
       # missing, an internal link is broken, a URL still carries .html, the
