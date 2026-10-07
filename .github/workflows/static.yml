@@ -66,6 +66,16 @@ jobs:
           # Comma-separated SKUs, which must also be published for the tenant
           # in browser_checkout_price_points.
           PAYMENTS_PRICE_POINTS: ${{ vars.PAYMENTS_PRICE_POINTS || secrets.PAYMENTS_PRICE_POINTS }}
+          # The Web3Forms access key the enquiry form posts with. Public by
+          # construction — it ships in the page markup, and Web3Forms only
+          # accepts submissions from a browser, refusing server-side callers.
+          # Same resolution order as above, so it works from a variable or a
+          # secret. Unset is a supported state: the form renders "not connected
+          # yet — email us" rather than a submit button that drops the message.
+          LEADS_WEB3FORMS_KEY: ${{ vars.LEADS_WEB3FORMS_KEY || secrets.LEADS_WEB3FORMS_KEY }}
+          # Shown as the manual fallback address; delivery itself is configured
+          # in the Web3Forms dashboard, not here.
+          LEADS_INBOX: ${{ vars.LEADS_INBOX || secrets.LEADS_INBOX }}
 
       # Replaces the old file-existence check. Fails the deploy if a route is
       # missing, an internal link is broken, a URL still carries .html, the
