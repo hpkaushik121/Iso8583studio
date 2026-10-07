@@ -764,8 +764,12 @@ export class AnalyticsService {
    * The purchase, deduped by a localStorage ledger of reported refs — written
    * before the event fires, so a mid-flight failure fails closed. The ledger
    * is localStorage because a UPI app returns the customer in a new tab.
+   *
+   * Answers whether this call reported the purchase, so a caller can hang a
+   * one-per-purchase side effect off the same ledger.
    */
-  reportPurchase(orderRef: string, amountMinor: number | null, checkoutId: string | null, currency = 'INR'): void {
+  reportPurchase(orderRef: string, amountMinor: number | null, checkoutId: string | null,
+                 currency = 'INR'): boolean {
     const LEDGER = 'iso8583studio.purchases_reported';
     // Keyed on the checkout, not the customer. Keyed on the customer it
     // suppressed their *second* genuine purchase forever; keyed on the
@@ -773,7 +777,7 @@ export class AnalyticsService {
     const key = checkoutId || orderRef;
     try {
       const seen: string[] = JSON.parse(this.lsGet(LEDGER) || '[]');
-      if (seen.includes(key)) return;
+      if (seen.includes(key)) return false;
       this.lsSet(LEDGER, JSON.stringify([...seen, key].slice(-20)));
     } catch { /* private mode: transaction_id still dedupes server-side */ }
 
@@ -809,6 +813,10 @@ export class AnalyticsService {
                 item_category: 'pro', ...(rupees !== undefined ? { price: rupees } : {}),
                 quantity: 1 }],
     });
+    // Whether this call was the one that reported it. The caller uses this to
+    // send its own one-per-purchase side effects off the same ledger rather
+    // than keeping a second one that could disagree.
+    return true;
   }
 
   /**

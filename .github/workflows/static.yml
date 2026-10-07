@@ -76,6 +76,11 @@ jobs:
           # Shown as the manual fallback address; delivery itself is configured
           # in the Web3Forms dashboard, not here.
           LEADS_INBOX: ${{ vars.LEADS_INBOX || secrets.LEADS_INBOX }}
+          # One Web3Forms key per payment moment, so each notice lands with its
+          # own subject and either can be switched off alone. Unset simply
+          # means that notice is not sent; the checkout is unaffected.
+          PAYMENTS_WEB3FORMS_STARTED_KEY: ${{ vars.PAYMENTS_WEB3FORMS_STARTED_KEY || secrets.PAYMENTS_WEB3FORMS_STARTED_KEY }}
+          PAYMENTS_WEB3FORMS_PAID_KEY: ${{ vars.PAYMENTS_WEB3FORMS_PAID_KEY || secrets.PAYMENTS_WEB3FORMS_PAID_KEY }}
 
       # Replaces the old file-existence check. Fails the deploy if a route is
       # missing, an internal link is broken, a URL still carries .html, the

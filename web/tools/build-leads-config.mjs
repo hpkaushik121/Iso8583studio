@@ -26,14 +26,24 @@ if (!process.env.LEADS_WEB3FORMS_KEY && typeof process.loadEnvFile === 'function
 }
 
 const key = (process.env.LEADS_WEB3FORMS_KEY ?? '').trim();
+/* Two more Web3Forms endpoints, one per payment moment, so each lands with its
+   own subject and can be switched off without touching the other. Unset is a
+   supported state: that notification simply is not sent. */
+const startedKey = (process.env.PAYMENTS_WEB3FORMS_STARTED_KEY ?? '').trim();
+const paidKey = (process.env.PAYMENTS_WEB3FORMS_PAID_KEY ?? '').trim();
 const endpoint = (process.env.LEADS_WEB3FORMS_ENDPOINT ?? 'https://api.web3forms.com/submit').trim();
 /** Where Web3Forms delivers. Shown in the UI as the fallback address, nothing more. */
 const inbox = (process.env.LEADS_INBOX ?? 'admin@aicortex.in').trim();
 
 /* An access key is a UUID. Anything else is a paste accident, and the failure
    it causes is silent — Web3Forms answers 200 for an unknown key. */
-if (key && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
-  throw new Error(`LEADS_WEB3FORMS_KEY should be a UUID (got "${key.slice(0, 12)}…").`);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+for (const [name, value] of [['LEADS_WEB3FORMS_KEY', key],
+                             ['PAYMENTS_WEB3FORMS_STARTED_KEY', startedKey],
+                             ['PAYMENTS_WEB3FORMS_PAID_KEY', paidKey]]) {
+  if (value && !UUID.test(value)) {
+    throw new Error(`${name} should be a UUID (got "${value.slice(0, 12)}…").`);
+  }
 }
 if (!/^https:\/\//.test(endpoint)) {
   throw new Error(`LEADS_WEB3FORMS_ENDPOINT must be https (got "${endpoint}").`);
@@ -51,6 +61,10 @@ writeFileSync(join(OUT_DIR, 'leads-config.ts'),
   + '  readonly key: string;\n'
   + '  /** The address Web3Forms delivers to, shown as the manual fallback. */\n'
   + '  readonly inbox: string;\n'
+  + '  /** Notified when a checkout is started. Empty disables that notice. */\n'
+  + '  readonly startedKey: string;\n'
+  + '  /** Notified when a payment completes. Empty disables that notice. */\n'
+  + '  readonly paidKey: string;\n'
   + '  /** False when lead delivery is not wired up; the UI says so instead of pretending. */\n'
   + '  readonly configured: boolean;\n'
   + '}\n\n'
@@ -58,8 +72,11 @@ writeFileSync(join(OUT_DIR, 'leads-config.ts'),
   + `  endpoint: ${JSON.stringify(endpoint)},\n`
   + `  key: ${JSON.stringify(key)},\n`
   + `  inbox: ${JSON.stringify(inbox)},\n`
+  + `  startedKey: ${JSON.stringify(startedKey)},\n`
+  + `  paidKey: ${JSON.stringify(paidKey)},\n`
   + `  configured: ${JSON.stringify(configured)},\n`
   + '};\n');
 
 console.log(`leads: ${configured ? 'Web3Forms configured' : 'NOT configured — form disabled'}`
-  + `, ${endpoint} -> ${inbox}`);
+  + `, ${endpoint} -> ${inbox}`
+  + ` | payment notices: started=${startedKey ? 'on' : 'off'} paid=${paidKey ? 'on' : 'off'}`);

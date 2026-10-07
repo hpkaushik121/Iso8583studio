@@ -61,6 +61,26 @@ const EC_EMAIL_KEY = 'iso8583studio.ec_email';
  */
 const CUSTOMER_REF_KEY = 'iso8583studio.customer_ref';
 
+/**
+ * A random hex id that does not need a secure context.
+ *
+ * `crypto.randomUUID` is only defined on a secure origin, so it throws on a
+ * plain-http dev server or preview — and the checkout used it unguarded, which
+ * failed the whole payment rather than the one id. Worse, customerRef's
+ * fallback reached for it in precisely the case that triggers the fallback:
+ * no `crypto.subtle`, which is the same secure-context restriction.
+ * getRandomValues has no such requirement.
+ */
+export function randomId(bytes = 16): string {
+  const buf = new Uint8Array(bytes);
+  try {
+    crypto.getRandomValues(buf);
+  } catch {
+    for (let i = 0; i < bytes; i++) buf[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export type CheckoutStatus = 'paid' | 'processing' | 'pending' | 'failed';
 
 export interface StatusResult {
@@ -168,7 +188,7 @@ export class PaymentsService {
     // Minted once and reused across retries. A fresh key on a retry is how one
     // intent becomes two checkouts, so the in-flight answer below must not
     // generate a new one.
-    const idempotencyKey = crypto.randomUUID();
+    const idempotencyKey = randomId();
 
     for (let attempt = 0; ; attempt++) {
       const res = await fetch(`${PAYMENTS.baseUrl}/v1/checkouts`, {
@@ -300,7 +320,7 @@ export class PaymentsService {
     } catch {
       const existing = this.read(CUSTOMER_REF_KEY);
       if (existing) return existing;
-      const minted = `web_${crypto.randomUUID().replace(/-/g, '')}`;
+      const minted = `web_${randomId()}`;
       this.write(CUSTOMER_REF_KEY, minted);
       return minted;
     }

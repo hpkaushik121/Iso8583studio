@@ -3,6 +3,7 @@ import { DOCUMENT, Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { PaymentsService } from '../../core/payments';
 import { AnalyticsService } from '../../core/analytics';
+import { PaymentNotice } from '../../core/payment-notice';
 
 /**
  * What happened to the payment, read once when the customer comes back.
@@ -31,6 +32,7 @@ export type OutcomeState =
 export class CheckoutOutcome {
   private readonly payments = inject(PaymentsService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly notice = inject(PaymentNotice);
   private readonly doc = inject(DOCUMENT);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -140,6 +142,8 @@ export class CheckoutOutcome {
 
     // Enhanced Conversions match data for the Ads purchase fire below. Read
     // once here so all three reportPurchase branches are covered.
+    // Read once: takeEcEmail clears as it reads, and both the Ads match below
+    // and the payment notice need the address.
     const ecEmail = this.payments.takeEcEmail();
     if (ecEmail) this.analytics.setAdsUserData(ecEmail);
 
@@ -151,7 +155,7 @@ export class CheckoutOutcome {
     if (!token) {
       // A different tab (UPI return) or cleared storage: the redirect already
       // said paid. Count it — value_known:'no' keeps the blind spot visible.
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId, this.currency());
+      this.notifyPaid(ref, checkoutId, ecEmail, false);
       this.state.set('paid');
       this.clearQuery();
       return;
@@ -171,15 +175,31 @@ export class CheckoutOutcome {
       // redirect already said paid, and a webhook that has not landed yet is
       // not a reason to tell the customer otherwise.
       this.ledgerConfirmed.set(out.status === 'paid');
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId, this.currency());
+      this.notifyPaid(ref, checkoutId, ecEmail, out.status === 'paid');
       this.state.set('paid');
       this.clearQuery();
     } catch {
       // The poll could not run. The redirect stands on its own.
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId, this.currency());
+      this.notifyPaid(ref, checkoutId, ecEmail, false);
       this.state.set('paid');
       this.clearQuery();
     }
+  }
+
+  /**
+   * Reports the purchase and, only if that was the call that reported it,
+   * emails the notice. Both hang off the one ledger in reportPurchase, so a
+   * reload cannot produce a second email for the same payment.
+   */
+  private notifyPaid(ref: string, checkoutId: string | null,
+                     email: string | null, confirmed: boolean): void {
+    const reported = this.analytics.reportPurchase(
+      ref, this.amountPaise(), checkoutId, this.currency());
+    if (!reported) return;
+    this.notice.completed({
+      email, reference: ref, amountMinor: this.amountPaise(),
+      currency: this.currency(), checkoutId, confirmed,
+    });
   }
 
   /**
