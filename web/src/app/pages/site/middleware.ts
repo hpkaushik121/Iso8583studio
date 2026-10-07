@@ -182,9 +182,11 @@ const MARKS: SolMark[] = [
       <div class="sol-faq"><ui-accordion [items]="faq" [stagger]="110" [base]="500" /></div>
     </section>
 
-    <app-lead-form surface="middleware"
-                   heading="Talk to us about middleware"
-                   lede="Tell us what you are routing between, and the throughput you need to hold." />
+    <div class="sol-sec">
+      <app-lead-form surface="middleware"
+                     heading="Talk to us about middleware"
+                     lede="Tell us what you are routing between, and the throughput you need to hold." />
+    </div>
 
     <sol-close sect="Ready to orchestrate?" kicker="Your next payment connection" cta="Plan your switch layer"
                text="Let's design the switch layer around your transaction volume, provider connections and routing requirements.">

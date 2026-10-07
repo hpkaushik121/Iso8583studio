@@ -225,9 +225,11 @@ const TRACE_FRAMES = 8;
       <div class="sol-faq"><ui-accordion [items]="faq" [stagger]="110" [base]="500" /></div>
     </section>
 
-    <app-lead-form surface="cloud-simulators"
-                   heading="Talk to us about hosted simulators"
-                   lede="Tell us which endpoints you need and the volume you are testing at." />
+    <div class="sol-sec">
+      <app-lead-form surface="cloud-simulators"
+                     heading="Talk to us about hosted simulators"
+                     lede="Tell us which endpoints you need and the volume you are testing at." />
+    </div>
 
     <sol-close sect="Ready to simulate?" kicker="Connect your next test environment" cta="Request a hosted endpoint"
                text="Get hosted endpoints for your team, or run simulators locally with the desktop Studio.">

@@ -170,9 +170,11 @@ const MARKS: SolMark[] = [
       <div class="sol-faq"><ui-accordion [items]="faq" [stagger]="110" [base]="500" /></div>
     </section>
 
-    <app-lead-form surface="kernel"
-                   heading="Talk to us about kernel work"
-                   lede="Tell us the chipset, the scheme targets and where the current kernel stands." />
+    <div class="sol-sec">
+      <app-lead-form surface="kernel"
+                     heading="Talk to us about kernel work"
+                     lede="Tell us the chipset, the scheme targets and where the current kernel stands." />
+    </div>
 
     <sol-close sect="Ready to develop?" kicker="Your next device platform" cta="Discuss your board"
                text="Bring your board, your platform challenge or your next payment device. Let's work through the engineering together.">
