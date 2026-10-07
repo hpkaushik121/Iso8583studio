@@ -31,6 +31,8 @@ const key = (process.env.LEADS_WEB3FORMS_KEY ?? '').trim();
    supported state: that notification simply is not sent. */
 const startedKey = (process.env.PAYMENTS_WEB3FORMS_STARTED_KEY ?? '').trim();
 const paidKey = (process.env.PAYMENTS_WEB3FORMS_PAID_KEY ?? '').trim();
+const failedKey = (process.env.PAYMENTS_WEB3FORMS_FAILED_KEY ?? '').trim();
+const cancelledKey = (process.env.PAYMENTS_WEB3FORMS_CANCELLED_KEY ?? '').trim();
 const endpoint = (process.env.LEADS_WEB3FORMS_ENDPOINT ?? 'https://api.web3forms.com/submit').trim();
 /** Where Web3Forms delivers. Shown in the UI as the fallback address, nothing more. */
 const inbox = (process.env.LEADS_INBOX ?? 'admin@aicortex.in').trim();
@@ -40,7 +42,9 @@ const inbox = (process.env.LEADS_INBOX ?? 'admin@aicortex.in').trim();
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 for (const [name, value] of [['LEADS_WEB3FORMS_KEY', key],
                              ['PAYMENTS_WEB3FORMS_STARTED_KEY', startedKey],
-                             ['PAYMENTS_WEB3FORMS_PAID_KEY', paidKey]]) {
+                             ['PAYMENTS_WEB3FORMS_PAID_KEY', paidKey],
+                             ['PAYMENTS_WEB3FORMS_FAILED_KEY', failedKey],
+                             ['PAYMENTS_WEB3FORMS_CANCELLED_KEY', cancelledKey]]) {
   if (value && !UUID.test(value)) {
     throw new Error(`${name} should be a UUID (got "${value.slice(0, 12)}…").`);
   }
@@ -65,6 +69,10 @@ writeFileSync(join(OUT_DIR, 'leads-config.ts'),
   + '  readonly startedKey: string;\n'
   + '  /** Notified when a payment completes. Empty disables that notice. */\n'
   + '  readonly paidKey: string;\n'
+  + '  /** Notified when a payment is declined. Empty disables that notice. */\n'
+  + '  readonly failedKey: string;\n'
+  + '  /** Notified when the customer closes the checkout. Empty disables it. */\n'
+  + '  readonly cancelledKey: string;\n'
   + '  /** False when lead delivery is not wired up; the UI says so instead of pretending. */\n'
   + '  readonly configured: boolean;\n'
   + '}\n\n'
@@ -74,9 +82,12 @@ writeFileSync(join(OUT_DIR, 'leads-config.ts'),
   + `  inbox: ${JSON.stringify(inbox)},\n`
   + `  startedKey: ${JSON.stringify(startedKey)},\n`
   + `  paidKey: ${JSON.stringify(paidKey)},\n`
+  + `  failedKey: ${JSON.stringify(failedKey)},\n`
+  + `  cancelledKey: ${JSON.stringify(cancelledKey)},\n`
   + `  configured: ${JSON.stringify(configured)},\n`
   + '};\n');
 
 console.log(`leads: ${configured ? 'Web3Forms configured' : 'NOT configured — form disabled'}`
   + `, ${endpoint} -> ${inbox}`
-  + ` | payment notices: started=${startedKey ? 'on' : 'off'} paid=${paidKey ? 'on' : 'off'}`);
+  + ` | payment notices: started=${startedKey ? 'on' : 'off'} paid=${paidKey ? 'on' : 'off'}`
+  + ` failed=${failedKey ? 'on' : 'off'} cancelled=${cancelledKey ? 'on' : 'off'}`);

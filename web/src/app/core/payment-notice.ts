@@ -77,8 +77,7 @@ export class PaymentNotice {
     email: string | null; reference: string; amountMinor: number | null;
     currency: string; checkoutId: string | null; confirmed: boolean;
   }): void {
-    if (!LEADS.paidKey) return;
-    const body = this.compose(LEADS.paidKey, {
+    this.send(LEADS.paidKey, 'payment_notice_paid', {
       subject: `Pro payment received — ${major(input.amountMinor, input.currency)}`,
       ...(input.email ? { email: input.email } : {}),
       amount: major(input.amountMinor, input.currency),
@@ -87,13 +86,59 @@ export class PaymentNotice {
       // Worth saying plainly: an unconfirmed one may still settle the other way.
       status: input.confirmed ? 'confirmed by the ledger' : 'reported by the redirect, not yet confirmed',
     });
+  }
 
-    void fetch(LEADS.endpoint, { method: 'POST', headers: { Accept: 'application/json' }, body })
+  /**
+   * The payment was declined. Worth an email because it is recoverable: the
+   * person wanted to buy and their card did not let them.
+   */
+  failed(input: {
+    email: string | null; reference: string; amountMinor: number | null;
+    currency: string; checkoutId: string | null;
+  }): void {
+    this.send(LEADS.failedKey, 'payment_notice_failed', {
+      subject: `Pro payment failed — ${major(input.amountMinor, input.currency)}`,
+      ...(input.email ? { email: input.email } : {}),
+      amount: major(input.amountMinor, input.currency),
+      reference: input.reference,
+      ...(input.checkoutId ? { checkout_id: input.checkoutId } : {}),
+      note: 'The charge did not go through and no money was taken. They may try again.',
+    });
+  }
+
+  /**
+   * They closed the hosted checkout without paying. The softest of the three
+   * signals, and the noisiest — its own form, so it can be muted on its own.
+   */
+  cancelled(input: {
+    email: string | null; amountMinor: number | null;
+    currency: string; checkoutId: string | null;
+  }): void {
+    this.send(LEADS.cancelledKey, 'payment_notice_cancelled', {
+      subject: `Pro checkout cancelled${input.email ? ` — ${input.email}` : ''}`,
+      ...(input.email ? { email: input.email } : {}),
+      amount: major(input.amountMinor, input.currency),
+      ...(input.checkoutId ? { checkout_id: input.checkoutId } : {}),
+      note: 'The checkout was closed before paying. Nothing was charged.',
+    });
+  }
+
+  /**
+   * The shared path for the two outcomes the visitor stays on the page for.
+   * Same shape as completed(): a fetch, because nothing is navigating, and a
+   * failure that only reaches New Relic — a notice must never be able to
+   * disturb the screen the customer is reading.
+   */
+  private send(key: string, action: string, fields: Record<string, string>): void {
+    if (!key) return;
+    void fetch(LEADS.endpoint, {
+      method: 'POST', headers: { Accept: 'application/json' }, body: this.compose(key, fields),
+    })
       .then(async (res) => {
         const json = await res.json().catch(() => ({}) as { success?: boolean });
-        this.obs.action('payment_notice_paid', { delivered: json.success === true });
+        this.obs.action(action, { delivered: json.success === true });
       })
-      .catch(() => this.obs.error('payment completed notice failed to send', {}));
+      .catch(() => this.obs.error(`${action} failed to send`, {}));
   }
 
   private compose(key: string, fields: Record<string, string>): FormData {

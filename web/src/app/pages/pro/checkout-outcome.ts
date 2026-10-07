@@ -110,9 +110,16 @@ export class CheckoutOutcome {
     // typed ?payment=cancelled has no token behind it and changes nothing.
     if (flag === 'cancelled') {
       if (!this.payments.takeToken()) return;
+      // Read before clearToken() wipes all three. This branch returns early,
+      // so it is the only chance to tell the notice what was abandoned.
+      const amount = this.payments.takeAmount();
+      const currency = this.payments.takeCurrency();
+      const email = this.payments.takeEcEmail();
       this.payments.clearToken();
-      this.reference.set(cid ?? this.payments.takeCheckoutId() ?? ref);
+      const closedId = cid ?? this.payments.takeCheckoutId();
+      this.reference.set(closedId ?? ref);
       this.analytics.reportPaymentResult('cancelled', cid ?? '');
+      this.notice.cancelled({ email, amountMinor: amount, currency, checkoutId: closedId });
       this.state.set('cancelled');
       this.clearQuery();
       return;
@@ -132,19 +139,24 @@ export class CheckoutOutcome {
     this.reference.set(checkoutId ?? ref);
     this.analytics.reportPaymentResult(flag, checkoutId ?? '');
 
+    // Read once, and before the failed branch below calls clearToken(), which
+    // wipes it. takeEcEmail clears as it reads, and the Ads match, the paid
+    // notice and the failed notice all want the same address.
+    const ecEmail = this.payments.takeEcEmail();
+
     if (flag === 'failed') {
       this.payments.clearToken();
       this.analytics.reportPaymentFailed(checkoutId ?? '');
+      this.notice.failed({
+        email: ecEmail, reference: ref, amountMinor: this.amountPaise(),
+        currency: this.currency(), checkoutId,
+      });
       this.state.set('failed');
       this.clearQuery();
       return;
     }
 
-    // Enhanced Conversions match data for the Ads purchase fire below. Read
-    // once here so all three reportPurchase branches are covered.
-    // Read once: takeEcEmail clears as it reads, and both the Ads match below
-    // and the payment notice need the address.
-    const ecEmail = this.payments.takeEcEmail();
+    // Only on the way to a purchase: this is the Ads conversion's match data.
     if (ecEmail) this.analytics.setAdsUserData(ecEmail);
 
     // `done` is already an outcome, not a hint: the hosted checkout calls
