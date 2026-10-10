@@ -4,13 +4,13 @@ description: "Practical AES-128/192/256 guide: ECB, CBC, CTR, IV rules, padding,
 date: "2025-06-15"
 tags: [AES, encryption, CBC, CTR, payment testing]
 category: "Cryptography"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Advanced Encryption Standard (AES) is the workhorse symmetric algorithm for modern payment platforms—protecting keys at rest, wrapping key material, securing TLS payloads, and underpinning many MAC constructions when combined with proper modes. Yet “we use AES” is never enough for a certification binder: auditors and integration partners want **named modes**, explicit **IV/nonce** rules, and unambiguous **padding** behavior.
 
-This guide frames AES the way payment labs need it: as a contract between components that must produce **byte-identical** results under pinned inputs. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free desktop app for Windows, macOS, and Linux with 70+ tools spanning cryptography (AES, DES/3DES, RSA, ECDSA, hash, FPE), Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and payment primitives.
+This guide frames AES the way payment labs need it: as a contract between components that must produce **byte-identical** results under pinned inputs. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free desktop app for Windows, macOS, and Linux with 64 tools spanning cryptography (AES, DES/3DES, RSA, ECDSA, hash, FPE), Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and payment primitives.
 
 ## AES key sizes: 128, 192, and 256 bits
 

@@ -170,7 +170,7 @@ export const MAC_TOOLS_GUIDE: RefGuide = {
             'Data:   48656C6C6F     (ASCII "Hello")',
             '',
             'Padded: 48656C6C6F800000',
-            'Output: B11FFC78A4FB1B5A',
+            'Output: 8F9E4CCDD623E590',
           ],
         },
       ],

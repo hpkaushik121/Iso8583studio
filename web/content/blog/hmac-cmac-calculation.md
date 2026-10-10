@@ -4,15 +4,15 @@ description: "Compare HMAC-SHA256 and CMAC-AES for payment systems: strengths, c
 date: "2025-08-05"
 tags: [HMAC, CMAC, AES, SHA-256, payment security]
 category: "Payment Security"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Retail payments spent decades living inside DES-shaped boxes. Modern systems increasingly adopt **HMAC** with SHA-2 families and **CMAC** with AES—partly for strength, partly for alignment with API gateways, partly because cloud-native services prefer well-studied constructions with straightforward test vectors.
 
 But “modern” does not mean “interchangeable.” **HMAC-SHA256** and **CMAC-AES** differ in assumptions, performance profiles, key sizes, and—most importantly—what your counterpart actually implements. If you pick the wrong family, you will generate beautiful authentication tags that are correct for *some* protocol—but not yours.
 
-This article compares the two at an integrator level and outlines practical testing patterns. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools—including HMAC and CMAC helpers—so you can validate tags locally before you burn bridge time with partners.
+This article compares the two at an integrator level and outlines practical testing patterns. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools—including HMAC and CMAC helpers—so you can validate tags locally before you burn bridge time with partners.
 
 ## HMAC-SHA256: keyed hashing done carefully
 

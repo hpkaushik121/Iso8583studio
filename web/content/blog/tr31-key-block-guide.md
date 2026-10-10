@@ -4,13 +4,13 @@ description: "Learn TR-31 key block structure: header, key usage, algorithm, and
 date: "2025-07-05"
 tags: [TR-31, key block, HSM, key usage, ANSI]
 category: "Key Management"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 ANSI X9 TR-31 defines a **key block** format for exchanging symmetric keys with explicit metadata: what the key may do, which algorithms apply, and how it may be used in systems that enforce policy at import time. In practice, TR-31 is how modern payment environments reduce “mystery keys”—a wrapped blob with a story attached—compared to legacy wrappers that assumed everyone agreed on usage out-of-band.
 
-For testers, TR-31 is a **contract**: parse the header wrong and you import successfully into the wrong slot; interpret usage bits loosely and you authorize PIN encryption with a MAC key in spirit if not in letter. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 70+ tools, including TR-31 and key-block utilities alongside Thales, Futurex, Atalla, and SafeNet calculators, DEA keys, keyshare, cryptography, Host Simulator, and HSM Simulator (PayShield 10K).
+For testers, TR-31 is a **contract**: parse the header wrong and you import successfully into the wrong slot; interpret usage bits loosely and you authorize PIN encryption with a MAC key in spirit if not in letter. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 64 tools, including TR-31 and key-block utilities alongside Thales, Futurex, Atalla, and SafeNet calculators, DEA keys, keyshare, cryptography, Host Simulator, and HSM Simulator (PayShield 10K).
 
 ## Why TR-31 matters in payment integrations
 

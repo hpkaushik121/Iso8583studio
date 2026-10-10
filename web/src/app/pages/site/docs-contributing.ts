@@ -63,20 +63,20 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
       </section>
 
       <section lfSection id="contact" n="06" heading="Where to start" [hold]="false">
-        <p class="lf-p ds-hold" [style.--d]="260">Not sure where to start? Questions and ideas are welcome in <a href="https://github.com/hpkaushik121/Iso8583studio/discussions">Discussions</a>, or reach us via the <a href="/contact">contact page</a>.</p>
+        <p class="lf-p ds-hold" [style.--d]="260">Not sure where to start? Questions and ideas are welcome in <a href="https://github.com/hpkaushik121/Iso8583studio/issues">Issues</a>, or reach us via the <a href="/contact">contact page</a>.</p>
         <div class="lf-cards">
           <lf-link-card class="ds-item" [style.--d]="320" icon="git-pull-request" eyebrow="Good first change" title="Open a pull request"
                         body="Fork, branch, build, and open the PR against main. Small fixes land fastest."
                         cta="Open the repository" href="https://github.com/hpkaushik121/Iso8583studio" />
-          <lf-link-card class="ds-item" [style.--d]="460" icon="chats-circle" eyebrow="Questions &amp; ideas" title="Discussions"
+          <lf-link-card class="ds-item" [style.--d]="460" icon="chats-circle" eyebrow="Questions &amp; ideas" title="Issues"
                         body="Ask before you build if a change is large, or float an idea for a new tool."
-                        cta="Start a discussion" href="https://github.com/hpkaushik121/Iso8583studio/discussions" />
+                        cta="Open an issue" href="https://github.com/hpkaushik121/Iso8583studio/issues" />
           <lf-link-card class="ds-item" [style.--d]="600" icon="bug" eyebrow="Something broken" title="Issues"
                         body="Report a bug with environment, steps and logs, or request a feature."
                         cta="Open an issue" href="https://github.com/hpkaushik121/Iso8583studio/issues" />
         </div>
         <div class="lf-foot ds-hold" [style.--d]="380">
-          <span class="lf-foot-line">AGPL v3 · JDK 11+ · Gradle wrapper included</span>
+          <span class="lf-foot-line">AGPL v3 · JDK 17+ · Gradle wrapper included</span>
           <a class="lf-foot-link" routerLink="/contact">Contact us <ui-icon name="arrow-right" [size]="13" /></a>
         </div>
       </section>

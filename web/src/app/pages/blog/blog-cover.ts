@@ -18,7 +18,7 @@ import { UiIcon } from '../../ui';
       <span class="blog-cover-fallback" aria-hidden="true"><ui-icon [name]="icon()" [size]="30" /></span>
     } @else {
       <img #img [src]="src()" [attr.srcset]="srcset()" [attr.sizes]="srcset() ? sizes() : null"
-           alt="" width="640" height="360" decoding="async"
+           [alt]="alt()" width="640" height="360" decoding="async"
            [attr.loading]="eager() ? 'eager' : 'lazy'" (error)="failed.set(true)">
     }
   `,
@@ -32,6 +32,8 @@ export class BlogCover {
   /** Phosphor icon of the post's topic, for the fallback. */
   readonly icon = input('article');
   readonly eager = input(false);
+  /** Describes the cover; pass the post title. Empty keeps it decorative. */
+  readonly alt = input('');
 
   protected readonly failed = signal(false);
   protected readonly broken = computed(() => this.failed() || !this.src());

@@ -4,8 +4,8 @@ description: "Step-by-step install for ISO8583Studio on Windows, Mac, and Linux:
 date: "2025-01-20"
 tags: [installation, cross-platform, desktop app, ISO8583Studio, setup]
 category: "Getting Started"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 You found **ISO8583Studio** because you need a **local payment testing workspace**—not another browser tab that wants your secrets. This guide walks you through **installing the free desktop app** on **Windows**, **macOS**, and **Linux**, what to expect on **first launch**, and how to **navigate the UI** so you can go from “downloaded artifact” to “parsed ISO 8583 message” in minutes.
@@ -15,7 +15,7 @@ You found **ISO8583Studio** because you need a **local payment testing workspace
 ISO8583Studio is a **cross-platform desktop application** built with **Kotlin/Compose Multiplatform**. Releases are published on GitHub, and the official site points to the same download entry points. Always prefer the **latest release** linked from the project page to pick up fixes and new tools.
 
 - Website: [https://iso8583.studio](https://iso8583.studio)
-- Latest downloads: [https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+- Latest downloads: [iso8583.studio/download](https://iso8583.studio/download)
 
 ## Windows installation
 
@@ -115,4 +115,4 @@ Because ISO8583Studio ships as a desktop release, plan updates the same way you 
 
 ## Conclusion
 
-Installing ISO8583Studio should be straightforward: download the latest release for **Windows**, **macOS**, or **Linux**, complete any OS-specific permission prompts, then spend your first session mapping the UI to your daily tasks—**simulation**, **EMV**, **crypto**, and **field-level ISO 8583 work**. When you are ready, grab the newest build here and start testing locally: [https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest).
+Installing ISO8583Studio should be straightforward: download the latest release for **Windows**, **macOS**, or **Linux**, complete any OS-specific permission prompts, then spend your first session mapping the UI to your daily tasks—**simulation**, **EMV**, **crypto**, and **field-level ISO 8583 work**. When you are ready, grab the newest build here and start testing locally: [iso8583.studio/download](https://iso8583.studio/download).

@@ -181,6 +181,9 @@
 .rsv-box--wait { border-color: rgba(106, 183, 255, .35); background: rgba(30, 136, 229, .07); }
 .rsv-box--ok { border-color: rgba(100, 216, 203, .4); background: rgba(100, 216, 203, .08); }
 .rsv-box--bad { border-color: rgba(229, 72, 77, .45); background: rgba(229, 72, 77, .08); }
+.rsv-box--off { border-color: var(--line-hi); background: var(--neutral-wash); }
+.rsv-box--off .rsv-box-title .ui-icon { color: var(--muted); }
+.rsv-box--off .rsv-box-foot--rule { border-top-color: var(--line); }
 
 .rsv-box-title { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: var(--fs-sm); font-weight: 500; }
 .rsv-box--ok .rsv-box-title .ui-icon { color: var(--teal-hi); }

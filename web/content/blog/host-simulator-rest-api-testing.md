@@ -4,8 +4,8 @@ description: "Use ISO8583Studio Host Simulator REST mode to exercise JSON/XML pa
 date: "2025-04-05"
 tags: [REST, JSON, payment-API, host-simulator]
 category: "Host Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Acquirers and processors increasingly expose **HTTP APIs**—sometimes beside classic **ISO 8583 over TCP**. If your stack speaks JSON today and bitmaps tomorrow, you need a simulator that does not force you to swap tools mid-sprint. **ISO8583Studio** is a free desktop application for **Windows, macOS, and Linux** (Kotlin/Compose) with a **Host Simulator** that includes **REST** alongside TCP and RS232.
@@ -99,7 +99,7 @@ REST tests often leak secrets into shell history.
 
 ## How ISO8583Studio fits
 
-Beyond REST, ISO8583Studio ships **70+ tools**: **Host Simulator** (TCP, REST, RS232, Server/Client/Proxy), **HSM Simulator** (PayShield 10K–compatible commands), **APDU Simulator**, **EMV** utilities, **cryptography**, **key management**, and payment helpers (CVV, PIN block, DUKPT, MAC, HMAC, CMAC).
+Beyond REST, ISO8583Studio ships **64 tools**: **Host Simulator** (TCP, REST, RS232, Server/Client/Proxy), **HSM Simulator** (PayShield 10K–compatible commands), **APDU Simulator**, **EMV** utilities, **cryptography**, **key management**, and payment helpers (CVV, PIN block, DUKPT, MAC, HMAC, CMAC).
 
 ## Contract testing vs UI testing
 

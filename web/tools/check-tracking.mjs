@@ -75,7 +75,7 @@ function shell(route, doc) {
   expect(route, doc, 'header.nav-bar a.nav-a', 2);
   expect(route, doc, 'header.nav-bar a.pro-pill');
   expect(route, doc, 'header.nav-bar button.ham[aria-expanded]');
-  expect(route, doc, 'header.nav-bar a[href*="releases/latest"]');
+  expect(route, doc, 'header.nav-bar a[href="/download"]');
   expect(route, doc, '.m-menu p.grp', 5);
   expect(route, doc, '.m-menu > a', 30);
   expect(route, doc, 'footer .f-col > b', 5);
@@ -182,7 +182,7 @@ const PRO_NUDGE = [
 function home(doc) {
   const route = '/';
   expect(route, doc, 'section.hero[data-sect="hero"]');
-  expect(route, doc, '.hero .hero-ctas a[href*="releases/latest"]');
+  expect(route, doc, '.hero .hero-ctas a[href="/download"]');
   expect(route, doc, '#flowRail .node h3', 6);
   expect(route, doc, '#simGrid .simtile .st-name', 9, true);
   expect(route, doc, 'a.cat h3', 6, true);

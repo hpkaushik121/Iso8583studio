@@ -1,11 +1,11 @@
 ---
 title: "What Is ISO8583Studio? A Free Desktop Toolkit for Payment Developers"
-description: "Discover ISO8583Studio: a free cross-platform app with 70+ tools for ISO 8583, EMV, HSM, and payment crypto testing—built for developers."
+description: "Discover ISO8583Studio: a free cross-platform app with 64 tools for ISO 8583, EMV, HSM, and payment crypto testing—built for developers."
 date: "2025-01-15"
 tags: [ISO8583Studio, payment testing, desktop tools, EMV, HSM]
 category: "Getting Started"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 If you build or integrate card payment systems, you have probably spent hours juggling hex dumps, spec PDFs, spreadsheets, and half a dozen one-off scripts just to answer a simple question: *Does this message parse correctly?* *Does this cryptogram verify?* *What did the host actually return?* **ISO8583Studio** exists to put those workflows in one place—a **free, cross-platform desktop application** (Windows, macOS, and Linux) purpose-built for **payment transaction processing** and the messy reality of **ISO 8583**, **EMV**, **HSM behavior**, and **cryptographic utilities** that surround it.
@@ -18,7 +18,7 @@ ISO8583Studio is designed as a **local-first** workspace: your test artifacts st
 
 ## What ISO8583Studio actually includes
 
-At its core, the product bundles **70+ tools** across several domains that mirror how payment engineers actually work.
+At its core, the product bundles **64 tools** across several domains that mirror how payment engineers actually work.
 
 ### Host and device simulation
 
@@ -58,7 +58,7 @@ ISO8583Studio is built with **Kotlin** and **Compose Multiplatform**, which matt
 You can learn more on the project website and download the latest release for your platform:
 
 - Website: [https://iso8583.studio](https://iso8583.studio)
-- Download: [https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+- Download: [iso8583.studio/download](https://iso8583.studio/download)
 
 ## What ISO8583Studio is not (and why that matters)
 

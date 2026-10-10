@@ -6,7 +6,7 @@
  *  - a route that should exist was not emitted;
  *  - an internal href points at a file that is not there;
  *  - a canonical, og:url or in-page link still carries .html;
- *  - a sitemap entry does not resolve;
+ *  - a sitemap entry does not resolve, or would 301 for lack of a .html mirror;
  *  - a legacy .html URL lost its redirect stub;
  *  - a moved /docs/* route lost its redirect stub or points at the wrong page;
  *  - any URL that is live today is missing from the output.
@@ -60,7 +60,7 @@ const EXPECTED_BLOG = readdirSync(join(ROOT, 'content/blog'))
 
 const EXPECTED_PAGES = [
   '/', '/privacy-policy', '/terms-and-conditions',
-  '/cloud-simulators', '/contact', '/emv-certification', '/kernel', '/middleware', '/pro',
+  '/cloud-simulators', '/contact', '/download', '/emv-certification', '/kernel', '/middleware', '/pro',
   '/docs', '/blogs',
   ...['contributing', 'installation', 'versions'].map((s) => `/docs/${s}`),
   '/simulator',
@@ -74,14 +74,13 @@ const expected = [...EXPECTED_PAGES, ...EXPECTED_BLOG];
 for (const route of expected) {
   if (!routes.has(route)) fail(`route not emitted: ${route}`);
 }
-if (expected.length !== 84) fail(`expected 84 routes, the checker knows about ${expected.length}`);
+if (expected.length !== 85) fail(`expected 85 routes, the checker knows about ${expected.length}`);
 
 // ---- 2/3. internal links resolve, and nothing keeps .html ------------------
 
-const STUBS = new Set([
-  'privacy-policy.html', 'terms-and-conditions.html',
-  ...EXPECTED_BLOG.map((r) => `${r.slice(1)}.html`),
-]);
+// Every non-root route is mirrored to <route>.html so the extensionless URL
+// serves a 200 instead of GitHub Pages' 301 to the slash form.
+const STUBS = new Set(expected.filter((r) => r !== '/').map((r) => `${r.slice(1)}.html`));
 
 for (const file of pages) {
   const html = readFileSync(join(DIST, file), 'utf8');
@@ -146,6 +145,13 @@ else {
     if (!loc.startsWith(SITE)) { fail(`sitemap: foreign origin ${loc}`); continue; }
     if (/\.html/.test(loc)) fail(`sitemap: entry still carries .html -> ${loc}`);
     if (!resolves(loc.slice(SITE.length))) fail(`sitemap: entry does not resolve -> ${loc}`);
+    // A sitemap entry must answer 200 at the published URL. On GitHub Pages an
+    // extensionless path backed only by <path>/index.html is a 301, so the
+    // .html mirror has to exist for every non-root entry.
+    const path = loc.slice(SITE.length).replace(/^\//, '');
+    if (path && !files.has(`${path}.html`)) {
+      fail(`sitemap: ${loc} would 301 on GitHub Pages (no ${path}.html mirror)`);
+    }
   }
   // Every indexable page must be listed.
   const listed = new Set(locs.map((l) => l.slice(SITE.length) || '/'));
@@ -175,6 +181,7 @@ for (const alias of STUBS) {
 for (const [oldRoute, newRoute] of Object.entries(MOVED_ROUTES)) {
   const stub = join(DIST, oldRoute.slice(1), 'index.html');
   if (!existsSync(stub)) { fail(`moved-route stub missing: ${oldRoute}`); continue; }
+  if (!existsSync(join(DIST, `${oldRoute.slice(1)}.html`))) fail(`moved-route stub ${oldRoute} has no .html sibling (GitHub Pages would 301 the bare path)`);
   const html = readFileSync(stub, 'utf8');
   const refresh = html.match(/http-equiv="refresh"[^>]+url=([^">]+)/i)?.[1];
   if (refresh !== newRoute) {

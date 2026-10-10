@@ -113,17 +113,17 @@
     --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    --fs-2xs: 10.5px;
+    --fs-2xs: 12px;
     /* Sizes the original design uses in specific roles. Kept exact rather than
        snapped to the ladder above, because these are load-bearing: rounding
        them visibly changed badges, table cells and card captions. */
-    --fs-badge: 11px;
+    --fs-badge: 12px;
     --fs-th: 12.5px;
     --fs-note: 13.5px;
     --fs-btn: 14.5px;
     --fs-caption: 12px;
     --fs-prose-h4: 18px;
-    --fs-xs: 11.5px;
+    --fs-xs: 12px;
     --fs-sm: 13px;
     --fs-base: 14px;
     /* Reading size for body copy. The original stylesheets set no font-size on

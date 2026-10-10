@@ -163,7 +163,7 @@ export const HSM_COMMAND_CONSOLE_GUIDE: SimGuideData<ConsoleScreenId> = {
     paras: [
       'The HSM Command Console acts as a **client** that talks to an HSM’s host interface. It packs your command payload with the vendor’s framing (length header, STX/ETX, etc.), sends it over the socket, and shows the raw request/response exchange. Point it at ISO8583Studio’s own [HSM Simulator](/simulator/hsm) or at a physical device on your bench.',
     ],
-    screen: { kind: 'screen', id: 'overview', caption: 'connected to Thales payShield at 127.0.0.1:9090 — the 120-command list on the left and an NO / NP HSM Status exchange as formatted request and response' },
+    screen: { kind: 'screen', id: 'overview', caption: 'connected to Thales payShield at 127.0.0.1:9090 — the command list on the left and an NO / NP HSM Status exchange as formatted request and response' },
     features: simFeatures([
       ['buildings', 'Multi-Vendor', 'Thales payShield, Futurex, SafeNet Luna, Utimaco CryptoServer & Atalla, and nCipher nShield — each with the correct default port and framing.'],
       ['terminal-window', 'Command Console', 'Compose host commands from the vendor’s command set, fill in fields, send, and read the decoded response.'],

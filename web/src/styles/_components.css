@@ -842,3 +842,16 @@ ui-logo-mark { display: inline-flex; }
 .lead-box--ok { border-color: rgba(100, 216, 203, .4); background: rgba(100, 216, 203, .08); }
 .lead-box--ok .lead-box-title .ui-icon { color: var(--teal-hi); }
 .lead-box--off .lead-box-title .ui-icon { color: var(--muted); }
+
+/* Touch targets. The header download button (32px), the hamburger (36px) and
+   the hero CTAs (40px) all measured under the 44px guideline on phones. Scoped
+   to coarse pointers so desktop keeps its density. */
+@media (pointer: coarse) {
+    .btn--sm, .nav-download, .btn--primary, .btn--secondary, .btn--ghost, .btn--outline, .stage-link, .accordion-q, .cat { min-height: 44px; }
+    .ham.icon-btn, .icon-btn { min-width: 44px; min-height: 44px; }
+    .f-col a, .footer a, .crumbs a { min-height: 44px; display: inline-flex; align-items: center; }
+    .nav-noscript { display: flex; gap: 16px; padding: 10px 16px; flex-wrap: wrap; }
+    .nav-noscript a { min-height: 44px; display: inline-flex; align-items: center; }
+}
+/* Sits below the fixed header, so its links are reachable with scripting off. */
+.nav-noscript { display: flex; gap: 16px; margin-top: var(--nav-h); padding: 8px 16px; flex-wrap: wrap; font-size: var(--fs-sm); position: relative; z-index: 1; }

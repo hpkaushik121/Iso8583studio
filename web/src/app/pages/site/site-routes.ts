@@ -9,7 +9,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('home') },
     data: { seo: {
       "title": "ISO8583Studio — Payment Testing & Simulation Platform",
-      "description": "ISO8583Studio — the payment engineer's workbench. Watch a live 0200 parse to the bit, then simulate hosts, HSMs and switches. 64 tools & 9 simulators for ISO 8583, EMV, HSM and keys on Windows, macOS & Linux.",
+      "description": "The payment engineer's workbench: 9 simulators and 64 tools for ISO 8583, EMV, HSM and key work. Free and open source for Windows and macOS.",
       "keywords": "ISO 8583, ISO8583, payment testing, transaction simulator, host simulator, HSM simulator, EMV tools, DUKPT, PIN block, payment switch, fintech tool",
       "path": "/",
       "ogType": "website",
@@ -18,40 +18,67 @@ export const siteRoutes: Routes = [
       "author": "Sourabh Kaushik",
       "jsonLd": {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "ISO8583Studio",
-        "operatingSystem": "Windows, macOS, Linux",
-        "applicationCategory": "DeveloperApplication",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "url": "https://iso8583.studio/",
-        "downloadUrl": "https://github.com/hpkaushik121/Iso8583studio/releases/latest",
-        "softwareVersion": "latest",
-        "description": "The payment engineer's workbench: nine simulators and 64 tools for ISO 8583, EMV, HSM and key operations, on Windows, macOS and Linux.",
-        "author": {
-          "@type": "Organization",
-          "name": "AiCortex",
-          "url": "https://iso8583.studio/"
-        },
-        "license": "https://github.com/hpkaushik121/Iso8583studio/blob/main/LICENSE",
-        "featureList": [
-          "ISO 8583 Message Processing",
-          "Host Simulator",
-          "HSM Simulator (Thales payShield 10K)",
-          "POS Simulator",
-          "APDU Simulator",
-          "ATM Simulator",
-          "ECR Simulator",
-          "Switch Simulator",
-          "Issuer Simulator",
-          "Gateway Configuration (TCP/IP, REST, RS232, Dial-Up)",
-          "EMV Certification Tools",
-          "PIN Block Operations",
-          "Key Management (DUKPT, TR-31, 3DES, AES)",
-          "Real-time Transaction Monitoring"
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://iso8583.studio/#organization",
+            "name": "AiCortex Solutions",
+            "url": "https://iso8583.studio/",
+            "logo": { "@type": "ImageObject", "url": "https://iso8583.studio/images/app.png", "width": 512, "height": 512 },
+            "sameAs": [
+              "https://github.com/hpkaushik121/Iso8583studio",
+              "https://www.linkedin.com/company/iso8583-studio",
+              "https://medium.com/@iso8583.studio"
+            ]
+          },
+          {
+            "@type": "Person",
+            "@id": "https://iso8583.studio/#sourabh-kaushik",
+            "name": "Sourabh Kaushik",
+            "url": "https://github.com/hpkaushik121",
+            "sameAs": ["https://github.com/hpkaushik121"],
+            "worksFor": { "@id": "https://iso8583.studio/#organization" }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://iso8583.studio/#website",
+            "url": "https://iso8583.studio/",
+            "name": "ISO8583Studio",
+            "alternateName": "ISO 8583 Studio",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://iso8583.studio/#organization" }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://iso8583.studio/#software",
+            "name": "ISO8583Studio",
+            "description": "The payment engineer's workbench: nine simulators (five shipping) and 64 tools for ISO 8583, EMV, HSM and key operations.",
+            "url": "https://iso8583.studio/",
+            "image": "https://iso8583.studio/images/img.png",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Windows 10+, macOS 10.14+",
+            "softwareVersion": "1.0.0",
+            "releaseNotes": "https://iso8583.studio/docs/versions",
+            "downloadUrl": "https://iso8583.studio/download",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock", "url": "https://iso8583.studio/download" },
+            "license": "https://github.com/hpkaushik121/Iso8583studio/blob/main/LICENSE",
+            "author": { "@id": "https://iso8583.studio/#sourabh-kaushik" },
+            "publisher": { "@id": "https://iso8583.studio/#organization" },
+            "featureList": [
+              "ISO 8583 message processing",
+              "Host Simulator (acquirer, issuer, proxy)",
+              "HSM Simulator (Thales payShield 10K)",
+              "HSM Command Console",
+              "POS Simulator",
+              "APDU Simulator",
+              "Gateway configuration (TCP/IP, REST, RS232, dial-up)",
+              "EMV cryptogram and authentication tools",
+              "PIN block operations",
+              "Key management (DUKPT, TR-31, 3DES, AES)",
+              "Real-time transaction monitoring"
+            ]
+          }
         ]
       }
     } },
@@ -62,7 +89,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Privacy Policy - ISO8583Studio",
-      "description": "ISO8583Studio Privacy Policy - How we protect your data. Desktop-first application with local data processing. GDPR, CCPA compliant. No transaction data collection. Transparent data practices for fintech software.",
+      "description": "How ISO8583Studio handles your data: the desktop app keeps keys and test data on your machine; the website uses analytics and an enquiry form.",
       "keywords": "ISO8583Studio privacy policy, fintech privacy, payment software data protection, ISO 8583 data privacy, desktop application privacy, GDPR compliant fintech, CCPA compliant payment software, local data processing, financial data security, PCI DSS guidelines",
       "path": "/privacy-policy",
       "ogType": "website",
@@ -76,7 +103,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Terms and Conditions - ISO8583Studio",
-      "description": "ISO8583Studio Terms and Conditions - Open source software agreement under the GNU Affero General Public License v3.0. Free to use, modify, and distribute under copyleft terms. No warranties. Professional fintech desktop application.",
+      "description": "Terms for the ISO8583Studio desktop app, free and open source under the GNU AGPL v3: your rights, copyleft obligations and the warranty disclaimer.",
       "keywords": "ISO8583Studio terms and conditions, ISO8583Studio license, AGPL v3, GNU Affero General Public License, copyleft, open source payment software, fintech software license, ISO 8583 software terms, payment processing software agreement, free payment software, open source fintech",
       "path": "/terms-and-conditions",
       "ogType": "website",
@@ -89,7 +116,7 @@ export const siteRoutes: Routes = [
     loadComponent: () => import('./cloud-simulators').then((c) => c.CloudSimulatorsPage),
     resolve: { styles: styleBundles('solutions') },
     data: { seo: {
-      "title": "Cloud Payment Simulators — Host, HSM, POS, Issuer | ISO8583Studio",
+      "title": "Cloud Payment Simulators: Host, HSM, POS | ISO8583Studio",
       "description": "Hosted host, HSM, POS, card, acquirer and issuer simulators. Scriptable, CI-ready payment ecosystem testing without hardware.",
       "path": "/cloud-simulators",
       "ogType": "website"
@@ -109,7 +136,7 @@ export const siteRoutes: Routes = [
   {
     path: "download",
     loadComponent: () => import('./download').then((c) => c.DownloadPage),
-    resolve: { styles: styleBundles('guide', 'docs') },
+    resolve: { styles: styleBundles('guide', 'docs', 'longform') },
     data: { seo: {
       "title": "Download ISO8583Studio — Free Payment Testing Studio",
       "description": "Download ISO8583Studio for Windows, macOS or Linux. Free, open-source payment testing: 9 simulators and 64 tools for ISO 8583, EMV, HSM and key operations.",
@@ -145,7 +172,7 @@ export const siteRoutes: Routes = [
     loadComponent: () => import('./middleware').then((c) => c.MiddlewarePage),
     resolve: { styles: styleBundles('solutions') },
     data: { seo: {
-      "title": "Payment Middleware & Transaction Orchestration | ISO8583Studio",
+      "title": "Payment Middleware & Routing | ISO8583Studio",
       "description": "Payment middleware: intelligent routing, protocol translation between ISO 8583, JSON, XML and REST, with full transaction transparency.",
       "path": "/middleware",
       "ogType": "website"
@@ -168,7 +195,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Documentation - ISO8583Studio",
-      "description": "ISO8583Studio documentation hub — guides for all nine payment simulators, tool references for EMV, cryptography, keys and payment utilities, plus certification and middleware services.",
+      "description": "Documentation hub: guides for all nine payment simulators and reference pages for the EMV, cryptography, key, PIN and MAC tools.",
       "keywords": "ISO8583Studio documentation, ISO 8583 guide, host simulator tutorial, HSM simulator guide, payShield documentation, EMV tools reference, payment testing documentation",
       "path": "/docs",
       "ogType": "website",
@@ -181,7 +208,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "APDU Simulator Documentation - ISO8583Studio",
-      "description": "ISO8583Studio APDU Simulator documentation - run an EMV card profile in-process, drive a real card through a PC/SC reader, or emulate a contact card on STM32 firmware for an external POS terminal. Trace every APDU exchange, run test plans and export an L3 report.",
+      "description": "APDU Simulator: run an EMV card profile in-process, drive a real card over PC/SC or emulate one on STM32 firmware. Trace every APDU, export an L3 report.",
       "keywords": "APDU simulator, EMV card emulator, ISO 7816-4 APDU, card profile, ATR, AID selection, PC/SC reader, smart card emulation, STM32 card emulator, USB-CDC card, EMV test plan, L3 certification report, Visa VCPS, Mastercard M/Chip, logic analyzer capture, sigrok, APDU trace, status word, issuer master key, EMV personalization",
       "path": "/simulator/apdu",
       "ogType": "article",
@@ -256,7 +283,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'preview') },
     data: { seo: {
       "title": "ECR Simulator Documentation - ISO8583Studio",
-      "description": "ISO8583Studio ECR Simulator (in development) - simulate an electronic cash register integrated with a payment terminal, exchanging sale, void and refund messages.",
+      "description": "ECR Simulator (in development): an electronic cash register integrated with a payment terminal, exchanging sale, void and refund messages.",
       "keywords": "ECR simulator, electronic cash register, ECR POS integration, register terminal protocol, sale void refund, RS232 ECR, cash register payment",
       "path": "/simulator/ecr",
       "ogType": "website"
@@ -268,7 +295,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "EMV Tools Documentation - ISO8583Studio",
-      "description": "ISO8583Studio EMV Tools documentation - SDA and DDA verification, EMV 4.1 / 4.2 / M-Chip / VSDC cryptogram calculators, issuer script secure messaging, CAP token computation and Visa HCE contactless keys.",
+      "description": "EMV tools: SDA and DDA verification, EMV 4.1/4.2, M/Chip and VSDC cryptogram calculators, issuer-script secure messaging, CAP tokens and Visa HCE keys.",
       "keywords": "EMV tools, SDA, DDA, UDK derivation, session key, application cryptogram, ARQC, TC, AAC, ARPC, M/Chip, VSDC, CAP token, EMV secure messaging, HCE, LUK, qVSDC",
       "path": "/tools/emv-tools",
       "ogType": "website",
@@ -281,7 +308,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "Host Simulator Documentation - ISO8583Studio",
-      "description": "ISO8583Studio Host Simulator documentation - Simulate acquirer and issuer host responses for POS terminals and ATMs. Configure Server/Client/Proxy gateways, transaction rules, ISO 8583 templates, and dynamic placeholders.",
+      "description": "Host Simulator: acquirer and issuer host responses for POS and ATM traffic. Server, client or proxy gateways, transaction rules and ISO 8583 templates.",
       "keywords": "ISO 8583 host simulator, payment host emulator, acquirer simulator, issuer simulator, POS terminal testing, ATM testing tool, ISO8583 message builder, transaction rule engine, payment gateway simulator, TCP/IP payment gateway, REST payment API, RS232 serial payment, dial-up payment connection, ISO 8583 message parser, MTI message type indicator, processing code, ISO 8583 field mapping, ByteArray message format, JSON ISO8583, XML ISO8583, payment proxy server, unsolicited message, host handler, transaction monitoring, payment protocol testing, financial message analysis, payment testing environment, gateway configuration, SSL TLS payment, DES 3DES AES encryption, payment log visualization",
       "path": "/simulator/host",
       "ogType": "article",
@@ -292,10 +319,11 @@ export const siteRoutes: Routes = [
         "@type": "TechArticle",
         "headline": "ISO8583Studio Host Simulator Documentation",
         "description": "Comprehensive documentation for the ISO8583Studio Host Simulator - simulate acquirer and issuer host responses for payment terminals, ATMs, and client applications.",
-        "url": "https://iso8583.studio/simulator/host/",
+        "url": "https://iso8583.studio/simulator/host",
         "author": {
           "@type": "Organization",
-          "name": "AiCortex"
+          "name": "AiCortex Solutions",
+          "url": "https://iso8583.studio/"
         },
         "about": [
           {
@@ -320,7 +348,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "HSM Command Console Documentation - ISO8583Studio",
-      "description": "ISO8583Studio HSM Command Console - a host-command client for Thales payShield, Futurex, SafeNet Luna, Utimaco and nCipher HSMs. Send commands, chain scenarios, and run load tests over TCP/IP with optional TLS.",
+      "description": "HSM Command Console: a host-command client for Thales payShield, Futurex, Luna, Utimaco and nCipher. Send commands, chain scenarios, run load tests.",
       "keywords": "HSM command console, Thales payShield console, HSM host commands, payShield 10K, Futurex Excrypt, SafeNet Luna, Utimaco CryptoServer, nCipher nShield, HSM load test, HSM scenario builder, HSM TLS client",
       "path": "/simulator/hsm-command-console",
       "ogType": "website"
@@ -332,7 +360,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "HSM Simulator Documentation - ISO8583Studio",
-      "description": "ISO8583Studio HSM Simulator documentation - Emulate a payment HSM from a device profile: pick vendor, model and firmware, then drive the Thales payShield command engine. 35+ host commands: key management, PIN operations, MAC generation, RSA, encryption, DUKPT, and LMK storage.",
+      "description": "HSM Simulator: emulate a Thales payShield 10K from a device profile. 41 documented host commands for key management, PIN, MAC, RSA, DUKPT and LMK storage.",
       "keywords": "HSM simulator, HSM vendor profiles, SafeNet Luna, Utimaco CryptoServer, Futurex Excrypt, nCipher nShield, Thales payShield 10K emulator, payShield 9000, hardware security module, HSM emulator, payment HSM, key management, PIN block operations, PIN translation, PIN verification, DUKPT key derivation, ZMK zone master key, ZPK zone PIN key, TPK terminal PIN key, BDK base derivation key, ZEK zone encryption key, 3DES encryption, AES encryption, RSA key generation, MAC generation, ISO 9797, LMK local master key, key check value KCV, PIN block format, ISO 9564, VISA PVV, IBM 3624 PIN, cryptographic operations, payment security, HSM host commands, payShield commands, HSM testing, payment cryptography, financial HSM, key injection, secure key storage, HSM API, PIN encryption",
       "path": "/simulator/hsm",
       "ogType": "article",
@@ -343,10 +371,11 @@ export const siteRoutes: Routes = [
         "@type": "TechArticle",
         "headline": "HSM Simulator Documentation - Thales payShield 10K Emulation",
         "description": "Complete documentation for the ISO8583Studio HSM Simulator emulating a Thales payShield 10K. Covers key management, PIN operations, encryption, MAC, RSA, and 35+ host commands.",
-        "url": "https://iso8583.studio/simulator/hsm/",
+        "url": "https://iso8583.studio/simulator/hsm",
         "author": {
           "@type": "Organization",
-          "name": "AiCortex"
+          "name": "AiCortex Solutions",
+          "url": "https://iso8583.studio/"
         },
         "about": [
           {
@@ -371,7 +400,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "Installation - ISO8583Studio",
-      "description": "How to install ISO8583Studio on Windows, macOS and Linux — prerequisites (JDK 11+), the release JAR, and building the Kotlin Multiplatform source with Gradle.",
+      "description": "How to install ISO8583Studio: the Windows and macOS installers, building from source on Linux with JDK 17+, and packaging a native installer.",
       "path": "/docs/installation",
       "ogType": "website"
     } },
@@ -382,7 +411,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'preview') },
     data: { seo: {
       "title": "Issuer System Documentation - ISO8583Studio",
-      "description": "ISO8583Studio Issuer System (in development) - issuer-side authorization host that approves or declines transactions, verifies PINs and returns ISO 8583 0210 responses.",
+      "description": "Issuer System (in development): an issuer-side authorization host that approves or declines, verifies PINs and returns ISO 8583 0210 responses.",
       "keywords": "issuer simulator, issuer authorization host, ISO 8583 0210, PIN verification, stand-in authorization, card account validation, decline response codes",
       "path": "/simulator/issuer",
       "ogType": "website"
@@ -394,7 +423,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "Key Management Tools Documentation - ISO8583Studio",
-      "description": "ISO8583Studio Key Management Tools documentation - DEA / 3DES key utilities, TR-31 and Thales key blocks, vendor-specific key calculators (Thales, Futurex, Atalla, Safenet), keyshare generation, and SSL/X.509 certificate workflows.",
+      "description": "Key management tools: DEA/3DES key utilities, TR-31 and Thales key blocks, Thales and Atalla key calculators, key shares and X.509 certificates.",
       "keywords": "TR-31 key block, Thales key block, key calculator, Futurex key, Atalla key, Safenet key, keyshare splitting, SSL certificate, X.509, CSR, DES parity, key management, payment HSM keys",
       "path": "/tools/key-tools",
       "ogType": "website",
@@ -417,10 +446,10 @@ export const siteRoutes: Routes = [
   {
     path: "simulator",
     loadComponent: () => import('./docs-payment-simulators').then((c) => c.DocsPaymentSimulatorsPage),
-    resolve: { styles: styleBundles('guide', 'docs') },
+    resolve: { styles: styleBundles('guide', 'docs', 'longform') },
     data: { seo: {
-      "title": "Payment Simulators - ISO8583Studio",
-      "description": "All nine ISO8583Studio payment simulators — host, HSM, HSM command console, POS, APDU, switch, issuer, ATM and ECR — with documentation for each.",
+      "title": "ISO 8583 Simulators: Host, HSM, POS, ATM | ISO8583Studio",
+      "description": "Nine ISO 8583 simulators for the desktop: host, HSM, HSM command console, POS and APDU shipping; switch, issuer, ATM and ECR in development. Free, open source.",
       "keywords": "payment simulators, ISO 8583 simulator, host simulator, HSM simulator, POS simulator, APDU simulator, payment switch, issuer simulator, ATM simulator, ECR simulator",
       "path": "/simulator",
       "ogType": "website"
@@ -444,7 +473,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "Payment Utilities Documentation - ISO8583Studio",
-      "description": "ISO8583Studio Payment Utilities documentation - PIN block calculators (ISO 9564 formats 0-4, OEM variants), AES PIN block, TPK-to-ZPK PIN block translation and DUKPT PIN encryption.",
+      "description": "PIN and payment utilities: ISO 9564 PIN block formats 0-4 and OEM variants, AES PIN blocks, TPK-to-ZPK translation and DUKPT PIN encryption.",
       "keywords": "PIN block calculator, ISO 9564, PIN block format 0, format 1, format 3, format 4, AES PIN block, PIN block translation, TPK ZPK, DUKPT PIN, payment PIN testing",
       "path": "/tools/pin-tools",
       "ogType": "website",
@@ -457,7 +486,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'sims') },
     data: { seo: {
       "title": "POS Simulator Documentation - ISO8583Studio",
-      "description": "ISO8583Studio POS Simulator - boot a real Android terminal in an emulator. Pick a PAX, Ingenico, Sunmi, Verifone, Kozen or Newland model, apply its screen, memory, peripherals and spoofed build identity, then install and run your payment app against it.",
+      "description": "POS Simulator: boot a real Android terminal in an emulator - PAX, Ingenico, Sunmi, Verifone, Kozen or Newland - and run your payment app against it.",
       "keywords": "POS simulator, Android POS emulator, payment terminal emulator, PAX A910S emulator, PAX A920, Ingenico AXIUM, Sunmi P2, Verifone T650c, Kozen N2, Newland N910, NexGo N86, Telpo M1, AVD terminal profile, ro.product spoofing, Android emulator config.ini, terminal hardware profile, thermal printer simulation, PED PIN block, PC/SC card reader, payment app testing",
       "path": "/simulator/pos",
       "ogType": "website"
@@ -469,7 +498,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('guide', 'tools') },
     data: { seo: {
       "title": "Data Converters Documentation - ISO8583Studio",
-      "description": "ISO8583Studio Data Converters documentation - Base64 and Base94 encoders, BCD converter, character encoding, Luhn check digits and the Track 2 codec for EMV tag 57.",
+      "description": "Data converters: Base64 and Base94, BCD, character encoding, Luhn check digits and the Track 2 codec for EMV tag 57.",
       "keywords": "Base64 encoder, Base94 encoder, BCD converter, binary coded decimal, character encoder, hex to ASCII, Luhn check digit, Mod 10, Track 2 codec, EMV tag 57, magstripe track 2",
       "path": "/tools/utility-tools",
       "ogType": "website",

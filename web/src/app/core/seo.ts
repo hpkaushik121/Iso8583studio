@@ -28,6 +28,89 @@ export function canonicalUrl(path: string): string {
   return SITE_ORIGIN + (path.startsWith('/') ? path : `/${path}`);
 }
 
+export const PUBLISHER = {
+  '@type': 'Organization',
+  '@id': `${SITE_ORIGIN}/#organization`,
+  name: 'AiCortex Solutions',
+  url: `${SITE_ORIGIN}/`,
+  logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/images/app.png`, width: 512, height: 512 },
+  sameAs: [
+    'https://github.com/hpkaushik121/Iso8583studio',
+    'https://www.linkedin.com/company/iso8583-studio',
+    'https://medium.com/@iso8583.studio',
+  ],
+};
+
+/** Visible breadcrumb labels, keyed by path. Every simulator, tool and docs
+ *  page renders `Home / Documentation / <label>`; top-level pages render
+ *  `Home / <label>`. Blog posts build their own trail in build-blog-routes. */
+const CRUMB_LABELS: Record<string, string> = {
+  '/blogs': 'Blog', '/cloud-simulators': 'Cloud Simulators', '/contact': 'Contact',
+  '/docs': 'Documentation', '/download': 'Download', '/emv-certification': 'EMV Certification',
+  '/kernel': 'Kernel Development', '/middleware': 'Payment Middleware', '/privacy-policy': 'Privacy Policy',
+  '/pro': 'Pro', '/terms-and-conditions': 'Terms and Conditions',
+  '/docs/contributing': 'How to Contribute', '/docs/installation': 'Installation', '/docs/versions': 'Versions',
+  '/simulator': 'Payment Simulators', '/simulator/apdu': 'APDU Simulator', '/simulator/atm': 'ATM Simulator',
+  '/simulator/ecr': 'ECR Simulator', '/simulator/host': 'Host Simulator',
+  '/simulator/hsm-command-console': 'HSM Command Console', '/simulator/hsm': 'HSM Simulator',
+  '/simulator/issuer': 'Issuer System', '/simulator/payment-switch': 'Switch Simulator', '/simulator/pos': 'POS Simulator',
+  '/tools/card-validation': 'Card Validation', '/tools/cipher-tools': 'Cryptographic Tools',
+  '/tools/dukpt-tools': 'DUKPT Tools', '/tools/emv-tools': 'EMV Tools', '/tools/key-tools': 'Key Management Tools',
+  '/tools/mac-tools': 'MAC Tools', '/tools/pin-tools': 'Payment Utilities', '/tools/utility-tools': 'Data Converters',
+};
+
+const DOC_PREFIX = /^\/(simulator|tools|docs)\//;
+const SERVICE_PATHS = new Set(['/emv-certification', '/middleware', '/kernel', '/cloud-simulators']);
+
+function breadcrumbList(path: string): unknown | undefined {
+  if (path === '/' || path.startsWith('/blogs/')) return undefined;
+  const label = CRUMB_LABELS[path];
+  if (!label) return undefined;
+  const trail: { name: string; path: string }[] = [{ name: 'Home', path: '/' }];
+  if (DOC_PREFIX.test(path) || path === '/simulator') trail.push({ name: 'Documentation', path: '/docs' });
+  trail.push({ name: label, path });
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: trail.map((c, i) => ({
+      '@type': 'ListItem', position: i + 1, name: c.name, item: canonicalUrl(c.path),
+    })),
+  };
+}
+
+/** A sensible block for routes that declare no `jsonLd` of their own: the
+ *  simulator, tool and docs references are TechArticles; the four
+ *  consulting pages are Services. Routes that set `jsonLd` keep it. */
+function defaultJsonLd(seo: PageSeo): unknown | undefined {
+  const url = canonicalUrl(seo.path);
+  if (DOC_PREFIX.test(seo.path)) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      headline: seo.title.replace(/\s*[-|]\s*ISO8583Studio.*$/, ''),
+      description: seo.description,
+      url,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+      inLanguage: 'en',
+      image: seo.image ?? DEFAULT_OG_IMAGE,
+      author: PUBLISHER,
+      publisher: PUBLISHER,
+    };
+  }
+  if (SERVICE_PATHS.has(seo.path)) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: seo.title.replace(/\s*[-|—]\s*ISO8583Studio.*$/, ''),
+      description: seo.description,
+      url,
+      provider: PUBLISHER,
+      areaServed: 'Worldwide',
+    };
+  }
+  return undefined;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SeoService {
   private readonly doc = inject(DOCUMENT);
@@ -60,7 +143,10 @@ export class SeoService {
 
     this.setName('description', description);
     this.setName('keywords', seo.keywords);
-    this.setName('robots', seo.robots ?? 'index, follow');
+    // Large image previews on every indexable page; routes that spell out
+    // 'index, follow' themselves still get it.
+    const robots = seo.robots ?? 'index, follow';
+    this.setName('robots', /noindex|max-image-preview/.test(robots) ? robots : `${robots}, max-image-preview:large`);
     this.setName('author', seo.author);
 
     this.setProperty('og:type', seo.ogType ?? 'website');
@@ -76,7 +162,10 @@ export class SeoService {
     this.setName('twitter:image', image);
 
     this.setCanonical(url);
-    this.setJsonLd(seo.jsonLd);
+    const own = seo.jsonLd === undefined ? [] : Array.isArray(seo.jsonLd) ? seo.jsonLd : [seo.jsonLd];
+    const fallback = own.length ? [] : [defaultJsonLd(seo)];
+    const blocks = [...own, ...fallback, breadcrumbList(seo.path)].filter((b) => b !== undefined);
+    this.setJsonLd(blocks.length ? blocks : undefined);
   }
 
   private setName(name: string, content: string | undefined): void {

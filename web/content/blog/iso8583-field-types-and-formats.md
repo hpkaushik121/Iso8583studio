@@ -4,8 +4,8 @@ description: "Master ISO 8583 data element types—alphanumeric, numeric, binary
 date: "2025-03-05"
 tags: [ISO 8583, field format, LLVAR, BCD, parsing]
 category: "ISO8583 Fundamentals"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 ISO 8583 integrations rarely fail because people cannot read English in a PDF. They fail because **field formats** are easy to misread under pressure: a **numeric** field is not always “ASCII digits,” a **binary** field is not always printable, and a **variable-length** field is not “optional” just because it looks short. If you want stable parsers, you need a disciplined mental model of **field types**, **length indicators**, and the difference between **presentation** in logs versus **bytes on the wire**.
@@ -102,7 +102,7 @@ ISO8583Studio is built for payment engineers who need **local** inspection and c
 
 Download the latest release:
 
-[https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+[iso8583.studio/download](https://iso8583.studio/download)
 
 ## Conclusion
 

@@ -53,8 +53,8 @@ const STATUS: Record<string, Pick<SimCard, 'status' | 'tone' | 'badge'>> = {
   host: { class: 'static-page page-docs-payment-simulators' },
   template: `
     <div class="dx-page">
-      <app-guide-hero heading="Payment Simulators" [crumbs]="crumbs" meta="Simulator index · 9 simulators" [dots]="true"
-                      lede="Nine simulators covering every party in a payment network — from the card and the terminal to the switch, the HSM and the issuer. Each card links to that simulator's full documentation.">
+      <app-guide-hero heading="ISO 8583 Simulators" [crumbs]="crumbs" meta="Simulator index · 9 simulators · free and open source" [dots]="true"
+                      lede="ISO8583Studio is a free, open-source ISO 8583 simulator suite for the desktop: nine simulators covering every party in a payment network, from the card and the terminal to the switch, the HSM and the issuer. Send a 0200 to a host you control, script the 0210, translate a PIN block through a simulated payShield — with no bank connection and nothing leaving your machine. Each card links to that simulator's full documentation.">
         <a class="btn btn--primary btn--glow" [href]="releases">Download Studio<ui-icon name="arrow-up-right" [size]="16" /></a>
         <a class="btn btn--secondary" [routerLink]="[]" fragment="simulators">Browse the simulators<ui-icon name="arrow-down" [size]="16" /></a>
       </app-guide-hero>
@@ -82,6 +82,23 @@ const STATUS: Record<string, Pick<SimCard, 'status' | 'tone' | 'badge'>> = {
           </app-guide-note>
         </app-guide-section>
 
+        <app-guide-section anchor="compare" heading="Which simulator does what" [threshold]="0.1">
+          <p class="gd-lede">Every simulator speaks ISO 8583 to the others, so you can chain them: a POS Simulator sends to a Host Simulator that calls the HSM Simulator for PIN translation. The table is what each one models, the protocol it speaks and the status of the build.</p>
+          <div class="lf-table-wrap"><table class="lf-table dx-matrix">
+            <thead><tr><th>Simulator</th><th>Models</th><th>Protocol / transport</th><th>Status</th></tr></thead>
+            <tbody>
+              @for (row of matrix; track row.link) {
+                <tr>
+                  <td><a class="dx-link" [routerLink]="row.link">{{ row.name }}</a></td>
+                  <td>{{ row.models }}</td>
+                  <td>{{ row.protocol }}</td>
+                  <td><span class="badge" [class]="row.badge">{{ row.status }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table></div>
+        </app-guide-section>
+
         <app-guide-cta heading="Try it on your own transactions"
                        text="Free and open source. Download the studio and run these simulators on your desk in minutes." />
       </app-guide-layout>
@@ -92,6 +109,20 @@ export class DocsPaymentSimulatorsPage {
   protected readonly releases = EXTERNAL.releases;
   protected readonly roadmap = EXTERNAL.roadmap;
 
+  /** The comparison matrix. Status mirrors the cards above; protocol is the
+   *  wire the simulator speaks, not the UI it has. */
+  protected readonly matrix = [
+    { name: 'Host Simulator', link: '/simulator/host', models: 'Acquirer or issuer host; proxy between two hosts', protocol: 'ISO 8583 over TCP/IP, REST, RS232 or dial-up', status: 'Available', badge: 'badge--teal' },
+    { name: 'HSM Simulator', link: '/simulator/hsm', models: 'Thales payShield 10K: LMK storage, keys, PIN, MAC', protocol: 'payShield host commands over TCP/IP', status: 'Available', badge: 'badge--teal' },
+    { name: 'HSM Command Console', link: '/simulator/hsm-command-console', models: 'Host-side client for payShield, Futurex, Luna, Utimaco, nCipher', protocol: 'Vendor host commands over TCP/IP, optional TLS', status: 'Beta', badge: 'badge--blue' },
+    { name: 'POS Simulator', link: '/simulator/pos', models: 'Android payment terminal in an emulator, 23 device models', protocol: 'ISO 8583 to a host; APK install over adb', status: 'Beta', badge: 'badge--blue' },
+    { name: 'APDU Simulator', link: '/simulator/apdu', models: 'EMV card: in-process profile, PC/SC reader or STM32 emulation', protocol: 'ISO 7816 APDU, BER-TLV', status: 'Beta', badge: 'badge--blue' },
+    { name: 'Switch Simulator', link: '/simulator/payment-switch', models: 'BIN routing, protocol translation, stand-in', protocol: 'ISO 8583 in and out', status: 'In development', badge: 'badge--neutral' },
+    { name: 'Issuer System', link: '/simulator/issuer', models: 'Issuer authorization: PIN and ARQC checks, limits, 0210', protocol: 'ISO 8583 0200 in, 0210 out', status: 'In development', badge: 'badge--neutral' },
+    { name: 'ATM Simulator', link: '/simulator/atm', models: 'Self-service cash machine: withdrawal, balance, PIN change', protocol: 'NDC / DDC device states, ISO 8583 to host', status: 'In development', badge: 'badge--neutral' },
+    { name: 'ECR Simulator', link: '/simulator/ecr', models: 'Electronic cash register driving a payment terminal', protocol: 'ECR-to-terminal messages: sale, void, refund', status: 'In development', badge: 'badge--neutral' },
+  ] as const;
+
   protected readonly crumbs: Crumb[] = [
     { label: 'Home', link: '/' },
     { label: 'Documentation', link: '/docs' },
@@ -100,6 +131,7 @@ export class DocsPaymentSimulatorsPage {
 
   protected readonly rail: GuideRailItem[] = [
     { id: 'simulators', label: 'All simulators', icon: 'plugs-connected' },
+    { id: 'compare', label: 'Which does what', icon: 'info' },
     { id: 'download', label: 'Try it', icon: 'download-simple' },
   ];
 

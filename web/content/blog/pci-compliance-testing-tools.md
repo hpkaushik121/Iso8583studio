@@ -4,13 +4,13 @@ description: "Map PCI DSS themes to practical testing: encryption validation, ke
 date: "2025-08-25"
 tags: [PCI DSS, compliance, encryption, security testing, payments]
 category: "Use Cases"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 PCI DSS conversations often begin with fear and end with spreadsheets. That is unfortunate—because compliance is fundamentally **evidence engineering**: showing that controls exist, operate, and cover the systems that touch cardholder data.
 
-This article is not legal advice and not a substitute for your QSA’s guidance. It is a practical lens for engineering teams: which **testing tools** help you validate cryptography and processes in ways that map cleanly to PCI expectations—while avoiding the trap of “we downloaded a utility, therefore we are compliant.” **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools that can accelerate **technical validation** in lab environments when used with proper controls.
+This article is not legal advice and not a substitute for your QSA’s guidance. It is a practical lens for engineering teams: which **testing tools** help you validate cryptography and processes in ways that map cleanly to PCI expectations—while avoiding the trap of “we downloaded a utility, therefore we are compliant.” **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools that can accelerate **technical validation** in lab environments when used with proper controls.
 
 ## What PCI DSS is really asking your engineering org
 

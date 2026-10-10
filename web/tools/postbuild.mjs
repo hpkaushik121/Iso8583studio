@@ -15,7 +15,6 @@ import { MOVED_ROUTES } from './moved-routes.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist/iso8583-studio/browser');
 const SITE = 'https://iso8583.studio';
-const TODAY = new Date().toISOString().slice(0, 10);
 
 if (!existsSync(DIST)) throw new Error(`build output not found at ${DIST} — run ng build first`);
 
@@ -41,19 +40,8 @@ const canonicalOf = (html) =>
   html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/i)?.[1];
 const publishedOf = (html) =>
   html.match(/"datePublished"\s*:\s*"([^"]+)"/)?.[1];
-
-const priorityFor = (route) => {
-  if (route === '/') return '1.0';
-  if (route === '/docs' || route === '/blogs' || route === '/simulator') return '0.9';
-  if (/^\/(docs|simulator|tools)\//.test(route)) return '0.8';
-  if (/^\/blogs\//.test(route)) return '0.7';
-  if (/^\/(privacy-policy|terms-and-conditions)$/.test(route)) return '0.3';
-  return '0.8';
-};
-
-const changefreqFor = (route) =>
-  route === '/' || route === '/blogs' || route === '/docs' || route === '/simulator' ? 'weekly'
-    : /^\/(privacy-policy|terms-and-conditions)$/.test(route) ? 'yearly' : 'monthly';
+const modifiedOf = (html) =>
+  html.match(/"dateModified"\s*:\s*"([^"]+)"/)?.[1];
 
 const indexable = pages.filter((p) => !noindex(p.html));
 const missingCanonical = indexable.filter((p) => !canonicalOf(p.html));
@@ -63,42 +51,53 @@ if (missingCanonical.length) {
 
 const urls = indexable.map((p) => {
   const loc = canonicalOf(p.html);
-  const lastmod = publishedOf(p.html) ?? TODAY;
-  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n` +
-    `    <changefreq>${changefreqFor(p.route)}</changefreq>\n` +
-    `    <priority>${priorityFor(p.route)}</priority>\n  </url>`;
+  // Only a real content date is emitted. Blog posts carry datePublished, and
+  // dateModified once their front matter declares `updated:`; static pages
+  // carry neither and so get no <lastmod> at all. The previous build stamped
+  // the deploy date on every static page, which re-dated 33 URLs on each push
+  // and taught search engines to discount the field site-wide. priority and
+  // changefreq are not emitted: Google ignores both.
+  const lastmod = modifiedOf(p.html) ?? publishedOf(p.html);
+  return `  <url>\n    <loc>${loc}</loc>\n` +
+    (lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : '') +
+    `  </url>`;
 });
+
+// Angular's client-side fallback shell has no content; keep it out of the index.
+const csr = join(DIST, 'index.csr.html');
+if (existsSync(csr) && !noindex(readFileSync(csr, 'utf8'))) {
+  writeFileSync(csr, readFileSync(csr, 'utf8').replace('</head>', '<meta name="robots" content="noindex"></head>'));
+}
 
 writeFileSync(join(DIST, 'sitemap.xml'),
   `<?xml version="1.0" encoding="UTF-8"?>\n` +
   `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
 
-// ---- legacy .html URLs -----------------------------------------------------
+// ---- extensionless URLs served without a redirect ------------------------
 
 /**
- * The 52 blog posts and the two legal pages were indexed at .html URLs, and
- * GitHub Pages cannot issue a 301.
+ * Prerender emits every route as <route>/index.html. GitHub Pages serves that
+ * at /<route>/ and answers the extensionless /<route> with a 301 to the slash
+ * form. The canonical tag, og:url, the sitemap and every internal link all use
+ * the extensionless form, so without this step 30 of the site's URLs were
+ * published as redirects whose target then declared the redirecting URL as
+ * canonical — a circular signal for search engines.
  *
- * These serve the real page rather than a redirect. A redirect stub at
- * blogs/<slug>.html would be ambiguous: a request for /blogs/<slug> can resolve
- * to either <slug>.html or <slug>/index.html, and GitHub Pages' precedence
- * between the two is not something to depend on. If it preferred the .html
- * file, the stub would redirect to a URL that served the stub again — an
- * infinite loop. Serving identical content at both paths is deterministic
- * whichever way it resolves, and the canonical tag (already pointing at the
- * extensionless URL) is what consolidates them for search engines. This also
- * matches how the site behaves today, where both forms return 200.
+ * Mirroring each page to <route>.html makes /<route> resolve to a real 200,
+ * which is how the blog posts and legal pages already behaved. A request for
+ * /<route> can resolve to either <route>.html or <route>/index.html, and
+ * GitHub Pages' precedence between them is not something to depend on; serving
+ * identical content at both paths is deterministic whichever way it resolves,
+ * and the canonical tag consolidates them. A redirect stub here would be
+ * ambiguous for exactly that reason and could loop.
  */
-const legacy = [
-  ...pages.filter((p) => /^\/blogs\/.+/.test(p.route))
-    .map((p) => [`${p.route.slice(1)}.html`, p.route]),
-  ['privacy-policy.html', '/privacy-policy'],
-  ['terms-and-conditions.html', '/terms-and-conditions'],
-];
+const aliases = indexable
+  .filter((p) => p.route !== '/')
+  .map((p) => [`${p.route.slice(1)}.html`, p.route]);
 
-for (const [file, route] of legacy) {
+for (const [file, route] of aliases) {
   const source = join(DIST, route.slice(1), 'index.html');
-  if (!existsSync(source)) throw new Error(`legacy alias has no page to mirror: ${route}`);
+  if (!existsSync(source)) throw new Error(`alias has no page to mirror: ${route}`);
   copyFileSync(source, join(DIST, file));
 }
 
@@ -130,7 +129,7 @@ for (const [oldRoute, newRoute] of Object.entries(MOVED_ROUTES)) {
   }
   const dir = join(DIST, oldRoute.slice(1));
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'),
+  const stub =
     `<!doctype html>\n<html lang="en">\n<head>\n` +
     `<meta charset="utf-8">\n` +
     `<title>Moved to ${SITE}${newRoute} - ISO8583Studio</title>\n` +
@@ -140,7 +139,11 @@ for (const [oldRoute, newRoute] of Object.entries(MOVED_ROUTES)) {
     `<meta http-equiv="refresh" content="0; url=${newRoute}">\n` +
     `</head>\n<body>\n` +
     `<p>This page has moved to <a href="${newRoute}">${SITE}${newRoute}</a>.</p>\n` +
-    `</body>\n</html>\n`);
+    `</body>\n</html>\n`;
+  writeFileSync(join(dir, 'index.html'), stub);
+  // Without the .html sibling the old extensionless URL 301s to its slash form
+  // before the stub can forward it — a three-hop chain for every inbound link.
+  writeFileSync(join(DIST, `${oldRoute.slice(1)}.html`), stub);
 }
 
 // ---- 404 -------------------------------------------------------------------
@@ -149,5 +152,5 @@ const notFound = join(DIST, '404/index.html');
 if (!existsSync(notFound)) throw new Error('the /404 route was not prerendered');
 copyFileSync(notFound, join(DIST, '404.html'));
 
-console.log(`sitemap: ${urls.length} urls | legacy .html aliases: ${legacy.length} | ` +
+console.log(`sitemap: ${urls.length} urls | .html aliases: ${aliases.length} | ` +
   `moved-route stubs: ${Object.keys(MOVED_ROUTES).length} | 404.html written`);

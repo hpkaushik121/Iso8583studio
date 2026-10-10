@@ -36,9 +36,9 @@ export const SIMULATORS: NavLink[] = [
 
 export const TOOLS: NavLink[] = [
   { label: 'Payment Simulators', link: '/simulator', icon: 'plugs-connected', chip: '9', desc: 'Host, HSM, POS, ATM, switch & scheme' },
-  { label: 'EMV & Card Tools', link: '/tools/emv-tools', icon: 'cards', chip: '12', desc: 'Cryptograms, SDA/DDA, ATR, tags, CVV' },
+  { label: 'EMV & Card Tools', link: '/tools/emv-tools', icon: 'cards', chip: '9', desc: 'Cryptograms, SDA/DDA, CAP, HCE' },
   { label: 'Cryptographic Tools', link: '/tools/cipher-tools', icon: 'lock-key', chip: '7', desc: 'AES, DES/3DES, RSA, FPE, hashing' },
-  { label: 'Key Management', link: '/tools/key-tools', icon: 'key', chip: '10', desc: 'DUKPT, TR-31, shares, Thales, Futurex' },
+  { label: 'Key Management', link: '/tools/key-tools', icon: 'key', chip: '9', desc: 'DUKPT, TR-31, shares, Thales, Atalla' },
   { label: 'Payment Utilities', link: '/tools/pin-tools', icon: 'keyboard', chip: '21', desc: 'PIN blocks, PVV, MAC, parsing' },
   { label: 'Data Converters', link: '/tools/utility-tools', icon: 'swap', chip: '6', desc: 'Base64, Base94, BCD, check digits, Track 2' },
   // Previously absent from both nav and footer despite being live pages.
@@ -77,7 +77,11 @@ export const NAV_GROUPS: NavGroup[] = [
 
 export const EXTERNAL = {
   repo: 'https://github.com/hpkaushik121/Iso8583studio',
-  releases: 'https://github.com/hpkaushik121/Iso8583studio/releases/latest',
+  // The site's own download page: installers for Windows and macOS at pinned
+  // URLs, build instructions for Linux. The GitHub releases/latest URL this
+  // used to point at does not resolve (the only release is a pre-release), so
+  // every Download CTA was landing on a bare release list.
+  releases: '/download',
   roadmap: 'https://github.com/users/hpkaushik121/projects/1',
   linkedin: 'https://www.linkedin.com/company/iso8583-studio',
   github: 'https://github.com/hpkaushik121',

@@ -4,13 +4,13 @@ description: "Understand Mastercard CVC3 for contactless: dynamic cryptograms, U
 date: "2025-08-12"
 tags: [Mastercard, CVC3, contactless, ATC, UN]
 category: "Payment Security"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 Contactless tap looks instant to the cardholder, but under the hood it is a choreography of counters, unpredictable numbers, and cryptographic checks. When something goes wrong, logs rarely say “your cryptogram is aesthetically displeasing.” They say **CVC3 failed**—and now you are reconciling **dynamic CVC3**, **UN**, **ATC**, and a kernel configuration that seemed fine yesterday on Visa but not on Mastercard.
 
-This article explains **Mastercard CVC3** at a practitioner level: what makes it “dynamic,” which data elements typically participate, and how to structure lab tests so failures are diagnosable. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools—including EMV-oriented and cryptography utilities—to help you analyze tag data and validate cryptographic workflows during integration testing.
+This article explains **Mastercard CVC3** at a practitioner level: what makes it “dynamic,” which data elements typically participate, and how to structure lab tests so failures are diagnosable. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools—including EMV-oriented and cryptography utilities—to help you analyze tag data and validate cryptographic workflows during integration testing.
 
 ## Why CVC3 exists
 

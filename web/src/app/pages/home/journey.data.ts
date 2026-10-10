@@ -95,7 +95,7 @@ export const JOURNEY_STAGES: JourneyStage[] = [
   },
   {
     n: '06', scene: 'scene-network', align: 'right',
-    label: 'Scheme simulator', title: ['Keep the request', 'moving.'],
+    label: 'Hosted scheme endpoints', title: ['Keep the request', 'moving.'],
     desc: 'Route, delay or hand the request to the issuer.',
     // There is no /simulator/scheme page; the hosted scheme endpoints live here.
     link: '/cloud-simulators',

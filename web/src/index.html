@@ -30,19 +30,19 @@
     The licence key here is a browser key (NRJS- prefix) and is public by
     construction, like the AdSense client id below.
 
-    Worth knowing: browser_consent_mode is off and cookies are enabled in this
-    config, so the agent collects regardless of the cookie banner — unlike the
-    Google tags above, which the banner gates. Session replay masks all text
-    and all inputs, so the enquiry form's contents are not captured, but the
-    session is still recorded.
+    Scope: error and performance telemetry only. Session replay is off and the
+    agent sets no cookies, so it runs without a consent gate and is disclosed
+    in the privacy policy as monitoring rather than tracking. It used to record
+    10% of sessions regardless of the cookie banner; that recorder was never
+    disclosed, so it is disabled rather than gated.
   -->
   <script>
     window.NREUM || (NREUM = {});
     NREUM.init = {
       browser_consent_mode: { enabled: false },
-      privacy: { cookies_enabled: true },
+      privacy: { cookies_enabled: false },
       session_replay: {
-        enabled: true, block_selector: '', mask_text_selector: '*',
+        enabled: false, block_selector: '', mask_text_selector: '*',
         sampling_rate: 10.0, error_sampling_rate: 100.0, mask_all_inputs: true,
         collect_fonts: true, inline_images: false, inline_stylesheet: true,
         fix_stylesheets: true, preload: false, mask_input_options: {},
@@ -130,15 +130,36 @@
         }
         if (sessionStorage.getItem(KEY) === '1') return;
       } catch (e) { /* private mode: fall through and load ads */ }
-      var s = document.createElement('script');
-      s.async = true;
-      s.crossOrigin = 'anonymous';
-      s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8756347363236718';
-      document.head.appendChild(s);
+      // Loaded after the page is interactive rather than in the head: the tag
+      // is ~250 KB and ~90 ms of main thread, none of which the first paint
+      // needs. Idle after `load`, with a ceiling so it still arrives on a
+      // page that never goes idle.
+      var load = function () {
+        var s = document.createElement('script');
+        s.async = true;
+        s.crossOrigin = 'anonymous';
+        s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8756347363236718';
+        document.head.appendChild(s);
+      };
+      var idle = function () {
+        if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 4000 });
+        else setTimeout(load, 1500);
+      };
+      if (document.readyState === 'complete') idle();
+      else window.addEventListener('load', idle, { once: true });
     })();
   </script>
 </head>
 <body>
+  <!-- Navigation for visitors without JavaScript: the header's menu button is
+       inert without script, which left phones with no links at all. Kept out of
+       the Angular templates because hydration cannot reconcile <noscript>
+       content, whose children the browser parses as text when scripting is on. -->
+  <noscript>
+    <nav class="nav-noscript" aria-label="Site">
+      <a href="/simulator">Simulators</a><a href="/docs">Tools &amp; docs</a><a href="/blogs">Blog</a><a href="/download">Download</a><a href="/pro">Pro</a>
+    </nav>
+  </noscript>
   <app-root></app-root>
 </body>
 </html>

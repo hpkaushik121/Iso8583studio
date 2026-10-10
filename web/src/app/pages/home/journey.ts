@@ -170,7 +170,15 @@ export class HomeJourney {
         if (!entries.some((e) => e.isIntersecting)) return;
         io.disconnect();
         import('./journey/index')
-          .then((m) => m.mountJourney(section))
+          // Scene construction is a ~1.5 s main-thread task on a 4x-throttled
+          // phone. Running it inside the scroll handler's frame meant any tap
+          // landing in that window inherited the delay; an idle slot lets the
+          // interaction that woke the observer finish first.
+          .then((m) => new Promise<JourneyHandle>((resolve, reject) => {
+            const go = () => { try { resolve(m.mountJourney(section)); } catch (e) { reject(e); } };
+            if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 1500 });
+            else setTimeout(go, 0);
+          }))
           .then((h) => { if (dead) h.destroy(); else handle = h; })
           .catch((err) => {
             // The plates are still in place, so a failed load costs nothing visible.

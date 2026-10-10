@@ -4,8 +4,8 @@ description: "Step-by-step: parse ISO 8583 messages in ISO8583Studio—MTI, bitm
 date: "2025-03-20"
 tags: [ISO 8583 parser, tutorial, ISO8583Studio, debugging, DE55]
 category: "ISO8583 Fundamentals"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Parsing **ISO 8583** is easy until it is not: one wrong length prefix turns the whole message into plausible nonsense. **ISO8583Studio** is a **free desktop payment testing application** (Windows, macOS, Linux) that helps you move from raw bytes to structured fields with less friction—especially when you combine **message parsing** with **EMV TLV** inspection, **MAC** verification, and other utilities in the same toolchain.
@@ -127,7 +127,7 @@ Your goal is not to memorize the example—it is to follow the method.
 
 Get the latest desktop release for your platform:
 
-[https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+[iso8583.studio/download](https://iso8583.studio/download)
 
 Official site:
 

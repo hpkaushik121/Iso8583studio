@@ -4,13 +4,13 @@ description: "Understand Futurex key formats, derivation paths, and import/expor
 date: "2025-07-01"
 tags: [Futurex, HSM, key derivation, key import, payment testing]
 category: "Key Management"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 Futurex HSMs are a fixture in organizations that need centralized cryptographic processing with strong policy controls—key ceremonies, dual control, auditable operations, and tight integration with payment platforms. Yet “we have an HSM” does not guarantee smooth interoperability: two teams can both be “right” while using different **key blob formats**, **derivation labels**, or **KCV conventions**.
 
-This guide frames what testers and integrators should pin down before they chase cryptic “KEY ERROR” responses: the **format** of keys on the wire, the **derivation** story from root to working keys, and the **import/export** rules that preserve integrity across environments. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 70+ payment tools, including Futurex alongside Thales, Atalla, and SafeNet calculators, TR-31, key blocks, DEA keys, keyshare, Host Simulator, and HSM Simulator (PayShield 10K).
+This guide frames what testers and integrators should pin down before they chase cryptic “KEY ERROR” responses: the **format** of keys on the wire, the **derivation** story from root to working keys, and the **import/export** rules that preserve integrity across environments. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 64 payment tools, including Futurex alongside Thales, Atalla, and SafeNet calculators, TR-31, key blocks, DEA keys, keyshare, Host Simulator, and HSM Simulator (PayShield 10K).
 
 ## Key formats: what “the same key” looks like on disk
 

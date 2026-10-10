@@ -227,8 +227,8 @@ export const ATM_PREVIEW: SimulatorPreviewData = {
   protocols: ['NDC / DDC', 'Device states', 'Withdrawal flows'],
   description: 'A planned environment for ATM journeys, from withdrawal and balance inquiries to PIN changes. See how customer actions, device states and host responses connect.',
   overviewTitle: 'A transaction beyond the screen.',
-  overviewText: 'An ATM flow links a customer action to device behavior and a host response. This simulator is being developed for withdrawal, balance and PIN-change journeys with NDC/DDC device states, so the intended flow can be explored as a connected sequence.',
-  overviewMore: 'The ATM Simulator will represent a self-service cash machine. It will originate ISO 8583 financial requests (withdrawal, balance, transfer, PIN change), model device-level NDC/DDC state flows, and drive them to a host or switch, the same way the [POS Simulator](/simulator/pos) models an attended terminal.',
+  overviewText: 'An ATM flow links a customer action to device behavior and a host response. This simulator is being developed for cash-machine withdrawal, balance and PIN-change journeys with device states modelled on NDC (NCR Direct Connect) and DDC (Diebold Direct Connect), the two protocols that drive most self-service terminals, so the intended flow can be explored as a connected sequence.',
+  overviewMore: 'The ATM Simulator will represent a self-service cash machine. It will originate ISO 8583 financial requests (withdrawal, balance, transfer, PIN change), model device-level NDC and DDC state flows (card read, PIN entry, dispense, eject) the way an NCR or Diebold Nixdorf cash machine does, and drive them to a host or switch, the same way the [POS Simulator](/simulator/pos) models an attended terminal.',
   nodes: [
     { icon: 'user', label: 'Customer', detail: 'Chooses an action' },
     { icon: 'money', label: 'ATM', detail: 'Moves through states' },

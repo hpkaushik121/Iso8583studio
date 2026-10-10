@@ -4,13 +4,13 @@ description: "Learn how EMV Dynamic Data Authentication works, how ICC dynamic s
 date: "2025-05-28"
 tags: [EMV, DDA, smart card, payment testing, cryptography]
 category: "EMV Tools"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Dynamic Data Authentication (DDA) is one of the cornerstones of chip-card security in EMV. Unlike static authentication, DDA proves that the card’s integrated circuit can produce a fresh cryptographic signature over transaction-specific data—so a skimmed copy of static data cannot pass a terminal that enforces DDA. For testers and engineers building acquirer hosts, certification labs, or internal regression suites, understanding DDA end-to-end is essential.
 
-This guide walks through what DDA protects, how the ICC dynamic signature is formed, and how you can verify each step using a focused desktop workflow. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools—including EMV utilities that help you parse tags, inspect cryptograms, and reason about authentication flows without juggling half a dozen separate utilities.
+This guide walks through what DDA protects, how the ICC dynamic signature is formed, and how you can verify each step using a focused desktop workflow. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools—including EMV utilities that help you parse tags, inspect cryptograms, and reason about authentication flows without juggling half a dozen separate utilities.
 
 ## What DDA solves in EMV
 

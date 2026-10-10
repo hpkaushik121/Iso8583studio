@@ -260,3 +260,6 @@
     .dx-sims,
     .dx-platforms { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Download page: 64-hex checksums wrap instead of forcing the table wide. */
+.dx-sum { word-break: break-all; font-size: var(--fs-sm); }

@@ -250,17 +250,22 @@ export async function mountStory(root, opts = {}) {
     const pmrem = new T.PMREMGenerator(renderer); envTarget = pmrem.fromScene(scene, .035); pmrem.dispose();
     scene.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
   }
-  function setup() {
+  // Yields to the event loop between the heavy steps, so a tap that lands during the build
+  // waits for one step (tens of ms) instead of the whole scene construction.
+  const breathe = () => new Promise(resolve => { const s = globalThis.scheduler; if (s?.yield) s.yield().then(resolve, resolve); else setTimeout(resolve, 0); });
+  async function setup() {
     try { renderer = new T.WebGLRenderer({ canvas: offscreen, alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' }); }
     catch (error) { fallback(); ready = true; return; }
     root.classList.add('journey-live'); // site: plates give way to the scenes
     renderer.setClearColor(0x000000, 0); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
     setupEnvironment();
+    await breathe(); if (disposed) return;
     glowMap = textureGlow();
     const models = premium.buildPremium(T);
-    rows.forEach((row, index) => {
-      const def = STAGES[index]; if (!def) return;
+    for (const [index, row] of rows.entries()) {
+      await breathe(); if (disposed) return;
+      const def = STAGES[index]; if (!def) continue;
       const scene = new T.Scene(); lightScene(scene);
       const wrap = new T.Group(); scene.add(wrap);
       const camera = new T.OrthographicCamera(-3, 3, 3, -3, .1, 100);
@@ -272,7 +277,8 @@ export async function mountStory(root, opts = {}) {
       built.model.traverse(o => { if (o.isMesh && !o.material.transparent) { o.castShadow = true; o.receiveShadow = true; } });
       const canvas = row.querySelector('canvas');
       shots.push({ index, def, row, scene, wrap, model: built.model, card: built.card, camera, span: built.span, fit: built.fit, canvas, ctx: canvas.getContext('2d', { alpha: true }), view: row.querySelector('.scene-view'), width: 1, height: 1, dirty: true, lastPose: '' });
-    });
+    }
+    await breathe(); if (disposed) return;
     setupBridge();
     on(offscreen, 'webglcontextlost', e => { e.preventDefault(); contextLost = true; cancelAnimationFrame(raf); raf = 0; fallback(); });
     on(offscreen, 'webglcontextrestored', () => { contextLost = false; envTarget?.dispose(); setupEnvironment(); shots.forEach(s => { s.scene.environment = envTarget.texture; s.dirty = true; }); root.classList.remove('no-webgl'); root.classList.add('journey-live'); resize(); wake(); }); // site: class switch
@@ -517,7 +523,7 @@ export async function mountStory(root, opts = {}) {
   const observer = new ResizeObserver(() => { if (root.clientWidth !== lastWidth) resize(); });
   observer.observe(root); cleanups.push(() => observer.disconnect());
 
-  setup(); resize(); syncPaused();
+  setup().then(() => { if (!disposed) { resize(); syncPaused(); } });
   document.fonts?.ready.then(() => { if (!disposed) resize(); });
 
   return {

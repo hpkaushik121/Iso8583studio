@@ -78,9 +78,9 @@ const SOLUTIONS = [
 ];
 
 const FAQ: AccordionItem[] = [
-  { q: 'What is ISO8583Studio?', a: 'A desktop workbench for payment engineers: nine simulators (host, HSM, POS, APDU, switch, issuer, scheme, ATM, ECR) and 64 tools for ISO 8583, EMV, PIN, MAC and key work — on Windows, macOS and Linux, free and open source under the GNU AGPL v3.' },
+  { q: 'What is ISO8583Studio?', a: 'A desktop workbench for payment engineers: nine simulators — five shipping (host, HSM, HSM command console, POS, APDU) and four in development (switch, issuer, ATM, ECR) — and 64 tools for ISO 8583, EMV, PIN, MAC and key work. Installers for Windows and macOS, build from source on Linux, free and open source under the GNU AGPL v3.' },
   { q: 'Can I test ISO 8583 transactions without a production host?', a: 'Yes. Stand up an authorization host on your laptop, script any MTI and response code, and run a full 0200 → 0210 flow with no bank connection, no lab booking and no scheme contact.' },
-  { q: 'Do I need a real payShield HSM to test PIN blocks and MACs?', a: 'No. The HSM Simulator implements payShield 10K host commands for key management, PIN block translation and ISO 9797 MAC verification, and its output matches a real appliance byte for byte.' },
+  { q: 'Do I need a real payShield HSM to test PIN blocks and MACs?', a: 'No. The HSM Simulator implements payShield 10K host commands for key management, PIN block translation and ISO 9797 MAC verification, and implements the 41 host commands documented on the HSM Simulator page.' },
   { q: 'Does it help with EMV L2/L3 certification?', a: 'That is what it is built for. Drive APDU dialogues command by command, work through certification test cases, validate cryptograms and capture logs — so you cut lab time and re-submission cycles before you book a slot.' },
   { q: 'Which protocols and message formats are supported?', a: 'Binary ISO 8583, hexadecimal, JSON, XML, key-value and YAML mapping, carried over TCP/IP, RS232, REST or dial-up — mapped on the way in and out.' },
   { q: 'Can I run the simulators in CI?', a: 'Yes. Cloud Simulators expose hosted host and HSM endpoints so pipelines and distributed teams point at a stable URL instead of standing up an environment per branch.' },
@@ -130,7 +130,7 @@ const LIGHT_RADIUS = 210;
 
     <div class="hp-strip" uiReveal>
       <div class="ds-hold">
-        <p class="hp-strip-caption">Nine simulators ship in the box · open source under AGPL v3</p>
+        <p class="hp-strip-caption">Nine simulators — five shipping, four in development · open source under AGPL v3</p>
         <div class="hp-marquee" id="simGrid">
           <div class="hp-marquee-track ds-marquee">
             @for (s of simulators; track s.short) {
@@ -306,7 +306,7 @@ const LIGHT_RADIUS = 210;
         <div class="hp-os ds-hold" [style.--d]="600">
           <span><ui-icon name="apple-logo" [size]="17" />macOS</span>
           <span><ui-icon name="windows-logo" [size]="17" />Windows</span>
-          <span><ui-icon name="linux-logo" [size]="17" />Linux</span>
+          <span><ui-icon name="linux-logo" [size]="17" />Linux (from source)</span>
         </div>
       </ui-cta-panel>
     </div>

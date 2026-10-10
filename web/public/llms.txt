@@ -1,0 +1,47 @@
+# ISO8583Studio
+
+> Free, open-source (AGPL v3) desktop workbench for payment engineers: nine
+> simulators (five shipping, four in development) and 64 tools for ISO 8583 message testing, EMV certification
+> preparation, Thales payShield 10K HSM simulation, PIN-block and key
+> operations. Runs on Windows and macOS; builds from source on Linux. Keys and
+> test data never leave your machine. Maintained by Sourabh Kaushik.
+
+Simulate an authorization host, an HSM, a POS terminal, a card and a switch on
+one laptop, then send a 0200 and script the 0210 response with no bank
+connection, lab booking or physical HSM.
+
+## Core concepts
+- [ISO 8583 message format](https://iso8583.studio/blogs/understanding-iso8583-message-format): message structure, MTI, bitmaps and data elements
+- [Message Type Indicators](https://iso8583.studio/blogs/iso8583-message-type-indicators): the 0200/0210 authorization pair and other MTIs
+- [Bitmaps explained](https://iso8583.studio/blogs/iso8583-bitmap-explained): primary and secondary bitmaps and field presence
+- [Field 39 response codes](https://iso8583.studio/blogs/iso8583-response-codes-reference): approval and decline codes
+- [ISO 9564 PIN block formats](https://iso8583.studio/blogs/pin-block-formats-iso9564): layout, padding and AES Format 4
+- [DUKPT key derivation](https://iso8583.studio/blogs/dukpt-key-derivation-guide): BDK, IPEK and transaction keys
+- [TR-31 key blocks](https://iso8583.studio/blogs/tr31-key-block-guide): key block structure and interchange
+
+## Simulators
+- [Host Simulator](https://iso8583.studio/simulator/host): acquirer/issuer host in server, client or proxy mode over TCP/IP, REST, RS232 or dial-up
+- [HSM Simulator](https://iso8583.studio/simulator/hsm): Thales payShield 10K host commands for key management, PIN translation and ISO 9797 MAC
+- [HSM Command Console](https://iso8583.studio/simulator/hsm-command-console): interactive payShield host-command client with worked request/response pairs
+- [POS Simulator](https://iso8583.studio/simulator/pos): terminal emulation across 23 device models, including APK install
+- [APDU Simulator](https://iso8583.studio/simulator/apdu): card-level APDU dialogue and TLV for L3 test cases
+- [All simulators](https://iso8583.studio/simulator): status, protocol and transport per simulator
+
+## Tools
+- [EMV & Card Tools](https://iso8583.studio/tools/emv-tools): SDA/DDA verification, ARQC/ARPC cryptograms, M/Chip, VSDC, CAP
+- [PIN Tools](https://iso8583.studio/tools/pin-tools): PIN block build and translate, IBM 3624 offset, PVV, AS2805
+- [Key Management Tools](https://iso8583.studio/tools/key-tools): DUKPT, TR-31, key components, KCVs, Thales key formats
+- [MAC Tools](https://iso8583.studio/tools/mac-tools): ISO 9797-1, ANSI X9.9/X9.19, HMAC
+- [Cryptographic Tools](https://iso8583.studio/tools/cipher-tools): 3DES, AES, RSA, hashing, format-preserving encryption (FF1, FF3-1)
+- [DUKPT Tools](https://iso8583.studio/tools/dukpt-tools), [Card Validation](https://iso8583.studio/tools/card-validation), [Data Converters](https://iso8583.studio/tools/utility-tools)
+
+## Project
+- [Download](https://iso8583.studio/download): installers for Windows and macOS, build instructions for Linux
+- [Installation guide](https://iso8583.studio/docs/installation): requirements and first run
+- [Version history](https://iso8583.studio/docs/versions): every release with dates and changes
+- [Source code](https://github.com/hpkaushik121/Iso8583studio): AGPL v3 repository and issue tracker
+
+## Optional
+- [EMV certification services](https://iso8583.studio/emv-certification): L1/L2/L3 and scheme certification consulting
+- [Cloud simulators](https://iso8583.studio/cloud-simulators): hosted host and HSM endpoints, by enquiry
+- [Pro](https://iso8583.studio/pro): paid tier, in pre-registration

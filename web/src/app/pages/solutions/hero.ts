@@ -15,7 +15,9 @@ import { Crumb, UiBreadcrumb, UiIcon, UiWords } from '../../ui';
  * analytics reads for hero_cta_click — and names the section with `sect`, the
  * string the page reported for its hero before the redesign.
  *
- * The primary CTA always goes to /contact. Project the secondary one as
+ * The primary CTA jumps to the page's own #enquiry form, matching the closing
+ * CTA in parts.ts (it used to go to /contact, which was never propagated when
+ * the form moved onto each solution page). Project the secondary one as
  * `<a solHeroCta …>`, an optional fact row as `[solHeroFacts]`, and the scene
  * as the default content.
  *
@@ -48,7 +50,7 @@ import { Crumb, UiBreadcrumb, UiIcon, UiWords } from '../../ui';
         <p class="sol-hero-sub ds-fade" [class.sol-hero-sub--small]="!!lead()"
            [style.--d]="lead() ? 1100 : 900">{{ sub() }}</p>
         <div class="ph-ctas sol-hero-ctas ds-fade" [style.--d]="lead() ? 1300 : 1100">
-          <a class="btn btn--primary btn--glow" routerLink="/contact">{{ cta() }}<ui-icon name="arrow-right" [size]="16" /></a>
+          <a class="btn btn--primary btn--glow" [routerLink]="[]" fragment="enquiry">{{ cta() }}<ui-icon name="arrow-right" [size]="16" /></a>
           <ng-content select="[solHeroCta]" />
         </div>
         <ng-content select="[solHeroFacts]" />
