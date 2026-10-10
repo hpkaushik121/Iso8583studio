@@ -4,13 +4,13 @@ description: "DUKPT fundamentals for payment terminals: BDK, IPEK, key serial nu
 date: "2025-07-28"
 tags: [DUKPT, BDK, IPEK, key derivation, payment terminal]
 category: "PIN Security"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 If you have ever watched a POS terminal “inject keys” and wondered why the whole world insists on **unique keys per transaction** instead of a single static PIN key, you are looking at **DUKPT**—Derived Unique Key Per Transaction. It is one of the most important ideas in retail PIN security: compromise of one derived key should not unravel the entire terminal estate.
 
-Yet DUKPT is also where integrations go to die quietly: a wrong **KSN**, a misunderstood **IPEK**, or a subtle mismatch between **TDES DUKPT** and **AES DUKPT** can make PIN translation succeed in a vendor demo and fail in production traffic. This guide explains the moving parts at a practitioner level and points to the testing mindset that prevents late-stage certification surprises. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools—including cryptography and key-management oriented workflows—to help you validate derivations and compare outputs against reference vectors.
+Yet DUKPT is also where integrations go to die quietly: a wrong **KSN**, a misunderstood **IPEK**, or a subtle mismatch between **TDES DUKPT** and **AES DUKPT** can make PIN translation succeed in a vendor demo and fail in production traffic. This guide explains the moving parts at a practitioner level and points to the testing mindset that prevents late-stage certification surprises. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools—including cryptography and key-management oriented workflows—to help you validate derivations and compare outputs against reference vectors.
 
 ## The problem DUKPT solves
 

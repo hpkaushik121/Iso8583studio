@@ -37,7 +37,7 @@ const SIMS: Sim[] = [
   { n: '02', kicker: 'Cryptography', img: 'hsm', title: 'HSM Simulator', desc: 'Test payShield-style commands, PIN operations and key management without a physical HSM.' },
   { n: '03', kicker: 'Terminal flows', img: 'terminal', title: 'POS Simulator', desc: 'Run terminal-side sales, reversals and settlement flows through manual or scripted execution.' },
   { n: '04', kicker: 'Card conversations', img: 'chip', title: 'APDU / Card Simulator', desc: 'Explore chip-card exchanges, from ATR and application selection through GENERATE AC.' },
-  { n: '05', kicker: 'Acquiring flows', img: 'acquirer', title: 'Acquirer Simulator', desc: 'Recreate acquiring host behavior and scheme-oriented transaction flows for issuer-side testing.' },
+  { n: '05', kicker: 'Acquiring flows', img: 'acquirer', title: 'Acquirer Host', desc: 'The Host Simulator in acquirer mode: acquiring host behavior and scheme-oriented transaction flows for issuer-side testing.' },
   { n: '06', kicker: 'Authorization', img: 'issuer', title: 'Issuer System', desc: 'Configure authorization decisions, approval rules and response codes for predictable scenarios.' },
 ];
 

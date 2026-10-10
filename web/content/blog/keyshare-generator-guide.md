@@ -4,13 +4,13 @@ description: "Run a practical key ceremony: split keys into components, combine 
 date: "2025-07-08"
 tags: [keyshare, key ceremony, XOR, dual control, HSM]
 category: "Key Management"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 **Key sharing**—often called split knowledge or component-based key entry—is how payment organizations ensure no single person can possess a production key in full. Custodians hold **components** (sometimes on paper, smart cards, or hardware tokens); an HSM **combines** them inside a secure boundary to form a master key (for example, a ZMK or KEK analog), then emits **Key Check Values** so remote teams can confirm they loaded the same secret.
 
-For testers, keyshare is both a **process** and a **math** exercise: verify XOR recombination rules, validate check digits where used, and prove end-to-end KCV alignment. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 70+ payment tools, including keyshare utilities alongside Thales, Futurex, Atalla, and SafeNet calculators, TR-31, DEA keys, cryptography, Host Simulator, and HSM Simulator (PayShield 10K).
+For testers, keyshare is both a **process** and a **math** exercise: verify XOR recombination rules, validate check digits where used, and prove end-to-end KCV alignment. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 64 payment tools, including keyshare utilities alongside Thales, Futurex, Atalla, and SafeNet calculators, TR-31, DEA keys, cryptography, Host Simulator, and HSM Simulator (PayShield 10K).
 
 ## Why split knowledge exists
 

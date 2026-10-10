@@ -4,13 +4,13 @@ description: "Learn FPE basics, FF1 and FF3 schemes, PAN encryption patterns, an
 date: "2025-06-22"
 tags: [FPE, FF1, FF3, tokenization, PCI]
 category: "Cryptography"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 Format-Preserving Encryption (FPE) encrypts data in such a way that the **ciphertext remains in the same alphabet and length** as the plaintext. That sounds like a niche trick—until you remember payment systems are full of fixed-width numeric identifiers, legacy databases with rigid column sizes, and compliance regimes that treat certain formats as “always numeric, always this long.”
 
-FPE lets you replace sensitive values with ciphertext that still **looks like** the original format, which can simplify routing, validation rules, and phased migrations—provided you implement it with correct algorithms, keys, and governance. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 70+ payment tools, including FPE alongside AES, DES/3DES, RSA, ECDSA, hashing, Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and key-management calculators.
+FPE lets you replace sensitive values with ciphertext that still **looks like** the original format, which can simplify routing, validation rules, and phased migrations—provided you implement it with correct algorithms, keys, and governance. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 64 payment tools, including FPE alongside AES, DES/3DES, RSA, ECDSA, hashing, Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and key-management calculators.
 
 ## Why FPE exists: constraints beat elegance
 

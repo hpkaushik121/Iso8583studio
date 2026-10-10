@@ -75,7 +75,7 @@ const TPS = [9.2, 9.8, 10.1, 9.6, 9.4, 10.2, 9.7, 9.9, 9.3, 9.6, 10.0, 9.5, 9.8,
           @let rsp = t >= 4 && t < 6;
           <ng-container [ngTemplateOutlet]="connBar" [ngTemplateOutletContext]="{ on: on, press: t === 0 || t === 7 }" />
           <div class="hg-grid hg-g12 hg-split hg-split--240">
-            <app-hg-cmdlist class="hg-w hg-list--flat" [items]="commands8" [sel]="on ? 'NO' : null" [dim]="!on" heading="Host Commands" sub="Thales payShield · 120 commands" [search]="true" [chips]="chips" />
+            <app-hg-cmdlist class="hg-w hg-list--flat" [items]="commands8" [sel]="on ? 'NO' : null" [dim]="!on" heading="Host Commands" sub="Thales payShield · 41 commands" [search]="true" [chips]="chips" />
             <div class="hg-grid hg-g10 hg-mw0 hg-ctop">
               <div class="hg-card hg-layer hg-fb hg-g12 hg-cmdbar" [style.--hd]="200">
                 @if (on) {
@@ -239,7 +239,7 @@ const TPS = [9.2, 9.8, 10.1, 9.6, 9.4, 10.2, 9.7, 9.9, 9.3, 9.6, 10.0, 9.5, 9.8,
           @let detail = t >= 9 && t < 11;
           <ng-container [ngTemplateOutlet]="connBar" [ngTemplateOutletContext]="{ on: true, press: false }" />
           <div class="hg-grid hg-g12 hg-split hg-split--240">
-            <app-hg-cmdlist class="hg-w hg-list--flat" [items]="commands" sel="A0" heading="Host Commands" sub="Thales payShield · 120 commands" [search]="true" [chips]="chips" />
+            <app-hg-cmdlist class="hg-w hg-list--flat" [items]="commands" sel="A0" heading="Host Commands" sub="Thales payShield · 41 commands" [search]="true" [chips]="chips" />
             <div class="hg-grid hg-g12 hg-mw0 hg-ctop">
               <div class="hg-card hg-layer hg-pad hg-cmdhead" [style.--hd]="200">
                 <span class="hg-ico hg-ico--40 hg-ico--purple"><ui-icon name="key" [style.--hi]="18" /></span>

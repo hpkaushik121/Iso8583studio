@@ -4,8 +4,8 @@ description: "Validate EMV cryptograms with confidence: ARQC vs ARPC, Applicatio
 date: "2025-05-20"
 tags: [ARQC, ARPC, EMV-crypto, chip]
 category: "EMV Tools"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Cryptograms are where **EMV** stops being “smartcard TLV” and becomes **real cryptography**: the chip proves it participated in a computation involving secret keys and transaction data—while keeping those keys inside secure elements. For developers building **issuer authentication** or debugging **declines**, understanding **ARQC**, **ARPC**, and the **Application Cryptogram** lifecycle is non-negotiable. **ISO8583Studio** is a free, cross-platform desktop application (**Kotlin/Compose**) with **EMV tools** that support **cryptogram validation** workflows alongside TLV parsing and broader payment utilities.

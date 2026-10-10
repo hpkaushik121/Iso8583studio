@@ -4,13 +4,13 @@ description: "Understand PVV algorithms for Visa PIN verification: inputs, keys,
 date: "2025-07-25"
 tags: [PVV, Visa, PIN verification, HSM, payment security]
 category: "PIN Security"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Few three-letter acronyms create as much quiet chaos in issuer migrations as **PVV**—the **PIN Verification Value**. It looks like just another digits-on-track field until you realize it binds together **PAN selection**, **PIN encryption keys**, **DES transforms**, and a specific digit extraction ritual that must match exactly between card personalization, issuer host, and HSM.
 
-If you are responsible for testing PIN mailers, PIN change, or online PIN verification, this article demystifies **Visa PVV** at a workflow level: what is being generated, what is being verified, and where teams waste days chasing “wrong PVK” when the real issue is **PAN routing** or **key component handling**. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools to support cryptography-heavy payment testing workflows end-to-end.
+If you are responsible for testing PIN mailers, PIN change, or online PIN verification, this article demystifies **Visa PVV** at a workflow level: what is being generated, what is being verified, and where teams waste days chasing “wrong PVK” when the real issue is **PAN routing** or **key component handling**. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools to support cryptography-heavy payment testing workflows end-to-end.
 
 ## What PVV is (and what it is not)
 

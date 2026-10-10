@@ -4,13 +4,13 @@ description: "Payment MAC algorithms explained: ISO 9797-1 modes, ANSI X9.9 vs X
 date: "2025-08-01"
 tags: [MAC, ISO 9797, ANSI X9.9, retail MAC, payment security]
 category: "Payment Security"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 You fixed the bitmap, the MTI matches, the stanza fields look perfect—yet the host responds **MAC invalid**. In payment integration, few errors feel as insulting: the message is “right,” except for the one part cryptographically binding integrity.
 
-Message Authentication Codes (**MACs**) in acquiring and switching contexts are often rooted in **ISO 9797-1** MAC mechanisms and the retail banking conventions commonly referenced as **ANSI X9.9** (single-length key) and **ANSI X9.19** (double-length key procedures). This article clarifies how these names relate, what “Algorithm 1” and “Algorithm 3” usually mean in practice, and how to test MACs without treating cryptography like guesswork. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools—including MAC utilities—to help you compute and verify codes against your specifications.
+Message Authentication Codes (**MACs**) in acquiring and switching contexts are often rooted in **ISO 9797-1** MAC mechanisms and the retail banking conventions commonly referenced as **ANSI X9.9** (single-length key) and **ANSI X9.19** (double-length key procedures). This article clarifies how these names relate, what “Algorithm 1” and “Algorithm 3” usually mean in practice, and how to test MACs without treating cryptography like guesswork. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools—including MAC utilities—to help you compute and verify codes against your specifications.
 
 ## What a payment MAC is doing
 

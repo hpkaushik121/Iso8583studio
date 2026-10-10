@@ -29,7 +29,10 @@ const ADS_PURCHASE: string = 'P2S9CLKR6bocEMqd7vBD';
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0', ''];
 const SOLUTION_PAGES = ['emv-certification', 'cloud-simulators', 'kernel', 'middleware'];
 const DOWNLOAD_FILE = /\.(dmg|msi|exe|deb|rpm|jar|zip)(\?|#|$)/i;
-const RELEASE_LINK = /releases\/(latest|download)/i;
+// The site's own /download page, or a GitHub release page. The nav and hero
+// CTAs used to point at releases/latest; they now land on /download, which is
+// the same step of the funnel, so it is classified the same way.
+const RELEASE_LINK = /(?:releases\/(?:latest|download)|(?:^|\/)download(?:[?#/]|$))/i;
 const SCROLL_MARKS = [25, 50, 75, 90];
 /**
  * Where the visitor's cookie choice is kept.
@@ -651,7 +654,7 @@ export class AnalyticsService {
   /** Consent Mode v2 update; called by the cookie banner and replayed on boot. */
   applyConsent(all: boolean): void {
     this.gtag('consent', 'update', {
-      analytics_storage: 'granted',
+      analytics_storage: all ? 'granted' : 'denied',
       ad_storage: all ? 'granted' : 'denied',
       ad_user_data: all ? 'granted' : 'denied',
       ad_personalization: all ? 'granted' : 'denied',

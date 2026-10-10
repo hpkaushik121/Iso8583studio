@@ -15,7 +15,7 @@ interface Release { v: string; date: string; note: string; latest?: boolean; }
   host: { class: 'static-page page-docs-versions' },
   template: `
     <lf-header [crumbs]="crumbs" [badge]="badge" title="Versions"
-               lede="One release channel, one artifact: the cross-platform ISO8583Studio.jar published on GitHub Releases." />
+               lede="Every version with its date and changes. The 1.0.0 installers for Windows and macOS are on GitHub Releases; 1.0.14 is the current source release and Linux builds from source." />
 
     <lf-body>
       <section lfSection id="current" n="01" heading="Current release, v1.0.14" [hold]="false">
@@ -23,7 +23,7 @@ interface Release { v: string; date: string; note: string; latest?: boolean; }
           <div class="lf-spec-panel ds-hold" [style.--d]="260">
             <div class="lf-spec">
               <span class="lf-spec-ico"><ui-icon name="tag" [size]="16" /></span>
-              <div class="lf-spec-text"><span class="lf-caps">Version</span><span class="lf-spec-value"><code>v1.0.14</code> · latest stable</span></div>
+              <div class="lf-spec-text"><span class="lf-caps">Version</span><span class="lf-spec-value"><code>v1.0.14</code> · current source release · installers are v1.0.0</span></div>
             </div>
             <div class="lf-spec">
               <span class="lf-spec-ico"><ui-icon name="stack" [size]="16" /></span>
@@ -31,7 +31,7 @@ interface Release { v: string; date: string; note: string; latest?: boolean; }
             </div>
             <div class="lf-spec">
               <span class="lf-spec-ico"><ui-icon name="desktop" [size]="16" /></span>
-              <div class="lf-spec-text"><span class="lf-caps">Platforms</span><span class="lf-spec-value">Windows 10+ · macOS 10.14+ · Linux (Ubuntu 18.04+) — single JAR, JDK 11+.</span></div>
+              <div class="lf-spec-text"><span class="lf-caps">Platforms</span><span class="lf-spec-value">Windows 10+ · macOS 10.14+ · Linux (Ubuntu 18.04+) — single JAR, installers bundle a runtime · JDK 17+ to build.</span></div>
             </div>
             <div class="lf-spec">
               <span class="lf-spec-ico"><ui-icon name="scales" [size]="16" /></span>
@@ -40,13 +40,13 @@ interface Release { v: string; date: string; note: string; latest?: boolean; }
           </div>
           <div class="lf-latest ds-hold" [style.--d]="360">
             <div class="lf-latest-head">
-              <span class="lf-caps">Latest build</span>
+              <span class="lf-caps">Latest source release</span>
               <span class="lf-latest-v">v1.0.14</span>
             </div>
-            <a class="btn btn--primary btn--block btn--glow" [href]="releases">Download v1.0.14 <ui-icon name="arrow-up-right" [size]="16" /></a>
+            <a class="btn btn--primary btn--block btn--glow" [href]="releases">Download the studio <ui-icon name="arrow-up-right" [size]="16" /></a>
             <div class="lf-latest-block">
               <span class="lf-caps">Run it</span>
-              <lf-code label="any platform, JDK 11+" code="java -jar ISO8583Studio.jar" />
+              <lf-code label="from source, JDK 17+" code="./gradlew run" />
             </div>
             <div class="lf-latest-block">
               <span class="lf-caps">Runs on</span>
@@ -78,7 +78,7 @@ interface Release { v: string; date: string; note: string; latest?: boolean; }
 
       <section lfSection id="channel" n="03" heading="Release channel">
         <ul class="lf-ul lf-ul--def">
-          <li><strong>Stable releases</strong> are tagged on <a href="https://github.com/hpkaushik121/Iso8583studio/releases">GitHub Releases</a> with full changelogs.</li>
+          <li><strong>Installers</strong> for 1.0.0 are on <a href="https://github.com/hpkaushik121/Iso8583studio/releases">GitHub Releases</a>; the later versions listed here were built from source and have not yet been published there.</li>
           <li><strong>What's next</strong> — the ATM, ECR, Switch and Issuer simulators are in active development; follow the <a href="https://github.com/users/hpkaushik121/projects/1">roadmap</a>.</li>
           <li><strong>Upgrading</strong> — replace the JAR; saved simulator configurations are kept alongside it and carry over.</li>
         </ul>

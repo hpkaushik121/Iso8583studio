@@ -31,10 +31,10 @@ export const HUB_START: readonly HubStart[] = [
   {
     icon: 'download-simple',
     title: 'Install the studio',
-    body: 'One cross-platform JAR for Windows, macOS and Linux on a Java 11+ runtime, or build it yourself from the Kotlin Multiplatform sources.',
+    body: 'Native installers for Windows and macOS with the runtime bundled, or build it yourself from the Kotlin Multiplatform sources on any platform with JDK 17+.',
     href: '/docs/installation',
     cta: 'Installation guide',
-    steps: ['Install a Java 11+ runtime', 'Download ISO8583Studio.jar from the latest release', 'Run it, open a simulator and start a session'],
+    steps: ['Download the Windows or macOS installer — or build from source on Linux', 'Run it; the Java runtime is bundled', 'Open a simulator and start a session'],
   },
   {
     icon: 'arrows-left-right',
@@ -65,14 +65,14 @@ export const HUB_SIMULATORS: readonly HubGuide[] = [
 ];
 
 export const HUB_TOOLS: readonly HubTool[] = [
-  { icon: 'cards', title: 'EMV & Card Tools', count: 12, href: '/tools/emv-tools', desc: 'Cryptograms (ARQC/TC), SDA/DDA, ATR parsing, tag dictionary, CAP tokens, secure messaging.' },
+  { icon: 'cards', title: 'EMV & Card Tools', count: 9, href: '/tools/emv-tools', desc: 'Cryptograms (ARQC/TC), SDA/DDA, M/Chip and VSDC, CAP tokens, secure messaging, HCE.' },
   { icon: 'lock-key', title: 'Cryptographic Tools', count: 7, href: '/tools/cipher-tools', desc: 'AES, DES/3DES, RSA, Thales RSA, ECDSA and format-preserving encryption calculators.' },
-  { icon: 'key', title: 'Key Management', count: 10, href: '/tools/key-tools', desc: 'DEA keys, key shares, SSL certificates, Atalla and Futurex key calculators.' },
+  { icon: 'key', title: 'Key Management', count: 9, href: '/tools/key-tools', desc: 'DEA keys, key shares, SSL certificates, Thales and Atalla key calculators.' },
   { icon: 'keyboard', title: 'Payment Utilities', count: 21, href: '/tools/pin-tools', desc: 'PIN blocks (ISO 9564 and OEM), AES PIN blocks, TPK-to-ZPK translation and DUKPT PIN encryption.' },
   { icon: 'swap', title: 'Data Converters', count: 6, href: '/tools/utility-tools', desc: 'Base64, Base94, BCD, character encoding, check digits and the Track 2 codec.' },
   { icon: 'gear', title: 'DUKPT Tools', count: null, href: '/tools/dukpt-tools', desc: 'Key derivation per ANSI X9.24: IPEK, KSN walks and transaction keys.' },
   { icon: 'shield-check', title: 'MAC Tools', count: null, href: '/tools/mac-tools', desc: 'Message authentication: ISO 9797 algorithms, retail MAC and HMAC.' },
-  { icon: 'seal-check', title: 'Card Validation', count: null, href: '/tools/card-validation', desc: 'PAN validation, CVV/CVC computation and card-number utilities.' },
+  { icon: 'seal-check', title: 'Card Validation', count: null, href: '/tools/card-validation', desc: 'MasterCard dynamic CVC3 and Amex CSC computation.' },
 ];
 
 export const HUB_SOLUTIONS: readonly HubSolution[] = [

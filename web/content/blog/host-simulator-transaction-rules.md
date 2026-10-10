@@ -4,8 +4,8 @@ description: "Model realistic host behavior with ISO8583Studio: transaction rule
 date: "2025-04-10"
 tags: [transaction-rules, response-codes, host-simulator, testing]
 category: "Host Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 A simulator that always returns **approved** teaches your UI the wrong habits. Real hosts **decline**, **refer**, and **trigger reversals** based on amount, merchant category, card product, velocity, and dozens of other factors. **ISO8583Studio**—a free **Kotlin/Compose** desktop app for **Windows, macOS, and Linux**—includes a **Host Simulator** with a **transaction rules** mindset: configure **conditional responses** and **response codes** so your tests mirror production outcomes.
@@ -91,7 +91,7 @@ Track coverage like software branches:
 
 ## How ISO8583Studio helps
 
-ISO8583Studio bundles **70+ tools**: **Host Simulator** (TCP, REST, RS232; Server/Client/Proxy), **HSM Simulator** (PayShield 10K–compatible), **APDU** and **EMV** utilities, **cryptography**, **key management**, and payment utilities (CVV, PIN block, DUKPT, MAC/HMAC/CMAC).
+ISO8583Studio bundles **64 tools**: **Host Simulator** (TCP, REST, RS232; Server/Client/Proxy), **HSM Simulator** (PayShield 10K–compatible), **APDU** and **EMV** utilities, **cryptography**, **key management**, and payment utilities (CVV, PIN block, DUKPT, MAC/HMAC/CMAC).
 
 ## From demo to certification: what reviewers ask
 

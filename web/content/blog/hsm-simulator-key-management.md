@@ -4,11 +4,11 @@ description: "Understand LMK storage, key generation (GK), import/export, and ke
 date: "2025-05-01"
 tags: [LMK, key-management, TR-31, HSM]
 category: "HSM Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
-Nothing in payment cryptography hurts more than a **correct algorithm** with the **wrong key type** under the **wrong LMK variant**. HSMs enforce these distinctions because **key hierarchy** is how compromise stays bounded. **ISO8583Studio**—a free **Kotlin/Compose** desktop app for **Windows, macOS, and Linux**—includes an **HSM Simulator** (**PayShield 10K–compatible**, **35+ commands**) so you can rehearse **key management** flows before you touch production hardware.
+Nothing in payment cryptography hurts more than a **correct algorithm** with the **wrong key type** under the **wrong LMK variant**. HSMs enforce these distinctions because **key hierarchy** is how compromise stays bounded. **ISO8583Studio**—a free **Kotlin/Compose** desktop app for **Windows, macOS, and Linux**—includes an **HSM Simulator** (**PayShield 10K–compatible**, **41 documented commands**) so you can rehearse **key management** flows before you touch production hardware.
 
 This guide explains **LMK storage concepts**, **key generation (GK)**, **import/export**, and **key types** in practical engineering terms.
 
@@ -78,7 +78,7 @@ When you simulate commands, map your **integration spec** field-by-field to the 
 
 ## How ISO8583Studio helps you practice
 
-Beyond key management, the app bundles **70+ tools**: **Host Simulator** (TCP/REST/RS232), **EMV** utilities, **AES/DES/RSA/ECDSA**, calculators for **Thales, Futurex, Atalla, SafeNet**, and payment utilities (**CVV, PIN block, DUKPT, MAC/HMAC/CMAC**).
+Beyond key management, the app bundles **64 tools**: **Host Simulator** (TCP/REST/RS232), **EMV** utilities, **AES/DES/RSA/ECDSA**, calculators for **Thales, Futurex, Atalla, SafeNet**, and payment utilities (**CVV, PIN block, DUKPT, MAC/HMAC/CMAC**).
 
 ## Key ceremonies: simulation vs production
 

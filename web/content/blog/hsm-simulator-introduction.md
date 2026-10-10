@@ -4,11 +4,11 @@ description: "Learn what an HSM does, why software simulation matters, and how I
 date: "2025-04-20"
 tags: [HSM, PayShield, payment-security, simulation]
 category: "HSM Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
-If you have ever waited weeks for a **hardware HSM** slot in a lab—or watched a sprint stall because **no one can import a key**—you already know why **HSM simulation** exists. **ISO8583Studio** is a free, cross-platform desktop application (**Windows, macOS, Linux**) built with **Kotlin** and **Compose**. Among **70+ tools**, its **HSM Simulator** speaks **PayShield 10K–compatible** command flows so developers can integrate cryptography the way acquirers and issuers expect—without racking equipment for every developer machine.
+If you have ever waited weeks for a **hardware HSM** slot in a lab—or watched a sprint stall because **no one can import a key**—you already know why **HSM simulation** exists. **ISO8583Studio** is a free, cross-platform desktop application (**Windows, macOS, Linux**) built with **Kotlin** and **Compose**. Among **64 tools**, its **HSM Simulator** speaks **PayShield 10K–compatible** command flows so developers can integrate cryptography the way acquirers and issuers expect—without racking equipment for every developer machine.
 
 This introduction explains **what an HSM is**, **why you simulate it**, how **PayShield 10K** fits the ecosystem, and how to **get started** responsibly in software.
 
@@ -40,7 +40,7 @@ Simulation is not a moral substitute for **certification** on real HSMs—but it
 
 ISO8583Studio models a **software-side** PayShield-compatible dialog so you can:
 
-- Exercise **35+ commands** in realistic sequences
+- Exercise **41 documented commands** in realistic sequences
 - Pair HSM flows with the **Host Simulator** (TCP/REST/RS232) and broader payment tooling
 - Iterate on **message assembly**, **length fields**, and **error handling** quickly
 

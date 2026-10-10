@@ -4,13 +4,13 @@ description: "Navigate Thales-style key components: ZMK, ZPK, TMK, TPK, and KCVs
 date: "2025-06-28"
 tags: [Thales, HSM, ZMK, ZPK, key check value]
 category: "Key Management"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Thales payShield-class HSM ecosystems speak a precise dialect of **key components**, **variants**, and **check values**. Engineers rarely “encrypt a PIN” in isolation—they first establish which key encrypts which other key, which keys live in clear components during ceremonies, and which **Key Check Values (KCVs)** prove two distant teams loaded the same secret without ever shipping it in the clear.
 
-This article maps the common Thales-style vocabulary (often referenced as **ZMK**, **ZPK**, **TMK**, **TPK**) to what you actually test in a lab: derivation, translation, import, and verification. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 70+ payment tools, including key-management calculators (Thales, Futurex, Atalla, SafeNet), TR-31, key blocks, DEA keys, keyshare, plus Host Simulator and HSM Simulator (PayShield 10K).
+This article maps the common Thales-style vocabulary (often referenced as **ZMK**, **ZPK**, **TMK**, **TPK**) to what you actually test in a lab: derivation, translation, import, and verification. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 64 payment tools, including key-management calculators (Thales, Futurex, Atalla, SafeNet), TR-31, key blocks, DEA keys, keyshare, plus Host Simulator and HSM Simulator (PayShield 10K).
 
 ## The mental model: zones and terminals
 

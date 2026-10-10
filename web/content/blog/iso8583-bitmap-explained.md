@@ -2,10 +2,11 @@
 title: "ISO 8583 Bitmaps Explained: Primary, Secondary, and How to Read the Flags"
 description: "Learn how ISO 8583 bitmaps declare field presence, how primary vs secondary maps work, and how to verify bits with a bitmap calculator."
 date: "2025-02-25"
+updated: "2026-10-08"
 tags: [bitmap, ISO 8583, data elements, parsing, DE1]
 category: "ISO8583 Fundamentals"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 The **bitmap** is the unsung hero of **ISO 8583**. It is also the first place integrators stumble: a single misread bit does not just misinterpret **Field 7**—it shifts the entire remainder of the message, producing plausible-looking garbage. If you want confidence in your traces, you need a crisp mental model of what a bitmap is, how **primary** and **secondary** bitmaps relate, and how to validate your understanding with tools rather than intuition.
@@ -17,6 +18,26 @@ This article explains **ISO 8583 bitmaps** in a practical, developer-first way, 
 ISO 8583 messages can include many optional **data elements** (fields). Transmitting a full fixed layout every time would waste bandwidth. Instead, the message includes a compact **presence map**: a sequence of bits indicating which fields are included.
 
 In other words: **bitmap → which fields exist → parse those fields in order**.
+
+## The specification in four lines
+
+- The **primary bitmap** is 64 bits (8 bytes; 16 hex characters in ASCII encodings, 8 raw bytes in binary ones). Bit `n` set means data element `n` is present, for `n` = 1–64.
+- **Bit 1 set** means a **secondary bitmap** follows: another 64 bits covering data elements 65–128.
+- Bits are numbered from the most significant bit of the first byte: bit 1 is the top bit of byte 1, bit 8 its bottom bit, bit 9 the top bit of byte 2, and so on.
+- The bit-to-field-number mapping is fixed by ISO 8583. What each field *contains* (its format and meaning) is where networks differ.
+
+A worked example, the primary bitmap `F23A8C0000800000`:
+
+| Byte | Hex | Bits | Fields present |
+|------|-----|------|----------------|
+| 1 | `F2` | `1111 0010` | 1 (secondary bitmap follows), 2, 3, 4, 7 |
+| 2 | `3A` | `0011 1010` | 11, 12, 13, 15 |
+| 3 | `8C` | `1000 1100` | 17, 21, 22 |
+| 4–5 | `0000` | — | none |
+| 6 | `80` | `1000 0000` | 41 |
+| 7–8 | `0000` | — | none |
+
+So this message carries DE 2 (PAN), 3 (processing code), 4 (amount), 7 (transmission date/time), 11 (STAN), 12 and 13 (local time and date), 15 (settlement date), 17 (capture date), 21 and 22 (forwarding institution, POS entry mode) and 41 (terminal ID) — and, because bit 1 is set, a secondary bitmap comes next.
 
 ## Where the bitmap sits in the message
 
@@ -30,17 +51,17 @@ Your transport may add headers (TPDU, length prefixes, etc.). Always strip to th
 
 ## Primary bitmap: the first presence table
 
-The **primary bitmap** encodes presence for a range of fields. Practitioners often memorize a few key positions because they show up constantly in traces (for example fields related to PAN, processing code, amounts, STAN, time, and capture metadata—exact numbering depends on your message variant).
+The **primary bitmap** encodes presence for fields 1–64. A few positions are worth memorising because they show up in every trace (for example fields related to PAN, processing code, amounts, STAN, time, and capture metadata—exact numbering depends on your message variant).
 
 ### Bit numbering and “which field is which”
 
-The tricky part for newcomers is that **bit positions map to field numbers** using rules that depend on ISO 8583 version and network conventions. When reading tutorials, verify which convention they use (8583:1987 vs 8583:2003-style structures, and whether field 1 is treated specially).
+Bit positions map to field numbers one-to-one, as the table above shows; that part does not vary. What does vary is the **content** of each field: ISO 8583:1987, :1993 and :2003 define different formats for some elements, and every network's implementation guide pins down lengths, encodings and private-use fields. When reading tutorials, check which revision they describe (most card networks are still on 1987) and whether field 1 is treated specially).
 
-**Rule of thumb:** Never assume a random blog’s field list matches your acquirer’s guide. Use your **implementation guide** as the source of truth.
+**Rule of thumb:** the bitmap tells you *which* fields are present; your acquirer's implementation guide tells you *what is in them*. Use both.
 
 ## Field 1 and the secondary bitmap
 
-In many common implementations, **Field 1** is reserved for the **secondary bitmap** value (or indicates its presence). That matters because:
+**Field 1 is the secondary bitmap itself.** Bit 1 of the primary bitmap says whether it is present; when it is, the next 64 bits (fields 65–128) follow immediately. That matters because:
 
 - The presence of high-numbered fields may require the secondary map.
 - Your parser must treat Field 1 correctly or you will mis-locate later fields.
@@ -71,7 +92,7 @@ If a field looks wrong, revisit step 3 before you theorize about issuer logic.
 
 ### Pitfall: confusing “field absent” with “field empty”
 
-Absence means the bitmap bit is not set. Empty might mean present but zero-length (if allowed—often it is not). Your spec defines legality.
+Absence means the bitmap bit is not set. Empty means present but zero-length, which the standard allows only for variable-length fields and most implementation guides forbid.
 
 ### Pitfall: mixing up message variants
 
@@ -92,7 +113,7 @@ A bitmap calculator is most valuable when paired with a hypothesis:
 
 Download the latest desktop release for **Windows**, **macOS**, or **Linux**:
 
-[https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+[iso8583.studio/download](https://iso8583.studio/download)
 
 ## Conclusion
 

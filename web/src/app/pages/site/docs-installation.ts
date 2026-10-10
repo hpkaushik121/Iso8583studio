@@ -3,6 +3,12 @@ import { RouterLink } from '@angular/router';
 import { SitePage } from './site-page';
 import { UiIcon } from '../../ui';
 import { LONGFORM, LfBadge, LfHighlight, LfTocEntry } from '../shared/longform';
+import { EXTERNAL } from '../../core/site-nav';
+
+/** The release the installers are published under. Native installers bundle
+ *  their own Java runtime, so a user who downloads one needs no JDK at all. */
+const RELEASE = '1.0.0';
+const ASSET_BASE = `${EXTERNAL.repo}/releases/download/${RELEASE}`;
 
 @Component({
   selector: 'page-docs-installation',
@@ -12,54 +18,52 @@ import { LONGFORM, LfBadge, LfHighlight, LfTocEntry } from '../shared/longform';
   host: { class: 'static-page page-docs-installation' },
   template: `
     <lf-header [crumbs]="crumbs" [badge]="badge" title="Installation" [meta]="meta" [highlights]="highlights"
-               lede="ISO8583Studio is a Kotlin Multiplatform / Compose Desktop app shipped as a single JAR — the same file runs on Windows, macOS and Linux on top of a Java runtime." />
+               lede="ISO8583Studio is a Kotlin Multiplatform / Compose Desktop app. Windows and macOS get native installers that bundle their own Java runtime; Linux builds from source with one Gradle command. One codebase, no runtime to install for the packaged builds." />
 
     <lf-body [toc]="toc">
       <section lfSection id="prerequisites" n="01" heading="Prerequisites">
         <div class="lf-table-wrap"><table class="lf-table">
           <thead><tr><th>Requirement</th><th>Minimum</th><th>Notes</th></tr></thead>
           <tbody>
-            <tr><td><strong>Java Runtime</strong></td><td>JDK / JRE 11+</td><td>Compose Desktop runs on the JVM. Temurin, OpenJDK or Oracle all work; 17 LTS recommended.</td></tr>
+            <tr><td><strong>Java</strong></td><td>None for the installers · JDK 17+ to build</td><td>The .exe and .dmg bundle a runtime. Building from source needs JDK 17 or newer — Compose Multiplatform 1.8 will not configure on anything older. Temurin, OpenJDK or Oracle all work.</td></tr>
             <tr><td><strong>Operating System</strong></td><td>Windows 10+, macOS 10.14+, Ubuntu 18.04+</td><td>Any modern 64-bit desktop OS.</td></tr>
             <tr><td><strong>Memory</strong></td><td>512 MB</td><td>2 GB recommended for load testing.</td></tr>
             <tr><td><strong>Disk</strong></td><td>100 MB</td><td>Plus space for logs and configurations.</td></tr>
           </tbody>
         </table></div>
-        <p class="lf-p">Check your Java version first:</p>
-        <lf-code label="check the runtime" [code]="javaVersion" />
+        <p class="lf-p">Building from source? Check the JDK first:</p>
+        <lf-code label="check the JDK" [code]="javaVersion" />
       </section>
 
       <section lfSection id="windows" n="02" heading="Windows">
         <ol class="lf-steps">
-          <li><strong>Install Java 11+</strong> — download <a href="https://adoptium.net/">Eclipse Temurin</a> (or run <code>winget install EclipseAdoptium.Temurin.17.JRE</code>).</li>
-          <li><strong>Download the JAR</strong> — grab <code>ISO8583Studio.jar</code> from the <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">latest release</a>.</li>
-          <li><strong>Run it</strong> — double-click the JAR, or from PowerShell: <code>java -jar ISO8583Studio.jar</code>.</li>
+          <li><strong>Download the installer</strong> — <a href="${ASSET_BASE}/ISO8583Studio-${RELEASE}.exe"><code>ISO8583Studio-${RELEASE}.exe</code></a> (about 190 MB; the runtime is included).</li>
+          <li><strong>Run it</strong> — the build is not yet code-signed, so SmartScreen will show <em>Windows protected your PC</em>. Choose <em>More info → Run anyway</em>.</li>
           <li><strong>Allow networking</strong> — approve the Windows Firewall prompt so simulators can open server ports.</li>
         </ol>
       </section>
 
       <section lfSection id="macos" n="03" heading="macOS">
         <ol class="lf-steps">
-          <li><strong>Install Java 11+</strong> — <code>brew install --cask temurin</code> (or download from Adoptium).</li>
-          <li><strong>Download the JAR</strong> — from the <a href="https://github.com/hpkaushik121/Iso8583studio/releases/latest">latest release</a>.</li>
-          <li><strong>Run it</strong> — <code>java -jar ISO8583Studio.jar</code> from Terminal.</li>
-          <li><strong>Gatekeeper</strong> — if macOS blocks the first launch, allow it under <em>System Settings → Privacy &amp; Security</em>.</li>
+          <li><strong>Download the disk image</strong> — <a href="${ASSET_BASE}/ISO8583Studio-${RELEASE}.dmg"><code>ISO8583Studio-${RELEASE}.dmg</code></a> (about 200 MB; the runtime is included).</li>
+          <li><strong>Install</strong> — open the image and drag ISO8583Studio to Applications.</li>
+          <li><strong>Gatekeeper</strong> — the build is not yet notarized, so the first launch is blocked. Allow it under <em>System Settings → Privacy &amp; Security</em>, or right-click the app and choose <em>Open</em>.</li>
         </ol>
       </section>
 
       <section lfSection id="linux" n="04" heading="Linux">
         <ol class="lf-steps">
-          <li><strong>Install Java 11+</strong> — Debian/Ubuntu: <code>sudo apt install openjdk-17-jre</code> · Fedora: <code>sudo dnf install java-17-openjdk</code>.</li>
-          <li><strong>Download the JAR</strong> — <code class="lf-step-code">wget https://github.com/hpkaushik121/Iso8583studio/releases/latest/download/ISO8583Studio.jar</code></li>
-          <li><strong>Run it</strong> — <code>java -jar ISO8583Studio.jar</code>.</li>
+          <li><strong>Install a JDK 17+</strong> — Debian/Ubuntu: <code>sudo apt install openjdk-17-jdk git</code> · Fedora: <code>sudo dnf install java-17-openjdk-devel git</code>.</li>
+          <li><strong>Build it</strong> — there is no prebuilt Linux package yet. Clone the repository and run <code>./gradlew :composeApp:packageDeb</code> for a <code>.deb</code>, or <code>./gradlew run</code> to launch it directly — see <a href="/docs/installation#source">Build from Source</a> below.</li>
+          <li><strong>Install the package</strong> — <code>sudo dpkg -i composeApp/build/compose/binaries/main/deb/*.deb</code>.</li>
         </ol>
       </section>
 
       <section lfSection id="source" n="05" heading="Build from Source (Kotlin Multiplatform)">
-        <p class="lf-p">The project builds with the Gradle wrapper — no IDE required. You need <strong>JDK 11+</strong> and Git.</p>
+        <p class="lf-p">The project builds with the Gradle wrapper — no IDE required. You need <strong>JDK 17 or newer</strong> and Git; Compose Multiplatform 1.8 refuses older JDKs, and the native-installer tasks use <code>jpackage</code>, which arrived in JDK 14.</p>
         <lf-code label="clone, build, run" [code]="cloneAndRun" />
         <h3 class="lf-h3">Building the JAR</h3>
-        <p class="lf-p">To produce a runnable <code>ISO8583Studio.jar</code> from the cloned source, use the Compose Desktop packaging tasks:</p>
+        <p class="lf-p">To produce a runnable JAR from the cloned source (it needs a JDK 17+ to run), use the Compose Desktop packaging tasks:</p>
         <lf-code label="package the JAR" [code]="buildJar" />
         <p class="lf-p">Or build a native installer for your OS instead of a JAR:</p>
         <lf-code label="package a native installer" [code]="buildInstaller" />
@@ -80,8 +84,8 @@ import { LONGFORM, LfBadge, LfHighlight, LfTocEntry } from '../shared/longform';
         <div class="lf-table-wrap"><table class="lf-table">
           <thead><tr><th>Symptom</th><th>Fix</th></tr></thead>
           <tbody>
-            <tr><td><code>UnsupportedClassVersionError</code></td><td>Your Java is older than 11 — install a newer JDK/JRE and re-check <code>java -version</code>.</td></tr>
-            <tr><td>Nothing happens on double-click</td><td>JARs aren't associated with Java — run <code>java -jar ISO8583Studio.jar</code> from a terminal.</td></tr>
+            <tr><td><code>UnsupportedClassVersionError</code> when running a source build</td><td>Your JDK is older than 17 — install a newer one and re-check <code>java -version</code>.</td></tr>
+            <tr><td>Gradle fails to configure</td><td>Same cause: Compose Multiplatform 1.8 requires JDK 17+.</td></tr>
             <tr><td>"Connection refused" in simulators</td><td>Port in use or blocked by firewall — change the port in Transmission Settings.</td></tr>
           </tbody>
         </table></div>
@@ -90,9 +94,9 @@ import { LONGFORM, LfBadge, LfHighlight, LfTocEntry } from '../shared/longform';
       <section lfSection id="contact" n="08" heading="Next steps" [hold]="false">
         <p class="lf-p ds-hold" [style.--d]="260">Installed and running? Pick up the release notes, the development setup, or tell us what broke.</p>
         <div class="lf-cards">
-          <lf-link-card class="ds-item" [style.--d]="320" icon="download-simple" eyebrow="Latest build" title="GitHub Releases"
-                        body="The cross-platform JAR for every tagged release, with a changelog per tag."
-                        cta="Open releases" href="https://github.com/hpkaushik121/Iso8583studio/releases/latest" />
+          <lf-link-card class="ds-item" [style.--d]="320" icon="download-simple" eyebrow="Installers" title="Download"
+                        body="The Windows and macOS installers, with checksums and the current signing status."
+                        cta="Get the studio" href="/download" />
           <lf-link-card class="ds-item" [style.--d]="460" icon="git-pull-request" eyebrow="Development" title="Contribute"
                         body="Prerequisites, project layout, code style and the pull-request flow."
                         cta="Read the guide" href="/docs/contributing" />
@@ -101,7 +105,7 @@ import { LONGFORM, LfBadge, LfHighlight, LfTocEntry } from '../shared/longform';
                         cta="Open an issue" href="https://github.com/hpkaushik121/Iso8583studio/issues" />
         </div>
         <div class="lf-foot ds-hold" [style.--d]="380">
-          <span class="lf-foot-line">JDK 11+ · single JAR · Windows · macOS · Linux</span>
+          <span class="lf-foot-line">Installers for Windows · macOS · build from source on Linux · JDK 17+ to build</span>
           <a class="lf-foot-link" routerLink="/docs/versions">Versions <ui-icon name="arrow-right" [size]="13" /></a>
         </div>
       </section>
@@ -117,14 +121,14 @@ export class DocsInstallationPage {
   protected readonly crumbs = [
     { label: 'Home', link: '/' }, { label: 'Documentation', link: '/docs' }, { label: 'Installation' },
   ];
-  protected readonly badge: LfBadge = { tone: 'teal', label: 'v1.0.14 · AGPL v3' };
+  protected readonly badge: LfBadge = { tone: 'teal', label: 'AGPL v3' };
   protected readonly meta = [
-    ['Latest', 'v1.0.14'], ['Runtime', 'JDK / JRE 11+'], ['Artifact', 'ISO8583Studio.jar'],
+    ['Installers', `v${RELEASE} · Windows · macOS`], ['Linux', 'build from source'], ['To build', 'JDK 17+'],
   ] as const;
   protected readonly highlights: LfHighlight[] = [
-    { icon: 'windows-logo', tone: 'blue', title: 'Windows', body: 'Install Temurin, download the JAR, then double-click it or run it from PowerShell. Windows 10+.' },
-    { icon: 'apple-logo', tone: 'blue', title: 'macOS', body: 'Temurin from Homebrew, then run the JAR from Terminal. Gatekeeper may ask once. macOS 10.14+.' },
-    { icon: 'linux-logo', tone: 'teal', title: 'Linux', body: 'OpenJDK from apt or dnf, wget the JAR and run it. Ubuntu 18.04+.' },
+    { icon: 'windows-logo', tone: 'blue', title: 'Windows', body: 'Download the .exe installer and run it — the Java runtime is bundled. Windows 10+.' },
+    { icon: 'apple-logo', tone: 'blue', title: 'macOS', body: 'Download the .dmg and drag to Applications. Gatekeeper asks once on first launch. macOS 10.14+.' },
+    { icon: 'linux-logo', tone: 'teal', title: 'Linux', body: 'No prebuilt package yet: install JDK 17+, clone, and build a .deb with one Gradle task. Ubuntu 18.04+.' },
   ];
   protected readonly toc: LfTocEntry[] = [
     { id: 'prerequisites', n: '01', label: 'Prerequisites' },
@@ -139,7 +143,7 @@ export class DocsInstallationPage {
 
   protected readonly javaVersion = [
     'java -version',
-    '# openjdk version "17.0.x" — anything 11+ is fine',
+    '# openjdk version "17.0.x" — 17 or newer is required to build',
   ].join('\n');
 
   protected readonly cloneAndRun = [

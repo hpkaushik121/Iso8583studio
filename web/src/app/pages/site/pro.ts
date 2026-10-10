@@ -90,8 +90,8 @@ const FAQ: AccordionItem[] = [
   },
   {
     q: 'Which platforms does Pro run on?',
-    a: 'The same as the free build: Windows 10+, macOS 10.14+ and Linux from Ubuntu 18.04+, as native '
-      + 'installers with the runtime bundled.',
+    a: 'The same as the free build: Windows 10+ and macOS 10.14+ as native installers with the runtime '
+      + 'bundled; on Linux (Ubuntu 18.04+) you build from source with JDK 17+.',
   },
   {
     q: 'Need an invoice, PO or annual contract?',

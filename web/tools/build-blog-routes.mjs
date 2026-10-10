@@ -241,7 +241,11 @@ const posts = files.map((file) => {
     date: String(data.date ?? ''),
     category,
     topicId: topic.id,
-    author: String(data.author ?? 'AiCortex Team'),
+    author: String(data.author ?? 'Sourabh Kaushik'),
+    // Set `updated:` in the front matter when a post is genuinely revised; it
+    // becomes dateModified in the schema and lastmod in the sitemap. Never
+    // auto-stamped — a false freshness signal is worse than none.
+    updated: data.updated ? String(data.updated) : '',
     readTime,
     minutes: Number.parseInt(readTime, 10) || 5,
     tags,
@@ -303,25 +307,49 @@ writeFileSync(
 
 // One route per post, each dynamically importing only its own content module.
 const routeEntries = posts.map((p) => {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: p.title,
-    description: p.description,
-    author: { '@type': 'Organization', name: 'AiCortex Solutions' },
-    publisher: { '@type': 'Organization', name: 'AiCortex Solutions', url: `${SITE}/` },
-    datePublished: p.date,
-    ...(p.image ? { image: `${SITE}${p.image}` } : {}),
-    url: `${SITE}${p.path}`,
-    mainEntityOfPage: `${SITE}${p.path}`,
-    keywords: p.tags.join(', ') || 'ISO8583, payment testing',
-  };
+  const url = `${SITE}${p.path}`;
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: p.title,
+      description: p.description,
+      author: {
+        '@type': 'Person', name: p.author,
+        url: 'https://github.com/hpkaushik121',
+        sameAs: ['https://github.com/hpkaushik121', 'https://www.linkedin.com/company/iso8583-studio'],
+      },
+      publisher: {
+        '@type': 'Organization', name: 'AiCortex Solutions', url: `${SITE}/`,
+        logo: { '@type': 'ImageObject', url: `${SITE}/images/app.png`, width: 512, height: 512 },
+      },
+      datePublished: p.date,
+      ...(p.updated ? { dateModified: p.updated } : {}),
+      ...(p.image ? { image: [`${SITE}${p.image}`] } : {}),
+      url,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+      inLanguage: 'en',
+      keywords: p.tags.join(', ') || 'ISO8583, payment testing',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE}/` },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE}/blogs` },
+        { '@type': 'ListItem', position: 3, name: p.title, item: url },
+      ],
+    },
+  ];
   const seo = {
-    title: `${p.title} - ISO8583Studio Blog`,
+    // Headline only: with the brand suffix 52 of 52 post titles exceeded 60
+    // characters and were truncated in the SERP before the subject finished.
+    title: p.title,
     description: p.description,
     keywords: p.tags.join(', ') || 'ISO8583, payment testing',
     path: p.path,
     ogType: 'article',
+    robots: 'index, follow, max-image-preview:large',
     author: p.author,
     ...(p.image ? { image: `${SITE}${p.image}` } : {}),
     jsonLd,

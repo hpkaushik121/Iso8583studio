@@ -47,7 +47,7 @@ import { UiIcon } from '../ui/icon';
           }
         </div>
         <div class="f-btm">
-          <span>© {{ year }} AiCortex · ISO8583Studio · Built with ❤ for the payments community</span>
+          <span>© {{ year }} AiCortex Solutions · ISO8583Studio · Built with ❤ for the payments community</span>
           <span class="f-col f-legal">
             <b class="visually-hidden">Legal</b>
             @for (item of legal; track item.link) {

@@ -36,8 +36,8 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
         <h3 class="lf-h3">Information you provide directly</h3>
         <p class="lf-p">We collect information you voluntarily provide when using our services:</p>
         <ul class="lf-ul lf-ul--def">
-          <li><strong>Account information:</strong> name, email address, company name, and contact details when you create an account or request support</li>
-          <li><strong>License information:</strong> license key details, activation information, and subscription data</li>
+          <li><strong>Contact information:</strong> name, email address, company name and contact details when you send an enquiry or request support</li>
+          <li><strong>Licence information:</strong> Pro licence key details, activation information and subscription data, where you hold a Pro licence</li>
           <li><strong>Feedback &amp; surveys:</strong> your responses to surveys, feedback forms, and product improvement requests</li>
         </ul>
         <h3 class="lf-h3">Information collected automatically</h3>
@@ -101,7 +101,9 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
         <ul class="lf-ul lf-ul--def">
           <li><strong>Cloud infrastructure:</strong> hosting services for our website and support systems</li>
           <li><strong>Analytics services:</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Analytics 4</a> for website and application usage measurement, and Google Ads for advertising measurement</li>
-          <li><strong>Support tools:</strong> customer support and ticketing systems</li>
+          <li><strong>Enquiry and contact forms:</strong> <a href="https://web3forms.com/privacy" target="_blank" rel="noopener">Web3Forms</a> relays what you type into the contact, Pro and enquiry forms (name, email, company, phone, message) to our mailbox. Nothing is sent until you press Submit.</li>
+          <li><strong>Error and performance monitoring:</strong> <a href="https://newrelic.com/termsandconditions/privacy" target="_blank" rel="noopener">New Relic</a> receives page-load timings and JavaScript errors from the website so we can fix them. It does not set cookies and does not record sessions.</li>
+          <li><strong>Advertising:</strong> Google AdSense may show ads on the website; it is governed by your cookie choice below.</li>
           <li><strong>Payment processing:</strong> payment processors for license purchases (they handle payment data independently)</li>
         </ul>
         <lf-note tone="blue" icon="file-text" title="Important">All service providers are contractually required to protect your data and use it only for the specific services they provide to us. They cannot use your information for their own purposes.</lf-note>
@@ -145,10 +147,9 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
 
       <section lfSection id="retention" n="06" heading="Data retention">
         <p class="lf-p">We retain your information only as long as necessary to provide our services and comply with legal obligations:</p>
-        <h3 class="lf-h3">Account information</h3>
+        <h3 class="lf-h3">Enquiries and licences</h3>
         <ul class="lf-ul lf-ul--def">
-          <li><strong>Active accounts:</strong> retained while your account is active and for service provision</li>
-          <li><strong>Inactive accounts:</strong> deleted after 2 years of inactivity, unless legal obligations require longer retention</li>
+          <li><strong>Enquiries and licence records:</strong> retained while a Pro licence is active, and for 2 years after the last contact otherwise, unless legal obligations require longer retention</li>
           <li><strong>Support records:</strong> support tickets and communications retained for 3 years for quality and legal purposes</li>
         </ul>
         <h3 class="lf-h3">Technical data</h3>
@@ -203,7 +204,6 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
         <ul class="lf-ul lf-ul--def">
           <li><strong>Google Analytics 4:</strong> website traffic analysis and usage insights. We also enable Google Signals, which allows Google to associate visits with signed-in Google accounts for cross-device measurement and aggregated demographic reporting.</li>
           <li><strong>Google Ads:</strong> advertising measurement and remarketing audiences, where a campaign is running</li>
-          <li><strong>Support chat:</strong> customer support chat functionality</li>
           <li><strong>CDN services:</strong> content delivery and website performance optimization</li>
         </ul>
         <h3 class="lf-h3">Managing cookies</h3>
@@ -259,7 +259,7 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
       </section>
 
       <section lfSection id="compliance" n="12" heading="Legal compliance &amp; frameworks">
-        <p class="lf-p">ISO8583Studio complies with major data protection frameworks and regulations:</p>
+        <p class="lf-p">ISO8583Studio is built to meet the obligations of the data-protection laws that apply to you, and to follow payment-industry security guidance. We do not hold third-party certifications; what we do hold is a simpler guarantee — the desktop application processes keys and test data on your machine and never sends them to us.</p>
         <h3 class="lf-h3">Regulatory compliance</h3>
         <ul class="lf-ul lf-ul--def">
           <li><strong>GDPR:</strong> European General Data Protection Regulation compliance</li>
@@ -269,15 +269,13 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
         </ul>
         <h3 class="lf-h3">Industry standards</h3>
         <ul class="lf-ul lf-ul--def">
-          <li><strong>ISO 27001:</strong> information security management best practices</li>
-          <li><strong>PCI DSS guidelines:</strong> payment card industry security standards</li>
-          <li><strong>SOC 2:</strong> security, availability, and confidentiality controls</li>
+          <li><strong>PCI DSS guidelines:</strong> we follow the standard's guidance for handling card data in test environments; the application itself is not a PCI-assessed system</li>
           <li><strong>Financial industry standards:</strong> sector-specific security and privacy requirements</li>
         </ul>
       </section>
 
       <section lfSection id="contact" n="13" heading="Contact information" [hold]="false">
-        <p class="lf-p ds-hold" [style.--d]="260">If you have any questions about this Privacy Policy, wish to exercise your rights, or need to report a privacy concern, please get in touch.</p>
+        <p class="lf-p ds-hold" [style.--d]="260">The data controller for the website and the application is <strong>AiCortex Solutions Pvt. Ltd.</strong>, India, the publisher of ISO8583Studio. If you have any questions about this Privacy Policy, wish to exercise your rights, or need to report a privacy concern, please get in touch.</p>
         <div class="lf-cards">
           <lf-link-card class="ds-item" [style.--d]="320" icon="envelope-simple" eyebrow="Email" title="Privacy requests"
                         body="Data access, correction and deletion requests, or any question about this policy."
@@ -298,7 +296,7 @@ export class PrivacyPolicyPage {
   protected readonly crumbs = [{ label: 'Home', link: '/' }, { label: 'Privacy Policy' }];
   protected readonly badge: LfBadge = { tone: 'teal', label: 'Legal · in effect' };
   protected readonly meta = [
-    ['Version', '2.1'], ['Effective', '9 June 2025'], ['Last updated', '9 June 2025'],
+    ['Version', '2.2'], ['Effective', '9 June 2025'], ['Last updated', '8 October 2026'],
   ] as const;
   protected readonly toc: LfTocEntry[] = [
     { id: 'overview', n: '01', label: 'Overview & commitment' },

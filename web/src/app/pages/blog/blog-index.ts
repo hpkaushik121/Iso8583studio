@@ -251,7 +251,7 @@ const TOPIC_TILES = BLOG_TOPICS.map((topic) => ({
                    [hidden]="card.hidden" [style.--d]="card.delay">
             <div class="bl-shot">
               <a class="bl-shot-link card--post" [routerLink]="card.post.path">
-                <app-blog-cover [src]="card.post.thumb" [icon]="card.topic.icon"
+                <app-blog-cover [src]="card.post.thumb" [icon]="card.topic.icon" [alt]="card.post.title"
                                 [full]="card.latest && card.post.thumb ? card.post.thumb.replace('.webp', '-1376.webp') : null"
                                 sizes="(max-width: 1040px) 100vw, 640px" [eager]="card.featured" />
                 <span class="bl-shot-shade" aria-hidden="true"></span>

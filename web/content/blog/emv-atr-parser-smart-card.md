@@ -4,13 +4,13 @@ description: "Decode smart card ATR bytes: TS, T0, T1, historical bytes, and pro
 date: "2025-06-01"
 tags: [ATR, smart card, EMV, ISO7816, payment testing]
 category: "EMV Tools"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 The Answer-to-Reset (ATR) is the first message you receive from a contact smart card after reset. It tells the reader which physical and logical protocols the card supports, how timing should be interpreted, and often carries **historical bytes** that manufacturers use for identification. For payment engineers, the ATR is not “the transaction”—but misreading it can cause wrong baud classes, wrong protocol selection (T=0 vs T=1), or wasted hours chasing communication issues that are really negotiation failures.
 
-**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 70+ tools for payment testing—including EMV utilities such as ATR parsing alongside Host Simulator, HSM Simulator (PayShield 10K), APDU Simulator, and cryptography suites. This article explains the ATR layout you will see in the field and how to interpret it methodically.
+**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 64 tools for payment testing—including EMV utilities such as ATR parsing alongside Host Simulator, HSM Simulator (PayShield 10K), APDU Simulator, and cryptography suites. This article explains the ATR layout you will see in the field and how to interpret it methodically.
 
 ## Why the ATR matters in payment projects
 

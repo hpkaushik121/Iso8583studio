@@ -33,7 +33,7 @@ const ICON = new Map(BLOG_TOPICS.map((t) => [t.id, t.icon]));
           @for (item of related(); track item.post.slug; let i = $index) {
             <div class="bp-mini-slot ds-item" [style.--d]="160 + i * 70">
               <a class="related-card bp-mini" [routerLink]="item.post.path">
-                <app-blog-cover [src]="item.post.thumb" [icon]="item.icon" />
+                <app-blog-cover [src]="item.post.thumb" [icon]="item.icon" [alt]="item.post.title" />
                 <span class="bp-mini-body">
                   <span class="ui-card-eyebrow">{{ item.post.category }}</span>
                   <span class="bp-mini-meta">{{ item.day }} · {{ item.post.minutes }} min read</span>

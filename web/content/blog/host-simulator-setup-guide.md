@@ -4,8 +4,8 @@ description: "Configure ISO8583Studio’s Host Simulator: Server, Client, and Pr
 date: "2025-03-25"
 tags: [host-simulator, ISO8583, payment-testing, gateway]
 category: "Host Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 If you are building or integrating a switch, POS middleware, or acquirer host, you need a **host simulator** that behaves like production—without waiting for a bank’s test window. ISO8583Studio is a free, cross-platform desktop app (Windows, macOS, Linux) built with Kotlin and Compose. Its **Host Simulator** supports TCP, REST, RS232, and multiple gateway patterns so you can exercise ISO 8583 and custom flows locally.
@@ -80,6 +80,6 @@ This discipline matters because payment integrations fail more often on **wiring
 
 ## Conclusion
 
-Configuring the Host Simulator is mostly about **correct gateway semantics** and **boring TCP details** done right. ISO8583Studio bundles **70+ tools**—including HSM simulation, EMV utilities, cryptography, and key management—so you can grow from a single socket test into full payment scenarios on one machine.
+Configuring the Host Simulator is mostly about **correct gateway semantics** and **boring TCP details** done right. ISO8583Studio bundles **64 tools**—including HSM simulation, EMV utilities, cryptography, and key management—so you can grow from a single socket test into full payment scenarios on one machine.
 
 **Download ISO8583Studio** for free at [https://iso8583.studio](https://iso8583.studio)—Windows, macOS, and Linux—and stand up a Host Simulator that matches how your system really connects.

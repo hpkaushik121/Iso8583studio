@@ -3,10 +3,11 @@
  * Ported from the prototype's key-tools-data.js; imported only by
  * pages/site/docs-key-tools.ts.
  *
- * Panel values come from the seeded hx() helper, so they are the same on the
- * server and in the browser.
+ * Every panel output that can be computed is a real value for the inputs shown (verified with
+ * openssl against the app's algorithms); outputs that depend on random padding or vendor secrets
+ * describe the result's layout instead of inventing hex. Field defaults still come from hx().
  */
-import { A, C, GlassSpec, H, HubStage, HubTool, S, T, grp, hx } from '../shared/glass/glass-model';
+import { A, C, GlassSpec, H, HubStage, HubTool, S, T, grp } from '../shared/glass/glass-model';
 import { ToolBlock, ToolGuideData, panel, stageTag, toFeatures } from '../shared/glass/tool-guide';
 
 interface RawSection {
@@ -22,14 +23,19 @@ interface RawSection {
 // DES parity: the low bit of each byte is set so the byte has an odd number of 1 bits.
 const odd = (h: string): string => h.match(/../g)!.map((b) => { const v = parseInt(b, 16); let n = 0; for (let x = v >> 1; x; x >>= 1) n += x & 1; return ((n & 1) ? v & 0xFE : v | 1).toString(16).toUpperCase().padStart(2, '0'); }).join('');
 const xor = (a: string, b: string): string => a.match(/../g)!.map((x, i) => (parseInt(x, 16) ^ parseInt(b.slice(i * 2, i * 2 + 2), 16)).toString(16).toUpperCase().padStart(2, '0')).join('');
-const kcv = (seed: string): string => hx('kcv/' + seed, 6);
-const KEY = odd(hx('clear', 32)), KBPK = hx('kbpk', 32), MFK = hx('mfk', 32);
-const K1 = odd(hx('dea/k1', 32)), K2 = odd(hx('dea/k2', 32)), K3 = odd(hx('dea/k3', 32));
-const RAW = hx('dea/raw', 32), FIXED = odd(RAW), CHANGED = RAW.match(/../g)!.filter((b, i) => b !== FIXED.slice(i * 2, i * 2 + 2)).length;
-const C1 = odd(hx('comb/1', 32)), C2 = odd(hx('comb/2', 32)), C3 = odd(hx('comb/3', 32)), COMB = xor(xor(C1, C2), C3);
-const P1 = hx('share/1', 32), P2 = hx('share/2', 32), SHARE = xor(P1, P2);
-const AKB = '1PUNE000,' + hx('akb/enc', 48) + ',' + hx('akb/mac', 16);
-const MOD = 'C' + hx('der/mod', 511);
+// Example keys with their real key check values: TDES-ECB of eight zero bytes, first three bytes
+// (single DES for the Safenet key). Recompute with `openssl enc -des-ede3 -K <key> -nopad` over 0000000000000000.
+const KEY = '8CB045316DFBB0C1F19D7F2FA76179AD', KEY_KCV = '4BDF55';
+const KBPK = '573ED683BE9C1FE2CF4F0FB89A25AF41', KBPK_KCV = '9F1B58', MFK = '66BA595A761561D49797211430EC05EA';
+const K1 = 'DF92135BB9736289855794F1F279C194', K2 = 'E6649D8AC15E679873925BE9C7940816', K3 = 'EF3826BCC74C6DA862CD20E09BAE519B';
+const KCV = { k1: '0AF4A5', k2: 'DBA8F5', k3: '617F0D', c1: 'DF76AF', c2: '83F69B', c3: 'D0CDBA', comb: 'C02DBB', share: '6C43E7', sn: '941099' };
+const RAW = '107C8D6ACEC530917170AA7970CD5F8E', FIXED = odd(RAW), CHANGED = RAW.match(/../g)!.filter((b, i) => b !== FIXED.slice(i * 2, i * 2 + 2)).length;
+const C1 = '4F7CF7D3DC8016C4389EBF3EC2D537DA', C2 = '38045740C7BA08946BEF6D5746835E51', C3 = '3ED6E070CEA80DA45B2A324F1A9EA7D5', COMB = xor(xor(C1, C2), C3);
+const P1 = 'B99E6EAA64AB28A713BBFEC3E0445F2A', P2 = 'A226CF174FE51977460BACDA63F287A0', SHARE = xor(P1, P2);
+// Key blocks carry random padding and vendor-encrypted bodies, so the panels show each block's layout rather than one wrapping.
+const AKB = '1PUNE000,<48 hex: key under the MFK>,<16 hex: MAC>';
+// A real RSA-2048 modulus (openssl genrsa), so the DER example encodes a genuine key.
+const MOD = 'DD597D633DE2DF0F08CCFD84587996476EE11335CC344044561E69CD36111C7FFA9833A7811BDF9227057B29F618A78F1F201C251A653EFB0DB0F7C62C098009AFA555B3F8AFE90EE0C22E41EDE052AE89979DD006A207588B03DF5205CE545309AAEA19B36041B61DE32A987FCEF6A37A2BFE588ADBF301FF4F754C1A4C5BF0E0B5AC7C49FC68A69D79D31273D9D0713494C92A1CDCE375893DD4ABE946AA9E22EF003BF7235542904CF7C7C8601D35575787E37BDD06A5D2AFE38F7FC60162957309C6BDBCC1A894735C5AF494CBAACF9BFB3F6A3E125E08F9DC94C967B3685AF2718DEEED3A20A57C0936840C18493C7AA68029332084C2AB89551123FE5B';
 const TABS_DEA = ['Key Generator', 'Key Combination', 'Parity Enforcement', 'Key Validation'];
 const TABS_SHARE = ['2 Parts', '3 Parts'];
 const TABS_TR31 = ['Wrap', 'Unwrap'];
@@ -38,18 +44,18 @@ const TABS_ATALLA = ['Key Encryption', 'AKB Decode'];
 const TABS_SSL = ['Keys', 'CSRs', 'Read CSR', 'Self-Signed', 'Read Certificate'];
 
 const PANELS: Record<string, GlassSpec> = {
-  'dea-gen': { title: 'DEA Keys Calculator', sub: 'Key Generator', tabs: TABS_DEA, tab: 0, icon: 'key', hint: 'odd parity enforced · KCV over 00 00 00 00 00 00 00 00', fields: [S('Keys to Generate', '3', { w: 2 }), S('Key Length', '128-bit (TDES double)', { w: 2 }), S('Key Parity', 'Odd', { w: 2 })], button: 'Generate Keys', result: [['Key 1', grp(K1) + ' · KCV ' + kcv('k1')], ['Key 2', grp(K2) + ' · KCV ' + kcv('k2')], ['Key 3', grp(K3) + ' · KCV ' + kcv('k3')]] },
-  'dea-combine': { title: 'DEA Keys Calculator', sub: 'Key Combination', tabs: TABS_DEA, tab: 1, icon: 'arrows-merge', hint: 'eight component slots · each with its own KCV', fields: [S('Key Type / Length', 'TDES — Double length (16B / 32H)', { w: 6 }), H('Component 1', 32, { v: C1, w: 4 }), T('KCV 1', kcv('c1'), { w: 2 }), H('Component 2', 32, { v: C2, w: 4 }), T('KCV 2', kcv('c2'), { w: 2 }), H('Component 3', 32, { v: C3, w: 4 }), T('KCV 3', kcv('c3'), { w: 2 })], button: 'Combine Components', result: [['Combined Key', grp(COMB)], ['KCV', kcv('comb') + ' · 3 of 8 components used']] },
+  'dea-gen': { title: 'DEA Keys Calculator', sub: 'Key Generator', tabs: TABS_DEA, tab: 0, icon: 'key', hint: 'odd parity enforced · KCV over 00 00 00 00 00 00 00 00', fields: [S('Keys to Generate', '3', { w: 2 }), S('Key Length', '128-bit (TDES double)', { w: 2 }), S('Key Parity', 'Odd', { w: 2 })], button: 'Generate Keys', result: [['Key 1', grp(K1) + ' · KCV ' + KCV.k1], ['Key 2', grp(K2) + ' · KCV ' + KCV.k2], ['Key 3', grp(K3) + ' · KCV ' + KCV.k3]] },
+  'dea-combine': { title: 'DEA Keys Calculator', sub: 'Key Combination', tabs: TABS_DEA, tab: 1, icon: 'arrows-merge', hint: 'eight component slots · each with its own KCV', fields: [S('Key Type / Length', 'TDES — Double length (16B / 32H)', { w: 6 }), H('Component 1', 32, { v: C1, w: 4 }), T('KCV 1', KCV.c1, { w: 2 }), H('Component 2', 32, { v: C2, w: 4 }), T('KCV 2', KCV.c2, { w: 2 }), H('Component 3', 32, { v: C3, w: 4 }), T('KCV 3', KCV.c3, { w: 2 })], button: 'Combine Components', result: [['Combined Key', grp(COMB)], ['KCV', KCV.comb + ' · 3 of 8 components used']] },
   'dea-parity': { title: 'DEA Keys Calculator', sub: 'Parity Enforcement', tabs: TABS_DEA, tab: 2, icon: 'scales', hint: 'only the low bit of each byte moves · cipher value unchanged', fields: [H('Key (Hex)', 32, { v: RAW, w: 4 }), S('Key Parity', 'Odd', { w: 2 })], button: 'Enforce Parity', result: [['Adjusted Key', grp(FIXED)], ['Changed', CHANGED + ' of 16 bytes · KCV unchanged']] },
-  'dea-lookup': { title: 'DEA Keys Calculator', sub: 'Key Validation', tabs: TABS_DEA, tab: 3, icon: 'magnifying-glass', hint: 'reports what the key actually is', fields: [H('Key (Hex)', 32, { v: K1, w: 4 }), C('Check KCV?', 'on', { w: 2 }), H('KCV (Optional)', 6, { v: kcv('k1'), w: 3, opt: true }), S('Parity', 'Odd', { w: 3 })], button: 'Lookup Key', result: [['Key', 'TDES double length · odd parity · not weak'], ['KCV', 'matches ' + kcv('k1')]] },
-  keyshare: { title: 'Keyshare Generator', sub: '2 Parts', tabs: TABS_SHARE, tab: 0, icon: 'arrows-split', hint: 'leave parts empty to have them generated', fields: [S('Parity', 'Ignore', { w: 3 }), S('Key Type', 'DES/TDES', { w: 3 }), H('Part 1', 32, { v: P1, w: 3, opt: true }), H('Part 2', 32, { v: P2, w: 3, opt: true })], button: 'Generate 2 Parts', result: [['Combined Key', grp(SHARE)], ['KCV', kcv('share') + ' · XOR of both parts']] },
-  tr31: { title: 'TR-31 Key Block', sub: 'Wrap', tabs: TABS_TR31, tab: 0, icon: 'package', hint: 'header codes are uppercase · version B for a TDES KBPK', fields: [H('KBPK', 32, { v: KBPK, w: 3 }), H('Clear Key', 32, { v: KEY, w: 3 }), S('Version ID', 'B', { w: 2 }), S('Key Usage', 'P0 — PIN encryption', { w: 2 }), S('Algorithm', 'T — TDES', { w: 2 }), S('Mode of Use', 'E — encrypt', { w: 2 }), T('Key Version Number', '00', { w: 2 }), S('Exportability', 'E — exportable', { w: 2 })], button: 'Wrap', alt: 'Unwrap', result: [['Key Block', 'B0080P0TE00E0000' + hx('tr31/enc', 48) + hx('tr31/mac', 16)], ['MAC', 'CMAC verified · 8 bytes · 80 chars']] },
-  'thales-kb': { title: 'Thales Key Block', sub: 'Encode', tabs: TABS_TKB, tab: 0, icon: 'cube', hint: 'imports a clear key under the HSM Simulator’s LMK', fields: [S('Key Block Version', '0 — 3DES KBPK', { w: 3 }), S('Thales Key Type', 'ZPK', { w: 3 }), H('Key Block Protection Key', 32, { v: KBPK, w: 4 }), T('KBPK KCV', kcv('kbpk'), { w: 2 }), H('Clear Key', 32, { v: KEY, w: 4 }), S('LMK Variant', '00', { w: 2 })], button: 'Encode', alt: 'Decode', result: [['Key under LMK', 'S10096' + hx('tkb/body', 90)], ['KCV', kcv('clear')]] },
-  'thales-keys': { title: 'Thales Key Calculator', sub: 'Keys Encryption / Decoding', tabs: null, icon: 'calculator', hint: 'matches A0 / A6 host-command results · 6-digit KCVs', fields: [H('Key (Hex)', 32, { v: KEY, w: 6 }), S('Key Scheme', 'U — double length TDES', { w: 3 }), S('LMK Size', 'Double', { w: 3 }), S('LMK Pair', '06-07 (ZPK)', { w: 3 }), S('Variant', '0', { w: 3 })], button: 'Encrypt', alt: 'Decrypt', result: [['Key under LMK', 'U' + hx('tk/out', 32)], ['KCV', kcv('clear')]] },
-  'atalla-enc': { title: 'Atalla Keys Calculator', sub: 'Key Encryption', tabs: TABS_ATALLA, tab: 0, icon: 'vault', hint: 'header, encrypted key and MAC · comma separated', fields: [H('Key (Hex)', 32, { v: KEY, w: 6 }), H('AKB Header (Hex)', 16, { v: '3150554E45303030', w: 2, tag: '1PUNE000' }), H('MFK Key (Hex)', 32, { v: MFK, w: 4 })], button: 'Encrypt Key', result: [['AKB', AKB], ['KCV', kcv('clear')]] },
-  'atalla-dec': { title: 'Atalla Keys Calculator', sub: 'AKB Decode', tabs: TABS_ATALLA, tab: 1, icon: 'lock-key-open', hint: 'verify against a known KCV rather than trusting the decode', fields: [A('AKB (Atalla Key Block)', AKB), C('Check KCV?', 'on', { w: 2 }), H('KCV (S)', 6, { v: kcv('clear'), w: 2, opt: true }), S('Parity', 'None', { w: 2 }), H('MFK Key (Hex)', 32, { v: MFK, w: 6 })], button: 'Decode AKB', result: [['Clear Key', grp(KEY)], ['KCV', 'matches ' + kcv('clear') + ' · parity not checked']] },
-  safenet: { title: 'Safenet Keys Calculator', sub: 'Key Encryption', tabs: null, icon: 'shield-check', hint: 'legacy and modern Luna formats', fields: [H('Key (Hex)', 16, { v: KEY.slice(0, 16), w: 6 }), S('Key Format', 'Single length DES', { w: 3 }), S('Variant', 'DPK', { w: 3 }), S('Key Input Format', 'Hexadecimal', { w: 2 }), H('KM Key (Hex)', 32, { w: 4 })], button: 'Encrypt', alt: 'Decrypt', result: [['Key under KM', grp(hx('sn/out', 16))], ['KCV', kcv('sn')]] },
-  'ssl-keys': { title: 'SSL Certificate (X.509) Utility', sub: 'Keys', tabs: TABS_SSL, tab: 0, icon: 'certificate', hint: 'PEM and parsed fields side by side · copy per artifact', fields: [S('Key Type', 'RSA', { w: 3 }), S('Key Size', '2048', { w: 3 }), A('Public Key (PEM)', '-----BEGIN PUBLIC KEY----- MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA…', { w: 3 }), A('Private Key (PEM)', '-----BEGIN PRIVATE KEY----- MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQ…', { w: 3 })], button: 'Generate Key Pair', alt: 'Read Keys', result: [['Key pair', 'RSA 2048 · e = 010001'], ['SHA-256', hx('ssl/fp', 24).match(/../g)!.join(':') + ':…']] },
+  'dea-lookup': { title: 'DEA Keys Calculator', sub: 'Key Validation', tabs: TABS_DEA, tab: 3, icon: 'magnifying-glass', hint: 'reports what the key actually is', fields: [H('Key (Hex)', 32, { v: K1, w: 4 }), C('Check KCV?', 'on', { w: 2 }), H('KCV (Optional)', 6, { v: KCV.k1, w: 3, opt: true }), S('Parity', 'Odd', { w: 3 })], button: 'Lookup Key', result: [['Key', 'TDES double length · odd parity · not weak'], ['KCV', 'matches ' + KCV.k1]] },
+  keyshare: { title: 'Keyshare Generator', sub: '2 Parts', tabs: TABS_SHARE, tab: 0, icon: 'arrows-split', hint: 'leave parts empty to have them generated', fields: [S('Parity', 'Ignore', { w: 3 }), S('Key Type', 'DES/TDES', { w: 3 }), H('Part 1', 32, { v: P1, w: 3, opt: true }), H('Part 2', 32, { v: P2, w: 3, opt: true })], button: 'Generate 2 Parts', result: [['Combined Key', grp(SHARE)], ['KCV', KCV.share + ' · XOR of both parts']] },
+  tr31: { title: 'TR-31 Key Block', sub: 'Wrap', tabs: TABS_TR31, tab: 0, icon: 'package', hint: 'header codes are uppercase · version B for a TDES KBPK', fields: [H('KBPK', 32, { v: KBPK, w: 3 }), H('Clear Key', 32, { v: KEY, w: 3 }), S('Version ID', 'B', { w: 2 }), S('Key Usage', 'P0 — PIN encryption', { w: 2 }), S('Algorithm', 'T — TDES', { w: 2 }), S('Mode of Use', 'E — encrypt', { w: 2 }), T('Key Version Number', '00', { w: 2 }), S('Exportability', 'E — exportable', { w: 2 })], button: 'Wrap', alt: 'Unwrap', result: [['Key Block', 'B0080P0TE00E0000 + 48 hex wrapped key + 16 hex CMAC · padding is random, so every wrap differs'], ['MAC', 'CMAC verified · 8 bytes · 80 chars']] },
+  'thales-kb': { title: 'Thales Key Block', sub: 'Encode', tabs: TABS_TKB, tab: 0, icon: 'cube', hint: 'imports a clear key under the HSM Simulator’s LMK', fields: [S('Key Block Version', '0 — 3DES KBPK', { w: 3 }), S('Thales Key Type', 'ZPK', { w: 3 }), H('Key Block Protection Key', 32, { v: KBPK, w: 4 }), T('KBPK KCV', KBPK_KCV, { w: 2 }), H('Clear Key', 32, { v: KEY, w: 4 }), S('LMK Variant', '00', { w: 2 })], button: 'Encode', alt: 'Decode', result: [['Key under LMK', 'S0… · 16-char header, encrypted key, 8-hex MAC · padding is random, so every encode differs'], ['KCV', KEY_KCV]] },
+  'thales-keys': { title: 'Thales Key Calculator', sub: 'Keys Encryption / Decoding', tabs: null, icon: 'calculator', hint: 'matches A0 / A6 host-command results · 6-digit KCVs', fields: [H('Key (Hex)', 32, { v: KEY, w: 6 }), S('Key Scheme', 'U — double length TDES', { w: 3 }), S('LMK Size', 'Double', { w: 3 }), S('LMK Pair', '06-07 (ZPK)', { w: 3 }), S('Variant', '0', { w: 3 })], button: 'Encrypt', alt: 'Decrypt', result: [['Key under LMK', 'U + 32 hex · under LMK pair 06-07, variant 0'], ['KCV', KEY_KCV]] },
+  'atalla-enc': { title: 'Atalla Keys Calculator', sub: 'Key Encryption', tabs: TABS_ATALLA, tab: 0, icon: 'vault', hint: 'header, encrypted key and MAC · comma separated', fields: [H('Key (Hex)', 32, { v: KEY, w: 6 }), H('AKB Header (Hex)', 16, { v: '3150554E45303030', w: 2, tag: '1PUNE000' }), H('MFK Key (Hex)', 32, { v: MFK, w: 4 })], button: 'Encrypt Key', result: [['AKB', AKB], ['KCV', KEY_KCV]] },
+  'atalla-dec': { title: 'Atalla Keys Calculator', sub: 'AKB Decode', tabs: TABS_ATALLA, tab: 1, icon: 'lock-key-open', hint: 'verify against a known KCV rather than trusting the decode', fields: [A('AKB (Atalla Key Block)', AKB), C('Check KCV?', 'on', { w: 2 }), H('KCV (S)', 6, { v: KEY_KCV, w: 2, opt: true }), S('Parity', 'None', { w: 2 }), H('MFK Key (Hex)', 32, { v: MFK, w: 6 })], button: 'Decode AKB', result: [['Clear Key', grp(KEY)], ['KCV', 'matches ' + KEY_KCV + ' · parity not checked']] },
+  safenet: { title: 'Safenet Keys Calculator', sub: 'Key Encryption', tabs: null, icon: 'shield-check', hint: 'legacy and modern Luna formats', fields: [H('Key (Hex)', 16, { v: KEY.slice(0, 16), w: 6 }), S('Key Format', 'Single length DES', { w: 3 }), S('Variant', 'DPK', { w: 3 }), S('Key Input Format', 'Hexadecimal', { w: 2 }), H('KM Key (Hex)', 32, { w: 4 })], button: 'Encrypt', alt: 'Decrypt', result: [['Key under KM', '16 hex · single DES under the KM key'], ['KCV', KCV.sn]] },
+  'ssl-keys': { title: 'SSL Certificate (X.509) Utility', sub: 'Keys', tabs: TABS_SSL, tab: 0, icon: 'certificate', hint: 'PEM and parsed fields side by side · copy per artifact', fields: [S('Key Type', 'RSA', { w: 3 }), S('Key Size', '2048', { w: 3 }), A('Public Key (PEM)', '-----BEGIN PUBLIC KEY----- MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA…', { w: 3 }), A('Private Key (PEM)', '-----BEGIN PRIVATE KEY----- MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQ…', { w: 3 })], button: 'Generate Key Pair', alt: 'Read Keys', result: [['Key pair', 'RSA 2048 · e = 010001'], ['SHA-256', '32 bytes, colon separated · over the DER certificate']] },
   'rsa-der': { title: 'DER Public Key Encoder', sub: 'RSA DER', tabs: null, icon: 'brackets-curly', hint: 'a modulus above 0x7F needs a leading zero byte', fields: [H('Modulus', 512, { v: MOD, w: 4 }), S('Modulus Encoding', 'Hexadecimal', { w: 2 }), H('Exponent', 6, { v: '010001', w: 4 }), S('Exponent Encoding', 'Hexadecimal', { w: 2 }), C('Toggle Modulus Negative', 'on', { w: 6 })], button: 'Encode Key', result: [['DER', '30820122300D06092A864886F70D01010105000382010F003082010A0282010100' + MOD.slice(0, 24) + '…'], ['Length', '294 bytes · leading 00 added before the modulus']] },
 };
 Object.values(PANELS).forEach((spec) => { spec.app = 'key-tools'; spec.badge = 'KEYS'; });
@@ -65,8 +71,10 @@ const TOOLS: HubTool[] = [
   { id: 'rsa-der', stage: 2, icon: 'brackets-curly', name: 'RSA DER Public Key Tool', desc: 'Wrap a modulus and exponent into DER, with the sign-byte case handled.' },
   { id: 'ssl', stage: 2, icon: 'certificate', name: 'SSL / X.509 Certificate Tool', desc: 'An end-to-end certificate workflow tool for terminal-host TLS.' },
 ];
-// The hub in the app also carries the Futurex calculator, which has no reference section yet.
-const HUB_TOOLS: HubTool[] = [...TOOLS.slice(0, 5), { id: 'futurex', stage: 1, icon: 'cpu', name: 'Futurex Key Calculator', desc: 'Vendor-aware key calculations for Futurex HSMs.' }, ...TOOLS.slice(5)];
+// The app's hub also carries a Futurex calculator. It is not listed here until it has a
+// reference section: advertising a tool the page does not document inflated the count
+// to 10 and put a vendor in the metadata with zero prose behind it.
+const HUB_TOOLS: HubTool[] = TOOLS;
 const STAGES: HubStage[] = [['01', 'Build & share', 'DEA keys · shares · parity'], ['02', 'Key blocks & HSMs', 'TR-31 · Thales · Atalla · Safenet'], ['03', 'Certificates & DER', 'X.509 · CSR · DER']];
 const FAMILIES: [string, string, string][] = [
   ['key', 'Build keys', 'Generate and combine raw key material.'],
@@ -163,7 +171,7 @@ const TIPS: string[] = [
 export const KEY_TOOLS_GUIDE: ToolGuideData = {
   slug: 'key-tools',
   crumb: 'Key Management Tools',
-  meta: '10 tools · key blocks · KCVs · X.509',
+  meta: '9 tools · key blocks · KCVs · X.509',
   title: 'Key Management Tools',
   lede: 'Generate, validate, wrap, share, and verify cryptographic keys used across payment systems — from raw 3DES key generation and parity enforcement to TR-31 / Thales key blocks, vendor HSM-specific calculators, keyshare splitting, and X.509 certificate workflows.',
   hub: {
@@ -174,7 +182,7 @@ export const KEY_TOOLS_GUIDE: ToolGuideData = {
     columns: 4,
     category: 3,
     search: 'Search key tools…',
-    badge: '10 tools',
+    badge: '9 tools',
     label: 'Build, wrap, distribute, check',
     note: 'A KCV beside every key that leaves the screen.',
     aria: 'The Key Management hub: tool categories, three job groups and the ten tools in the group',

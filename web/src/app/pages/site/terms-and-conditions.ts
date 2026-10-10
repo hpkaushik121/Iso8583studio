@@ -21,9 +21,10 @@ import { LONGFORM, LfBadge, LfHighlight, LfTocEntry } from '../shared/longform';
 
     <lf-body [toc]="toc">
       <section lfSection id="agreement" n="01" heading="Open source software agreement">
-        <p class="lf-p">This Open Source Software Agreement ("Agreement") governs your use of ISO8583Studio desktop application software ("Software"), which is free and open source software provided by AiCortext Solutions Pvt. Ltd. ("we," "us," or "our") under the GNU Affero General Public License, version 3 (AGPL v3).</p>
+        <p class="lf-p">This Open Source Software Agreement ("Agreement") governs your use of ISO8583Studio desktop application software ("Software"), which is free and open source software provided by AiCortex Solutions Pvt. Ltd. ("we," "us," or "our") under the GNU Affero General Public License, version 3 (AGPL v3).</p>
         <lf-note tone="blue" icon="seal-check" title="Acceptance" [legal]="true">By downloading, installing, or using ISO8583Studio, you acknowledge that this is open source software provided "AS IS" without any warranty or obligation from the developers, distributed under the GNU Affero General Public License v3.</lf-note>
         <lf-note tone="neutral" icon="info" title="Important">This is free, open source software distributed under the AGPL v3. There are no purchase requirements, no refunds (as the software is free), and no warranties or obligations from the developers regarding its performance or suitability for any purpose. The AGPL is a strong copyleft licence: if you distribute a modified version, or let others interact with a modified version over a network, you must offer them its complete corresponding source under the same licence.</lf-note>
+        <lf-note tone="warn" icon="info" title="What these terms do not cover" [legal]="true">This Agreement covers the free, open-source desktop software only. <strong>ISO8583Studio Pro</strong> is a separate paid offering, currently in pre-registration at <a routerLink="/pro">/pro</a>. The reservation fee, its refund conditions and the subscription price are stated on that page and will be governed by their own terms, published before Pro launches; the "no refunds" statement above applies to the free software and not to Pro.</lf-note>
       </section>
 
       <section lfSection id="license" n="02" heading="GNU AGPL v3 grant">

@@ -56,9 +56,11 @@ const two = (n: number) => String(n).padStart(2, '0');
             <h1 class="bp-title ds-in"><ui-words [text]="p.title" [base]="160" /></h1>
             <p class="bp-excerpt ds-fade" [style.--d]="380">{{ p.description }}</p>
             <div class="bp-byline ds-fade" [style.--d]="480">
-              <span>{{ date() }}</span><span aria-hidden="true">·</span>
+              <span>{{ date() }}</span>
+              @if (updated()) {<span aria-hidden="true">·</span><span>Updated {{ updated() }}</span>}
+              <span aria-hidden="true">·</span>
               <span>{{ p.minutes }} min read</span><span aria-hidden="true">·</span>
-              <span>{{ p.author }}</span>
+              <a class="bp-author" href="https://github.com/hpkaushik121" rel="author">{{ p.author }}</a>
             </div>
           </div>
         </div>
@@ -69,7 +71,7 @@ const two = (n: number) => String(n).padStart(2, '0');
           <span class="bp-cover-bloom" aria-hidden="true"></span>
           <span class="bp-cover-frame">
             @if (p.image && !coverFailed()) {
-              <img #cover [src]="large(p.thumb) ?? p.image" alt="" width="1376" height="768" fetchpriority="high"
+              <img #cover [src]="large(p.thumb) ?? p.image" [alt]="'Cover illustration: ' + p.title" width="1376" height="768" fetchpriority="high"
                    [attr.srcset]="p.thumb ? p.thumb + ' 640w, ' + large(p.thumb) + ' 1376w' : null"
                    [attr.sizes]="p.thumb ? '(max-width: 700px) 100vw, 1240px' : null"
                    decoding="async" (error)="coverFailed.set(true)">
@@ -174,6 +176,7 @@ export class BlogPost {
 
   protected readonly topic = computed(() => TOPIC_BY_ID.get(this.post()?.topicId ?? '') ?? BLOG_TOPICS[0]);
   protected readonly date = computed(() => longDate(this.post()?.date ?? ''));
+  protected readonly updated = computed(() => { const u = this.post()?.updated; return u ? longDate(u) : ''; });
 
   /** The topic's posts in the order they were written: BLOG_POSTS is newest first. */
   private readonly series = computed(() =>

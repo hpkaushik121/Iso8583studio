@@ -11,6 +11,8 @@ export interface BlogMeta {
   /** Slug of the category — the topic's id and its `/blogs#<id>` fragment. */
   topicId: string;
   author: string;
+  /** ISO date of the last substantive revision, from the `updated:` front matter; '' when never revised. */
+  updated: string;
   /** As written in the frontmatter, `9 min read`. */
   readTime: string;
   /** The number parsed out of `readTime`. */

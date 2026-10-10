@@ -48,6 +48,7 @@
     opacity: .12;
 }
 
+
 .page-home .hp-dots-glow {
     background: radial-gradient(circle var(--mr, 210px) at var(--mx, 50%) var(--my, 50%), rgba(106, 183, 255, .1), transparent 72%);
     opacity: 0;
@@ -456,7 +457,7 @@
 }
 
 .page-home .model-fallback strong { font-size: var(--fs-base); font-weight: var(--fw-medium); letter-spacing: .05em; }
-.page-home .model-fallback small { color: var(--hp-plate-ink); font-size: .625rem; }
+.page-home .model-fallback small { color: var(--hp-plate-ink); font-size: var(--fs-2xs); }
 .page-home .payment-story.journey-live .model-fallback { display: none; }
 
 .page-home .handshake {
