@@ -179,6 +179,7 @@ export class AnalyticsService {
       return { group: 'docs_tool', id: seg[1] };
     }
 
+    if (seg[0] === 'about' || seg[0] === 'authors') return { group: 'about', id: slug };
     if (/^(privacy-policy|terms-and-conditions)$/.test(slug)) return { group: 'legal', id: slug };
     if (SOLUTION_PAGES.includes(seg[0])) return { group: 'solution', id: seg[0] };
     if (seg[0] === 'pro') return { group: 'pro', id: 'pro' };

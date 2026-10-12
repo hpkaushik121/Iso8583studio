@@ -40,6 +40,8 @@ connection, lab booking or physical HSM.
 - [Installation guide](https://iso8583.studio/docs/installation): requirements and first run
 - [Version history](https://iso8583.studio/docs/versions): every release with dates and changes
 - [Source code](https://github.com/hpkaushik121/Iso8583studio): AGPL v3 repository and issue tracker
+- [About](https://iso8583.studio/about): what the studio is, who builds it, the company behind it and how it is built
+- [Sourabh Kaushik](https://iso8583.studio/authors/sourabh-kaushik): maintainer of the studio and author of the guides
 
 ## Optional
 - [EMV certification services](https://iso8583.studio/emv-certification): L1/L2/L3 and scheme certification consulting

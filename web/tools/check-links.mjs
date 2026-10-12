@@ -60,6 +60,7 @@ const EXPECTED_BLOG = readdirSync(join(ROOT, 'content/blog'))
 
 const EXPECTED_PAGES = [
   '/', '/privacy-policy', '/terms-and-conditions',
+  '/about', '/authors/sourabh-kaushik',
   '/cloud-simulators', '/contact', '/download', '/emv-certification', '/kernel', '/middleware', '/pro',
   '/docs', '/blogs',
   ...['contributing', 'installation', 'versions'].map((s) => `/docs/${s}`),
@@ -74,7 +75,7 @@ const expected = [...EXPECTED_PAGES, ...EXPECTED_BLOG];
 for (const route of expected) {
   if (!routes.has(route)) fail(`route not emitted: ${route}`);
 }
-if (expected.length !== 85) fail(`expected 85 routes, the checker knows about ${expected.length}`);
+if (expected.length !== 87) fail(`expected 87 routes, the checker knows about ${expected.length}`);
 
 // ---- 2/3. internal links resolve, and nothing keeps .html ------------------
 

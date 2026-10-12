@@ -1293,3 +1293,94 @@
     .lf-note { grid-template-columns: minmax(0, 1fr); }
     .lf-head-row { flex-wrap: wrap; }
 }
+
+/* ---- About and author ------------------------------------------------- */
+
+/* The person card (about.jsx Person): an initials disc, name, role and an
+   inline link row under a faint "Profile" label. */
+.lf-person {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    margin: 4px 0 24px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg);
+    box-shadow: inset 0 1px 0 rgba(233, 236, 245, .05);
+}
+
+.lf-avatar {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 1px solid rgba(106, 183, 255, .3);
+    border-radius: var(--r-pill);
+    background: rgba(30, 136, 229, .1);
+    color: var(--blue-hi);
+    font-family: var(--mono);
+    font-size: var(--fs-lg);
+    letter-spacing: .04em;
+}
+
+.lf-person-text { display: grid; gap: 6px; min-width: 0; }
+.lf-person-name { color: var(--text); font-size: var(--fs-lg); font-weight: 500; letter-spacing: var(--ls-snug); }
+.lf-person-name a { color: inherit; }
+.lf-person-name a:hover { color: var(--blue-hi); }
+.lf-person-role { color: var(--muted); font-size: var(--fs-base); line-height: 1.7; text-wrap: pretty; }
+
+.lf-person-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 6px;
+    font-size: var(--fs-sm);
+}
+
+.lf-person-links-k { color: var(--faint); }
+.lf-main .lf-person-links a { display: inline-flex; align-items: center; gap: 6px; color: var(--blue-hi); text-decoration: none; }
+.lf-main .lf-person-links a:hover { color: var(--teal-hi); }
+
+/* Feature cards in a section body (about.jsx FeatureCards): the hero's
+   highlight cards, with the blue icon tile, placed as a block. */
+.lf-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin: 4px 0 24px;
+}
+
+/* Timeline (about.jsx Timeline): a mono date, a dot on a hairline, the event. */
+.lf-timeline { display: grid; margin: 4px 0 24px; padding: 0; list-style: none; }
+
+.lf-timeline li {
+    display: grid;
+    grid-template-columns: 92px 20px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+}
+
+.lf-timeline-date { padding-top: 3px; color: var(--blue-hi); font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.7; }
+.lf-timeline-rail { display: grid; justify-items: center; align-self: stretch; }
+
+.lf-timeline-dot {
+    width: 9px;
+    height: 9px;
+    margin-top: 9px;
+    border: 1px solid rgba(106, 183, 255, .5);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, .12);
+}
+
+.lf-timeline-line { width: 1px; min-height: 18px; margin-top: 6px; background: var(--line2); }
+.lf-timeline-text { padding-bottom: 22px; color: var(--muted); font-size: var(--fs-base); line-height: 1.7; text-wrap: pretty; }
+.lf-timeline li:last-child .lf-timeline-text { padding-bottom: 0; }
+
+@media (max-width: 560px) {
+    .lf-person { grid-template-columns: minmax(0, 1fr); }
+    .lf-timeline li { grid-template-columns: 72px 20px minmax(0, 1fr); }
+}

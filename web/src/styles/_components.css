@@ -855,3 +855,63 @@ ui-logo-mark { display: inline-flex; }
 }
 /* Sits below the fixed header, so its links are reachable with scripting off. */
 .nav-noscript { display: flex; gap: 16px; margin-top: var(--nav-h); padding: 8px 16px; flex-wrap: wrap; font-size: var(--fs-sm); position: relative; z-index: 1; }
+
+/* ---- ui-built-by ------------------------------------------------------- */
+
+/* Provenance strip: three facts on one hairline row, in the mono the hero
+   meta lines use. Each fact is an anchor — key faint, value in full ink — and
+   the row stays quiet until a fact is hovered. Under 640px the row becomes a
+   short column and the rules go. */
+.built-by-host { display: block; container: built-by / inline-size; }
+.built-by-host--center { display: flex; justify-content: center; }
+
+.built-by {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 0;
+    max-width: 100%;
+    font-family: var(--mono);
+    font-size: var(--fs-xs);
+    letter-spacing: .01em;
+    line-height: 1;
+}
+
+.built-by-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: var(--r-pill);
+    color: var(--muted);
+    white-space: nowrap;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.built-by-item:hover { background: var(--neutral-wash); color: var(--text); }
+.built-by-item .ui-icon { color: var(--faint); transition: color var(--dur) var(--ease); }
+.built-by-item:hover .ui-icon { color: var(--blue-hi); }
+.built-by-k { color: var(--faint); }
+.built-by-v { color: var(--text); }
+.built-by-dim { color: var(--muted); }
+.built-by-rule { width: 1px; height: 12px; background: var(--line-hi); }
+
+@media (pointer: coarse) {
+    .built-by-item { min-height: 44px; }
+}
+
+/* In a copy column too narrow for one line (the Pro and HSM heroes), the row
+   wraps as plain chips: a hairline left dangling at a line end reads as a
+   mistake. */
+@container built-by (max-width: 719px) {
+    .built-by { gap: 2px 4px; }
+    .built-by-rule { display: none; }
+    .built-by-item { padding: 0 10px; }
+}
+
+@media (max-width: 640px) {
+    .built-by { display: grid; gap: 2px; }
+    .built-by-rule { display: none; }
+    .built-by-host--center .built-by { justify-items: center; }
+}

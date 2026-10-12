@@ -6,7 +6,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { BLOG_POSTS, BLOG_TOPICS } from '../../content/blog-index';
-import { EXTERNAL } from '../../core/site-nav';
+import { AUTHOR, EXTERNAL } from '../../core/site-nav';
 import { Crumb, UiBadge, UiBreadcrumb, UiCtaPanel, UiIcon, UiReveal, UiWords } from '../../ui';
 import { SitePage } from '../site/site-page';
 import { RelatedPosts } from './related-posts';
@@ -60,7 +60,7 @@ const two = (n: number) => String(n).padStart(2, '0');
               @if (updated()) {<span aria-hidden="true">·</span><span>Updated {{ updated() }}</span>}
               <span aria-hidden="true">·</span>
               <span>{{ p.minutes }} min read</span><span aria-hidden="true">·</span>
-              <a class="bp-author" href="https://github.com/hpkaushik121" rel="author">{{ p.author }}</a>
+              <a class="bp-author" [routerLink]="authorPath" rel="author">{{ p.author }}</a>
             </div>
           </div>
         </div>
@@ -152,6 +152,8 @@ export class BlogPost {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly releases = EXTERNAL.releases;
+  /** The on-site author page; the byline used to leave for GitHub. */
+  protected readonly authorPath = AUTHOR.path;
 
   private readonly data = toSignal(this.route.data, { requireSync: true });
 

@@ -35,8 +35,8 @@ export const siteRoutes: Routes = [
             "@type": "Person",
             "@id": "https://iso8583.studio/#sourabh-kaushik",
             "name": "Sourabh Kaushik",
-            "url": "https://github.com/hpkaushik121",
-            "sameAs": ["https://github.com/hpkaushik121"],
+            "url": "https://iso8583.studio/authors/sourabh-kaushik",
+            "sameAs": ["https://github.com/hpkaushik121", "https://www.linkedin.com/in/sourabh-kaushik/"],
             "worksFor": { "@id": "https://iso8583.studio/#organization" }
           },
           {
@@ -80,6 +80,89 @@ export const siteRoutes: Routes = [
             ]
           }
         ]
+      }
+    } },
+  },
+  {
+    path: "about",
+    loadComponent: () => import('./about').then((c) => c.AboutPage),
+    resolve: { styles: styleBundles('longform') },
+    data: { seo: {
+      "title": "About ISO8583Studio — who builds it and why",
+      "description": "ISO8583Studio is a free, open-source payment testing workbench built and maintained by Sourabh Kaushik and published by AiCortex Solutions Pvt. Ltd. What it is, why it exists and how it is built.",
+      "keywords": "about ISO8583Studio, who makes ISO8583Studio, AiCortex Solutions, Sourabh Kaushik, open source payment testing, AGPL payment simulator",
+      "path": "/about",
+      "ogType": "website",
+      "image": "https://iso8583.studio/images/app.png",
+      "jsonLd": {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        "@id": "https://iso8583.studio/about#page",
+        "url": "https://iso8583.studio/about",
+        "name": "About ISO8583Studio",
+        "description": "What ISO8583Studio is, why it exists, who builds it and how it is built.",
+        "inLanguage": "en",
+        "isPartOf": { "@id": "https://iso8583.studio/#website" },
+        "about": { "@id": "https://iso8583.studio/#software" },
+        "mainEntity": {
+          "@type": "Organization",
+          "@id": "https://iso8583.studio/#organization",
+          "name": "AiCortex Solutions",
+          "legalName": "AiCortex Solutions Pvt. Ltd.",
+          "url": "https://iso8583.studio/",
+          "logo": { "@type": "ImageObject", "url": "https://iso8583.studio/images/app.png", "width": 512, "height": 512 },
+          "email": "admin@iso8583.studio",
+          "address": { "@type": "PostalAddress", "addressCountry": "IN" },
+          "brand": { "@type": "Brand", "name": "ISO8583Studio" },
+          "member": { "@id": "https://iso8583.studio/#sourabh-kaushik" },
+          "sameAs": [
+            "https://github.com/hpkaushik121/Iso8583studio",
+            "https://www.linkedin.com/company/iso8583-studio",
+            "https://medium.com/@iso8583.studio"
+          ]
+        }
+      }
+    } },
+  },
+  {
+    path: "authors/sourabh-kaushik",
+    loadComponent: () => import('./author-sourabh-kaushik').then((c) => c.AuthorSourabhKaushikPage),
+    resolve: { styles: styleBundles('longform') },
+    data: { seo: {
+      "title": "Sourabh Kaushik — maintainer of ISO8583Studio",
+      "description": "Payments engineer, maintainer of ISO8583Studio and author of its guides on ISO 8583, EMV, Thales payShield HSM emulation, PIN blocks, DUKPT and TR-31 key blocks.",
+      "keywords": "Sourabh Kaushik, ISO8583Studio author, payments engineer, ISO 8583 expert, payShield simulator author, EMV certification engineer",
+      "path": "/authors/sourabh-kaushik",
+      "ogType": "website",
+      "image": "https://iso8583.studio/images/app.png",
+      "author": "Sourabh Kaushik",
+      "jsonLd": {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "@id": "https://iso8583.studio/authors/sourabh-kaushik#page",
+        "url": "https://iso8583.studio/authors/sourabh-kaushik",
+        "name": "Sourabh Kaushik",
+        "inLanguage": "en",
+        "isPartOf": { "@id": "https://iso8583.studio/#website" },
+        "mainEntity": {
+          "@type": "Person",
+          "@id": "https://iso8583.studio/#sourabh-kaushik",
+          "name": "Sourabh Kaushik",
+          "url": "https://iso8583.studio/authors/sourabh-kaushik",
+          "jobTitle": "Payments engineer and maintainer of ISO8583Studio",
+          "worksFor": {
+            "@type": "Organization",
+            "@id": "https://iso8583.studio/#organization",
+            "name": "AiCortex Solutions",
+            "legalName": "AiCortex Solutions Pvt. Ltd.",
+            "url": "https://iso8583.studio/"
+          },
+          "sameAs": ["https://github.com/hpkaushik121", "https://www.linkedin.com/in/sourabh-kaushik/"],
+          "knowsAbout": [
+            "ISO 8583", "EMV", "Hardware security modules", "Thales payShield 10K", "ISO 9564 PIN blocks",
+            "DUKPT", "TR-31 key blocks", "ISO 9797 MAC", "Payment terminal certification"
+          ]
+        }
       }
     } },
   },

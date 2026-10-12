@@ -314,10 +314,12 @@ const routeEntries = posts.map((p) => {
       '@type': 'BlogPosting',
       headline: p.title,
       description: p.description,
+      // The same Person the homepage graph defines, so every post's byline
+      // resolves to one entity with an on-site profile page.
       author: {
-        '@type': 'Person', name: p.author,
-        url: 'https://github.com/hpkaushik121',
-        sameAs: ['https://github.com/hpkaushik121', 'https://www.linkedin.com/company/iso8583-studio'],
+        '@type': 'Person', '@id': `${SITE}/#sourabh-kaushik`, name: p.author,
+        url: `${SITE}/authors/sourabh-kaushik`,
+        sameAs: ['https://github.com/hpkaushik121', 'https://www.linkedin.com/in/sourabh-kaushik/'],
       },
       publisher: {
         '@type': 'Organization', name: 'AiCortex Solutions', url: `${SITE}/`,
