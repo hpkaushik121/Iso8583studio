@@ -470,11 +470,6 @@
 .pro-sec { padding-top: 96px; }
 .pro-sec--faq { max-width: 860px; margin-left: auto; margin-right: auto; }
 
-/* The enquiry form closes the page: on the same 96px rhythm as the sections
-   above it and in the FAQ's narrower column, so the two read as one. Its
-   own 56px host margin is for pages without a section grid. */
-.pro-main > .lead-form-host { max-width: 860px; margin: 0 auto; padding-top: 96px; }
-
 .pro-sec-head { display: grid; gap: 12px; margin-bottom: 34px; }
 
 .pro-h2 {
@@ -507,7 +502,6 @@
 @media (max-width: 640px) {
     .pro-main { padding-bottom: 72px; }
     .pro-sec { padding-top: 72px; }
-    .pro-main > .lead-form-host { padding-top: 72px; }
 }
 
 /* ---- Why: the two builds over their packet lanes ------------------------ */
