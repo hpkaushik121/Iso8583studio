@@ -141,6 +141,9 @@
 
 .page-pro .ph-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
 
+/* Who built it, the release, the source — under the CTAs, above the orbit. */
+.page-pro .pro-provenance { position: relative; z-index: 2; margin-top: 20px; }
+
 .page-pro .pro-hero-orbit {
     position: absolute;
     inset: 0;

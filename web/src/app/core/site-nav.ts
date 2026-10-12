@@ -59,6 +59,7 @@ export const RESOURCES: NavLink[] = [
   { label: 'Installation', link: '/docs/installation' },
   { label: 'Versions', link: '/docs/versions' },
   { label: 'Contribute', link: '/docs/contributing' },
+  { label: 'About', link: '/about' },
   { label: 'Contact', link: '/contact' },
   { label: 'Blog', link: '/blogs' },
   { label: 'ISO8583Studio Pro', link: '/pro' },
@@ -86,4 +87,19 @@ export const EXTERNAL = {
   linkedin: 'https://www.linkedin.com/company/iso8583-studio',
   github: 'https://github.com/hpkaushik121',
   medium: 'https://medium.com/@iso8583.studio',
+} as const;
+
+/**
+ * The person behind the studio. The author page, the blog bylines, the
+ * provenance strip and the Person node in the structured data all read from
+ * here, so the name and the links cannot drift between them.
+ */
+export const AUTHOR = {
+  name: 'Sourabh Kaushik',
+  initials: 'SK',
+  path: '/authors/sourabh-kaushik',
+  github: 'https://github.com/hpkaushik121',
+  linkedin: 'https://www.linkedin.com/in/sourabh-kaushik/',
+  /** The @id of the Person node every page's JSON-LD refers to. */
+  id: 'https://iso8583.studio/#sourabh-kaushik',
 } as const;

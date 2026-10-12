@@ -142,6 +142,8 @@ const GUIDE_SECTIONS = {
   '/tools/card-validation': ['overview', 'concepts', 'cvc-mc', 'amex', 'service-codes', 'tips'],
   '/download': ['installers', 'whats-inside'],
   '/contact': ['enquiry', 'channels'],
+  '/about': ['what', 'why', 'who', 'built', 'milestones', 'contact', 'final_cta'],
+  '/authors/sourabh-kaushik': ['about', 'writing', 'elsewhere'],
   '/privacy-policy': ['overview', 'data-collection', 'data-usage', 'data-sharing', 'security', 'retention', 'rights', 'cookies', 'international', 'minors', 'updates', 'compliance'],
   '/terms-and-conditions': [],
   '/pro': ['what', 'register', 'faq', 'enquiry'],

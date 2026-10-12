@@ -42,9 +42,11 @@ export const PUBLISHER = {
 };
 
 /** Visible breadcrumb labels, keyed by path. Every simulator, tool and docs
- *  page renders `Home / Documentation / <label>`; top-level pages render
- *  `Home / <label>`. Blog posts build their own trail in build-blog-routes. */
+ *  page renders `Home / Documentation / <label>`; author pages render
+ *  `Home / About / <label>`; top-level pages render `Home / <label>`. Blog
+ *  posts build their own trail in build-blog-routes. */
 const CRUMB_LABELS: Record<string, string> = {
+  '/about': 'About', '/authors/sourabh-kaushik': 'Sourabh Kaushik',
   '/blogs': 'Blog', '/cloud-simulators': 'Cloud Simulators', '/contact': 'Contact',
   '/docs': 'Documentation', '/download': 'Download', '/emv-certification': 'EMV Certification',
   '/kernel': 'Kernel Development', '/middleware': 'Payment Middleware', '/privacy-policy': 'Privacy Policy',
@@ -68,6 +70,7 @@ function breadcrumbList(path: string): unknown | undefined {
   if (!label) return undefined;
   const trail: { name: string; path: string }[] = [{ name: 'Home', path: '/' }];
   if (DOC_PREFIX.test(path) || path === '/simulator') trail.push({ name: 'Documentation', path: '/docs' });
+  if (path.startsWith('/authors/')) trail.push({ name: 'About', path: '/about' });
   trail.push({ name: label, path });
   return {
     '@context': 'https://schema.org',

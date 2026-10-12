@@ -42,6 +42,9 @@ import { Crumb, UiBadge, UiBreadcrumb, UiWords } from '../../../ui';
  *                    It is the section's first child and the section is position:relative.
  *   [gdHeroVisual]   anything that follows the copy inside the section — the tool guides put
  *                    <app-guide-frame gdHeroVisual> here.
+ *   [gdHeroFoot]     a line under the CTAs, still inside the copy column — the provenance strip
+ *                    (<ui-built-by gdHeroFoot class="gd-hero-foot ds-fade" …>). Outside .ph-ctas,
+ *                    so its links are not counted as hero CTAs.
  *
  * The section deliberately has no id and no data-sect.
  */
@@ -71,6 +74,7 @@ import { Crumb, UiBadge, UiBreadcrumb, UiWords } from '../../../ui';
           }
           @if (lede()) { <p class="gd-hero-lede ds-fade" [style.--d]="900">{{ lede() }}</p> }
           <div class="ph-ctas gd-hero-ctas ds-fade" [style.--d]="1200"><ng-content /></div>
+          <ng-content select="[gdHeroFoot]" />
         </div>
       </div>
       <ng-content select="[gdHeroVisual]" />

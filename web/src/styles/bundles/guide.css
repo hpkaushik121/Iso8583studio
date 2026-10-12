@@ -61,6 +61,9 @@
     gap: 10px;
 }
 
+/* The provenance strip under the CTAs ([gdHeroFoot]). */
+.gd-hero-foot { position: relative; z-index: 3; margin-top: 18px; }
+
 /* The shared breadcrumb, restyled: quiet links, the current page in full ink. */
 .gd-hero .breadcrumb {
     gap: 8px;

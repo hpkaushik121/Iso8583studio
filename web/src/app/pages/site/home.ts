@@ -6,7 +6,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EXTERNAL } from '../../core/site-nav';
 import {
-  AccordionItem, UiAccordion, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
+  AccordionItem, UiAccordion, UiBuiltBy, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
 } from '../../ui';
 import { HomeHeroDashboard } from '../home/hero-dashboard';
 import { HomeJourney } from '../home/journey';
@@ -93,7 +93,7 @@ const LIGHT_RADIUS = 210;
 @Component({
   selector: 'page-home',
   imports: [
-    RouterLink, UiAccordion, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
+    RouterLink, UiAccordion, UiBuiltBy, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
     HomeHeroDashboard, HomeJourney, HomePrismBeam, HomeScrollDots, ProReserve,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -116,6 +116,7 @@ const LIGHT_RADIUS = 210;
           <a class="btn btn--primary btn--glow" [href]="releases">Download Studio<ui-icon name="arrow-up-right" [size]="16" /></a>
           <a class="btn btn--ghost" routerLink="/" fragment="toolbox">Browse the tools</a>
         </div>
+        <ui-built-by class="hp-provenance ds-fade" [style.--d]="1500" align="center" />
       </div>
 
       <div class="hp-stage">
