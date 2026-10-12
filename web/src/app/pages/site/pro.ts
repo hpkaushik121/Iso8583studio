@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SitePage } from './site-page';
 import { LeadForm } from '../shared/lead-form';
 import {
-  AccordionItem, Crumb, UiAccordion, UiBadge, UiBreadcrumb, UiBuiltBy, UiIcon, UiReveal, UiWords,
+  AccordionItem, Crumb, UiAccordion, UiBadge, UiBreadcrumb, UiIcon, UiProvenance, UiReveal, UiWords,
 } from '../../ui';
 import { ProReserve } from '../pro/pro-reserve';
 import {
@@ -103,7 +103,7 @@ const FAQ: AccordionItem[] = [
   selector: 'page-pro',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    RouterLink, UiAccordion, UiBadge, UiBreadcrumb, UiBuiltBy, UiIcon, UiReveal, UiWords,
+    RouterLink, UiAccordion, UiBadge, UiBreadcrumb, UiIcon, UiProvenance, UiReveal, UiWords,
     ProOrbit, ProLane, ProAlgos, ProSpotlight, ProReserve, LeadForm,
   ],
   hostDirectives: [SitePage],
@@ -124,7 +124,7 @@ const FAQ: AccordionItem[] = [
               <a class="btn btn--primary btn--lg btn--glow" routerLink="/pro" fragment="register">Register for Pro<ui-icon name="arrow-right" [size]="16" /></a>
               <a class="btn btn--outline btn--lg" routerLink="/pro" fragment="what">What's included</a>
             </div>
-            <ui-built-by class="pro-provenance ds-fade" [style.--d]="700" />
+            <ui-provenance class="pro-provenance ds-fade" [style.--d]="700" />
           </div>
           <app-pro-orbit class="pro-hero-orbit ds-fade" [style.--d]="300" />
           <span class="pro-hero-veil" aria-hidden="true"></span>

@@ -106,9 +106,6 @@
     margin-top: 22px;
 }
 
-/* Who built it, the release, the source: the last line of the hero copy. */
-.page-home .hp-provenance { position: relative; z-index: 3; margin-top: 18px; }
-
 /* The block under the copy: the beam, and the frame it lands on. --hp-gap is
    the beam's height above the frame, --hp-shot the frame's height; the block
    is cut a little short of the frame so its faded foot overlaps what follows. */

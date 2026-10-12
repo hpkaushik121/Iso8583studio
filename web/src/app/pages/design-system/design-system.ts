@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EXTERNAL } from '../../core/site-nav';
 import {
-  AccordionItem, BadgeTone, ButtonVariant, UiAccordion, UiBadge, UiBreadcrumb, UiBuiltBy, UiButton,
-  UiCallout, UiCtaPanel, UiDialog, UiFigure, UiIcon, UiIconButton, UiLogoMark, UiReveal,
+  AccordionItem, BadgeTone, ButtonVariant, UiAccordion, UiBadge, UiBreadcrumb, UiButton,
+  UiCallout, UiCtaPanel, UiDialog, UiFigure, UiIcon, UiIconButton, UiLogoMark, UiProvenance, UiReveal,
   UiSectionHeading, UiSpecRow, UiTable, UiTag, UiWords,
 } from '../../ui';
 
@@ -21,8 +21,8 @@ interface TypeStep { token: string; label: string; }
 @Component({
   selector: 'app-design-system',
   imports: [
-    RouterLink, UiAccordion, UiBadge, UiBreadcrumb, UiBuiltBy, UiButton, UiCallout, UiCtaPanel, UiDialog,
-    UiFigure, UiIcon, UiIconButton, UiLogoMark, UiReveal, UiSectionHeading, UiSpecRow, UiTable, UiTag,
+    RouterLink, UiAccordion, UiBadge, UiBreadcrumb, UiButton, UiCallout, UiCtaPanel, UiDialog,
+    UiFigure, UiIcon, UiIconButton, UiLogoMark, UiProvenance, UiReveal, UiSectionHeading, UiSpecRow, UiTable, UiTag,
     UiWords,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -203,11 +203,11 @@ interface TypeStep { token: string; label: string; }
         </div>
       </section>
 
-      <section class="dsp-sec" id="built-by">
+      <section class="dsp-sec" id="provenance">
         <ui-section-heading heading="Provenance strip" align="left" size="h2"
-          sub="Who built it, the current release and where the source is: one hairline row under a hero's CTAs. The facts come from core/release.ts and core/site-nav.ts, never from the page." />
-        <div class="dsp-frame"><ui-built-by /></div>
-        <div class="dsp-frame"><ui-built-by align="center" /></div>
+          sub="The current release and where the source is: one hairline row under a hero's CTAs. The facts come from core/release.ts and core/site-nav.ts, never from the page." />
+        <div class="dsp-frame"><ui-provenance /></div>
+        <div class="dsp-frame"><ui-provenance align="center" /></div>
       </section>
 
       <section class="dsp-sec" id="accordion">

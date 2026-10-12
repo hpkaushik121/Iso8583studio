@@ -17,4 +17,4 @@ export * from './words';
 export * from './accordion';
 export * from './section-heading';
 export * from './cta-panel';
-export * from './built-by';
+export * from './provenance';

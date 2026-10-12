@@ -89,7 +89,7 @@ export const siteRoutes: Routes = [
     resolve: { styles: styleBundles('longform') },
     data: { seo: {
       "title": "About ISO8583Studio — who builds it and why",
-      "description": "ISO8583Studio is a free, open-source payment testing workbench built and maintained by Sourabh Kaushik and published by AiCortex Solutions Pvt. Ltd. What it is, why it exists and how it is built.",
+      "description": "ISO8583Studio is a free, open-source payment testing workbench built and maintained by Sourabh Kaushik and published by AiCortext Solutions Pvt. Ltd. What it is, why it exists and how it is built.",
       "keywords": "about ISO8583Studio, who makes ISO8583Studio, AiCortex Solutions, Sourabh Kaushik, open source payment testing, AGPL payment simulator",
       "path": "/about",
       "ogType": "website",
@@ -108,7 +108,7 @@ export const siteRoutes: Routes = [
           "@type": "Organization",
           "@id": "https://iso8583.studio/#organization",
           "name": "AiCortex Solutions",
-          "legalName": "AiCortex Solutions Pvt. Ltd.",
+          "legalName": "AiCortext Solutions Pvt. Ltd.",
           "url": "https://iso8583.studio/",
           "logo": { "@type": "ImageObject", "url": "https://iso8583.studio/images/app.png", "width": 512, "height": 512 },
           "email": "admin@iso8583.studio",
@@ -154,7 +154,7 @@ export const siteRoutes: Routes = [
             "@type": "Organization",
             "@id": "https://iso8583.studio/#organization",
             "name": "AiCortex Solutions",
-            "legalName": "AiCortex Solutions Pvt. Ltd.",
+            "legalName": "AiCortext Solutions Pvt. Ltd.",
             "url": "https://iso8583.studio/"
           },
           "sameAs": ["https://github.com/hpkaushik121", "https://www.linkedin.com/in/sourabh-kaushik/"],

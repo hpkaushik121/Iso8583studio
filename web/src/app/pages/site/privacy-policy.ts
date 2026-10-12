@@ -275,7 +275,7 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
       </section>
 
       <section lfSection id="contact" n="13" heading="Contact information" [hold]="false">
-        <p class="lf-p ds-hold" [style.--d]="260">The data controller for the website and the application is <strong>AiCortex Solutions Pvt. Ltd.</strong>, India, the publisher of ISO8583Studio. If you have any questions about this Privacy Policy, wish to exercise your rights, or need to report a privacy concern, please get in touch.</p>
+        <p class="lf-p ds-hold" [style.--d]="260">The data controller for the website and the application is <strong>AiCortext Solutions Pvt. Ltd.</strong>, India, the publisher of ISO8583Studio. If you have any questions about this Privacy Policy, wish to exercise your rights, or need to report a privacy concern, please get in touch.</p>
         <div class="lf-cards">
           <lf-link-card class="ds-item" [style.--d]="320" icon="envelope-simple" eyebrow="Email" title="Privacy requests"
                         body="Data access, correction and deletion requests, or any question about this policy."
