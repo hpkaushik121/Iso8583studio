@@ -752,14 +752,49 @@ ui-logo-mark { display: inline-flex; }
 .lead-form-host { display: block; margin: 56px 0; }
 .sol-sec > .lead-form-host { margin: 0; }
 
+/* Liquid glass: a near-clear pane over the page, blurred and saturated, with
+   a lit top edge, a specular pool in the top-left corner and a faint blue
+   bloom in the opposite one. The pane is translucent on purpose — what sits
+   behind it (the hero dots, a section wash) shows through softened. */
 .lead-form {
-    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(233, 236, 245, .1);
     /* Matches .cta-panel, which this sits beside on every page it appears on.
        The smaller --r-lg read as a different family of component. */
     border-radius: var(--r-2xl);
-    background: var(--card-deep);
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .014) 38%, rgba(255, 255, 255, .008) 70%, rgba(30, 136, 229, .05)),
+        rgba(30, 32, 46, .52);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .14),
+        inset 1px 0 0 rgba(255, 255, 255, .05),
+        inset 0 -1px 0 rgba(255, 255, 255, .03),
+        0 24px 60px rgba(0, 0, 0, .35);
+    backdrop-filter: blur(24px) saturate(1.35);
+    -webkit-backdrop-filter: blur(24px) saturate(1.35);
     padding: clamp(24px, 4vw, 44px);
 }
+
+.lead-form::before,
+.lead-form::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+/* Specular: the light catching the top-left of the pane. */
+.lead-form::before {
+    background: radial-gradient(58% 42% at 14% 0%, rgba(255, 255, 255, .11), transparent 70%);
+}
+
+/* Bloom: the brand blue leaking in from the far corner. */
+.lead-form::after {
+    background: radial-gradient(48% 52% at 100% 100%, rgba(30, 136, 229, .16), transparent 70%);
+}
+
+.lead-form > * { position: relative; z-index: 1; }
 
 .lead-form-head { margin-bottom: 28px; }
 .lead-form-title { margin: 0 0 8px; font-size: var(--fs-xl); font-weight: 600; color: var(--text); }
@@ -781,26 +816,31 @@ ui-logo-mark { display: inline-flex; }
 .lead-field textarea {
     width: 100%;
     padding: 11px 13px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(233, 236, 245, .11);
     border-radius: var(--r-md);
-    /* The card is --card-deep now, so the fields drop a step to stay legible
-       as inputs rather than reading as flat panels. */
-    background: var(--bg);
+    /* Sunk glass: a shade darker than the pane with its own lit top edge, so
+       a field reads as a well in the surface rather than a flat panel. */
+    background: rgba(15, 16, 23, .45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), inset 0 1px 6px rgba(0, 0, 0, .25);
     color: var(--text);
     font-family: var(--sans);
     font-size: var(--fs-base);
-    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 
 .lead-field textarea { resize: vertical; min-height: 96px; }
 .lead-field input::placeholder,
 .lead-field textarea::placeholder { color: var(--faint); }
 
+.lead-field input:hover,
+.lead-field textarea:hover { border-color: rgba(233, 236, 245, .18); }
+
 .lead-field input:focus,
 .lead-field textarea:focus {
     outline: 0;
     border-color: var(--blue-hi);
-    box-shadow: 0 0 0 3px var(--blue-wash);
+    background: rgba(15, 16, 23, .6);
+    box-shadow: 0 0 0 3px var(--blue-wash), inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 
 .lead-field.is-invalid input { border-color: var(--red); }
@@ -830,9 +870,10 @@ ui-logo-mark { display: inline-flex; }
     flex-direction: column;
     gap: 6px;
     padding: 16px 18px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(233, 236, 245, .1);
     border-radius: var(--r-md);
-    background: var(--card-deep);
+    background: rgba(255, 255, 255, .035);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
 }
 
 .lead-box-title { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: var(--fs-sm); font-weight: 500; }
