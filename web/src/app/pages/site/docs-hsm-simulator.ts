@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EXTERNAL } from '../../core/site-nav';
-import { UiBuiltBy, UiIcon } from '../../ui';
+import { UiIcon, UiProvenance } from '../../ui';
 import { HSM_SIMULATOR_GUIDE } from '../data/hsm-simulator.data';
 import {
   GuideBlocks, GuideCards, GuideCta, GuideFeatures, GuideHero, GuideLayout, GuideRich, GuideSection,
@@ -23,7 +23,7 @@ import { SitePage } from './site-page';
   selector: 'page-docs-hsm-simulator',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    RouterLink, UiBuiltBy, UiIcon, GuideHero, GuideLayout, GuideSection, GuideBlocks, GuideCards, GuideFeatures, GuideCta,
+    RouterLink, UiIcon, UiProvenance, GuideHero, GuideLayout, GuideSection, GuideBlocks, GuideCards, GuideFeatures, GuideCta,
     GuideRich, HeroVideo, HsmScreen,
   ],
   hostDirectives: [SitePage],
@@ -33,7 +33,7 @@ import { SitePage } from './site-page';
       <app-hero-video gdHeroBg [clips]="g.clips" [poster]="g.poster" [style.--d]="500" />
       <a class="btn btn--primary btn--glow" [href]="releases">Download Studio<ui-icon name="arrow-up-right" [size]="16" /></a>
       <a class="btn btn--secondary" [routerLink]="[]" fragment="commands">{{ g.browse }}<ui-icon name="arrow-down" [size]="16" /></a>
-      <ui-built-by gdHeroFoot class="gd-hero-foot ds-fade" [style.--d]="1400" />
+      <ui-provenance gdHeroFoot class="gd-hero-foot ds-fade" [style.--d]="1400" />
     </app-guide-hero>
 
     <app-guide-layout [rail]="rail" badge="Simulator guide">

@@ -752,18 +752,53 @@ ui-logo-mark { display: inline-flex; }
 .lead-form-host { display: block; margin: 56px 0; }
 .sol-sec > .lead-form-host { margin: 0; }
 
+/* Liquid glass: a near-clear pane over the page, blurred and saturated, with
+   a lit top edge, a specular pool in the top-left corner and a faint blue
+   bloom in the opposite one. The pane is translucent on purpose — what sits
+   behind it (the hero dots, a section wash) shows through softened. */
 .lead-form {
-    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(233, 236, 245, .1);
     /* Matches .cta-panel, which this sits beside on every page it appears on.
        The smaller --r-lg read as a different family of component. */
     border-radius: var(--r-2xl);
-    background: var(--card-deep);
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .014) 38%, rgba(255, 255, 255, .008) 70%, rgba(30, 136, 229, .05)),
+        rgba(30, 32, 46, .52);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .14),
+        inset 1px 0 0 rgba(255, 255, 255, .05),
+        inset 0 -1px 0 rgba(255, 255, 255, .03),
+        0 24px 60px rgba(0, 0, 0, .35);
+    backdrop-filter: blur(24px) saturate(1.35);
+    -webkit-backdrop-filter: blur(24px) saturate(1.35);
     padding: clamp(24px, 4vw, 44px);
 }
 
-.lead-form-head { margin-bottom: 28px; }
-.lead-form-title { margin: 0 0 8px; font-size: var(--fs-xl); font-weight: 600; color: var(--text); }
-.lead-form-lede { margin: 0; color: var(--muted); font-size: var(--fs-sm); max-width: 58ch; }
+.lead-form::before,
+.lead-form::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+/* Specular: the light catching the top-left of the pane. */
+.lead-form::before {
+    background: radial-gradient(58% 42% at 14% 0%, rgba(255, 255, 255, .11), transparent 70%);
+}
+
+/* Bloom: the brand blue leaking in from the far corner. */
+.lead-form::after {
+    background: radial-gradient(48% 52% at 100% 100%, rgba(30, 136, 229, .16), transparent 70%);
+}
+
+.lead-form > * { position: relative; z-index: 1; }
+
+.lead-form-head { margin-bottom: 30px; }
+.lead-form-title { margin: 0 0 8px; font-size: var(--fs-xl); font-weight: 600; color: var(--text); letter-spacing: var(--ls-snug); text-wrap: balance; }
+.lead-form-lede { margin: 0; color: var(--muted); font-size: var(--fs-sm); line-height: 1.65; max-width: 64ch; text-wrap: pretty; }
 
 /* Two columns from tablet up; the message and the actions always span. */
 .lead-fields { display: grid; gap: 16px 18px; grid-template-columns: 1fr; }
@@ -781,26 +816,31 @@ ui-logo-mark { display: inline-flex; }
 .lead-field textarea {
     width: 100%;
     padding: 11px 13px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(233, 236, 245, .11);
     border-radius: var(--r-md);
-    /* The card is --card-deep now, so the fields drop a step to stay legible
-       as inputs rather than reading as flat panels. */
-    background: var(--bg);
+    /* Sunk glass: a shade darker than the pane with its own lit top edge, so
+       a field reads as a well in the surface rather than a flat panel. */
+    background: rgba(15, 16, 23, .45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), inset 0 1px 6px rgba(0, 0, 0, .25);
     color: var(--text);
     font-family: var(--sans);
     font-size: var(--fs-base);
-    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 
 .lead-field textarea { resize: vertical; min-height: 96px; }
 .lead-field input::placeholder,
 .lead-field textarea::placeholder { color: var(--faint); }
 
+.lead-field input:hover,
+.lead-field textarea:hover { border-color: rgba(233, 236, 245, .18); }
+
 .lead-field input:focus,
 .lead-field textarea:focus {
     outline: 0;
     border-color: var(--blue-hi);
-    box-shadow: 0 0 0 3px var(--blue-wash);
+    background: rgba(15, 16, 23, .6);
+    box-shadow: 0 0 0 3px var(--blue-wash), inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 
 .lead-field.is-invalid input { border-color: var(--red); }
@@ -830,9 +870,10 @@ ui-logo-mark { display: inline-flex; }
     flex-direction: column;
     gap: 6px;
     padding: 16px 18px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(233, 236, 245, .1);
     border-radius: var(--r-md);
-    background: var(--card-deep);
+    background: rgba(255, 255, 255, .035);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
 }
 
 .lead-box-title { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: var(--fs-sm); font-weight: 500; }
@@ -856,28 +897,31 @@ ui-logo-mark { display: inline-flex; }
 /* Sits below the fixed header, so its links are reachable with scripting off. */
 .nav-noscript { display: flex; gap: 16px; margin-top: var(--nav-h); padding: 8px 16px; flex-wrap: wrap; font-size: var(--fs-sm); position: relative; z-index: 1; }
 
-/* ---- ui-built-by ------------------------------------------------------- */
+/* ---- ui-provenance ----------------------------------------------------- */
 
-/* Provenance strip: three facts on one hairline row, in the mono the hero
-   meta lines use. Each fact is an anchor — key faint, value in full ink — and
-   the row stays quiet until a fact is hovered. Under 640px the row becomes a
-   short column and the rules go. */
-.built-by-host { display: block; container: built-by / inline-size; }
-.built-by-host--center { display: flex; justify-content: center; }
+/* Provenance strip: two facts on one hairline row, in the mono the hero meta
+   lines use. Each fact is an anchor — key faint, value in full ink — and the
+   row stays quiet until a fact is hovered. The row is pulled left by the
+   item's own padding, so the first icon lines up with the CTA above it. */
+.provenance-host { display: block; container: provenance / inline-size; }
+.provenance-host--center { display: flex; justify-content: center; }
 
-.built-by {
+.provenance {
     display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 0;
     max-width: 100%;
+    margin-left: -12px;
     font-family: var(--mono);
     font-size: var(--fs-xs);
     letter-spacing: .01em;
     line-height: 1;
 }
 
-.built-by-item {
+.provenance-host--center .provenance { margin-left: 0; }
+
+.provenance-item {
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -889,29 +933,28 @@ ui-logo-mark { display: inline-flex; }
     transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
-.built-by-item:hover { background: var(--neutral-wash); color: var(--text); }
-.built-by-item .ui-icon { color: var(--faint); transition: color var(--dur) var(--ease); }
-.built-by-item:hover .ui-icon { color: var(--blue-hi); }
-.built-by-k { color: var(--faint); }
-.built-by-v { color: var(--text); }
-.built-by-dim { color: var(--muted); }
-.built-by-rule { width: 1px; height: 12px; background: var(--line-hi); }
+.provenance-item:hover { background: var(--neutral-wash); color: var(--text); }
+.provenance-item .ui-icon { color: var(--faint); transition: color var(--dur) var(--ease); }
+.provenance-item:hover .ui-icon { color: var(--blue-hi); }
+.provenance-k { color: var(--faint); }
+.provenance-v { color: var(--text); }
+.provenance-dim { color: var(--muted); }
+.provenance-rule { width: 1px; height: 12px; background: var(--line-hi); }
 
 @media (pointer: coarse) {
-    .built-by-item { min-height: 44px; }
+    .provenance-item { min-height: 44px; }
 }
 
-/* In a copy column too narrow for one line (the Pro and HSM heroes), the row
-   wraps as plain chips: a hairline left dangling at a line end reads as a
-   mistake. */
-@container built-by (max-width: 719px) {
-    .built-by { gap: 2px 4px; }
-    .built-by-rule { display: none; }
-    .built-by-item { padding: 0 10px; }
+/* In a copy column too narrow for one line, the row wraps as plain chips: a
+   hairline left dangling at a line end reads as a mistake. */
+@container provenance (max-width: 519px) {
+    .provenance { gap: 2px 4px; margin-left: -10px; }
+    .provenance-rule { display: none; }
+    .provenance-item { padding: 0 10px; }
 }
 
 @media (max-width: 640px) {
-    .built-by { display: grid; gap: 2px; }
-    .built-by-rule { display: none; }
-    .built-by-host--center .built-by { justify-items: center; }
+    .provenance { display: grid; gap: 2px; }
+    .provenance-rule { display: none; }
+    .provenance-host--center .provenance { justify-items: center; }
 }

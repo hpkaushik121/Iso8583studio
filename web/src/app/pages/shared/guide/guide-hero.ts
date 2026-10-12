@@ -43,7 +43,7 @@ import { Crumb, UiBadge, UiBreadcrumb, UiWords } from '../../../ui';
  *   [gdHeroVisual]   anything that follows the copy inside the section — the tool guides put
  *                    <app-guide-frame gdHeroVisual> here.
  *   [gdHeroFoot]     a line under the CTAs, still inside the copy column — the provenance strip
- *                    (<ui-built-by gdHeroFoot class="gd-hero-foot ds-fade" …>). Outside .ph-ctas,
+ *                    (<ui-provenance gdHeroFoot class="gd-hero-foot ds-fade" …>). Outside .ph-ctas,
  *                    so its links are not counted as hero CTAs.
  *
  * The section deliberately has no id and no data-sect.

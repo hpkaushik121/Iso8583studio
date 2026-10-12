@@ -146,7 +146,7 @@ const GUIDE_SECTIONS = {
   '/authors/sourabh-kaushik': ['about', 'writing', 'elsewhere'],
   '/privacy-policy': ['overview', 'data-collection', 'data-usage', 'data-sharing', 'security', 'retention', 'rights', 'cookies', 'international', 'minors', 'updates', 'compliance'],
   '/terms-and-conditions': [],
-  '/pro': ['what', 'register', 'faq', 'enquiry'],
+  '/pro': ['what', 'register', 'faq'],
 };
 
 /*

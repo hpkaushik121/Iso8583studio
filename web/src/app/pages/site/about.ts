@@ -66,7 +66,7 @@ const AGPL_URL = 'https://www.gnu.org/licenses/agpl-3.0.html#license-text';
             </span>
           </div>
         </div>
-        <p class="lf-p">The studio is published by AiCortex Solutions Pvt. Ltd., India, which also offers <a routerLink="/emv-certification">EMV certification</a>, <a routerLink="/middleware">payment middleware</a>, <a routerLink="/kernel">kernel development</a> and <a routerLink="/cloud-simulators">hosted simulators</a> built on the same engine. AiCortex Solutions is the data controller for the website and the application; the <a routerLink="/privacy-policy">privacy policy</a> and <a routerLink="/terms-and-conditions">terms</a> name it.</p>
+        <p class="lf-p">The studio is published by AiCortext Solutions Pvt. Ltd., India, which also offers <a routerLink="/emv-certification">EMV certification</a>, <a routerLink="/middleware">payment middleware</a>, <a routerLink="/kernel">kernel development</a> and <a routerLink="/cloud-simulators">hosted simulators</a> built on the same engine. AiCortext Solutions is the data controller for the website and the application; the <a routerLink="/privacy-policy">privacy policy</a> and <a routerLink="/terms-and-conditions">terms</a> name it.</p>
       </section>
 
       <section lfSection id="built" n="04" heading="How it is built">
@@ -108,7 +108,7 @@ const AGPL_URL = 'https://www.gnu.org/licenses/agpl-3.0.html#license-text';
                         cta="Follow" [href]="linkedin" />
         </div>
         <div class="lf-foot ds-hold" [style.--d]="380">
-          <span class="lf-foot-line">AiCortex Solutions Pvt. Ltd. · India · {{ release.license }}</span>
+          <span class="lf-foot-line">AiCortext Solutions Pvt. Ltd. · India · {{ release.license }}</span>
           <a class="lf-foot-link" routerLink="/contact">All the ways to reach us <ui-icon name="arrow-right" [size]="13" /></a>
         </div>
       </section>
@@ -141,7 +141,7 @@ export class AboutPage {
   protected readonly crumbs = [{ label: 'Home', link: '/' }, { label: 'About' }];
   protected readonly badge: LfBadge = { tone: 'teal', label: 'Open source · AGPL v3' };
   protected readonly meta = [
-    ['Since', 'May 2025'], ['Maintainer', AUTHOR.name], ['Publisher', 'AiCortex Solutions Pvt. Ltd.'], ['Release', `v${RELEASE.version}`],
+    ['Since', 'May 2025'], ['Maintainer', AUTHOR.name], ['Publisher', 'AiCortext Solutions Pvt. Ltd.'], ['Release', `v${RELEASE.version}`],
   ] as const;
   protected readonly toc: LfTocEntry[] = [
     { id: 'what', n: '01', label: 'What it is' },
