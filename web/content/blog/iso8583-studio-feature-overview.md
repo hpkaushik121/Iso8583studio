@@ -1,14 +1,14 @@
 ---
 title: "ISO8583Studio Feature Overview: Simulators, EMV, Crypto, Keys, and Converters"
-description: "Tour ISO8583Studio’s 70+ tools: host/HSM/APDU simulators, EMV utilities, cryptography, key management, and payment converters."
+description: "Tour ISO8583Studio’s 64 tools: host/HSM/APDU simulators, EMV utilities, cryptography, key management, and payment converters."
 date: "2025-01-25"
 tags: [feature tour, EMV tools, HSM simulator, cryptography, payment utilities]
 category: "Getting Started"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
-Payment engineering teams rarely have “one problem.” They have a **chain of problems**: a message must be framed correctly, a **bitmap** must select the right fields, **chip data** must decode, a **MAC** must match, and sometimes an **HSM** must prove a command was understood before you even reach authorization logic. **ISO8583Studio** is a **free desktop toolkit** that groups these concerns into **70+ tools** so you can move from hypothesis to evidence without rebuilding the same utilities repo in every company.
+Payment engineering teams rarely have “one problem.” They have a **chain of problems**: a message must be framed correctly, a **bitmap** must select the right fields, **chip data** must decode, a **MAC** must match, and sometimes an **HSM** must prove a command was understood before you even reach authorization logic. **ISO8583Studio** is a **free desktop toolkit** that groups these concerns into **64 tools** so you can move from hypothesis to evidence without rebuilding the same utilities repo in every company.
 
 This article is a **feature-oriented tour**: what the major buckets are, what you typically use them for, and how they fit together in real integration work.
 
@@ -98,4 +98,4 @@ That is integrated debugging—not isolated tool usage.
 
 ## Conclusion
 
-ISO8583Studio’s strength is **coverage**: **simulators** for dependency-free rehearsal, **EMV** utilities for chip reality, **cryptography** and **key management** tooling for byte-level correctness, and **payment utilities** plus **converters** for the everyday friction that slows releases. Download the latest release for **Windows**, **macOS**, or **Linux** and map these tool families to your next integration milestone: [https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest). Learn more on the official site: [https://iso8583.studio](https://iso8583.studio).
+ISO8583Studio’s strength is **coverage**: **simulators** for dependency-free rehearsal, **EMV** utilities for chip reality, **cryptography** and **key management** tooling for byte-level correctness, and **payment utilities** plus **converters** for the everyday friction that slows releases. Download the latest release for **Windows**, **macOS**, or **Linux** and map these tool families to your next integration milestone: [iso8583.studio/download](https://iso8583.studio/download). Learn more on the official site: [https://iso8583.studio](https://iso8583.studio).

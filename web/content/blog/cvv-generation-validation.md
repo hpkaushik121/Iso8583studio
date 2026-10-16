@@ -4,13 +4,13 @@ description: "Learn how CVV/CVC codes are generated with DES-based schemes, how 
 date: "2025-08-08"
 tags: [CVV, CVC, card security, DES, payment testing]
 category: "Payment Security"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 E-commerce teams call it **CVV2**. Issuers say **CVC2**. Chip people mutter about **iCVV**. Meanwhile your gateway log simply says **CVV mismatch**—and now you are supposed to infer whether the problem is user typo, tokenization, key synchronization, or a BIN mapping that sends traffic down the wrong cryptography profile.
 
-Card verification values are small digits with an outsized impact on fraud and authorization behavior. Understanding **how** they are generated and **what** each variant binds to helps you build tests that isolate formatting mistakes from cryptographic mistakes. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools—including CVV workflows—to support lab validation with controlled keys and known vectors.
+Card verification values are small digits with an outsized impact on fraud and authorization behavior. Understanding **how** they are generated and **what** each variant binds to helps you build tests that isolate formatting mistakes from cryptographic mistakes. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools—including CVV workflows—to support lab validation with controlled keys and known vectors.
 
 ## What CVV/CVC protects
 

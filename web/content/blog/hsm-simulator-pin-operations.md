@@ -4,8 +4,8 @@ description: "Learn how PayShield-style HSMs handle PIN translation and verifica
 date: "2025-05-05"
 tags: [PIN-block, HSM, PIN-verification, payments]
 category: "HSM Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 PIN processing is where payment integrations become **serious**: a small formatting mistake becomes a **systematic decline**, or worse—a **silent interoperability** issue between terminal, acquirer, and issuer. **ISO8583Studio** is a free, cross-platform desktop application (**Windows, macOS, Linux**) with an **HSM Simulator** that models **PayShield 10K–compatible** behavior, letting teams practice **PIN translation**, **PIN verification**, and **PIN block format** choices without routing live secrets through developer laptops.

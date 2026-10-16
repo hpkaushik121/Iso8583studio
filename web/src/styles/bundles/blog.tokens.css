@@ -1,0 +1,6 @@
+/* blog — literal colours of its own drawings. The round action buttons on a
+   cover are a light chip with dark ink whatever the picture under them. */
+:root {
+    --bl-chip: #f2f4fa;
+    --bl-chip-ink: #141826;
+}

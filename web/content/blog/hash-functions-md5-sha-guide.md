@@ -4,13 +4,13 @@ description: "Compare MD5, SHA-1, SHA-256, and SHA-512 for integrity checks and 
 date: "2025-06-25"
 tags: [hash, SHA-256, SHA-512, MD5, integrity]
 category: "Cryptography"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 Cryptographic hash functions map arbitrary-length input to a fixed-length **digest**. In payment engineering, hashes show up everywhere: HMAC inputs, certificate fingerprints, integrity checks on files, MDCs in legacy schemes, and components of digital signatures. The hard part is not computing a digest—it is choosing a function that matches your **threat model** and your **ecosystem’s contractual reality** (some backends still speak older algorithms).
 
-**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 70+ tools, including hash functions alongside AES, DES/3DES, RSA, ECDSA, FPE, Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and payment primitives.
+**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 64 tools, including hash functions alongside AES, DES/3DES, RSA, ECDSA, FPE, Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and payment primitives.
 
 ## What a hash gives you (and what it does not)
 

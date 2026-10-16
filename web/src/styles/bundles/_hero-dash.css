@@ -1,0 +1,213 @@
+/* The ISO8583Studio home screen rebuilt in DOM (pages/home/hero-dashboard.ts).
+   It fills whatever frame it is put in — the home hero and the docs hub hero
+   both use it — so its rules are scoped to the component's own root rather
+   than to a page, and both of those bundles import this file. */
+
+home-hero-dashboard { display: contents; }
+
+/* Authored on a 1160px canvas; --u is one design pixel at the frame's current
+   width, so the whole screen scales with the frame and nothing is measured.
+   Below a 560px frame it switches to a 600px canvas with a simpler layout. */
+.hero-dash {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    container: herodash / size;
+    background: var(--bg-deep);
+    font-family: var(--sans);
+    line-height: 1.5;
+    text-align: left;
+}
+
+.hero-dash .hd-in {
+    --u: calc(100cqw / 1160);
+    display: flex;
+    width: 100%;
+    height: max(100cqh, calc(var(--u) * 700));
+}
+
+@supports not (width: 1cqw) {
+    .hero-dash .hd-in { --u: .8px; height: 100%; }
+}
+
+.hero-dash .hd-panel {
+    border: 1px solid rgba(151, 168, 214, .09);
+    background: linear-gradient(180deg, rgba(47, 49, 66, .34), rgba(30, 31, 46, .5));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035);
+}
+
+.hero-dash .hd-sunk,
+.hero-dash .hd-search {
+    border: 1px solid rgba(151, 168, 214, .07);
+    background: rgba(15, 16, 23, .66);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, .4);
+}
+
+.hero-dash .hd-label {
+    color: var(--faint);
+    font-size: calc(var(--u) * 9);
+    font-weight: var(--fw-semibold);
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.hero-dash .hd-label--teal { color: var(--teal-hi); }
+
+.hero-dash .hd-side { flex: none; width: calc(var(--u) * 268); padding: calc(var(--u) * 22) calc(var(--u) * 18); border-right: 1px solid rgba(151, 168, 214, .08); }
+.hero-dash .hd-brand { display: flex; align-items: center; gap: calc(var(--u) * 10); }
+
+.hero-dash .hd-logo {
+    --icon-size: calc(var(--u) * 13);
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: calc(var(--u) * 26);
+    height: calc(var(--u) * 26);
+    border-radius: calc(var(--u) * 8);
+    background: linear-gradient(180deg, var(--blue-hover), var(--blue));
+    box-shadow: 0 calc(var(--u) * 4) calc(var(--u) * 14) rgba(30, 136, 229, .4);
+    color: var(--on-accent);
+}
+
+.hero-dash .hd-brand-name { display: block; color: var(--text); font-size: calc(var(--u) * 14); font-weight: var(--fw-semibold); letter-spacing: var(--ls-snug); }
+.hero-dash .hd-brand-sub { display: block; margin-top: calc(var(--u) * 2); color: var(--faint); font-size: calc(var(--u) * 9.5); }
+.hero-dash .hd-side-label { margin-top: calc(var(--u) * 30); }
+.hero-dash .hd-cats { display: flex; flex-direction: column; gap: calc(var(--u) * 2); margin-top: calc(var(--u) * 12); }
+
+.hero-dash .hd-cat {
+    --icon-size: calc(var(--u) * 14);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 11);
+    padding: calc(var(--u) * 10) calc(var(--u) * 11);
+    border: 1px solid transparent;
+    border-radius: calc(var(--u) * 9);
+    color: var(--faint);
+}
+
+.hero-dash .hd-cat.is-on { border-color: rgba(106, 183, 255, .18); background: rgba(30, 136, 229, .14); color: var(--blue-hi); }
+.hero-dash .hd-cat > span { min-width: 0; }
+.hero-dash .hd-cat-name { display: block; overflow: hidden; color: var(--muted); font-size: calc(var(--u) * 11.5); text-overflow: ellipsis; white-space: nowrap; }
+.hero-dash .hd-cat.is-on .hd-cat-name { color: var(--text); }
+.hero-dash .hd-cat-n { display: block; margin-top: calc(var(--u) * 2); color: var(--faint); font-size: calc(var(--u) * 9.5); }
+
+.hero-dash .hd-main { display: flex; flex: 1; flex-direction: column; gap: calc(var(--u) * 18); min-width: 0; padding: calc(var(--u) * 22) calc(var(--u) * 24); }
+.hero-dash .hd-head { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 16); }
+.hero-dash .hd-head-l { display: flex; align-items: center; gap: calc(var(--u) * 10); min-width: 0; }
+.hero-dash .hd-head-l > div { min-width: 0; }
+.hero-dash .hd-title { color: var(--text); font-size: calc(var(--u) * 22); font-weight: var(--fw-semibold); letter-spacing: var(--ls-tight); line-height: 1.15; }
+.hero-dash .hd-tagline { overflow: hidden; margin-top: calc(var(--u) * 4); color: var(--muted); font-size: calc(var(--u) * 11); text-overflow: ellipsis; white-space: nowrap; }
+.hero-dash .hd-head-r { display: flex; flex: none; align-items: center; gap: calc(var(--u) * 10); }
+
+.hero-dash .hd-search {
+    --icon-size: calc(var(--u) * 13);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 9);
+    height: calc(var(--u) * 34);
+    padding: 0 calc(var(--u) * 13);
+    border-radius: var(--r-pill);
+    color: var(--faint);
+    font-size: calc(var(--u) * 11);
+}
+
+.hero-dash .hd-search.hd-wide { width: calc(var(--u) * 260); }
+.hero-dash .hd-search span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.hero-dash .hd-version {
+    flex: none;
+    padding: calc(var(--u) * 5) calc(var(--u) * 11);
+    border: 1px solid rgba(106, 183, 255, .22);
+    border-radius: var(--r-pill);
+    background: rgba(30, 136, 229, .16);
+    color: var(--blue-hi);
+    font-size: calc(var(--u) * 10.5);
+    font-weight: var(--fw-semibold);
+}
+
+.hero-dash .hd-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--u) * 12); }
+.hero-dash .hd-stat { padding: calc(var(--u) * 16) calc(var(--u) * 18) calc(var(--u) * 18); border-radius: calc(var(--u) * 14); }
+.hero-dash .hd-stat-top { --icon-size: calc(var(--u) * 13); display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 8); color: var(--muted); font-size: calc(var(--u) * 10.5); }
+.hero-dash .hd-stat-top .ui-icon { color: var(--faint); }
+.hero-dash .hd-stat-value { margin-top: calc(var(--u) * 12); color: var(--text); font-size: calc(var(--u) * 30); font-weight: var(--fw-semibold); letter-spacing: var(--ls-tight); line-height: 1; }
+
+.hero-dash .hd-quick { display: flex; flex: 1; flex-direction: column; min-height: 0; padding: calc(var(--u) * 18) calc(var(--u) * 20) calc(var(--u) * 20); border-radius: calc(var(--u) * 16); }
+.hero-dash .hd-quick-head { display: flex; align-items: baseline; justify-content: space-between; gap: calc(var(--u) * 12); }
+.hero-dash .hd-quick-title { color: var(--text); font-size: calc(var(--u) * 14); font-weight: var(--fw-semibold); }
+.hero-dash .hd-quick-sub { margin-top: calc(var(--u) * 3); color: var(--muted); font-size: calc(var(--u) * 10); }
+.hero-dash .hd-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--u) * 10); margin-top: calc(var(--u) * 16); }
+
+.hero-dash .hd-tool {
+    padding: calc(var(--u) * 13) calc(var(--u) * 14) calc(var(--u) * 14);
+    border: 1px solid rgba(151, 168, 214, .07);
+    border-radius: calc(var(--u) * 12);
+    background: rgba(47, 49, 66, .28);
+}
+
+.hero-dash .hd-tool-top { --icon-size: calc(var(--u) * 13); display: flex; align-items: center; gap: calc(var(--u) * 8); color: var(--blue-hi); }
+.hero-dash .hd-tool-name { flex: 1; overflow: hidden; min-width: 0; color: var(--text); font-family: var(--mono); font-size: calc(var(--u) * 10.5); font-weight: var(--fw-medium); text-overflow: ellipsis; white-space: nowrap; }
+.hero-dash .hd-tool-go { --icon-size: calc(var(--u) * 11); color: var(--faint); }
+.hero-dash .hd-tool-desc { margin-top: calc(var(--u) * 8); color: var(--muted); font-size: calc(var(--u) * 9.5); line-height: 1.5; text-wrap: pretty; }
+.hero-dash .hd-foot { display: flex; align-items: stretch; gap: calc(var(--u) * 14); margin-top: calc(var(--u) * 10); }
+
+/* The card the payment journey lifts out of the dashboard. The engine finds
+   it by these three class names and fades the face out once it has left. */
+.hero-dash .hero-card-view { position: relative; flex: none; width: calc(var(--u) * 150); aspect-ratio: 1.586 / 1; border: 1px solid rgba(106, 183, 255, .2); border-radius: calc(var(--u) * 10); }
+
+.hero-dash .hero-card-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: calc(var(--u) * 9) calc(var(--u) * 10);
+    border-radius: calc(var(--u) * 9);
+    background: linear-gradient(145deg, rgba(30, 136, 229, .34), rgba(15, 16, 23, .9));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.hero-dash .hero-departed-note {
+    position: absolute;
+    inset: 0;
+    display: none;
+    border: 1px dashed rgba(106, 183, 255, .28);
+    border-radius: calc(var(--u) * 9);
+    background: rgba(15, 16, 23, .35);
+}
+
+.hero-dash .hd-card-row { --icon-size: calc(var(--u) * 10); display: flex; align-items: center; justify-content: space-between; color: var(--blue-hi); }
+.hero-dash .hd-card-row--end { --icon-size: calc(var(--u) * 11); align-items: flex-end; color: var(--faint); }
+.hero-dash .hd-card-kind { font-size: calc(var(--u) * 7.5); font-weight: var(--fw-semibold); letter-spacing: .13em; }
+.hero-dash .hd-card-pan { display: flex; align-items: center; gap: calc(var(--u) * 7); color: var(--text); font-family: var(--mono); font-size: calc(var(--u) * 8.5); letter-spacing: .02em; }
+.hero-dash .hd-card-chip { flex: none; width: calc(var(--u) * 13); height: calc(var(--u) * 10); border-radius: calc(var(--u) * 2.5); background: linear-gradient(160deg, rgba(255, 255, 255, .55), rgba(151, 168, 214, .25)); }
+.hero-dash .hd-card-exp { color: var(--muted); font-family: var(--mono); font-size: calc(var(--u) * 7.5); }
+
+.hero-dash .hd-note { flex: 1; min-width: 0; padding: calc(var(--u) * 12) calc(var(--u) * 15); border-radius: calc(var(--u) * 12); }
+.hero-dash .hd-note-text { margin-top: calc(var(--u) * 6); color: var(--muted); font-size: calc(var(--u) * 10.5); }
+.hero-dash .hd-note-text--quote { font-style: italic; }
+.hero-dash .hd-narrow { display: none; }
+
+/* Two tool rows when the frame is too shallow for three. */
+@container herodash (min-width: 560px) and (min-aspect-ratio: 1643 / 1000) {
+    .hero-dash .hd-tool:nth-child(n + 9) { display: none; }
+}
+
+@container herodash (max-width: 559px) {
+    .hero-dash .hd-in { --u: calc(100cqw / 600); height: max(100cqh, calc(var(--u) * 560)); }
+    .hero-dash .hd-side, .hero-dash .hd-wide { display: none; }
+    .hero-dash .hd-logo.hd-narrow { display: grid; }
+    .hero-dash .hd-search.hd-narrow { display: flex; }
+    .hero-dash .hd-main { gap: calc(var(--u) * 14); padding: calc(var(--u) * 18) calc(var(--u) * 18) 0; }
+    .hero-dash .hd-title { font-size: calc(var(--u) * 17); }
+    .hero-dash .hd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hero-dash .hd-stat { padding: calc(var(--u) * 14) calc(var(--u) * 16) calc(var(--u) * 15); }
+    .hero-dash .hd-stat:nth-child(n + 3) { display: none; }
+    .hero-dash .hd-stat-value { font-size: calc(var(--u) * 26); }
+    .hero-dash .hd-quick { padding: calc(var(--u) * 16) calc(var(--u) * 16) calc(var(--u) * 18); }
+    .hero-dash .hd-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hero-dash .hd-tool:nth-child(n + 7) { display: none; }
+}
+
+@container herodash (max-width: 559px) and (min-aspect-ratio: 87 / 100) {
+    .hero-dash .hd-tool:nth-child(n + 5) { display: none; }
+}

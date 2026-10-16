@@ -50,7 +50,57 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              {
+                "input": "src/styles/bundles/home.css",
+                "bundleName": "home",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/solutions.css",
+                "bundleName": "solutions",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/guide.css",
+                "bundleName": "guide",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/tools.css",
+                "bundleName": "tools",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/sims.css",
+                "bundleName": "sims",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/preview.css",
+                "bundleName": "preview",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/longform.css",
+                "bundleName": "longform",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/docs.css",
+                "bundleName": "docs",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/blog.css",
+                "bundleName": "blog",
+                "inject": false
+              },
+              {
+                "input": "src/styles/bundles/pro.css",
+                "bundleName": "pro",
+                "inject": false
+              }
             ],
             "server": "src/main.server.ts",
             "outputMode": "static",

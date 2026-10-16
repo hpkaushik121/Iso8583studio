@@ -1,0 +1,4 @@
+/* Simulator guides. Two partials, one per group of pages, so each can be
+   worked on without touching the other. */
+@import './_sims-hsm.css';
+@import './_sims-pos.css';

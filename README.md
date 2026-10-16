@@ -1,9 +1,11 @@
-# ISO8583Studio Documentation
+# ISO8583Studio
+
+**Website & docs: [iso8583.studio](https://iso8583.studio/)** · [Download](https://iso8583.studio/download) · [Simulators](https://iso8583.studio/simulator) · [Tools](https://iso8583.studio/docs)
 
 ![ISO8583Studio](https://img.shields.io/badge/ISO8583-Studio-blue?style=for-the-badge)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF?style=for-the-badge&logo=kotlin)
 ![Compose](https://img.shields.io/badge/Compose-Desktop-4285F4?style=for-the-badge)
-![License](https://img.shields.io/badge/License-Apache-green?style=for-the-badge)
+![License](https://img.shields.io/badge/License-AGPL%20v3-green?style=for-the-badge)
 
 A professional desktop application for ISO8583 financial transaction processing, configuration, testing, and monitoring. Built with Kotlin Multiplatform and Compose Desktop for cross-platform compatibility.
 
@@ -96,20 +98,23 @@ ISO8583Studio is a comprehensive desktop application designed for financial inst
 
 ### System Requirements
 - **Operating Systems**: Windows 10+, macOS 10.14+, Linux (Ubuntu 18.04+)
-- **Java Runtime**: JDK 11 or higher
+- **Java**: none for the Windows/macOS installers (a runtime is bundled); JDK 17+ to build from source
 - **Memory**: Minimum 512MB RAM (2GB recommended)
 - **Disk Space**: 100MB free space
 
 ### Download Options
 
-#### Option 1: GitHub Releases (Recommended)
-```bash
-# Download latest release
-wget https://github.com/hpkaushik121/Iso8583studio/releases/latest/download/ISO8583Studio.jar
+#### Option 1: Installers (Recommended)
+Windows and macOS installers are published on the [download page](https://iso8583.studio/download):
 
-# Run the application
-java -jar ISO8583Studio.jar
+```bash
+# Windows
+https://github.com/hpkaushik121/Iso8583studio/releases/download/1.0.0/ISO8583Studio-1.0.0.exe
+# macOS
+https://github.com/hpkaushik121/Iso8583studio/releases/download/1.0.0/ISO8583Studio-1.0.0.dmg
 ```
+
+Both bundle their own Java runtime. The builds are not yet code-signed, so expect a SmartScreen / Gatekeeper prompt on first launch. There is no prebuilt Linux package yet — build from source (Option 2) or run `./gradlew :composeApp:packageDeb`.
 
 #### Option 2: Build from Source
 ```bash
@@ -570,7 +575,7 @@ cd Iso8583studio
 2. **Setup Development Environment**
 ```bash
 # Install required tools
-# - JDK 11+
+# - JDK 17+ (Compose Multiplatform 1.8 requires it)
 # - IntelliJ IDEA (recommended)
 # - Git
 
@@ -617,7 +622,7 @@ When reporting issues, include:
 ```markdown
 ## Environment
 - OS: Windows 10 / macOS 12 / Ubuntu 20.04
-- Java Version: OpenJDK 11.0.2
+- Java Version: OpenJDK 17.0.2 (if running a source build)
 - Application Version: v1.2.3
 
 ## Steps to Reproduce
@@ -640,7 +645,9 @@ Application crashes with NullPointerException
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+The AGPL is a strong copyleft license: if you modify ISO8583Studio and distribute it, or make it available to users over a network, you must release your modified source under the same license. The full text is also available at <https://www.gnu.org/licenses/agpl-3.0.html>.
 
 ## 🙏 Acknowledgments
 
@@ -653,7 +660,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## 📞 Support
 
 - **GitHub Issues**: [Report bugs and request features](https://github.com/hpkaushik121/Iso8583studio/issues)
-- **Discussions**: [Community discussions and Q&A](https://github.com/hpkaushik121/Iso8583studio/discussions)
+- **Website**: [iso8583.studio](https://iso8583.studio/) — documentation for every simulator and tool
 - **Documentation**: [Wiki pages](https://github.com/hpkaushik121/Iso8583studio/wiki)
 - **Releases**: [Download latest versions](https://github.com/hpkaushik121/Iso8583studio/releases)
 

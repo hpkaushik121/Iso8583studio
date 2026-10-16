@@ -1,34 +1,45 @@
+# Search engines and AI crawlers may index the whole site. Images were
+# previously disallowed, which blocked every og:image, the favicons and all
+# BlogPosting images from Google, Bing and the AI search crawlers that inherit
+# the * group — while leaving the AI training crawlers unrestricted.
 User-agent: *
 Allow: /
-Disallow: /images/
-Disallow: /*.md$
-Disallow: /*.py$
 
 Sitemap: https://iso8583.studio/sitemap.xml
 
 User-agent: Googlebot
 Allow: /
-Disallow: /images/
-Disallow: /*.md$
-Disallow: /*.py$
 
 User-agent: Bingbot
 Allow: /
-Disallow: /images/
-Disallow: /*.md$
-Disallow: /*.py$
 
-User-agent: GPTBot
+# AI search crawlers (govern citation in ChatGPT Search, Claude, Perplexity).
+User-agent: OAI-SearchBot
 Allow: /
 
-User-agent: ChatGPT-User
+User-agent: Claude-SearchBot
 Allow: /
 
-User-agent: Claude-Web
+User-agent: PerplexityBot
 Allow: /
 
 User-agent: Applebot
 Allow: /
 
-User-agent: PerplexityBot
+# User-triggered agents.
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+# Training crawlers. The project is AGPL and wants to be found; flip these to
+# Disallow if that changes.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
 Allow: /

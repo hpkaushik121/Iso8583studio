@@ -4,8 +4,8 @@ description: "Parse EMV TLV data with confidence: BER-TLV structure, constructed
 date: "2025-05-15"
 tags: [EMV, TLV, BER-TLV, chip-cards]
 category: "EMV Tools"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 When a chip transaction fails, someone pastes a **hex blob** into chat and asks, “What does this mean?” Without a disciplined **TLV** mental model, you guess. With **BER-TLV** literacy and a good **tag parser**, you answer with evidence. **ISO8583Studio** is a free desktop app (**Windows, macOS, Linux**) built with **Kotlin/Compose**; its **EMV tools** include a **tag parser**, **tag dictionary**, and related utilities so payment developers can move from opaque hex to structured diagnostics quickly.

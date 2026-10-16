@@ -4,18 +4,21 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* clip, not hidden: hidden turns the element into a scroll container, and a
+   scroll container between the viewport and a sticky element is what that
+   element then sticks to — which silently disables every sticky rail. */
 html {
     scroll-behavior: smooth;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 body {
-    background: var(--bg-deep);
+    background: var(--canvas);
     color: var(--text);
     font-family: var(--sans);
     font-size: var(--fs-body);
     line-height: var(--lh-base);
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
 }
 

@@ -4,13 +4,13 @@ description: "Benefits of a cross-platform payment testing desktop app for ISO 8
 date: "2025-02-15"
 tags: [cross-platform, Windows, macOS, Linux, collaboration, Kotlin]
 category: "Getting Started"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Payment engineering organizations rarely standardize on a single operating system. Backend teams live on **Linux**, mobile developers use **macOS**, operations and partners often sit on **Windows**, and contractors bring whatever machine their policy allows. If your “payment lab toolchain” only works on one OS, you quietly pay a tax: duplicated scripts, inconsistent screenshots, and slower onboarding whenever someone switches platforms.
 
-**ISO8583Studio** is a **free desktop application** for **payment transaction processing** testing, built with **Kotlin/Compose Multiplatform**, and distributed for **Windows**, **macOS**, and **Linux**. It packages **70+ tools**—including **Host Simulator**, **HSM Simulator (PayShield 10K)**, **APDU Simulator**, **EMV** utilities, **cryptography**, **key management**, and **converters**—so teams can share **one** coherent workflow instead of three fragile ones.
+**ISO8583Studio** is a **free desktop application** for **payment transaction processing** testing, built with **Kotlin/Compose Multiplatform**, and distributed for **Windows**, **macOS**, and **Linux**. It packages **64 tools**—including **Host Simulator**, **HSM Simulator (PayShield 10K)**, **APDU Simulator**, **EMV** utilities, **cryptography**, **key management**, and **converters**—so teams can share **one** coherent workflow instead of three fragile ones.
 
 ## Cross-platform is not about preference—it is about pipeline reality
 
@@ -92,4 +92,4 @@ Cross-platform desktop support does not automatically mean identical packaging o
 
 ## Conclusion
 
-A **cross-platform payment testing tool** reduces friction where payment teams already fracture: operating systems, roles, and vendor boundaries. ISO8583Studio aims to be the shared desktop workbench for **ISO 8583**, **EMV**, and **HSM-oriented** debugging—so your team spends less time aligning tools and more time shipping correct integrations. **Download ISO8583Studio** for Windows, macOS, or Linux: [https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest). Website: [https://iso8583.studio](https://iso8583.studio).
+A **cross-platform payment testing tool** reduces friction where payment teams already fracture: operating systems, roles, and vendor boundaries. ISO8583Studio aims to be the shared desktop workbench for **ISO 8583**, **EMV**, and **HSM-oriented** debugging—so your team spends less time aligning tools and more time shipping correct integrations. **Download ISO8583Studio** for Windows, macOS, or Linux: [iso8583.studio/download](https://iso8583.studio/download). Website: [https://iso8583.studio](https://iso8583.studio).

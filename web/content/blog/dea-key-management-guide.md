@@ -4,13 +4,13 @@ description: "Understand DEA-style key hierarchies and roles of ZMK, ZPK, ZAK, a
 date: "2025-07-12"
 tags: [DEA, key hierarchy, ZMK, ZPK, key exchange]
 category: "Key Management"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 **Data Encryption Algorithm (DEA)** is the umbrella term for DES and Triple DES in many payment standards. When documents discuss **DEA keys**, they usually mean: “symmetric keys used in legacy and transitional payment crypto,” with explicit roles—encrypting PINs, generating MACs, wrapping other keys—rather than one undifferentiated blob labeled “secret.”
 
-Understanding **DEA key management** is understanding how acquirer hosts, networks, and HSMs coordinate **hierarchies** (which key wraps which), **names** (ZMK/ZPK/ZAK/ZEK and friends), and **exchange protocols** (how material moves between parties without ever appearing in clear text in the wrong place). **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 70+ tools, including DEA key helpers alongside Thales, Futurex, Atalla, and SafeNet calculators, TR-31, keyshare, cryptography, Host Simulator, and HSM Simulator (PayShield 10K).
+Understanding **DEA key management** is understanding how acquirer hosts, networks, and HSMs coordinate **hierarchies** (which key wraps which), **names** (ZMK/ZPK/ZAK/ZEK and friends), and **exchange protocols** (how material moves between parties without ever appearing in clear text in the wrong place). **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app for Windows, macOS, and Linux with 64 tools, including DEA key helpers alongside Thales, Futurex, Atalla, and SafeNet calculators, TR-31, keyshare, cryptography, Host Simulator, and HSM Simulator (PayShield 10K).
 
 ## Hierarchies: masters, exchanges, and working keys
 
@@ -99,4 +99,4 @@ Global concepts (ZMK, ZPK) become precise only inside a **network implementation
 
 ## Conclusion
 
-DEA key management is the scaffolding that makes PIN and MAC security possible at scale: named roles, wrapped exchange, and HSM-enforced policy. **Download ISO8583Studio** from [https://iso8583.studio](https://iso8583.studio)—a free desktop toolkit with DEA key helpers, multi-vendor calculators, TR-31, keyshare, and 70+ payment utilities for serious host and terminal testing.
+DEA key management is the scaffolding that makes PIN and MAC security possible at scale: named roles, wrapped exchange, and HSM-enforced policy. **Download ISO8583Studio** from [https://iso8583.studio](https://iso8583.studio)—a free desktop toolkit with DEA key helpers, multi-vendor calculators, TR-31, keyshare, and 64 payment utilities for serious host and terminal testing.

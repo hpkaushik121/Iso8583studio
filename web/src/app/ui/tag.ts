@@ -1,13 +1,15 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
 
-export type TagTone = 'blue' | 'teal' | 'muted';
+export type TagTone = 'plain' | 'blue' | 'teal' | 'muted';
 
+/** Flat keyword chip, mono by default. */
 @Component({
   selector: 'ui-tag',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span class="ui-tag" [class.ui-tag--teal]="tone() === 'teal'"
+  template: `<span class="ui-tag" [class.ui-tag--blue]="tone() === 'blue'"
+                   [class.ui-tag--teal]="tone() === 'teal'"
                    [class.ui-tag--muted]="tone() === 'muted'"><ng-content /></span>`,
 })
 export class UiTag {
-  readonly tone = input<TagTone>('blue');
+  readonly tone = input<TagTone>('plain');
 }

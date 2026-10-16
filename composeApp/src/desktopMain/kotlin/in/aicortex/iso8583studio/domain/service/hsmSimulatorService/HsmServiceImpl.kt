@@ -19,6 +19,8 @@ import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuditEntry
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.AuthActivity
 import `in`.aicortex.iso8583studio.hsm.payshield10k.data.HsmCommandResult
 import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogHistory
+import `in`.aicortex.iso8583studio.logging.addBounded
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMSimulatorConfig
 import `in`.aicortex.iso8583studio.ui.navigation.stateConfigs.hsm.HSMVendor
@@ -49,7 +51,6 @@ class HsmServiceImpl(
     private var serverSocket: ServerSocket? = null
     private var activeHsm: HsmSimulator? = null
     private var selectedHsmType: HSMVendor = HSMVendor.THALES
-    private var checkLogFileSize = LocalDateTime.now()
 
     private var _hsmState = MutableStateFlow(HsmState())
     val hsmState = _hsmState.asStateFlow()
@@ -130,81 +131,15 @@ class HsmServiceImpl(
         if (!AppSettings.enableGlobalLogging) {
             return
         }
-        if (configuration.logFileName.isNotBlank()) {
-            try {
-                val timestamp =
-                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
-                File(configuration.logFileName).appendText(
-                    "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"),
-                    Charset.forName("UTF-8")
-                )
-            } catch (_: Exception) { }
-        }
+        // Same complete-record write as the host simulator; see HostSimulator.writeLog.
+        LogHistory.of(configuration.logFileName, configuration.maxLogSizeInMB)?.append(log)
         _hsmState.value = _hsmState.value.copy(
             rawRequest = _hsmState.value.rawRequest.apply {
-                add(log)
+                addBounded(log)
             }
         )
-        val now = LocalDateTime.now()
-        if (now.isAfter(checkLogFileSize)) {
-            checkLogFileSize = now.plusSeconds(5)
-            CoroutineScope(Dispatchers.IO).launch {
-                checkAndRotateLogFile()
-            }
-        }
     }
 
-    /**
-     * Check log file size and rotate if needed
-     */
-    private suspend fun checkAndRotateLogFile() = withContext(Dispatchers.IO) {
-        val logFile = File(configuration.logFileName)
-        if (!logFile.exists()) {
-            return@withContext
-        }
-
-        val maxSizeBytes = configuration.maxLogSizeInMB * 1024 * 1024
-        if (logFile.length() <= maxSizeBytes) {
-            return@withContext
-        }
-
-        // Get base name and extension
-        val parts = logFile.nameWithoutExtension.split('_')
-        val baseName = parts[0]
-        val extension = logFile.extension
-
-        var rotationIndex = 1
-
-        try {
-            // Find next available rotation index
-            while (File("${logFile.parent}/$baseName${rotationIndex}.$extension").exists() &&
-                rotationIndex != 11
-            ) {
-                rotationIndex++
-            }
-
-            // If all rotation files are used, delete oldest and shift others
-            if (rotationIndex == 11) {
-                File("${logFile.parent}/$baseName${1}.$extension").delete()
-
-                for (i in 2 until 11) {
-                    val oldFile = File("${logFile.parent}/$baseName${i}.$extension")
-                    val newFile = File("${logFile.parent}/$baseName${i - 1}.$extension")
-
-                    if (oldFile.exists()) {
-                        oldFile.renameTo(newFile)
-                    }
-                }
-
-                rotationIndex = 10
-            }
-
-            // Rename current log file
-            logFile.renameTo(File("${logFile.parent}/$baseName${rotationIndex}.$extension"))
-        } catch (e: Exception) {
-            // Ignore errors during rotation
-        }
-    }
     override fun showError(item: @Composable (() -> Unit)) {
 
     }

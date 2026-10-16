@@ -4,8 +4,8 @@ description: "Understand EMV Static Data Authentication: what SDA proves, how is
 date: "2025-05-25"
 tags: [SDA, EMV, PKI, chip-authentication]
 category: "EMV Tools"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Contact chip transactions promise **tamper resistance**: not only secrets inside the card, but **integrity** of critical application data **offline**. **Static Data Authentication (SDA)** is an older EMV offline authentication mechanism that proves selected static records were **issuer-signed** and not altered—using a **public-key infrastructure** style chain anchored at the **payment system** level. If you maintain terminals, kernels, or issuer data preparation, you need a crisp mental model of **what SDA guarantees**, **what it does not**, and how **verification** proceeds in practice.

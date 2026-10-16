@@ -4,7 +4,6 @@
    what the system provides. */
 @import './styles/_tokens.css';
 @import './styles/_base.css';
+@import './styles/_motion.css';
 @import './styles/_components.css';
-@import './styles/_prose.css';
-@import './styles/_legacy.css';
-@import './styles/_page-home.css';
+@import './styles/_shell.css';

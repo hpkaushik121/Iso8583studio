@@ -1,8 +1,8 @@
 import { Routes } from '@angular/router';
 import { siteRoutes } from './pages/site/site-routes';
 import { blogRoutes } from './content/blog-routes';
-import { BlogIndex } from './pages/blog/blog-index';
 import { PageSeo } from './core/seo';
+import { styleBundles } from './core/route-styles';
 
 const BLOG_INDEX_SEO: PageSeo = {
   title: 'Blog - ISO8583Studio | Payment Testing & Fintech Guides',
@@ -27,7 +27,13 @@ const BLOG_INDEX_SEO: PageSeo = {
 
 export const routes: Routes = [
   ...siteRoutes,
-  { path: 'blogs', component: BlogIndex, data: { seo: BLOG_INDEX_SEO } },
+  {
+    path: 'blogs',
+    // Lazy, like the posts: the index imports every post's metadata.
+    loadComponent: () => import('./pages/blog/blog-index').then((m) => m.BlogIndex),
+    resolve: { styles: styleBundles('blog') },
+    data: { seo: BLOG_INDEX_SEO },
+  },
   ...blogRoutes,
   {
     path: 'design-system',
@@ -48,6 +54,9 @@ export const routes: Routes = [
     path: '404',
     loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
     data: {
+      // The wildcard route does not change the URL, so pageInfo() would file
+      // /docs/<typo> as a successful docs_guide view. Declared here instead.
+      pageGroup: 'not_found',
       seo: {
         title: 'Page not found - ISO8583Studio',
         description: 'That page does not exist.',
@@ -60,6 +69,9 @@ export const routes: Routes = [
     path: '**',
     loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound),
     data: {
+      // The wildcard route does not change the URL, so pageInfo() would file
+      // /docs/<typo> as a successful docs_guide view. Declared here instead.
+      pageGroup: 'not_found',
       seo: {
         title: 'Page not found - ISO8583Studio',
         description: 'That page does not exist.',

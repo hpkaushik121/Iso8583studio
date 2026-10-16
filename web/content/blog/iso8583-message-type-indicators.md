@@ -2,15 +2,22 @@
 title: "ISO 8583 Message Type Indicators (MTI): Structure, Classes, and Common Values"
 description: "Understand ISO 8583 MTI digits: version, class, function, and origin—how to read MTIs and map them to request/response flows in real systems."
 date: "2025-03-01"
+updated: "2026-10-08"
 tags: [MTI, message type, ISO 8583, authorization, network management]
 category: "ISO8583 Fundamentals"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 The **Message Type Indicator (MTI)** is the four-digit “header” that tells you what an **ISO 8583** message is trying to do—before you interpret amounts, merchant IDs, or EMV blobs. If the MTI is wrong for your state machine, everything downstream is nonsense: you might parse fields as if they were a request when they are actually a response, or treat a financial message like network management traffic.
 
 This guide explains how MTIs are structured in common ISO 8583 teaching models, what the digits typically represent, and how to connect MTI literacy to practical debugging—especially when paired with tools like **ISO8583Studio**, a **free desktop payment testing application** for **Windows**, **macOS**, and **Linux** ([https://iso8583.studio](https://iso8583.studio)).
+
+## What is an ISO 8583 0200 message?
+
+An ISO 8583 **0200** is a **financial transaction request**: the message an acquirer sends to an issuer to ask for a transaction to be approved and posted to the account in one step (a **0100** is the authorization-only request). Its four digits decompose as version `0` (ISO 8583:1987), message class `2` (financial transaction), message function `0` (request) and originator `0` (acquirer). The issuer answers with a **0210**, the financial transaction response, which carries the decision in Field 39. The request/response pair is therefore `0200 → 0210`.
+
+Related MTIs in the same family: `0220` financial advice, `0221` advice repeat, `0230` advice response, `0400` reversal request, `0410` reversal response, `0800` network management request (sign-on, sign-off, echo test) and `0810` its response. Networks restrict which MTIs they accept and add their own, but the `0200/0210` pairing comes from the ISO 8583:1987 base standard. In ISO8583Studio you can send a 0200 to a local host simulator and script the 0210 that comes back.
 
 ## The MTI’s job in one sentence
 
@@ -20,10 +27,10 @@ The MTI classifies the message so both endpoints agree on **which fields are exp
 
 Many references describe the MTI as four parts (one digit each):
 
-1. **Version** — which ISO 8583 message version or framework the interchange uses (as defined by your network; do not assume global universality across all implementations).
-2. **Message class** — broad category (authorization, financial, reversal, network management, etc., depending on spec mapping).
-3. **Message function** — request, response, advice, advice response, notification, etc. (per your spec).
-4. **Originator** — who generated the message (acquirer, issuer, repeat, etc., per your spec).
+1. **Version** — `0` = ISO 8583:1987, `1` = ISO 8583:1993, `2` = ISO 8583:2003. Almost all card networks still use `0`.
+2. **Message class** — `1` authorization, `2` financial, `3` file action, `4` reversal / chargeback, `5` reconciliation, `6` administrative, `7` fee collection, `8` network management.
+3. **Message function** — `0` request, `1` request response, `2` advice, `3` advice response, `4` notification, `5` notification acknowledgement.
+4. **Originator** — `0` acquirer, `1` acquirer repeat, `2` issuer, `3` issuer repeat, `4` other, `5` other repeat.
 
 ### Why this matters in debugging
 
@@ -39,15 +46,20 @@ ISO 8583 integrations usually require strict pairing between requests and respon
 
 If your pairing is wrong, “duplicate” or “late response” issues become indistinguishable from host bugs.
 
-## Common MTI patterns you will hear in conversations
+## The MTIs you will actually see
 
-Exact values depend on your network’s specification. Still, teams commonly refer to patterns like:
+| MTI | Meaning | Reply |
+|-----|---------|-------|
+| `0100` | Authorization request (approval only, no funds movement) | `0110` |
+| `0120` | Authorization advice | `0130` |
+| `0200` | Financial transaction request (authorize and post) | `0210` |
+| `0220` | Financial advice (e.g. offline-approved, forced post) | `0230` |
+| `0400` | Reversal request | `0410` |
+| `0420` | Reversal advice | `0430` |
+| `0500` | Reconciliation / settlement request | `0510` |
+| `0800` | Network management (sign-on, echo test, key exchange) | `0810` |
 
-- **x1xx** financial / authorization-class messages (terminology varies)
-- **x2xx** financial messages (depending on class mapping)
-- **x8xx** network management patterns (common in many materials)
-
-Do not memorize random blogs as authoritative—memorize **your** implementation guide’s tables.
+Networks layer their own rules on top — Mastercard uses `0100/0110` for authorization and `1240` for clearing, Visa restricts which classes a given endpoint may send — but the digit meanings above are the ISO 8583:1987 base and are stable across them. Your implementation guide tells you which of these a given endpoint accepts; it does not redefine what they mean.
 
 ## MTI + bitmap together: the two-part headline
 
@@ -73,9 +85,9 @@ ISO 8583 is a framework; processors extend it. You may encounter:
 
 Always ask: **Is this MTI from the raw ISO stream or from an internal API representation?**
 
-## Practical examples (illustrative, not a substitute for your spec)
+## Practical examples
 
-Because MTIs are network-specific, treat these only as pedagogical patterns:
+The flows below use the standard MTIs; your network's guide tells you which of them a given endpoint supports.
 
 - A message whose function digit indicates **request** should have a response whose function digit indicates **response** under your ruleset.
 - **Network management** messages may have very different field expectations than financial messages—your parser should route by MTI class before applying business validations.
@@ -88,7 +100,7 @@ ISO8583Studio is designed for payment developers who need **local**, **repeatabl
 
 Download the latest release:
 
-[https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+[iso8583.studio/download](https://iso8583.studio/download)
 
 ## Conclusion
 

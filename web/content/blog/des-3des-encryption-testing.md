@@ -4,13 +4,13 @@ description: "Test DES and Triple DES in ECB and CBC modes: key parity, IV handl
 date: "2025-06-10"
 tags: [DES, 3DES, TDES, encryption, payment testing]
 category: "Cryptography"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 Data Encryption Standard (DES) and Triple DES (3DES/TDES) remain embedded in payment ecosystems long after general-purpose IT moved to AES. PIN encryption, legacy key-wrap schemes, MAC algorithms, and interoperability with older HSMs still surface DES-family primitives—often in **ECB** or **CBC** modes with careful attention to **parity-adjusted keys** and correct block alignment.
 
-For testers, the goal is not “math for its own sake”—it is **bit-exact reproducibility**: the same key, IV, mode, and padding assumptions your host and HSM use. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 70+ payment tools, including cryptography modules (AES, DES/3DES, RSA, ECDSA, hash, FPE) alongside Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and key-management calculators.
+For testers, the goal is not “math for its own sake”—it is **bit-exact reproducibility**: the same key, IV, mode, and padding assumptions your host and HSM use. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application for Windows, macOS, and Linux with 64 payment tools, including cryptography modules (AES, DES/3DES, RSA, ECDSA, hash, FPE) alongside Host Simulator, HSM Simulator (PayShield 10K), EMV utilities, and key-management calculators.
 
 ## DES vs Triple DES in one paragraph
 

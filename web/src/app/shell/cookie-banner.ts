@@ -3,11 +3,10 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AnalyticsService } from '../core/analytics';
-
-/** Same storage key as the previous implementation, so visitors who already
- *  chose are not asked again. */
-const KEY = 'iso8583-cookie-consent';
+// Same storage key as the previous implementation, so visitors who already
+// chose are not asked again. Shared with analytics, which documents who else
+// reads it.
+import { AnalyticsService, CONSENT_KEY as KEY } from '../core/analytics';
 
 @Component({
   selector: 'app-cookie-banner',
@@ -19,8 +18,8 @@ const KEY = 'iso8583-cookie-consent';
         <p>We use cookies to remember your preferences and to measure how the site is used.
            See our <a routerLink="/privacy-policy">Privacy Policy</a>.</p>
         <div class="cb-actions">
-          <button class="cb-decline" type="button" (click)="choose('essential')">Essential only</button>
-          <button class="btn btn--primary cb-accept" type="button" (click)="choose('all')">Accept all</button>
+          <button class="btn btn--secondary btn--sm cb-decline" type="button" (click)="choose('essential')">Essential only</button>
+          <button class="btn btn--primary btn--sm cb-accept" type="button" (click)="choose('all')">Accept all</button>
         </div>
       </div>
     }

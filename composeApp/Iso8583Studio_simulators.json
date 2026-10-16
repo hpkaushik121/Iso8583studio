@@ -7726,7 +7726,18 @@
             ],
             "messageLengthTypeDest": "HEX_HL",
             "createdDate": 1776347969081,
-            "modifiedDate": 1787824256359
+            "modifiedDate": 1789669258974
+        },
+        {
+            "id": "ec6ba2a0-cb0f-4a1c-8c74-edaa9bcc3288",
+            "name": "Config - 3",
+            "privateKey": [],
+            "iv": [],
+            "createDate": 1789669712961,
+            "password": [],
+            "advancedOptions": {},
+            "createdDate": 1789669712961,
+            "modifiedDate": 1789669712961
         }
     ],
     "hsmConfigs": [
@@ -7734,7 +7745,7 @@
             "id": "cb49039a-1842-4b88-97e9-505479907396",
             "name": "Thales PayShield 10k",
             "createdDate": 1768383552215,
-            "modifiedDate": 1787831431823,
+            "modifiedDate": 1788107457574,
             "authenticationPolicy": "SMART_CARD",
             "deviceInfo": {
                 "capabilities": [
@@ -10559,6 +10570,15 @@
                 "enabled": true,
                 "certificateVerification": "CA_SIGNED"
             }
+        },
+        {
+            "id": "45688ff1-22ca-4af3-ae24-d234c0bd1065",
+            "name": "HSM Host Console - Utimaco",
+            "createdDate": 1789414125537,
+            "modifiedDate": 1789414602696,
+            "port": 7001,
+            "headerFormat": "CUSTOM",
+            "hsmVendor": "ATALLA"
         }
     ],
     "ecrConfigs": [],
@@ -10567,6 +10587,6 @@
     "switchConfigs": [],
     "acquirerConfigs": [],
     "issuerConfigs": [],
-    "exportedAt": 1787833020432,
+    "exportedAt": 1789957163073,
     "version": "1.0"
 }

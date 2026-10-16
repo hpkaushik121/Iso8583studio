@@ -4,13 +4,13 @@ description: "Learn IBM 3624 PIN offset: natural PIN, decimalization table, offs
 date: "2025-07-22"
 tags: [IBM 3624, PIN offset, PIN verification, banking, payment security]
 category: "PIN Security"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Mainframe-era PIN systems still power a surprising share of issuer processing. When engineers first encounter **IBM 3624 PIN offset** rules, the documentation can feel like cryptography written in banking folklore: “decimalization table,” “natural PIN,” and an offset that somehow reconciles customer-chosen PINs with a cryptographic PIN **PVV**-adjacent world—except it is not PVV.
 
-If you are testing issuer-side PIN change, ATM PIN set, or host verification flows, you need a crisp mental model of what 3624 *computes*, what data must remain consistent across systems, and where implementations silently diverge. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools—including utilities aligned with classic PIN workflows—so you can validate calculations and compare outputs against your host reference implementation.
+If you are testing issuer-side PIN change, ATM PIN set, or host verification flows, you need a crisp mental model of what 3624 *computes*, what data must remain consistent across systems, and where implementations silently diverge. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools—including utilities aligned with classic PIN workflows—so you can validate calculations and compare outputs against your host reference implementation.
 
 ## The goal of IBM 3624-style PIN offset
 

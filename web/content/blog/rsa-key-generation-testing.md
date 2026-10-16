@@ -4,13 +4,13 @@ description: "Generate and test RSA key pairs: key sizes, DER vs PEM, and signin
 date: "2025-06-18"
 tags: [RSA, public key, PEM, DER, payment testing]
 category: "Cryptography"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 RSA remains central to payment security—TLS handshakes, certificate chains, legacy PIN encryption schemes in some environments, and EMV’s public-key authentication story all lean on RSA’s asymmetric model: a **private key** signs or decrypts; a **public key** verifies or encrypts. For testers, the challenge is rarely “what RSA is,” but **whether two systems agree on the same bytes**: modulus endianness, encoding (DER vs PEM), padding (PKCS#1 v1.5 vs PSS), and hash algorithms.
 
-**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application (Windows, macOS, Linux) with 70+ payment tools, including RSA and ECDSA support alongside AES, DES/3DES, hash, FPE, Host Simulator, HSM Simulator (PayShield 10K), EMV tools, and key-management utilities.
+**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop application (Windows, macOS, Linux) with 64 payment tools, including RSA and ECDSA support alongside AES, DES/3DES, hash, FPE, Host Simulator, HSM Simulator (PayShield 10K), EMV tools, and key-management utilities.
 
 ## RSA key sizes you will actually see
 

@@ -1,0 +1,17 @@
+/* POS and APDU simulator guides — literal colours of the glass screens
+   (the app's own widget colours, which the site palette does not carry). */
+
+.sg-stage {
+    /* A status light that is off. */
+    --sg-idle: #5d6478;
+    /* The knob of a toggle that is off; a neutral count. */
+    --sg-knob: #aeb4c8;
+    --sg-purple: #c58af9;
+    /* Destructive buttons and the delete icon. */
+    --sg-red: #ef5350;
+    --sg-red-deep: #d32f2f;
+    /* Top stop of the teal launch button. */
+    --sg-teal-top: #2bb3a5;
+    /* Text of a "verified" tag on its green wash. */
+    --sg-mint: #b9f6ca;
+}

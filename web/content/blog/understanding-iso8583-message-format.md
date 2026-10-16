@@ -4,8 +4,8 @@ description: "Learn ISO 8583 message anatomy: MTI, bitmaps, fixed and variable f
 date: "2025-02-20"
 tags: [ISO 8583, message format, bitmap, payment messaging, standards]
 category: "ISO8583 Fundamentals"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 If you work anywhere near card acquiring, issuing switches, or payment gateways, **ISO 8583** is the lingua franca of **financial transaction messaging**. It is also famously **flexible**: the standard defines a framework, while real networks choose versions, field definitions, encoding rules, and custom private-use fields. That flexibility is powerful—and it is why two teams can both claim “ISO 8583 compliance” yet fail to interoperate until they align the details.
@@ -91,7 +91,7 @@ ISO8583Studio is built for payment developers who need **repeatable inspection**
 
 Download the latest release for your OS:
 
-[https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+[iso8583.studio/download](https://iso8583.studio/download)
 
 ## Conclusion
 

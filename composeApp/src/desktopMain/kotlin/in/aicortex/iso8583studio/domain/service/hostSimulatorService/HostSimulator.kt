@@ -30,6 +30,7 @@ import `in`.aicortex.iso8583studio.data.model.VerificationError
 import `in`.aicortex.iso8583studio.data.model.VerificationException
 import `in`.aicortex.iso8583studio.domain.utils.isIpMatched
 import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogHistory
 import `in`.aicortex.iso8583studio.logging.LogType
 import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.createLogEntry
 import kotlinx.coroutines.CoroutineScope
@@ -100,7 +101,22 @@ class HostSimulator : Simulator {
     internal var composeWindow = ComposeWindow()
     private var monitorClient: Socket? = null
     private var monitorServerWait = LocalDateTime.now()
-    private var checkLogFileSize = LocalDateTime.now()
+    /**
+     * The authoritative log history for this gateway. Cached rather than resolved per record:
+     * [writeLog] runs on the connection threads, so it must stay allocation-light.
+     */
+    private var cachedLogHistory: LogHistory? = null
+    private var cachedLogHistoryPath: String? = null
+
+    private val logHistory: LogHistory?
+        @Synchronized get() {
+            val path = configuration.logFileName
+            if (path != cachedLogHistoryPath) {
+                cachedLogHistoryPath = path
+                cachedLogHistory = LogHistory.of(path, configuration.maxLogSizeInMB)
+            }
+            return cachedLogHistory
+        }
     private val monitorMessageBuilder = StringBuilder()
     private val monitorMessageMutex = Mutex()
 
@@ -438,80 +454,11 @@ class HostSimulator : Simulator {
         if (!AppSettings.enableGlobalLogging) {
             return
         }
-        if (configuration.logFileName.isBlank()) {
-            beforeWriteLogCallbacks(log)
-            return
-        }
-        try {
-            val timestamp =
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yy/MM/dd HH:mm:ss"))
-            File(configuration.logFileName).appendText(
-                "\r\n${log.message}".replace("\r\n", "\r\n$timestamp  ${log.source}"),
-                Charset.forName(configuration.getEncoding())
-            )
-        } catch (_: Exception) { }
-
+        // The file is the complete record: it carries type, source and details, which the previous
+        // plain-text append dropped. Buffering, rotation and the flush watermark live in
+        // LogFileWriter, so this stays a non-blocking hand-off from the connection thread.
+        logHistory?.append(log)
         beforeWriteLogCallbacks(log)
-
-        val now = LocalDateTime.now()
-        if (now.isAfter(checkLogFileSize)) {
-            checkLogFileSize = now.plusSeconds(5)
-            CoroutineScope(Dispatchers.IO).launch {
-                checkAndRotateLogFile()
-            }
-        }
-    }
-
-    /**
-     * Check log file size and rotate if needed
-     */
-    private suspend fun checkAndRotateLogFile() = withContext(Dispatchers.IO) {
-        val logFile = File(configuration.logFileName)
-        if (!logFile.exists()) {
-            return@withContext
-        }
-
-        val maxSizeBytes = configuration.maxLogSizeInMB * 1024 * 1024
-        if (logFile.length() <= maxSizeBytes) {
-            return@withContext
-        }
-
-        // Get base name and extension
-        val parts = logFile.nameWithoutExtension.split('_')
-        val baseName = parts[0]
-        val extension = logFile.extension
-
-        var rotationIndex = 1
-
-        try {
-            // Find next available rotation index
-            while (File("${logFile.parent}/$baseName${rotationIndex}.$extension").exists() &&
-                rotationIndex != 11
-            ) {
-                rotationIndex++
-            }
-
-            // If all rotation files are used, delete oldest and shift others
-            if (rotationIndex == 11) {
-                File("${logFile.parent}/$baseName${1}.$extension").delete()
-
-                for (i in 2 until 11) {
-                    val oldFile = File("${logFile.parent}/$baseName${i}.$extension")
-                    val newFile = File("${logFile.parent}/$baseName${i - 1}.$extension")
-
-                    if (oldFile.exists()) {
-                        oldFile.renameTo(newFile)
-                    }
-                }
-
-                rotationIndex = 10
-            }
-
-            // Rename current log file
-            logFile.renameTo(File("${logFile.parent}/$baseName${rotationIndex}.$extension"))
-        } catch (e: Exception) {
-            // Ignore errors during rotation
-        }
     }
 
     /**

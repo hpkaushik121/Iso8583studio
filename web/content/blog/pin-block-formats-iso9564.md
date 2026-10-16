@@ -2,15 +2,16 @@
 title: "ISO 9564 PIN Block Formats 0–4: What They Are and How They Differ"
 description: "Understand ISO 9564 PIN block formats 0–4: layout, padding, and when each format is used in payment systems and HSM workflows."
 date: "2025-07-15"
+updated: "2026-10-08"
 tags: [PIN, ISO 9564, PIN block, payment security, HSM]
 category: "PIN Security"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 If you have ever stared at a 16-byte hex string labeled “PIN block” and wondered whether you are looking at Format 0, Format 1, or something your gateway invented last Tuesday, you are not alone. PIN blocks are one of the most frequently misunderstood artifacts in card payments—yet they sit at the center of online PIN verification, ATM PIN change, and host-to-HSM cryptography.
 
-This article explains **ISO 9564** PIN block formats **0 through 4** at a practical level: what each format carries, how padding works, and why the “same PIN” can look completely different depending on format and keying. For hands-on generation and inspection, **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools, including PIN utilities that help you build and validate PIN blocks without chaining together fragile scripts.
+This article explains **ISO 9564** PIN block formats **0 through 4** at a practical level: what each format carries, how padding works, and why the “same PIN” can look completely different depending on format and keying. For hands-on generation and inspection, **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools, including PIN utilities that help you build and validate PIN blocks without chaining together fragile scripts.
 
 ## Why PIN blocks exist
 
@@ -22,9 +23,11 @@ The **format** defines how PIN length, PIN digits, and fill digits are arranged 
 
 **ISO 9564-1 Format 0** is widely used in international interchange. Conceptually:
 
-- The left nibble of the first byte encodes the **PIN length** (number of PIN digits).
+- The first nibble is the **control field** and is `0` for Format 0.
+- The second nibble encodes the **PIN length** (4–12 digits).
 - Following nibbles carry the PIN digits in **BCD** (Binary Coded Decimal), each digit 0–9 occupying one nibble.
-- Remaining nibbles are filled with a **padding nibble** (commonly `F`) until the block is complete for the algorithm width.
+- Remaining nibbles are filled with `F` to 16 nibbles.
+- That 8-byte block is then **XORed with the PAN block**: `0000` followed by the rightmost 12 PAN digits excluding the check digit. This is what ties the PIN block to the card and what separates Format 0 from Format 1.
 
 For an 8-byte DES-style block, you get a well-defined pattern: length + PIN digits + padding. The critical testing mistake is treating ASCII ‘0’–‘9’ bytes as BCD—**they are not interchangeable**.
 
@@ -39,20 +42,20 @@ For an 8-byte DES-style block, you get a well-defined pattern: length + PIN digi
 
 When debugging “PIN verify fails intermittently,” verify whether your HSM or simulator expects Format 1 rules for randomness and whether your test harness fixes the RNG (for reproducible vectors).
 
-## Format 2 — IBM 3624 legacy layout
+## Format 2 — the offline (ICC) PIN block
 
-**Format 2** is associated with legacy IBM host ecosystems. It is less common in modern open-loop card brand specs than Format 0, but it still appears in migrations, mainframe integrations, and certain regional stacks.
+**Format 2** is the layout used to send a PIN to the chip card itself for offline verification — the EMV `VERIFY` command. Control nibble `2`, then the PIN length, then the PIN digits, then `F` fill to 16 nibbles; **no PAN XOR**, because the card already knows its own PAN. It is not a host-to-host format and must not be sent to an issuer or HSM expecting Format 0.
 
-From a testing perspective, treat Format 2 as a **contract** with the host:
+From a testing perspective:
 
-- Confirm the PIN block builder and the verifier agree on nibble order, length encoding, and padding rules.
-- If your documentation simply says “3624,” be careful: PIN offset verification and PIN block formatting are related concepts but **not identical**.
+- A Format 2 block is plaintext between the terminal kernel and the card (or enciphered with the card's RSA key for enciphered offline PIN); it never travels in ISO 8583 Field 52.
+- Do not confuse it with **IBM 3624**, which is a PIN *verification* method (PIN offset) and not a PIN block format at all.
 
-## Format 3 — reserved
+## Format 3 — Format 0 with random fill
 
-**Format 3** is reserved in ISO 9564. You may encounter vendor-specific documentation that repurposes terminology; in strict ISO terms, do not assume interoperability without a written specification from both ends.
+**Format 3** is a defined ISO 9564-1 format and is widely deployed. It is built like Format 0 — control nibble `3`, PIN length, PIN digits, then XOR with the same PAN block — but the fill nibbles are **random values from `A` to `F`** instead of a constant `F`. That removes the fixed plaintext pattern Format 0 exposes while keeping the PAN binding Format 1 lacks.
 
-If a gateway claims “Format 3,” ask for a byte-level reference implementation or official spec citation—your test vectors depend on it.
+For testing: a Format 3 block for the same PIN and PAN is different on every build, so your harness must either fix the random source or verify by decrypting rather than by comparing ciphertext.
 
 ## Format 4 — AES PIN block (wider block)
 
@@ -69,8 +72,8 @@ Practical implications:
 |--------|----------------|---------------|-------------------|
 | 0 | 64-bit | Fixed fill (e.g., `F`) | Widely used ISO interchange |
 | 1 | 64-bit | Random fill nibbles | Reduced determinism in plaintext pattern |
-| 2 | 64-bit | IBM 3624 legacy | Mainframe / legacy migrations |
-| 3 | — | Reserved | Do not assume meaning without spec |
+| 2 | 64-bit | `F` fill, no PAN XOR | Offline PIN to the chip (EMV `VERIFY`) |
+| 3 | 64-bit | Random `A`–`F` fill, PAN XOR | Online interchange, like Format 0 without the fixed pattern |
 | 4 | 128-bit | Per ISO 9564 AES definition | Modern AES PIN encryption workflows |
 
 ## Practical testing workflow

@@ -4,8 +4,8 @@ description: "Master TCP/IP testing with ISO8583Studio: ports, listeners, TLS/SS
 date: "2025-04-01"
 tags: [TCP, TLS, host-simulator, ISO8583]
 category: "Host Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Payment engineers live in a world of **timeouts**, **half-open sockets**, and **firewall rules** that only fail on Friday afternoon. When you simulate an acquirer or switch with ISO8583Studio’s **Host Simulator**, TCP/IP is the foundation: if the byte stream is not stable, your ISO 8583 bitmaps and TLV stacks are irrelevant.
@@ -117,6 +117,6 @@ Also align on **endianness** for length-prefix framing—ISO stacks often use **
 
 ## Conclusion
 
-Solid **TCP/IP** and **TLS** hygiene makes ISO 8583 testing trustworthy. ISO8583Studio bundles the **Host Simulator** alongside **70+ tools**—HSM simulation (PayShield 10K–compatible), EMV utilities, cryptography, key management, and payment helpers like CVV, PIN block, and MAC—so you can move from socket stability to full transaction realism.
+Solid **TCP/IP** and **TLS** hygiene makes ISO 8583 testing trustworthy. ISO8583Studio bundles the **Host Simulator** alongside **64 tools**—HSM simulation (PayShield 10K–compatible), EMV utilities, cryptography, key management, and payment helpers like CVV, PIN block, and MAC—so you can move from socket stability to full transaction realism.
 
 **Get ISO8583Studio** free for **Windows, macOS, and Linux** at [https://iso8583.studio](https://iso8583.studio) and ship payment integrations with confidence.

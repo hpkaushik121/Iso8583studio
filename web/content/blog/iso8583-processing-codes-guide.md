@@ -4,8 +4,8 @@ description: "Decode ISO 8583 Field 3 processing codes—transaction types, acco
 date: "2025-03-10"
 tags: [Field 3, processing code, ISO 8583, transaction type, account type]
 category: "ISO8583 Fundamentals"
-author: "AiCortex Team"
-read_time: "9 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 **Field 3**—the **processing code**—is one of the highest-impact fields in **ISO 8583** because it tells the receiving system *what kind of transaction* you believe you are performing, often down to account-from/account-to semantics. When Field 3 disagrees with other fields (amount signs, amounts in the wrong fields, EMV indicators, token usage), you get confusing declines, partial authorizations, or “successful” responses that do not match reconciliation.
@@ -98,7 +98,7 @@ When you are iterating on message construction, you need a fast loop: edit field
 
 Download the latest desktop build:
 
-[https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest)
+[iso8583.studio/download](https://iso8583.studio/download)
 
 ## Conclusion
 

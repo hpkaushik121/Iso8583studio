@@ -4,8 +4,8 @@ description: "Simulate unsolicited messages, reversal flows, and network managem
 date: "2025-04-15"
 tags: [unsolicited, reversal, network-management, ISO8583]
 category: "Host Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 Many integration bugs appear only when the **host speaks first**—or when a **reversal** must land hours later on a **persistent session**. If your simulator only answers polite request/response pairs, you never exercise timers, idempotency, or duplicate detection under pressure. **ISO8583Studio** is a free, cross-platform **Kotlin/Compose** desktop tool (**Windows, macOS, Linux**) whose **Host Simulator** supports realistic **unsolicited** behavior alongside TCP, REST, and RS232.
@@ -90,7 +90,7 @@ When something breaks, time-ordered traces beat screenshots.
 
 ## Broader toolkit context
 
-ISO8583Studio includes **70+ tools**: **Host Simulator** (Server/Client/Proxy), **HSM Simulator** (PayShield 10K–compatible, **35+ commands**), **APDU Simulator**, **EMV** tools (tag parser, cryptogram validation, SDA/DDA, ATR, dictionary), **cryptography**, **key management** (Thales, Futurex, Atalla, SafeNet calculators, TR-31, key blocks), and payment utilities (CVV, PIN block, DUKPT, MAC/HMAC/CMAC).
+ISO8583Studio includes **64 tools**: **Host Simulator** (Server/Client/Proxy), **HSM Simulator** (PayShield 10K–compatible, **41 documented commands**), **APDU Simulator**, **EMV** tools (tag parser, cryptogram validation, SDA/DDA, ATR, dictionary), **cryptography**, **key management** (Thales, Futurex, Atalla, SafeNet calculators, TR-31, key blocks), and payment utilities (CVV, PIN block, DUKPT, MAC/HMAC/CMAC).
 
 ## Sequencing diagrams help more than paragraphs
 

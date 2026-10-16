@@ -4,13 +4,13 @@ description: "Step-by-step guide to PIN block calculators: test vectors, validat
 date: "2025-07-18"
 tags: [PIN block, AES, validation, payment testing, cryptography]
 category: "PIN Security"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "3 min read"
 ---
 
 You have the PIN encryption key, the terminal is online, and the host still returns “PIN verification failed.” Before you open a severity-1 bridge call, the fastest win is often the humble **PIN block calculator**: a deterministic way to prove whether your client, your gateway, and your HSM agree on *exactly* the same plaintext layout and algorithm parameters.
 
-This guide explains how to use a PIN block calculator effectively—not just to “get a hex string,” but to **generate reproducible test vectors**, **validate** outputs from third-party systems, and **migrate** from triple-DES layouts to **AES PIN blocks** with confidence. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 70+ payment tools, including PIN utilities designed for day-to-day integration testing without standing up a full lab stack.
+This guide explains how to use a PIN block calculator effectively—not just to “get a hex string,” but to **generate reproducible test vectors**, **validate** outputs from third-party systems, and **migrate** from triple-DES layouts to **AES PIN blocks** with confidence. **ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop app (Windows, macOS, Linux) with 64 payment tools, including PIN utilities designed for day-to-day integration testing without standing up a full lab stack.
 
 ## What a PIN block calculator actually does
 

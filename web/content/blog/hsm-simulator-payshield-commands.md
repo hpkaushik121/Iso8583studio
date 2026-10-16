@@ -4,11 +4,11 @@ description: "A practical tour of PayShield 10K–style host commands supported 
 date: "2025-04-25"
 tags: [PayShield, HSM, host-commands, ISO8583Studio]
 category: "HSM Simulator"
-author: "AiCortex Team"
-read_time: "7 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
-Integrating with a **Thales payShield** means speaking its **host command** language—compact alphabetic **command codes**, strict **field layouts**, and **return codes** that separate “bad formatting” from “policy denied.” **ISO8583Studio** ships an **HSM Simulator** that implements a **PayShield 10K–compatible** surface (**35+ commands**) so you can prototype integrations **offline** on **Windows, macOS, or Linux**.
+Integrating with a **Thales payShield** means speaking its **host command** language—compact alphabetic **command codes**, strict **field layouts**, and **return codes** that separate “bad formatting” from “policy denied.” **ISO8583Studio** ships an **HSM Simulator** that implements a **PayShield 10K–compatible** surface (**41 documented commands**) so you can prototype integrations **offline** on **Windows, macOS, or Linux**.
 
 This article is a **developer-oriented command tour**: what families exist, how **NC**, **A0/A1**, and **CA/CB** are commonly used, and how to build a **mental map** instead of memorizing hex dumps.
 
@@ -112,6 +112,6 @@ Capture **two** failing examples and **one** known-good example side-by-side—d
 
 ## Conclusion
 
-**PayShield 10K commands** look intimidating on paper but organize cleanly into **key**, **PIN**, and **crypto** families. ISO8583Studio’s **HSM Simulator** gives payment developers a **credible practice surface** with **35+ commands** aligned to that world.
+**PayShield 10K commands** look intimidating on paper but organize cleanly into **key**, **PIN**, and **crypto** families. ISO8583Studio’s **HSM Simulator** gives payment developers a **credible practice surface** with **41 documented commands** aligned to that world.
 
 **Download ISO8583Studio** for free at [https://iso8583.studio](https://iso8583.studio) and turn PDF diagrams into **working integrations**—on every OS you use daily.

@@ -2,6 +2,7 @@ import {
   AfterViewInit, ChangeDetectionStrategy, Component, DOCUMENT, ElementRef,
   OnDestroy, inject, input, output, viewChild,
 } from '@angular/core';
+import { UiIcon } from './icon';
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
@@ -13,12 +14,16 @@ const FOCUSABLE =
  */
 @Component({
   selector: 'ui-dialog',
+  imports: [UiIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog-ov" (click)="onBackdrop($event)">
       <div #panel class="dialog" role="dialog" aria-modal="true" [attr.aria-label]="label()"
            (keydown)="onKeydown($event)">
-        <button class="dialog-x" type="button" aria-label="Close" (click)="close.emit('button')">×</button>
+        <span class="dialog-glow" aria-hidden="true"></span>
+        <button class="dialog-x icon-btn" type="button" aria-label="Close" (click)="close.emit('button')">
+          <ui-icon name="x" [size]="15" />
+        </button>
         <ng-content />
       </div>
     </div>

@@ -63,7 +63,7 @@ export class SitePage implements AfterViewInit, OnDestroy {
     const href = anchor?.getAttribute('href');
     if (!anchor || !href) return;
     if (anchor.hasAttribute('target') || !href.startsWith('/')) return;
-    if (href.startsWith('/images/') || href.startsWith('/assets/')) return;
+    if (/^\/(images|assets|media)\//.test(href)) return;
 
     event.preventDefault();
     void this.router.navigateByUrl(href);

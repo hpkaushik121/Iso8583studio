@@ -4,13 +4,13 @@ description: "Understand APDU structure and core EMV commands—SELECT, READ REC
 date: "2025-06-05"
 tags: [APDU, EMV, smart card, ISO7816, payment testing]
 category: "EMV Tools"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 Application Protocol Data Units (APDUs) are the language of chip cards. Whether you are certifying a terminal kernel, debugging an acquirer host integration, or teaching newcomers how EMV data is actually retrieved, you need crisp command construction, predictable response parsing, and repeatable traces. An **APDU Simulator** bridges the gap between specification text and real silicon—letting you send structured commands and inspect SW1/SW2 statuses without writing a one-off script for every lab scenario.
 
-**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop tool for Windows, macOS, and Linux with 70+ payment utilities, including an **APDU Simulator** alongside Host Simulator, HSM Simulator (PayShield 10K), EMV tools (tag parser, cryptogram, SDA/DDA, ATR), cryptography, key management, and payment primitives (CVV, PIN block, DUKPT, MAC, and more).
+**ISO8583Studio** ([iso8583.studio](https://iso8583.studio)) is a free cross-platform desktop tool for Windows, macOS, and Linux with 64 payment utilities, including an **APDU Simulator** alongside Host Simulator, HSM Simulator (PayShield 10K), EMV tools (tag parser, cryptogram, SDA/DDA, ATR), cryptography, key management, and payment primitives (CVV, PIN block, DUKPT, MAC, and more).
 
 ## APDU anatomy (the parts you will actually edit)
 

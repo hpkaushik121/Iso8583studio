@@ -1,0 +1,14 @@
+/* Literal colours of the Pro page's drawings: the orbital hero's status tones
+   and the PRO core. Named here so pro.css carries no hex of its own. */
+:root {
+    --pro-tone-available: #4fd8bd;
+    --pro-tone-beta: #6ab7ff;
+    --pro-tone-dev: #8a93b0;
+    --pro-tone-tools: #c9b46a;
+
+    --pro-orb-hi: #3f8ee0;
+    --pro-orb-mid: #123a6e;
+    --pro-orb-lo: #0a1b36;
+    --pro-orb-ink: #f2f8ff;
+    --pro-halo-hot: #e6f3ff;
+}

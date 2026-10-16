@@ -1,8 +1,9 @@
 import { Injectable, afterNextRender, inject, signal } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import { DOCUMENT, Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { PaymentsService } from '../../core/payments';
 import { AnalyticsService } from '../../core/analytics';
+import { PaymentNotice } from '../../core/payment-notice';
 
 /**
  * What happened to the payment, read once when the customer comes back.
@@ -23,20 +24,34 @@ export type OutcomeState =
   /** Polling `/c/{token}/status`; the ledger has not settled yet. */
   | 'confirming'
   | 'paid'
-  | 'failed';
+  | 'failed'
+  /** The customer closed the hosted checkout without paying. */
+  | 'cancelled';
 
 @Injectable({ providedIn: 'root' })
 export class CheckoutOutcome {
   private readonly payments = inject(PaymentsService);
   private readonly analytics = inject(AnalyticsService);
+  private readonly notice = inject(PaymentNotice);
   private readonly doc = inject(DOCUMENT);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
 
   readonly state = signal<OutcomeState>('idle');
-  /** The service's order id, taken off the return URL. */
+  /**
+   * What the card prints as the order reference.
+   *
+   * The checkout id, which is per-order and is also the transaction_id both
+   * GA4 and Ads now key on — so a customer quoting it can be matched to the
+   * analytics record. `ref` is the fallback: it is the service's customer key,
+   * the same value for every purchase by one person, and it used to be their
+   * email address, which the card then printed back at them.
+   */
   readonly reference = signal<string | null>(null);
   /** The quote total, when this tab is the one that started the checkout. */
   readonly amountPaise = signal<number | null>(null);
+  /** The quote's currency; amountPaise is in its minor units. */
+  readonly currency = signal('INR');
   /**
    * Whether `/c/{token}/status` was actually read, rather than the outcome
    * being taken from the redirect. Both are shown as paid; only this one may
@@ -87,6 +102,28 @@ export class CheckoutOutcome {
     const params = new URLSearchParams(this.doc.defaultView?.location.search ?? '');
     const flag = params.get('payment');
     const ref = params.get('ref');
+    // Our own id, round-tripped on the return URL. Preferred over the
+    // localStorage copy, which a provider webview or a new tab defeats.
+    const cid = params.get('cid');
+
+    // A closed checkout. Only believed when this browser started one — a
+    // typed ?payment=cancelled has no token behind it and changes nothing.
+    if (flag === 'cancelled') {
+      if (!this.payments.takeToken()) return;
+      // Read before clearToken() wipes all three. This branch returns early,
+      // so it is the only chance to tell the notice what was abandoned.
+      const amount = this.payments.takeAmount();
+      const currency = this.payments.takeCurrency();
+      const email = this.payments.takeEcEmail();
+      this.payments.clearToken();
+      const closedId = cid ?? this.payments.takeCheckoutId();
+      this.reference.set(closedId ?? ref);
+      this.analytics.reportPaymentResult('cancelled', cid ?? '');
+      this.notice.cancelled({ email, amountMinor: amount, currency, checkoutId: closedId });
+      this.state.set('cancelled');
+      this.clearQuery();
+      return;
+    }
 
     // Both, and a flag we recognise. The service appends `ref` itself, so a URL
     // carrying one is a genuine return from checkout; `?payment=done` typed or
@@ -94,18 +131,33 @@ export class CheckoutOutcome {
     // that claims something about a payment nobody made.
     if ((flag !== 'done' && flag !== 'failed') || !ref) return;
 
-    this.reference.set(ref);
     // Read before clearToken() wipes it — order matters here.
     this.amountPaise.set(this.payments.takeAmount());
-    const checkoutId = this.payments.takeCheckoutId();
-    this.analytics.reportPaymentResult(flag, ref);
+    this.currency.set(this.payments.takeCurrency());
+    // takeCheckoutId() is called either way, so the stored key never goes stale.
+    const checkoutId = cid ?? this.payments.takeCheckoutId();
+    this.reference.set(checkoutId ?? ref);
+    this.analytics.reportPaymentResult(flag, checkoutId ?? '');
+
+    // Read once, and before the failed branch below calls clearToken(), which
+    // wipes it. takeEcEmail clears as it reads, and the Ads match, the paid
+    // notice and the failed notice all want the same address.
+    const ecEmail = this.payments.takeEcEmail();
 
     if (flag === 'failed') {
       this.payments.clearToken();
-      this.analytics.reportPaymentFailed(ref);
+      this.analytics.reportPaymentFailed(checkoutId ?? '');
+      this.notice.failed({
+        email: ecEmail, reference: ref, amountMinor: this.amountPaise(),
+        currency: this.currency(), checkoutId,
+      });
       this.state.set('failed');
+      this.clearQuery();
       return;
     }
+
+    // Only on the way to a purchase: this is the Ads conversion's match data.
+    if (ecEmail) this.analytics.setAdsUserData(ecEmail);
 
     // `done` is already an outcome, not a hint: the hosted checkout calls
     // verify — signature, order match, then a re-fetch from Razorpay — and
@@ -115,8 +167,9 @@ export class CheckoutOutcome {
     if (!token) {
       // A different tab (UPI return) or cleared storage: the redirect already
       // said paid. Count it — value_known:'no' keeps the blind spot visible.
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
+      this.notifyPaid(ref, checkoutId, ecEmail, false);
       this.state.set('paid');
+      this.clearQuery();
       return;
     }
 
@@ -134,12 +187,45 @@ export class CheckoutOutcome {
       // redirect already said paid, and a webhook that has not landed yet is
       // not a reason to tell the customer otherwise.
       this.ledgerConfirmed.set(out.status === 'paid');
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
+      this.notifyPaid(ref, checkoutId, ecEmail, out.status === 'paid');
       this.state.set('paid');
+      this.clearQuery();
     } catch {
       // The poll could not run. The redirect stands on its own.
-      this.analytics.reportPurchase(ref, this.amountPaise(), checkoutId);
+      this.notifyPaid(ref, checkoutId, ecEmail, false);
       this.state.set('paid');
+      this.clearQuery();
     }
+  }
+
+  /**
+   * Reports the purchase and, only if that was the call that reported it,
+   * emails the notice. Both hang off the one ledger in reportPurchase, so a
+   * reload cannot produce a second email for the same payment.
+   */
+  private notifyPaid(ref: string, checkoutId: string | null,
+                     email: string | null, confirmed: boolean): void {
+    const reported = this.analytics.reportPurchase(
+      ref, this.amountPaise(), checkoutId, this.currency());
+    if (!reported) return;
+    this.notice.completed({
+      email, reference: ref, amountMinor: this.amountPaise(),
+      currency: this.currency(), checkoutId, confirmed,
+    });
+  }
+
+  /**
+   * Drops the return parameters once they have been read.
+   *
+   * `Location.replaceState`, not `router.navigate`: a navigation emits
+   * NavigationEnd and so a second page_view for every completed payment.
+   * Only called from terminal branches — doing it before the `confirming`
+   * poll would leave a reload mid-confirm with nothing to resolve.
+   *
+   * The service appends its own `ref` to this URL, so clearing it is also
+   * what stops that value sitting in history and in the next referrer.
+   */
+  private clearQuery(): void {
+    this.location.replaceState('/pro');
   }
 }

@@ -1,16 +1,16 @@
 ---
 title: "Why Payment Developers Need ISO8583Studio: Less Friction, Faster Truth"
-description: "Payment dev pain points—opaque declines, EMV TLV, HSM quirks—and how ISO8583Studio speeds local debugging with 70+ specialized tools."
+description: "Payment dev pain points—opaque declines, EMV TLV, HSM quirks—and how ISO8583Studio speeds local debugging with 64 specialized tools."
 date: "2025-02-01"
 tags: [payment developers, debugging, EMV, HSM, productivity]
 category: "Getting Started"
-author: "AiCortex Team"
-read_time: "8 min read"
+author: "Sourabh Kaushik"
+read_time: "4 min read"
 ---
 
 If you have shipped anything touching **authorization**, **EMV**, or **HSM** workflows, you already know the feeling: the ticket says “transaction declined,” the logs show a response code, and nobody can point to the *first* wrong byte. Payment development is not hard because the standards are impossible—it is hard because **truth is fragmented** across specs, vendor dialects, key ceremonies, and production-only behaviors that resist reproduction.
 
-**ISO8583Studio** is a **free, cross-platform desktop application** (Windows, macOS, Linux) that attacks that fragmentation directly. Built with **Kotlin/Compose Multiplatform**, it bundles **70+ tools** spanning **ISO 8583** workflows, **EMV** chip data, **HSM (PayShield 10K)**-style command patterns, **cryptography**, **key management**, and **payment utilities**—so you can answer concrete questions locally, without shipping secrets to random websites.
+**ISO8583Studio** is a **free, cross-platform desktop application** (Windows, macOS, Linux) that attacks that fragmentation directly. Built with **Kotlin/Compose Multiplatform**, it bundles **64 tools** spanning **ISO 8583** workflows, **EMV** chip data, **HSM (PayShield 10K)**-style command patterns, **cryptography**, **key management**, and **payment utilities**—so you can answer concrete questions locally, without shipping secrets to random websites.
 
 ## The real pain points (and why they persist)
 
@@ -94,4 +94,4 @@ Those are actionable outcomes. They shorten incidents and reduce rework.
 
 ## Conclusion
 
-Payment developers need ISO8583Studio because payment systems fail in **specialized** ways—**bitmaps**, **TLV**, **HSM commands**, **key blocks**, and **algorithm details**—and specialized failures deserve a specialized, **local**, **repeatable** toolkit. **Download ISO8583Studio** for your platform and bring the next ambiguous decline back to verifiable facts: [https://github.com/hpkaushik121/Iso8583studio/releases/latest](https://github.com/hpkaushik121/Iso8583studio/releases/latest). Official site: [https://iso8583.studio](https://iso8583.studio).
+Payment developers need ISO8583Studio because payment systems fail in **specialized** ways—**bitmaps**, **TLV**, **HSM commands**, **key blocks**, and **algorithm details**—and specialized failures deserve a specialized, **local**, **repeatable** toolkit. **Download ISO8583Studio** for your platform and bring the next ambiguous decline back to verifiable facts: [iso8583.studio/download](https://iso8583.studio/download). Official site: [https://iso8583.studio](https://iso8583.studio).
