@@ -31,8 +31,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +75,7 @@ fun GlassScreen(spec: ToolScreenSpec, content: @Composable () -> Unit) {
         val narrow = maxWidth < 600.dp
         val pad = if (narrow) 12.dp else 16.dp
         val showBadge = maxWidth >= 480.dp
+        val drawerHeight = minOf(260.dp, maxHeight * 0.42f)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -142,9 +146,16 @@ fun GlassScreen(spec: ToolScreenSpec, content: @Composable () -> Unit) {
                     spec.log?.let { GlassLogPanel(it, Modifier.width(320.dp).fillMaxHeight()) }
                 }
             } else {
-                Column(modifier = Modifier.fillMaxSize().padding(if (narrow) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                // Stacked: the form keeps the height; the log is a drawer that opens when a result lands.
+                val count = spec.log?.entries?.size ?: 0
+                var logOpen by remember { mutableStateOf(false) }
+                LaunchedEffect(count) { if (count > 0) logOpen = true }
+                Column(modifier = Modifier.fillMaxSize().padding(if (narrow) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(modifier = Modifier.weight(1f).fillMaxWidth()) { banner(); content() }
-                    spec.log?.let { GlassLogPanel(it, Modifier.fillMaxWidth().height(240.dp)) }
+                    spec.log?.let { log ->
+                        if (logOpen) GlassLogPanel(log, Modifier.fillMaxWidth().height(drawerHeight), onCollapse = { logOpen = false })
+                        else GlassLogBar(log, onExpand = { logOpen = true })
+                    }
                 }
             }
         }

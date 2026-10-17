@@ -29,6 +29,8 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -41,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -82,11 +86,19 @@ private fun summaryOf(entry: LogEntry, kind: LogKind): String {
     return lines.firstOrNull { !it.startsWith("Inputs") && !it.startsWith("Result") } ?: ""
 }
 
+private fun lineColours(kind: LogKind, c: `in`.aicortex.iso8583studio.web.theme.GlassColors): Triple<Color, Color, Color> = when (kind) {
+    LogKind.IN -> Triple(c.blueHi, c.muted, Color.Transparent)
+    LogKind.RUN -> Triple(c.text, c.text, Color.Transparent)
+    LogKind.OUT -> Triple(c.tealHi, c.text, c.outWash)
+    LogKind.ERR -> Triple(c.redHi, c.redHi, c.errWash)
+    LogKind.WARN -> Triple(c.amberHi, c.amberHi, Color.Transparent)
+}
+
 private fun stampOf(timestamp: String): String = if (timestamp.length >= 8 && timestamp[2] == ':' && timestamp[5] == ':') timestamp.substring(3, 8) else timestamp.take(5)
 
 /** The `.gp-log` activity log: stamp | tag | text rows, expandable details, idle caret. */
 @Composable
-fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier) {
+fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier, onCollapse: (() -> Unit)? = null) {
     val c = Glass.colors
     val entries = log.entries
     val listState = rememberLazyListState()
@@ -112,6 +124,10 @@ fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier) {
                 Spacer(Modifier.width(8.dp))
                 GhostIcon(Icons.Default.Delete, "Clear log", size = 20.dp, onClick = log.onClear)
             }
+            if (onCollapse != null) {
+                Spacer(Modifier.width(4.dp))
+                GhostIcon(Icons.Default.KeyboardArrowDown, "Hide log", size = 20.dp, onClick = onCollapse)
+            }
         }
         Hairline()
         if (entries.isEmpty()) {
@@ -121,6 +137,34 @@ fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier) {
                 items(entries, key = { it.id }) { entry -> LogLine(entry) }
             }
         }
+    }
+}
+
+/** The collapsed activity log on stacked layouts: one row with the newest result that opens the drawer. */
+@Composable
+fun GlassLogBar(log: ToolLog, onExpand: () -> Unit) {
+    val c = Glass.colors
+    val entries = log.entries
+    val last = entries.lastOrNull()
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(GlassShapes.tile).background(c.logBg).border(1.dp, c.logBorder, GlassShapes.tile)
+            .pointerHoverIcon(PointerIcon.Hand).clickable(onClick = onExpand).padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text((log.label ?: "Activity log").uppercase(), style = MaterialTheme.typography.overline, color = c.faint)
+        Spacer(Modifier.width(12.dp))
+        if (last != null) {
+            val kind = kindOf(last)
+            Text(kind.tag, style = Glass.type.small.copy(fontWeight = FontWeight.SemiBold), color = lineColours(kind, c).first)
+            Spacer(Modifier.width(8.dp))
+            Text(summaryOf(last, kind), style = Glass.type.small, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(when (entries.size) { 0 -> "idle"; 1 -> "1 entry"; else -> "${entries.size} entries" }, style = Glass.type.small, color = c.faint)
+        Spacer(Modifier.width(6.dp))
+        Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Show log", tint = c.faint, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -154,13 +198,7 @@ private fun LogLine(entry: LogEntry) {
     var expanded by remember { mutableStateOf(false) }
     val hasDetails = !entry.details.isNullOrBlank()
     val clipboard = LocalClipboardManager.current
-    val (tagColour, textColour, wash) = when (kind) {
-        LogKind.IN -> Triple(c.blueHi, c.muted, Color.Transparent)
-        LogKind.RUN -> Triple(c.text, c.text, Color.Transparent)
-        LogKind.OUT -> Triple(c.tealHi, c.text, c.outWash)
-        LogKind.ERR -> Triple(c.redHi, c.redHi, c.errWash)
-        LogKind.WARN -> Triple(c.amberHi, c.amberHi, Color.Transparent)
-    }
+    val (tagColour, textColour, wash) = lineColours(kind, c)
     Column(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(wash)
             .clickable(enabled = hasDetails, indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) { expanded = !expanded }
