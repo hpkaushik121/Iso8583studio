@@ -32,9 +32,11 @@ import { LONGFORM, LfBadge, LfTocEntry } from '../shared/longform';
         <h3 class="lf-h3">Project layout</h3>
         <ul class="lf-ul lf-ul--def">
           <li><strong>composeApp/</strong> — The Compose Desktop application — UI screens, simulator services, HSM/payShield engine (<code>src/desktopMain/kotlin</code>).</li>
-          <li><strong>iso-core-lib/</strong> — Core ISO 8583 message library.</li>
-          <li><strong>cryptocalc/</strong> — Cryptography calculators module.</li>
-          <li><strong>docs/</strong> — This website.</li>
+          <li><strong>tools-ui/</strong> — The calculator tool screens, shared by the desktop app and the browser (Kotlin Multiplatform, <code>src/commonMain/kotlin</code>).</li>
+          <li><strong>tools-web/</strong> — The Kotlin/Wasm browser build of those tools, served at <code>/tools/app</code> on this site.</li>
+          <li><strong>iso-core-lib/</strong> — Core ISO 8583 / EMV utility library (multiplatform).</li>
+          <li><strong>cryptocalc/</strong> — Payment cryptography engines, pure Kotlin on every platform (multiplatform).</li>
+          <li><strong>web/</strong> — This website (Angular).</li>
         </ul>
       </section>
 
@@ -106,6 +108,8 @@ export class DocsContributingPage {
     './gradlew build     # compile everything + run tests',
     './gradlew run       # launch the desktop app',
     './gradlew test      # tests only',
+    './gradlew :tools-web:copyWebDist   # browser tools -> web/public/app',
+    './gradlew :cryptocalc:jvmTest :cryptocalc:wasmJsNodeTest   # crypto KATs on JVM + Wasm',
   ].join('\n');
 
   protected readonly naming = [

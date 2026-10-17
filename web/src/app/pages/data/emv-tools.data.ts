@@ -62,21 +62,28 @@ const PANELS: Record<string, GlassSpec> = {
   'hce-udk': { title: 'Visa HCE Crypto Calculator', sub: 'UDK', tabs: TABS_HCE, tab: 0, icon: 'calculator', fields: [H('Master Key', 32, { v: 'D3D5D756E8A4D3307A12061476E7A6B7', w: 6 }), T('PAN', '4761 7300 0000 0011', { w: 4 }), T('PAN Sequence Number', '00', { w: 2 })], button: 'Generate UDK', result: [['UDK', grp('F24A19836B61EF5E1F70CB4F0B3B7F1F')], ['KCV', 'D39FD6']] },
   'hce-luk': { title: 'Visa HCE Crypto Calculator', sub: 'LUK Key Generation', tabs: TABS_HCE, tab: 1, icon: 'clock', fields: [H('UDK', 32, { w: 6 }), T('Current Year (YY)', '26', { w: 2 }), T('Current Hours (HH)', '14', { w: 2 }), T('Hourly Counter', '03', { w: 2 })], button: 'Generate LUK', result: [['LUK', '16 bytes · limited-use key for the hour window'], ['Window', 'YY 26 · HH 14 · counter 03']] },
   'hce-msd': { title: 'Visa HCE Crypto Calculator', sub: 'MSD Cryptogram', tabs: TABS_HCE, tab: 2, icon: 'wifi-high', fields: [H('LUK_ATC', 36, { w: 6 }), S('MSD Device Type', 'Mobile phone')], button: 'Generate MSD Cryptogram', result: [['MSD', '4 bytes · dynamic CVV'], ['Mode', 'magstripe · from the LUK and ATC']] },
+  atr: { title: 'ATR Parser', sub: 'Answer to Reset', tabs: null, icon: 'identification-card', fields: [H('ATR (Hex)', 40, { v: '3B8F8001804F0CA000000306030001000000006A', w: 6 })], button: 'Parse ATR', result: [['Convention', 'Direct (3B) · T=0, T=1 offered'], ['TA1', '80: Fi=372, Di=1'], ['Historical bytes', '15 · COMPACT-TLV · TCK valid']] },
+  'emv-parser': { title: 'EMV Data Parser', sub: 'TLV · TVR · TSI · AIP · CVR · IAD', tabs: null, icon: 'tree-structure', fields: [S('Data Type', 'TVR (95)', { w: 6 }), H('Data (Hex)', 10, { v: '8000048000', w: 6 })], button: 'Parse Data', result: [['Byte 1', 'Offline data authentication was not performed'], ['Byte 3', 'Online PIN entered'], ['Byte 4', 'Transaction exceeds floor limit']] },
+  'tag-dictionary': { title: 'EMV Tag Dictionary', sub: 'Book 3 Annex A + kernel tags', tabs: null, icon: 'book-open', fields: [T('Search by Tag, Name, or Description', '9F10', { w: 4 }), S('Filter by Kernel', 'All', { w: 2 })], button: 'Search Tags', result: [['9F10', 'Issuer Application Data · ICC · b · up to 32'], ['Matches', '254 tags across EMV, Visa, Mastercard, Amex, Discover, JCB, UnionPay']] },
+  apdu: { title: 'APDU Response Query', sub: 'Status words', tabs: null, icon: 'magnifying-glass', fields: [H('Status Word (SW1 SW2)', 4, { v: '63C2', w: 3 })], button: 'Look Up', result: [['63C2', 'Counter: 2 retries remaining'], ['Category', 'Warning processing (ISO 7816-4)']] },
   'hce-qvsdc': { title: 'Visa HCE Crypto Calculator', sub: 'qVSDC Cryptogram', tabs: TABS_HCE, tab: 3, icon: 'wifi-high', fields: [H('LUK', 32, { w: 6 }), T('Amount', '000000001250', { tag: '9F02', w: 3 }), T('Amount, Other', '000000000000', { tag: '9F03', w: 3 }), T('Country Code', '0356', { tag: '9F1A', w: 2 }), T('Currency Code', '0356', { tag: '5F2A', w: 2 }), H('TVR', 10, { tag: '95', v: '0000008000', w: 2 }), T('Transaction Date', '260920', { tag: '9A', w: 2 }), T('Transaction Type', '00', { tag: '9C', w: 2 }), H('Unpredictable No.', 8, { tag: '9F37', w: 2 }), H('AIP', 4, { tag: '82', v: '2000', w: 2 }), H('ATC', 4, { tag: '9F36', v: '0031', w: 2 }), H('CVR', 8, { tag: '9F10', v: '03A48000', w: 2 })], button: 'Generate Cryptogram', result: [['ARQC', '8 bytes · CVN 18 cryptogram'], ['CVN', '18 · qVSDC · IAD built']] },
 };
 
 const TOOLS: HubTool[] = [
-  { id: 'sda', stage: 0, icon: 'certificate', name: 'SDA Verification', desc: 'Verify issuer-signed static data against a CA public key.' },
-  { id: 'dda', stage: 0, icon: 'fingerprint', name: 'DDA Verification', desc: 'Check the card’s signature over terminal-supplied dynamic data.' },
-  { id: 'app-crypto', stage: 1, icon: 'calculator', name: 'EMV 4.1 Crypto Calculator', desc: 'The reference cryptogram chain: UDK, session keys, ARQC/TC/AAC, ARPC and key utilities.' },
-  { id: 'emv42', stage: 1, icon: 'calculator', name: 'EMV 4.2 Crypto Calculator', desc: 'The same chain under the EMV 4.2 rules, derivation stated on the form.' },
-  { id: 'mchip', stage: 1, icon: 'credit-card', name: 'MasterCard M/Chip Crypto', desc: 'M/Chip derivation, with a separate EMV 2000 session key tab.' },
-  { id: 'vsdc', stage: 1, icon: 'credit-card', name: 'VSDC Crypto Calculator', desc: 'Visa Smart Debit/Credit: UDK, session keys, AAC/ARQC/TC and ARPC.' },
+  { id: 'sda', stage: 0, icon: 'certificate', app: 'sda-verification', name: 'SDA Verification', desc: 'Verify issuer-signed static data against a CA public key.' },
+  { id: 'dda', stage: 0, icon: 'fingerprint', app: 'dda-verification', name: 'DDA Verification', desc: 'Check the card’s signature over terminal-supplied dynamic data.' },
+  { id: 'app-crypto', stage: 1, icon: 'calculator', app: 'emv-4-1-crypto', name: 'EMV 4.1 Crypto Calculator', desc: 'The reference cryptogram chain: UDK, session keys, ARQC/TC/AAC, ARPC and key utilities.' },
+  { id: 'emv42', stage: 1, icon: 'calculator', app: 'emv-4-2-crypto', name: 'EMV 4.2 Crypto Calculator', desc: 'The same chain under the EMV 4.2 rules, derivation stated on the form.' },
+  { id: 'mchip', stage: 1, icon: 'credit-card', app: 'mastercard-crypto', name: 'MasterCard M/Chip Crypto', desc: 'M/Chip derivation, with a separate EMV 2000 session key tab.' },
+  { id: 'vsdc', stage: 1, icon: 'credit-card', app: 'vsdc-crypto', name: 'VSDC Crypto Calculator', desc: 'Visa Smart Debit/Credit: UDK, session keys, AAC/ARQC/TC and ARPC.' },
   { id: 'secure-msg', stage: 2, icon: 'envelope-simple', name: 'Secure Messaging', desc: 'Build and verify SMC / SMI protection on issuer scripts.' },
-  { id: 'cap', stage: 2, icon: 'device-mobile', name: 'CAP Token Computation', desc: 'Compute Chip Authentication Programme tokens for banking 2FA.' },
-  { id: 'hce', stage: 2, icon: 'wifi-high', name: 'HCE (Host Card Emulation)', desc: 'Generate the Limited-Use and Single-Use Keys HCE tokenisation needs.' },
+  { id: 'cap', stage: 2, icon: 'device-mobile', app: 'cap-token', name: 'CAP Token Computation', desc: 'Compute Chip Authentication Programme tokens for banking 2FA.' },
+  { id: 'hce', stage: 2, icon: 'wifi-high', name: 'HCE (Host Card Emulation)', desc: 'Generate the Limited-Use and Single-Use Keys HCE tokenisation needs.' },  { id: 'atr', stage: 3, icon: 'identification-card', app: 'atr-parser', name: 'ATR Parser', desc: 'Decode an Answer To Reset: convention, interface bytes, protocols, historical bytes and TCK.' },
+  { id: 'emv-parser', stage: 3, icon: 'tree-structure', app: 'emv-data-parser', name: 'EMV Data Parser', desc: 'Decode TLV, TVR, TSI, AIP, Visa and Mastercard CVR, and Issuer Application Data.' },
+  { id: 'tag-dictionary', stage: 3, icon: 'book-open', app: 'emv-tag-dictionary', name: 'EMV Tag Dictionary', desc: 'Look up any EMV tag by number, name or description, filtered by kernel.' },
+  { id: 'apdu', stage: 3, icon: 'magnifying-glass', app: 'apdu-response-query', name: 'APDU Response Query', desc: 'What a status word means, including 63Cx retry counters and the EMV-specific cases.' },
 ];
-const STAGES: HubStage[] = [['01', 'Offline authentication', 'SDA · DDA'], ['02', 'Cryptogram calculators', 'EMV 4.1 · 4.2 · M/Chip · VSDC'], ['03', 'After authorisation', 'Secure messaging · CAP · HCE']];
+const STAGES: HubStage[] = [['01', 'Offline authentication', 'SDA · DDA'], ['02', 'Cryptogram calculators', 'EMV 4.1 · 4.2 · M/Chip · VSDC'], ['03', 'After authorisation', 'Secure messaging · CAP · HCE'], ['04', 'Parsing & reference', 'ATR · TLV · tags · status words']];
 
 const SECTIONS: RawSection[] = [
   { id: 'sda', stage: 0, title: 'SDA Verification', intro: 'Static Data Authentication: the terminal verifies issuer-signed static data against a CA public key. The tool splits the job into the two steps the terminal performs — recover the issuer public key from its certificate, then use that key to check the signature over the card’s static data.', parts: [
@@ -118,6 +125,18 @@ const SECTIONS: RawSection[] = [
     { h: 'MSD', panel: 'hce-msd', lead: 'Magnetic Stripe Data mode — the legacy contactless path, where the phone presents a dynamic value in a magstripe-shaped message.', inputs: [['LUK_ATC', 'The limited-use key with its counter.'], ['MSD Device Type', 'Drop-down.']] },
     { h: 'qVSDC', panel: 'hce-qvsdc', lead: 'The full contactless cryptogram. Each field is labelled with the EMV tag it comes from, so a capture can be transcribed straight in:', inputs: [['LUK', ''], ['Amount (9F02), Amount, Other (9F03)', ''], ['Country Code (9F1A), Currency Code (5F2A)', ''], ['TVR (95), AIP (82), CVR (from 9F10)', ''], ['Transaction Date (9A), Transaction Type (9C)', ''], ['Unpredictable No. (9F37), ATC (9F36)', '']] },
   ] },
+  { id: 'atr', stage: 3, title: 'ATR Parser', intro: 'The Answer To Reset is the first thing a card says. The parser follows ISO/IEC 7816-3: the convention byte, T0 and the chained TA/TB/TC/TD interface bytes with their meaning (Fi/Di, guard time, IFSC, class indicator), the protocols offered, the historical bytes decoded as COMPACT-TLV when they are, and the TCK checksum.', parts: [
+    { h: null, panel: 'atr', inputs: [['ATR (Hex)', 'The complete ATR as captured from the reader.']], button: 'Parse ATR', note: 'Truncated interface bytes, a missing or surplus TCK and a bad checksum are reported as warnings rather than silently accepted.' },
+  ] },
+  { id: 'emv-parser', stage: 3, title: 'EMV Data Parser', intro: 'One decoder for the bit-mapped and TLV data an EMV transaction produces. TLV gives every tag its dictionary name and, for the common ones, an interpretation; TVR, TSI and AIP are decoded bit by bit per Book 3 Annex C; the CVR decoders know the Visa (4-byte) and Mastercard (6-byte) layouts, and the IAD decoders split 9F10 into its key index, CVN, CVR and counters.', parts: [
+    { h: null, panel: 'emv-parser', inputs: [['Data Type', 'TLV, TVR, TSI, AIP, CVR (Visa or Mastercard) or IAD (Visa or Mastercard).'], ['Data (Hex)', 'The value, without its tag and length unless you chose TLV.']], button: 'Parse Data' },
+  ] },
+  { id: 'tag-dictionary', stage: 3, title: 'EMV Tag Dictionary', intro: 'EMV 4.3 Book 3 Annex A plus the contactless kernel tags, 254 entries in all. Each row carries the tag, name, kernel, source, format, template and length, and the same table feeds the TLV parser’s names.', parts: [
+    { h: null, panel: 'tag-dictionary', inputs: [['Search', 'Any part of the tag number, name or description.'], ['Filter by Kernel', 'EMV, Visa, Mastercard, Amex, Discover, JCB, UnionPay or all.']], button: 'Search Tags' },
+  ] },
+  { id: 'apdu', stage: 3, title: 'APDU Response Query', intro: 'A status word lookup that goes beyond the ISO 7816-4 table: 61xx and 6Cxx carry their byte counts, 63Cx reports the retry counter, unknown SW2 values fall back to the SW1 family, 9xxx is flagged as proprietary, and the EMV-specific meanings of the common failures (6283, 6985, 6A81, 6983) are spelled out.', parts: [
+    { h: null, panel: 'apdu', inputs: [['Status Word', 'SW1 SW2 as four hex digits.']], button: 'Look Up' },
+  ] },
 ];
 
 const TIPS: string[] = [
@@ -157,7 +176,7 @@ export const EMV_TOOLS_GUIDE: ToolGuideData = {
     badge: '9 tools',
     label: 'In the order an EMV transaction reaches them',
     note: 'Every intermediate value stays visible.',
-    aria: 'The EMV & Card Tools hub: tool categories, the three transaction stages and the nine calculators documented on this page',
+    aria: 'The EMV & Card Tools hub: tool categories, the four stages and the thirteen tools documented on this page',
   },
   panels: PANELS,
   panelBadge: 'EMV',

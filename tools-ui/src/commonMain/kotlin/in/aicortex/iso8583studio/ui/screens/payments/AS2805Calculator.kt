@@ -1,0 +1,448 @@
+package `in`.aicortex.iso8583studio.ui.screens.payments
+
+import ai.cortex.core.types.PaddingMethods
+
+import io.cryptocalc.crypto.primitives.Modes
+
+import io.cryptocalc.crypto.engines.encryption.TdesCalculatorEngine
+
+import io.cryptocalc.crypto.primitives.Tdes
+
+import io.cryptocalc.crypto.primitives.Mac
+
+import ai.cortex.core.toHexUpper
+
+import ai.cortex.core.hexToBytes
+
+import `in`.aicortex.iso8583studio.platform.nowLogTimestamp
+
+import `in`.aicortex.iso8583studio.analytics.Analytics
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.with
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.PersistentTabContent
+import `in`.aicortex.iso8583studio.ui.screens.components.Panel
+import `in`.aicortex.iso8583studio.ui.screens.components.LogPanelWithAutoScroll
+import kotlin.random.Random
+
+
+
+private object As2805ValidationUtils {
+    fun validateHex(value: String, friendlyName: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$friendlyName cannot be empty.")
+        if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
+            return ValidationResult(ValidationState.ERROR, "Only hex characters (0-9, A-F) allowed.")
+        }
+        if (value.length % 2 != 0) {
+            return ValidationResult(ValidationState.ERROR, "Hex string must have an even number of characters.")
+        }
+        return ValidationResult(ValidationState.VALID)
+    }
+    fun validateNumeric(value: String, friendlyName: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$friendlyName cannot be empty.")
+        if (value.any { !it.isDigit() }) {
+            return ValidationResult(ValidationState.ERROR, "Only digits (0-9) are allowed.")
+        }
+        return ValidationResult(ValidationState.VALID)
+    }
+}
+
+// --- AS2805 SCREEN ---
+
+private enum class As2805Tabs(val title: String, val icon: ImageVector) {
+    GENERATE_KEYS("Generate Terminal Key Set", Icons.Default.VpnKey),
+    TRANSLATE_PIN("Translate PIN Block", Icons.Default.SyncAlt),
+    MAC("MAC", Icons.Default.SyncLock),
+    OWF("OWF", Icons.Default.Password)
+}
+
+private object As2805LogManager {
+    private val _logEntries = mutableStateListOf<LogEntry>()
+    val logEntries: SnapshotStateList<LogEntry> get() = _logEntries
+
+    fun clearLogs() {
+        _logEntries.clear()
+        addLog(LogEntry(nowLogTimestamp(), LogType.INFO, "Log history cleared", ""))
+    }
+
+    private fun addLog(entry: LogEntry) {
+        _logEntries.add(entry)
+        if (_logEntries.size > 500) _logEntries.removeRange(400, _logEntries.size)
+    }
+
+    fun logOperation(operation: String, inputs: Map<String, String>, result: String? = null, error: String? = null, executionTime: Long = 0L) {
+        if (result == null && error == null) return
+        Analytics.calculationRun(operation, success = result != null, durationMs = executionTime)
+
+        val timestamp = nowLogTimestamp()
+        val details = buildString {
+            append("Inputs:\n")
+            inputs.forEach { (key, value) ->
+                val displayValue = if (key.contains("Key", ignoreCase = true)) "${value.take(16)}..." else value
+                append("  $key: $displayValue\n")
+            }
+            result?.let { append("\nResult:\n  $it") }
+            error?.let { append("\nError:\n  Message: $it") }
+            if (executionTime > 0) append("\n\nExecution time: ${executionTime}ms")
+        }
+
+        val (logType, message) = if (result != null) (LogType.TRANSACTION to "$operation Result") else (LogType.ERROR to "$operation Failed")
+        addLog(LogEntry(timestamp, logType, message, details))
+    }
+}
+
+/**
+ * Reference implementation of the AS2805 helpers from the public parts of the standard:
+ * terminal key sets are random odd-parity double-length keys enciphered under the KEKr with
+ * the key-flag variant, PIN translation re-enciphers an ISO format 0 block from TPK to ZPK,
+ * the MAC is AS2805.4.1 Method 1 and the OWF is E_K(D) XOR D block-wise. Not verified against
+ * the AS2805.6 specification.
+ */
+private object As2805CryptoService {
+    fun generateTerminalKeys(kekr: String, keyFlag: String, kcvType: String): String {
+        val kek = kekr.hexToBytes()
+        require(kek.size == 16 || kek.size == 24) { "KEKr must be 32 or 48 hex characters" }
+        val variant = ((keyFlag.toIntOrNull() ?: 1) * 0x40).toByte()
+        val variedKek = kek.copyOf().also { it[0] = (it[0].toInt() xor variant.toInt()).toByte() }
+        fun make(label: String): String {
+            val clear = TdesCalculatorEngine.generateKey(16)
+            val enc = TdesCalculatorEngine.encryptECB(clear, variedKek)
+            val kcv = TdesCalculatorEngine.calculateKCV(clear).toHexUpper().take(if (kcvType == "2") 4 else 6)
+            return "$label (clear): ${clear.toHexUpper()}\n$label under KEKr (flag $keyFlag): ${enc.toHexUpper()}\n$label KCV: $kcv"
+        }
+        return make("TPK") + "\n" + make("TAK")
+    }
+
+    fun translatePinBlock(zpk: String, tpk: String, pinBlock: String, incomingFormat: String, outgoingFormat: String, pan: String): String {
+        val clear = TdesCalculatorEngine.decryptECB(pinBlock.hexToBytes(), tpk.hexToBytes())
+        val pinField = clear.toHexUpper()
+        // Format "01" is ISO format 0 (PAN bound), "46" ISO format 1 (no PAN); both carry 0/1 ‖ L ‖ PIN.
+        val panField = ("0000" + pan.filter { it.isDigit() }.dropLast(1).takeLast(12).padStart(12, '0')).hexToBytes()
+        val plain = if (incomingFormat == "01") ByteArray(8) { (clear[it].toInt() xor panField[it].toInt()).toByte() }.toHexUpper() else pinField
+        val len = plain[1].digitToInt(16)
+        require(len in 4..12) { "Decrypted block is not a valid PIN block (check TPK and PAN)" }
+        val pin = plain.substring(2, 2 + len)
+        val outPlain = if (outgoingFormat == "01") ("0$len$pin").padEnd(16, 'F')
+                       else ("1$len$pin").padEnd(16, '0')
+        val outBytes = outPlain.hexToBytes()
+        val outBlock = if (outgoingFormat == "01") ByteArray(8) { (outBytes[it].toInt() xor panField[it].toInt()).toByte() } else outBytes
+        val translated = TdesCalculatorEngine.encryptECB(outBlock, zpk.hexToBytes())
+        return "Translated PIN Block (under ZPK): ${translated.toHexUpper()}\nPIN length: $len"
+    }
+
+    fun calculateMac(key: String, data: String): String =
+        "MAC: ${Mac.algorithm1(Tdes(key.hexToBytes()), data.hexToBytes(), Mac.Padding.METHOD_1).toHexUpper()}"
+
+    fun calculateOwf(key: String, data: String): String {
+        val k = Tdes(key.hexToBytes())
+        val padded = Modes.pad(data.hexToBytes(), 8, PaddingMethods.METHOD_1_ISO_9797)
+        val out = ByteArray(padded.size)
+        for (off in padded.indices step 8) {
+            val block = padded.copyOfRange(off, off + 8)
+            val enc = k.encryptBlock(block)
+            for (i in 0 until 8) out[off + i] = (enc[i].toInt() xor block[i].toInt()).toByte()
+        }
+        return "OWF Result: ${out.toHexUpper()}"
+    }
+}
+
+@Composable
+fun As2805CalculatorScreen( onBack: () -> Unit) {
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabList = As2805Tabs.values().toList()
+    val selectedTab = tabList[selectedTabIndex]
+
+    Scaffold(
+        topBar = { AppBarWithBack(title = "AS2805 Calculator", onBackClick = onBack) },
+        backgroundColor = MaterialTheme.colors.background
+    ) { paddingValues ->
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                backgroundColor = MaterialTheme.colors.surface,
+                contentColor = MaterialTheme.colors.primary,
+                indicator = { tabPositions -> TabRowDefaults.Indicator(modifier = Modifier.customTabIndicatorOffset(tabPositions[selectedTabIndex]), height = 3.dp, color = MaterialTheme.colors.primary) }
+            ) {
+                tabList.forEachIndexed { index, tab ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                Icon(imageVector = tab.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(tab.title, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal, maxLines = 1)
+                            }
+                        }
+                    )
+                }
+            }
+            Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            As2805Tabs.GENERATE_KEYS -> GenerateTerminalKeySetTab()
+                            As2805Tabs.TRANSLATE_PIN -> TranslatePinBlockTab()
+                            As2805Tabs.MAC -> MacTab()
+                            As2805Tabs.OWF -> OwfTab()
+                        }
+                    }
+                }
+                Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    Panel {
+                        LogPanelWithAutoScroll(
+                            onClearClick = { As2805LogManager.clearLogs() },
+                            logEntries = As2805LogManager.logEntries
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- TABS ---
+
+@Composable
+private fun GenerateTerminalKeySetTab() {
+    var keyFlag by remember { mutableStateOf("1") }
+    var kekrKey by remember { mutableStateOf("") }
+    var kekeScheme by remember { mutableStateOf("B") }
+    var lmkScheme by remember { mutableStateOf("Z") }
+    var kcvType by remember { mutableStateOf("1") }
+
+    val isFormValid = As2805ValidationUtils.validateHex(kekrKey, "KEKr Key").state == ValidationState.VALID
+
+    ModernCryptoCard(title = "Generate Terminal Key Set", subtitle = "Create Terminal Keys (TPK, TAK)", icon = Icons.Default.VpnKey) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            ModernDropdownField("Key Flag", keyFlag, listOf("1", "2", "3"), { keyFlag = (it + 1).toString() })
+            EnhancedTextField(value = kekrKey, onValueChange = { kekrKey = it.uppercase() }, label = "KEKr Key (Hex)", validation = As2805ValidationUtils.validateHex(kekrKey, "KEKr Key"))
+            ModernDropdownField("Key Scheme KEKE", kekeScheme, listOf("B", "C", "H", "F", "G"), { kekeScheme = listOf("B", "C", "H", "F", "G")[it] })
+            ModernDropdownField("Key Scheme LMK", lmkScheme, listOf("0", "T", "U", "X", "Y", "Z"), { lmkScheme = listOf("0", "T", "U", "X", "Y", "Z")[it] })
+            ModernDropdownField("Key Check Value Type", kcvType, listOf("0", "1", "2"), { kcvType = it.toString() })
+
+            Spacer(Modifier.height(8.dp))
+            ModernButton(
+                text = "Generate Keys",
+                onClick = {
+                    val inputs = mapOf("Key Flag" to keyFlag, "KEKr Key" to kekrKey, "KEKE Scheme" to kekeScheme, "LMK Scheme" to lmkScheme, "KCV Type" to kcvType)
+                    val result = runCatching { As2805CryptoService.generateTerminalKeys(kekrKey, keyFlag, kcvType) }.getOrElse { "ERROR: ${it.message}" }
+                    As2805LogManager.logOperation("Generate Terminal Keys", inputs, result)
+                },
+                enabled = isFormValid,
+                icon = Icons.Default.GeneratingTokens,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun TranslatePinBlockTab() {
+    var systemZpk by remember { mutableStateOf("") }
+    var terminalTpk by remember { mutableStateOf("") }
+    var stan by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var incomingFormat by remember { mutableStateOf("01") }
+    var outgoingFormat by remember { mutableStateOf("01") }
+    var incomingPinBlock by remember { mutableStateOf("") }
+    var accountNumber by remember { mutableStateOf("") }
+
+    val isFormValid = listOf(systemZpk, terminalTpk, stan, amount, incomingPinBlock, accountNumber).all { it.isNotBlank() }
+
+    ModernCryptoCard(title = "Translate PIN Block", subtitle = "Translate a PIN block from TPK to ZPK", icon = Icons.Default.SyncAlt) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            EnhancedTextField(value = systemZpk, onValueChange = { systemZpk = it.uppercase() }, label = "System ZPK (Hex)", validation = As2805ValidationUtils.validateHex(systemZpk, "System ZPK"))
+            EnhancedTextField(value = terminalTpk, onValueChange = { terminalTpk = it.uppercase() }, label = "Terminal TPK (Hex)", validation = As2805ValidationUtils.validateHex(terminalTpk, "Terminal TPK"))
+            EnhancedTextField(value = stan, onValueChange = { stan = it }, label = "STAN", validation = As2805ValidationUtils.validateNumeric(stan, "STAN"))
+            EnhancedTextField(value = amount, onValueChange = { amount = it }, label = "Transaction Amount", validation = As2805ValidationUtils.validateNumeric(amount, "Amount"))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)){
+                ModernDropdownField("Incoming PIN Block Format", incomingFormat, listOf("01", "46"), { incomingFormat = if(it==0) "01" else "46" }, Modifier.weight(1f))
+                ModernDropdownField("Outgoing PIN Block Format", outgoingFormat, listOf("01", "46"), { outgoingFormat = if(it==0) "01" else "46" }, Modifier.weight(1f))
+            }
+            EnhancedTextField(value = incomingPinBlock, onValueChange = { incomingPinBlock = it.uppercase() }, label = "Incoming PIN Block (Hex)", validation = As2805ValidationUtils.validateHex(incomingPinBlock, "Incoming PIN Block"))
+            EnhancedTextField(value = accountNumber, onValueChange = { accountNumber = it }, label = "Account Number", validation = As2805ValidationUtils.validateNumeric(accountNumber, "Account Number"))
+            Spacer(Modifier.height(8.dp))
+            ModernButton(
+                text = "Translate",
+                onClick = {
+                    val inputs = mapOf("System ZPK" to systemZpk, "Terminal TPK" to terminalTpk, "Incoming PIN" to incomingPinBlock)
+                    val result = runCatching { As2805CryptoService.translatePinBlock(systemZpk, terminalTpk, incomingPinBlock, incomingFormat, outgoingFormat, accountNumber) }.getOrElse { "ERROR: ${it.message}" }
+                    As2805LogManager.logOperation("Translate PIN Block", inputs, result)
+                },
+                enabled = isFormValid,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun MacTab() {
+    var key by remember { mutableStateOf("") }
+    var data by remember { mutableStateOf("") }
+
+    ModernCryptoCard(title = "MAC", subtitle = "Calculate Message Authentication Code", icon = Icons.Default.SyncLock) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            EnhancedTextField(value = key, onValueChange = { key = it.uppercase() }, label = "Key (Hex)", validation = As2805ValidationUtils.validateHex(key, "Key"))
+            EnhancedTextField(value = data, onValueChange = { data = it.uppercase() }, label = "Data (Hex)", validation = As2805ValidationUtils.validateHex(data, "Data"), maxLines = 8)
+            Spacer(Modifier.height(8.dp))
+            ModernButton(
+                text = "Calculate MAC",
+                onClick = {
+                    val inputs = mapOf("Key" to key, "Data" to data)
+                    val result = runCatching { As2805CryptoService.calculateMac(key, data) }.getOrElse { "ERROR: ${it.message}" }
+                    As2805LogManager.logOperation("MAC Calculation", inputs, result)
+                },
+                enabled = key.isNotBlank() && data.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun OwfTab() {
+    var key by remember { mutableStateOf("") }
+    var data by remember { mutableStateOf("") }
+
+    ModernCryptoCard(title = "One-Way Function (OWF)", subtitle = "Calculate a one-way hash", icon = Icons.Default.Password) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            EnhancedTextField(value = key, onValueChange = { key = it.uppercase() }, label = "Key (Hex)", validation = As2805ValidationUtils.validateHex(key, "Key"))
+            EnhancedTextField(value = data, onValueChange = { data = it.uppercase() }, label = "Data (Hex)", validation = As2805ValidationUtils.validateHex(data, "Data"), maxLines = 8)
+            Spacer(Modifier.height(8.dp))
+            ModernButton(
+                text = "Calculate OWF",
+                onClick = {
+                    val inputs = mapOf("Key" to key, "Data" to data)
+                    val result = runCatching { As2805CryptoService.calculateOwf(key, data) }.getOrElse { "ERROR: ${it.message}" }
+                    As2805LogManager.logOperation("OWF Calculation", inputs, result)
+                },
+                enabled = key.isNotBlank() && data.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+// --- SHARED UI COMPONENTS (PRIVATE TO THIS FILE) ---
+
+@Composable
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult? = null) {
+    Column(modifier = modifier) {
+        FixedOutlinedTextField(
+            value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,
+            isError = validation?.state == ValidationState.ERROR,
+        )
+        if (validation?.message?.isNotEmpty() == true) {
+            Text(
+                text = validation.message,
+                color = if (validation.state == ValidationState.ERROR) MaterialTheme.colors.error else MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.caption,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth(), elevation = 2.dp, shape = RoundedCornerShape(12.dp), backgroundColor = MaterialTheme.colors.surface) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(28.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = title, style = MaterialTheme.typography.h6, fontWeight = FontWeight.SemiBold)
+                    Text(text = subtitle, style = MaterialTheme.typography.caption, color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f))
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
+        FixedOutlinedTextField(
+            value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
+        )
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
+            options.forEachIndexed { index, option ->
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
+                    Text(text = option, style = MaterialTheme.typography.body2)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+private fun ModernButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, enabled: Boolean = true, icon: ImageVector? = null) {
+    Button(onClick = onClick, modifier = modifier.height(48.dp), enabled = enabled && !isLoading, elevation = ButtonDefaults.elevation(defaultElevation = 2.dp, pressedElevation = 4.dp, disabledElevation = 0.dp)) {
+        AnimatedContent(targetState = isLoading, transitionSpec = { fadeIn() with fadeOut() }, label = "As2805ButtonAnimation") { loading ->
+            if (loading) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Processing...")
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                    icon?.let {
+                        Icon(imageVector = it, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(text, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+private fun Modifier.customTabIndicatorOffset(currentTabPosition: TabPosition): Modifier = composed {
+    val indicatorWidth = 40.dp
+    val currentTabWidth = currentTabPosition.width
+    val indicatorOffset = currentTabPosition.left + (currentTabWidth - indicatorWidth) / 2
+    fillMaxWidth().wrapContentSize(Alignment.BottomStart).offset(x = indicatorOffset).width(indicatorWidth)
+}

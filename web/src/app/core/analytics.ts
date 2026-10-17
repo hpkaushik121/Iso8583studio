@@ -176,6 +176,8 @@ export class AnalyticsService {
     }
 
     if (seg[0] === 'tools') {
+      // The in-browser app page reports its own tool through toolRouteChanged().
+      if (seg[1] === 'app') return { group: 'web_app', id: this.appTool || 'home' };
       return { group: 'docs_tool', id: seg[1] };
     }
 
@@ -316,6 +318,43 @@ export class AnalyticsService {
   }
 
   // ---------------------------------------------------------------- reporting
+
+  /** Tool currently open inside the /tools/app frame, used as content_id while on that page. */
+  private appTool = '';
+
+  /**
+   * The /tools/app page's embedded Kotlin/Wasm app reports which tool is open. Each tool
+   * counts as its own screen, so a route change is a page_view with the tool as content_id.
+   */
+  toolRouteChanged(tool: string): void {
+    this.appTool = tool;
+    if (this.page.group !== 'web_app') return;
+    this.page = { group: 'web_app', id: tool };
+    this.fired.clear();
+    this.track('page_view', {
+      page_location: this.cleanLocation(),
+      page_title: this.doc.title,
+      app_tool: tool,
+    });
+  }
+
+  /**
+   * An event posted by the embedded app. Only an allow-listed name gets through, parameters
+   * are clamped to short primitives, and the usual enabled/consent gate in track() applies.
+   * The app never sees keys or card data in these messages; it sends operation labels,
+   * booleans and durations only.
+   */
+  reportToolEvent(name: string, params: Record<string, unknown> = {}): void {
+    if (!/^(calculation_run|tool_open|tool_close|app_ready|app_error)$/.test(name)) return;
+    const clean: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(params)) {
+      if (!/^[a-z_]{1,32}$/.test(k)) continue;
+      if (typeof v === 'string') clean[k] = v.slice(0, 100);
+      else if (typeof v === 'number' || typeof v === 'boolean') clean[k] = v;
+    }
+    if (this.appTool) clean['app_tool'] = this.appTool;
+    this.track(name, clean);
+  }
 
   private track(name: string, params: Record<string, unknown> = {}): void {
     if (!this.enabled) return;
@@ -531,6 +570,15 @@ export class AnalyticsService {
       }
       if (el.closest('.pro-nudge')) {
         this.track('pro_click', { pro_surface: 'nudge', link_url: url });
+        return;
+      }
+
+      const appLink = el.closest('.hub-app-link');
+      if (appLink) {
+        this.track('tool_launch_click', {
+          app_tool: appLink.getAttribute('data-tool') ?? '',
+          link_url: url,
+        });
         return;
       }
 

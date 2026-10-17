@@ -20,6 +20,8 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import `in`.aicortex.iso8583studio.domain.service.posSimulatorService.avd.ProcessRegistry
 import `in`.aicortex.iso8583studio.analytics.Analytics
+import `in`.aicortex.iso8583studio.analytics.DesktopAnalyticsSink
+import `in`.aicortex.iso8583studio.analytics.StudioAnalytics
 import `in`.aicortex.iso8583studio.data.ExceptionHandler
 import `in`.aicortex.iso8583studio.data.model.AnalyticsConsent
 import `in`.aicortex.iso8583studio.data.model.AppSettings
@@ -87,7 +89,8 @@ class ISO8583Studio {
 
             AppSettings.recordLaunch()
             // Starts reporting only if consent was previously granted; a no-op otherwise.
-            Analytics.init()
+            StudioAnalytics.init()
+            Analytics.sink = DesktopAnalyticsSink
 
             application {
 
@@ -142,13 +145,13 @@ class ISO8583Studio {
                         }
 
                         // ─── Analytics Consent (first run only) ─────────
-                        // Asked once. Nothing has been transmitted at this point: Analytics.init()
+                        // Asked once. Nothing has been transmitted at this point: StudioAnalytics.init()
                         // above is inert while consent is UNSET.
                         if (AppSettings.analyticsConsent == AnalyticsConsent.UNSET) {
                             AnalyticsConsentDialog(
                                 onAccept = {
                                     AppSettings.updateAnalyticsConsent(AnalyticsConsent.GRANTED)
-                                    Analytics.init()
+                                    StudioAnalytics.init()
                                 },
                                 onDecline = {
                                     AppSettings.updateAnalyticsConsent(AnalyticsConsent.DENIED)
@@ -157,7 +160,7 @@ class ISO8583Studio {
                         }
 
                         LaunchedEffect(AppSettings.analyticsConsent) {
-                            if (AppSettings.analyticsConsent.isGranted) Analytics.appOpen()
+                            if (AppSettings.analyticsConsent.isGranted) StudioAnalytics.appOpen()
                         }
 
                         // ─── Error/Success Dialog ───────────────────────

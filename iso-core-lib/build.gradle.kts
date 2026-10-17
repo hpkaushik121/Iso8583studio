@@ -1,18 +1,30 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+// Shared ISO 8583 / EMV utility types. Kotlin Multiplatform so the same code runs in the
+// desktop app (JVM) and in the browser tools (Kotlin/Wasm).
 plugins {
-    id("java-library")
-    alias(libs.plugins.jvm)
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.pluginSerialization)
 }
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
+
 kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+    jvm {
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_11) }
     }
-    dependencies {
-        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-        implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        // Node lets the known-answer tests run without a browser (wasmJsNodeTest).
+        nodejs()
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.kotlinx.serializationJson)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
 }

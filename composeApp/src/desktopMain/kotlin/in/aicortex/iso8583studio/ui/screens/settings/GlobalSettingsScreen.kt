@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import `in`.aicortex.iso8583studio.analytics.Analytics
+import `in`.aicortex.iso8583studio.analytics.StudioAnalytics
 import `in`.aicortex.iso8583studio.data.model.AnalyticsConsent
 import `in`.aicortex.iso8583studio.data.model.AppSettings
 import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
@@ -226,7 +226,7 @@ fun GlobalSettingsScreen(onBack: () -> Unit) {
                                 AppSettings.updateAnalyticsConsent(
                                     if (granted) AnalyticsConsent.GRANTED else AnalyticsConsent.DENIED
                                 )
-                                if (granted) Analytics.init() else Analytics.setEnabled(false)
+                                if (granted) StudioAnalytics.init() else StudioAnalytics.setEnabled(false)
                             },
                             colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colors.primary)
                         )
@@ -249,7 +249,7 @@ fun GlobalSettingsScreen(onBack: () -> Unit) {
                                 )
                             }
                             Spacer(modifier = Modifier.width(16.dp))
-                            OutlinedButton(onClick = { Analytics.resetIdentity() }) {
+                            OutlinedButton(onClick = { StudioAnalytics.resetIdentity() }) {
                                 Text("Reset")
                             }
                         }

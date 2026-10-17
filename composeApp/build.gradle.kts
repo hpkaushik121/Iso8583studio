@@ -38,7 +38,6 @@ kotlin {
             implementation(libs.serializer)
             implementation(libs.kotlinx.serializer)
             implementation(libs.material.icons)
-            implementation(libs.material)
             implementation(libs.serial.comms)
             implementation("org.jetbrains.kotlin:kotlin-script-util:1.8.22")
             implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:2.1.21")
@@ -56,6 +55,7 @@ kotlin {
             implementation("cafe.adriel.voyager:voyager-screenmodel:1.1.0-beta02")
             implementation("com.google.code.gson:gson:2.13.2")
             implementation(libs.google.analytics.kmp)
+            implementation(project(":tools-ui"))
             implementation(project(":cryptocalc"))
             implementation(project(":iso-core-lib"))
         }

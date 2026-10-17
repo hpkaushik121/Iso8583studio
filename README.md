@@ -129,6 +129,19 @@ cd Iso8583studio
 ./gradlew run
 ```
 
+#### Option 3: Run the tools in the browser
+The calculator suites (EMV, cryptographic, key management, PIN/MAC/DUKPT, card validation, data converters) are the same Kotlin code compiled to WebAssembly and hosted at [iso8583.studio/tools/app](https://iso8583.studio/tools/app). The deep link for a tool is `/tools/app/#<tool-id>` (ids in `tools-ui/.../tools/ToolCatalog.kt`). To build it locally:
+
+```bash
+# Produce web/public/app (Kotlin/Wasm bundle, ~15 MB raw)
+./gradlew :tools-web:copyWebDist
+
+# Then build the site as usual
+cd web && npm install && npm run build
+```
+
+Module layout: `iso-core-lib` and `cryptocalc` are Kotlin Multiplatform (JVM + Wasm) with pure-Kotlin DES/TDES/AES/RSA/EC/MAC primitives; `tools-ui` holds the Compose screens shared by the desktop app and the web shell in `tools-web`. Known-answer tests run on both targets with `./gradlew :cryptocalc:jvmTest :cryptocalc:wasmJsNodeTest`. Tools marked "reference implementation" in the UI (Futurex, Atalla, SafeNet, Amex CSC, ZKA, AS2805, Visa HCE, DS partial key, issuer scripting SM) follow public descriptions and are kept off the web list until verified against the vendor specification.
+
 ## 🏁 Quick Start
 
 ### 1. First Launch

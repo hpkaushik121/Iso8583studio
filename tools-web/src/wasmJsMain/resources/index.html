@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The app has no crawlable content; the site's /tools/app page is the indexable entry. -->
+  <meta name="robots" content="noindex">
+  <title>ISO8583Studio Tools</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="loader" class="loader" role="status" aria-live="polite">
+    <div class="loader-mark">S</div>
+    <div class="loader-text">Loading ISO8583Studio tools…</div>
+    <div class="loader-sub" id="loader-sub">Downloading the calculator engine</div>
+  </div>
+  <div id="unsupported" class="unsupported" hidden>
+    <h1>Your browser cannot run the in-browser tools yet</h1>
+    <p>They need WebAssembly garbage collection, available in Chrome and Edge 119+, Firefox 120+ and Safari 18.2+.</p>
+    <p>Update your browser, or <a href="/download" target="_top">download the desktop app</a>.</p>
+  </div>
+  <script>
+    (function () {
+      // WasmGC feature detection, the same probe Kotlin/Wasm's own template uses.
+      var supported = false;
+      try {
+        supported = typeof WebAssembly === 'object' &&
+          WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0]));
+      } catch (e) { supported = false; }
+
+      function tellParent(msg) {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(Object.assign({ source: 'iso8583-tools' }, msg), window.location.origin);
+          }
+        } catch (e) {}
+      }
+
+      if (!supported) {
+        document.getElementById('loader').hidden = true;
+        document.getElementById('unsupported').hidden = false;
+        tellParent({ type: 'unsupported', reason: 'wasm_gc' });
+        return;
+      }
+
+      // Hide the loader once the app has posted app_ready (it does so from main()).
+      window.addEventListener('message', function (ev) {
+        if (ev.source === window && ev.data && ev.data.source === 'iso8583-tools' && ev.data.type === 'app_ready') {
+          var l = document.getElementById('loader');
+          if (l) l.hidden = true;
+        }
+      });
+      var hideLoader = function () {
+        var l = document.getElementById('loader');
+        if (l) l.hidden = true;
+      };
+      // Fallback: once a canvas exists Compose is drawing; the loader can go.
+      var poll = setInterval(function () {
+        if (document.querySelector('canvas')) { hideLoader(); clearInterval(poll); }
+      }, 250);
+
+      var s = document.createElement('script');
+      s.type = 'application/javascript';
+      s.src = 'iso8583-tools.js';
+      s.onerror = function () {
+        document.getElementById('loader-sub').textContent = 'The calculator engine failed to load. Reload the page to try again.';
+        tellParent({ type: 'app_error', reason: 'script_load' });
+      };
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

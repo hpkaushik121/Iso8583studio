@@ -17,6 +17,7 @@ const TYPES = {
   '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8', '.webp': 'image/webp', '.avif': 'image/avif',
   '.mp4': 'video/mp4', '.webm': 'video/webm', '.woff2': 'font/woff2',
+  '.wasm': 'application/wasm', '.mjs': 'text/javascript', '.map': 'application/json',
 };
 
 const isFile = (p) => existsSync(p) && statSync(p).isFile();

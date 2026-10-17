@@ -39,13 +39,13 @@ const PANELS: Record<string, GlassSpec> = {
 };
 
 const TOOLS: HubTool[] = [
-  { id: 'aes', stage: 0, icon: 'lock', name: 'AES Calculator', desc: 'Encrypt or decrypt data with AES, or compute a Key Check Value over a known key.' },
-  { id: 'des', stage: 0, icon: 'shield', name: 'DES / 3DES Calculator', desc: 'Single DES or Triple DES with a wide selection of cipher modes and padding schemes commonly used by legacy payment hosts.' },
-  { id: 'fpe', stage: 0, icon: 'hash', name: 'FPE Calculator', desc: 'Format-Preserving Encryption keeps the output in the same format as the input — e.g. encrypting a 16-digit PAN into another 16-digit numeric string.' },
-  { id: 'rsa', stage: 1, icon: 'key', name: 'RSA Calculator', desc: 'Six-tab tool covering the full RSA workflow from key generation through padding-aware encryption and signing.' },
-  { id: 'hash', stage: 2, icon: 'fingerprint', name: 'Hash Calculator', desc: 'Generate an MD5, SHA-1 or SHA-256 digest over ASCII or hex input.' },
-  { id: 'thales-rsa', stage: 1, icon: 'buildings', name: 'Thales RSA Calculator', desc: 'Vendor-aware RSA helpers tailored to Thales PayShield workflows.' },
-  { id: 'ecdsa', stage: 1, icon: 'function', name: 'ECDSA Calculator', desc: 'Elliptic Curve Digital Signature Algorithm with three workflow tabs.' },
+  { id: 'aes', stage: 0, icon: 'lock', app: 'aes-calculator', name: 'AES Calculator', desc: 'Encrypt or decrypt data with AES, or compute a Key Check Value over a known key.' },
+  { id: 'des', stage: 0, icon: 'shield', app: 'des-calculator', name: 'DES / 3DES Calculator', desc: 'Single DES or Triple DES with a wide selection of cipher modes and padding schemes commonly used by legacy payment hosts.' },
+  { id: 'fpe', stage: 0, icon: 'hash', app: 'fpe-calculator', name: 'FPE Calculator', desc: 'Format-Preserving Encryption keeps the output in the same format as the input — e.g. encrypting a 16-digit PAN into another 16-digit numeric string.' },
+  { id: 'rsa', stage: 1, icon: 'key', app: 'rsa-calculator', name: 'RSA Calculator', desc: 'Six-tab tool covering the full RSA workflow from key generation through padding-aware encryption and signing.' },
+  { id: 'hash', stage: 2, icon: 'fingerprint', app: 'hash-calculator', name: 'Hash Calculator', desc: 'Generate an MD4, MD5, SHA-1, SHA-2, CRC32 or MDC-2 digest over ASCII or hex input.' },
+  { id: 'thales-rsa', stage: 1, icon: 'buildings', app: 'thales-rsa', name: 'Thales RSA Calculator', desc: 'Vendor-aware RSA helpers tailored to Thales PayShield workflows.' },
+  { id: 'ecdsa', stage: 1, icon: 'function', app: 'ecdsa-calculator', name: 'ECDSA Calculator', desc: 'Elliptic Curve Digital Signature Algorithm with three workflow tabs.' },
 ];
 const STAGES: HubStage[] = [['01', 'Symmetric ciphers', 'AES · DES/3DES · FPE'], ['02', 'Asymmetric & signatures', 'RSA · Thales RSA · ECDSA'], ['03', 'Digests', 'MD5 · SHA-1 · SHA-256']];
 const FAMILIES: [string, string, string][] = [

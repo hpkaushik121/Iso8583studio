@@ -72,6 +72,21 @@ Still needed before it can take a payment:
 
 [guide]: https://iso8583studio.atlassian.net/wiki/spaces/SD/pages/2260994/Payments+Service+Integration+Guide
 
+## Browser tools (`/tools/app`)
+
+The calculators under `/tools/app` are the desktop tool screens compiled to
+Kotlin/Wasm. The bundle is not checked in: `./gradlew :tools-web:copyWebDist`
+(or `npm run build:app`) writes it to `public/app/`, which `npm run build`
+copies into the output. CI runs that Gradle task (JDK 21) before the Angular
+build. Without it the site still builds, but `/tools/app` shows the loader with
+no app behind it and `npm run check` skips the `app/` folder.
+
+The page embeds `/app/` in an iframe; the hash after `/tools/app/#` names the
+tool (`des-calculator`, `emv-4-1-crypto`, ...) and is mirrored both ways with
+`postMessage`. Tool docs pages link into it through the `app:` slug on their
+hub tiles in `src/app/pages/data/*.data.ts`; the slug must match a `webReady`
+entry in `tools-ui/.../tools/ToolCatalog.kt`.
+
 ## Development server
 
 To start a local development server, run:

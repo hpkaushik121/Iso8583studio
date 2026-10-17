@@ -61,15 +61,15 @@ const PANELS: Record<string, GlassSpec> = {
 Object.values(PANELS).forEach((spec) => { spec.app = 'key-tools'; spec.badge = 'KEYS'; });
 
 const TOOLS: HubTool[] = [
-  { id: 'dea', stage: 0, icon: 'key', name: 'DEA Keys (DES / 3DES Utility)', desc: 'A multi-tab tool focused on raw 3DES key material.' },
-  { id: 'keyshare', stage: 0, icon: 'users-three', name: 'Keyshare Generator', desc: 'Splits a single key into n shares such that all n are required to reconstruct the key (XOR-based component scheme).' },
-  { id: 'tr31', stage: 1, icon: 'package', name: 'TR-31 Key Block', desc: 'ASC X9.143 (formerly TR-31) defines a key block format that binds a key to its allowable usage, algorithm, mode, and exportability.' },
-  { id: 'thales-block', stage: 1, icon: 'cube', name: 'Thales Key Block', desc: 'The Thales-specific key block format used by PayShield HSMs.' },
-  { id: 'thales-keys', stage: 1, icon: 'calculator', name: 'Thales Key Calculator', desc: 'Vendor-aware calculations matching Thales PayShield host commands.' },
+  { id: 'dea', stage: 0, icon: 'key', app: 'dea-keys', name: 'DEA Keys (DES / 3DES Utility)', desc: 'A multi-tab tool focused on raw 3DES key material.' },
+  { id: 'keyshare', stage: 0, icon: 'users-three', app: 'keyshare-generator', name: 'Keyshare Generator', desc: 'Splits a single key into n shares such that all n are required to reconstruct the key (XOR-based component scheme).' },
+  { id: 'tr31', stage: 1, icon: 'package', app: 'tr31-key-blocks', name: 'TR-31 Key Block', desc: 'ASC X9.143 (formerly TR-31) defines a key block format that binds a key to its allowable usage, algorithm, mode, and exportability.' },
+  { id: 'thales-block', stage: 1, icon: 'cube', app: 'thales-key-blocks', name: 'Thales Key Block', desc: 'The Thales-specific key block format used by PayShield HSMs.' },
+  { id: 'thales-keys', stage: 1, icon: 'calculator', app: 'thales-keys', name: 'Thales Key Calculator', desc: 'Vendor-aware calculations matching Thales PayShield host commands.' },
   { id: 'atalla', stage: 1, icon: 'vault', name: 'Atalla Key Calculator', desc: 'Atalla / Utimaco AKB-style key block helpers, including AKB header construction and KCV verification.' },
   { id: 'safenet', stage: 1, icon: 'shield-check', name: 'Safenet Key Calculator', desc: 'Safenet / Thales Luna key calculations for legacy and modern formats.' },
-  { id: 'rsa-der', stage: 2, icon: 'brackets-curly', name: 'RSA DER Public Key Tool', desc: 'Wrap a modulus and exponent into DER, with the sign-byte case handled.' },
-  { id: 'ssl', stage: 2, icon: 'certificate', name: 'SSL / X.509 Certificate Tool', desc: 'An end-to-end certificate workflow tool for terminal-host TLS.' },
+  { id: 'rsa-der', stage: 2, icon: 'brackets-curly', app: 'rsa-der-keys', name: 'RSA DER Public Key Tool', desc: 'Wrap a modulus and exponent into DER, with the sign-byte case handled.' },
+  { id: 'ssl', stage: 2, icon: 'certificate', app: 'ssl-certificate', name: 'SSL / X.509 Certificate Tool', desc: 'An end-to-end certificate workflow tool for terminal-host TLS.' },
 ];
 // The app's hub also carries a Futurex calculator. It is not listed here until it has a
 // reference section: advertising a tool the page does not document inflated the count
