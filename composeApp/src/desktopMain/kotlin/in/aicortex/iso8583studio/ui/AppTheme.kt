@@ -3,7 +3,16 @@ package `in`.aicortex.iso8583studio.ui
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import `in`.aicortex.iso8583studio.ui.screens.components.LocalToolLogPanel
+import `in`.aicortex.iso8583studio.ui.screens.components.ToolLogPanel
+import `in`.aicortex.iso8583studio.ui.screens.hostSimulator.LogPanelWithAutoScroll as SimulatorLogPanel
+
+/** The calculators' log panel on desktop is the host simulator's full one, as it always was. */
+private val DesktopToolLogPanel = ToolLogPanel { label, onClear, entries ->
+    SimulatorLogPanel(label = label, onClearClick = onClear, logEntries = entries)
+}
 
 /**
  * Detect system dark mode. Uses Compose's isSystemInDarkTheme() first,
@@ -33,11 +42,13 @@ fun AppTheme(darkTheme: Boolean = detectDarkTheme(), content: @Composable () -> 
         else -> LightColorPalette
     }
 
-    MaterialTheme(
-        colors = colors,
-        typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalToolLogPanel provides DesktopToolLogPanel) {
+        MaterialTheme(
+            colors = colors,
+            typography = Typography,
+            shapes = Shapes,
+            content = content
+        )
+    }
 }
 

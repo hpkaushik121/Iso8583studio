@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -40,15 +41,34 @@ import `in`.aicortex.iso8583studio.logging.LogEntry
 @Composable
 expect fun PlatformVerticalScrollbar(state: LazyListState, modifier: Modifier = Modifier)
 
+/** How a calculator screen's log panel is drawn: the desktop app installs the host simulator's full panel. */
+fun interface ToolLogPanel {
+    @Composable
+    fun Render(label: String?, onClearClick: () -> Unit, logEntries: List<LogEntry>)
+}
+
+/** Defaults to the compact panel; `AppTheme` on desktop provides the richer `hostSimulator` one. */
+val LocalToolLogPanel = staticCompositionLocalOf<ToolLogPanel> { ToolLogPanel { label, onClear, entries -> CompactLogPanel(label, onClear, entries) } }
+
 /**
- * The in-memory log panel every calculator screen renders on its right-hand side. Follows the
- * tail while the user is at the bottom, stops following once they scroll up.
- *
- * The desktop simulators keep their own richer panel (on-disk history, filters) in
- * `hostSimulator/LogTab.kt`; the calculators only ever pass these three parameters.
+ * The log panel every calculator screen renders on its right-hand side. Which panel that is comes
+ * from [LocalToolLogPanel]: the desktop app routes it to the host simulator's full panel (type
+ * filter, auto-scroll toggle, selectable rows), exactly as before the screens moved to this module;
+ * the browser and the tests get [CompactLogPanel].
  */
 @Composable
 fun LogPanelWithAutoScroll(
+    label: String? = null,
+    onClearClick: () -> Unit,
+    logEntries: List<LogEntry> = emptyList(),
+) = LocalToolLogPanel.current.Render(label, onClearClick, logEntries)
+
+/**
+ * The in-memory compact log panel. Follows the tail while the user is at the bottom, stops
+ * following once they scroll up.
+ */
+@Composable
+fun CompactLogPanel(
     label: String? = null,
     onClearClick: () -> Unit,
     logEntries: List<LogEntry> = emptyList(),
