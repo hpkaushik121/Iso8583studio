@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import ai.cortex.core.EmvTags
 
 import `in`.aicortex.iso8583studio.platform.nowLogTimestamp
@@ -176,6 +178,8 @@ private fun TagSearchCard() {
 
 @Composable
 private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Card(title, subtitle, icon, null, content); return }
     Card(modifier = Modifier.fillMaxWidth(), elevation = 2.dp, shape = RoundedCornerShape(12.dp), backgroundColor = MaterialTheme.colors.surface) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -194,6 +198,8 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 
 @Composable
 private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Dropdown(label, value, options, onSelectionChanged, Modifier); return }
     var expanded by remember { mutableStateOf(false) }
     var textFieldWidth by remember { mutableStateOf(0) }
     val density = LocalDensity.current

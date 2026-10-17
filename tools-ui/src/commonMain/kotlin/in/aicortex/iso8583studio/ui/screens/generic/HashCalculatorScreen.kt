@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import ai.cortex.core.types.PaddingMethods
 
 import io.cryptocalc.mac.MdcHash
@@ -218,6 +220,8 @@ private fun HashCalculatorCard() {
 
 @Composable
 private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.TextField(value, onValueChange, label, modifier, maxLines, validation, ""); return }
     Column(modifier = modifier) {
         FixedOutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,
@@ -248,6 +252,8 @@ private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, la
 
 @Composable
 private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector, onInfoClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Card(title, subtitle, icon, onInfoClick, content); return }
     Card(modifier = Modifier.fillMaxWidth(), elevation = 2.dp, shape = RoundedCornerShape(12.dp), backgroundColor = MaterialTheme.colors.surface) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -271,6 +277,8 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 
 @Composable
 private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Dropdown(label, value, options, onSelectionChanged, modifier); return }
     var expanded by remember { mutableStateOf(false) }
     var textFieldWidth by remember { mutableStateOf(0) }
     val density = LocalDensity.current
@@ -293,6 +301,8 @@ private fun ModernDropdownField(label: String, value: String, options: List<Stri
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun ModernButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, enabled: Boolean = true, icon: ImageVector? = null) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Button(text, onClick, modifier, isLoading, enabled, icon); return }
     Button(onClick = onClick, modifier = modifier.height(48.dp), enabled = enabled && !isLoading, elevation = ButtonDefaults.elevation(defaultElevation = 2.dp, pressedElevation = 4.dp, disabledElevation = 0.dp)) {
         AnimatedContent(targetState = isLoading, transitionSpec = { fadeIn() with fadeOut() }, label = "HashButtonAnimation") { loading ->
             if (loading) {
@@ -316,6 +326,8 @@ private fun ModernButton(text: String, onClick: () -> Unit, modifier: Modifier =
 
 @Composable
 private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.InfoDialog(title, onDismissRequest, content); return }
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {

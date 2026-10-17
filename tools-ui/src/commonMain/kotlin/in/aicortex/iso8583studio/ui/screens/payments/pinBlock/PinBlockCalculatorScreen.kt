@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import ai.cortex.core.toHexLower
 
 import `in`.aicortex.iso8583studio.platform.nowLogTimestamp
@@ -967,6 +969,8 @@ private fun EnhancedTextField(
     maxLines: Int = 1,
     validation: ValidationResult
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.TextField(value, onValueChange, label, modifier, maxLines, validation, ""); return }
     Column(modifier = modifier) {
         FixedOutlinedTextField(
             value = value,
@@ -1008,6 +1012,8 @@ private fun ModernCryptoCard(
     icon: ImageVector,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Card(title, subtitle, icon, null, content); return }
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = 2.dp,
@@ -1046,6 +1052,8 @@ private fun ModernDropdownField(
     options: List<String>,
     onSelectionChanged: (Int) -> Unit
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Dropdown(label, value, options, onSelectionChanged, Modifier); return }
     var expanded by remember { mutableStateOf(false) }
     var textFieldWidth by remember { mutableStateOf(0) }
     val density = LocalDensity.current
@@ -1087,6 +1095,8 @@ private fun ModernButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Button(text, onClick, modifier, isLoading, enabled, icon); return }
     Button(
         onClick = onClick,
         modifier = modifier.height(48.dp),

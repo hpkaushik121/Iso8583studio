@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import androidx.compose.ui.text.AnnotatedString
 
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -617,6 +619,8 @@ private fun EnhancedTextField(
     validation: ValidationResult,
     placeholder: String = ""
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.TextField(value, onValueChange, label, modifier, maxLines, validation, placeholder); return }
     Column(modifier = modifier) {
         FixedOutlinedTextField(
             value = value,
@@ -677,6 +681,8 @@ private fun ModernCryptoCard(
     onInfoClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Card(title, subtitle, icon, onInfoClick, content); return }
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = 2.dp,
@@ -705,6 +711,8 @@ private fun ModernCryptoCard(
 
 @Composable
 private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Dropdown(label, value, options, onSelectionChanged, modifier); return }
     var expanded by remember { mutableStateOf(false) }
     var textFieldWidth by remember { mutableStateOf(0) }
     val density = LocalDensity.current
@@ -734,6 +742,8 @@ private fun ModernButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Button(text, onClick, modifier, isLoading, enabled, icon); return }
     Button(
         onClick = onClick,
         modifier = modifier.height(48.dp),
@@ -767,6 +777,8 @@ private fun InfoDialog(
     onDismissRequest: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.InfoDialog(title, onDismissRequest, content); return }
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {

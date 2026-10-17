@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import io.cryptocalc.pin.PinCrypto
 
 import ai.cortex.core.hexToBytes
@@ -369,6 +371,8 @@ data class PinOffsetState(
 
 @Composable
 private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, validation: ValidationResult) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.TextField(value, onValueChange, label, modifier, 1, validation, ""); return }
     Column(modifier = modifier) {
         FixedOutlinedTextField(
             value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
@@ -390,6 +394,8 @@ private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, la
 
 @Composable
 private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Card(title, subtitle, icon, null, content); return }
     Card(modifier = Modifier.fillMaxWidth(), elevation = 2.dp, shape = RoundedCornerShape(12.dp), backgroundColor = MaterialTheme.colors.surface) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -408,6 +414,8 @@ private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector,
 
 @Composable
 private fun ModernButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, enabled: Boolean = true, icon: ImageVector? = null) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Button(text, onClick, modifier, isLoading, enabled, icon); return }
     Button(onClick = onClick, modifier = modifier.height(48.dp), enabled = enabled && !isLoading, elevation = ButtonDefaults.elevation(defaultElevation = 2.dp, pressedElevation = 4.dp, disabledElevation = 0.dp)) {
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = LocalContentColor.current)

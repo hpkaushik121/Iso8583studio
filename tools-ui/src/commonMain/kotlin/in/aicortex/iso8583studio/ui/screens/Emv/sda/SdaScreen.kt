@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.sda
 
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import io.cryptocalc.rsa.RsaPublicKey
 
 import io.cryptocalc.math.BigInt
@@ -313,6 +315,8 @@ fun EnhancedTextField(
     maxLines: Int = 1,
     validation: ValidationResult
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.TextField(value, onValueChange, label, modifier, maxLines, validation, ""); return }
     Column(modifier = modifier) {
         FixedOutlinedTextField(
             value = value,
@@ -374,6 +378,8 @@ fun ModernCryptoCard(
     onInfoClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Card(title, subtitle, icon, onInfoClick, content); return }
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = 4.dp,
@@ -410,6 +416,8 @@ fun ModernButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Button(text, onClick, modifier, isLoading, enabled, icon); return }
     Button(
         onClick = onClick,
         modifier = modifier.height(48.dp),
@@ -445,6 +453,8 @@ fun InfoDialog(
     onDismissRequest: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.InfoDialog(title, onDismissRequest, content); return }
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {
