@@ -14,7 +14,7 @@ private fun postToParent(json: String): Unit =
 
 @Suppress("UNUSED_PARAMETER")
 private fun postToSelf(json: String): Unit =
-    js("{ try { window.postMessage(JSON.parse(json), window.location.origin); } catch (e) {} }")
+    js("{ try { var l = document.getElementById('loader'); if (l) l.hidden = true; window.postMessage(JSON.parse(json), window.location.origin); } catch (e) {} }")
 
 object WebBridge {
     private const val SOURCE = "iso8583-tools"

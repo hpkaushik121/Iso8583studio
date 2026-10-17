@@ -53,9 +53,6 @@ import `in`.aicortex.iso8583studio.web.theme.rememberGlassFonts
 import kotlinx.browser.window
 import org.w3c.dom.events.Event
 
-/** Minimum width a two-column calculator layout needs before it squashes. */
-private const val MIN_TOOL_WIDTH_DP = 720
-
 /**
  * The browser shell: a home grid of the web-ready tools and a hash router (`#/<tool-id>`) so
  * the site's documentation pages can deep-link straight into a calculator.
@@ -102,60 +99,9 @@ private fun ToolHost(tool: WebTool, onBack: () -> Unit) {
         Analytics.toolOpened(tool.id, tool.label, tool.category.name)
         onDispose { Analytics.toolClosed(tool.id, (epochMillis() - openedAt) / 1000) }
     }
-
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        if (maxWidth < MIN_TOOL_WIDTH_DP.dp) {
-            NarrowViewportNotice(onBack)
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                if (tool.referenceImpl) ReferenceImplementationBanner()
-                Box(modifier = Modifier.fillMaxSize()) { tool.content(onBack) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReferenceImplementationBanner() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(WarningYellow.copy(alpha = 0.18f))
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(Icons.Default.Warning, contentDescription = null, tint = WarningYellow, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(
-            "Reference implementation: this calculator follows public references for a vendor-specific scheme and has not been verified against the vendor's own specification.",
-            style = MaterialTheme.typography.caption
-        )
-    }
-}
-
-@Composable
-private fun NarrowViewportNotice(onBack: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(36.dp))
-        Spacer(Modifier.height(12.dp))
-        Text("This calculator needs a wider window", style = MaterialTheme.typography.h6, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Widen the browser window to at least ${MIN_TOOL_WIDTH_DP}px, or use the desktop app.",
-            style = MaterialTheme.typography.body2,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            "Back to all tools",
-            color = MaterialTheme.colors.primary,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.clickable(onClick = onBack).padding(8.dp)
-        )
+    // The chrome draws the frame, breadcrumb, badge and the reference-implementation banner from this.
+    CompositionLocalProvider(LocalToolContext provides tool) {
+        Box(modifier = Modifier.fillMaxSize()) { tool.content(onBack) }
     }
 }
 

@@ -1,0 +1,191 @@
+package `in`.aicortex.iso8583studio.web.chrome
+
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+import `in`.aicortex.iso8583studio.web.LocalToolContext
+import `in`.aicortex.iso8583studio.web.theme.Glass
+import `in`.aicortex.iso8583studio.web.theme.GlassShapes
+
+private enum class LogKind(val tag: String) { IN("IN"), RUN("RUN"), OUT("OUT"), ERR("ERR"), WARN("WARN") }
+
+private fun kindOf(entry: LogEntry): LogKind = when (entry.type.name) {
+    "ERROR" -> LogKind.ERR
+    "WARNING" -> LogKind.WARN
+    "TRANSACTION", "AUTHORIZATION", "SETTLEMENT", "METRICS", "BITMAP", "REVERSAL" -> LogKind.OUT
+    "HSM", "ENCRYPTION", "SECURITY", "PERFORMANCE" -> LogKind.RUN
+    else -> LogKind.IN
+}
+
+/** The one-line summary of an entry: the first result line for OUT, otherwise the first detail line. */
+private fun summaryOf(entry: LogEntry, kind: LogKind): String {
+    val lines = entry.details?.lines()?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+    if (kind == LogKind.OUT) {
+        val i = lines.indexOfFirst { it.startsWith("Result") }
+        if (i >= 0 && i + 1 < lines.size) return lines[i + 1]
+    }
+    if (kind == LogKind.ERR) {
+        val i = lines.indexOfFirst { it.startsWith("Error") }
+        if (i >= 0) return lines[i].removePrefix("Error:").trim().ifEmpty { lines.getOrElse(i + 1) { "" } }
+    }
+    return lines.firstOrNull { !it.startsWith("Inputs") && !it.startsWith("Result") } ?: ""
+}
+
+private fun stampOf(timestamp: String): String = if (timestamp.length >= 8 && timestamp[2] == ':' && timestamp[5] == ':') timestamp.substring(3, 8) else timestamp.take(5)
+
+/** The `.gp-log` activity log: stamp | tag | text rows, expandable details, idle caret. */
+@Composable
+fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier) {
+    val c = Glass.colors
+    val entries = log.entries
+    val listState = rememberLazyListState()
+    var autoScroll by remember { mutableStateOf(true) }
+    LaunchedEffect(entries.size, autoScroll) {
+        if (autoScroll && entries.isNotEmpty()) listState.scrollToItem(entries.size - 1)
+    }
+    val atBottom by remember { derivedStateOf { val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1; entries.isEmpty() || last >= entries.size - 2 } }
+    var scrolled by remember { mutableStateOf(false) }
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) scrolled = true else if (scrolled) autoScroll = atBottom
+    }
+    LaunchedEffect(entries.isEmpty()) { if (entries.isEmpty()) autoScroll = true }
+
+    Column(
+        modifier = modifier.clip(GlassShapes.tile).background(c.logBg).border(1.dp, c.logBorder, GlassShapes.tile).insetTop(c.boxInset.copy(alpha = 0.35f)),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text((log.label ?: "Activity log").uppercase(), style = MaterialTheme.typography.overline, color = c.faint)
+            Spacer(Modifier.weight(1f))
+            Text(when (entries.size) { 0 -> "idle"; 1 -> "1 entry"; else -> "${entries.size} entries" }, style = Glass.type.small, color = c.faint)
+            if (entries.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                GhostIcon(Icons.Default.Delete, "Clear log", size = 20.dp, onClick = log.onClear)
+            }
+        }
+        Hairline()
+        if (entries.isEmpty()) {
+            IdleLines()
+        } else {
+            LazyColumn(state = listState, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                items(entries, key = { it.id }) { entry -> LogLine(entry) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IdleLines() {
+    val c = Glass.colors
+    val tool = LocalToolContext.current
+    val transition = rememberInfiniteTransition(label = "caret")
+    val blink by transition.animateFloat(
+        initialValue = 1f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(keyframes { durationMillis = 1000; 1f at 0 using LinearEasing; 1f at 499; 0f at 500; 0f at 999 }),
+        label = "caret",
+    )
+    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+        Text("› session opened · ${tool?.label?.lowercase() ?: "calculator"}", style = Glass.type.log, color = c.faint)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("› waiting for input", style = Glass.type.log, color = c.faint)
+            Spacer(Modifier.width(3.dp))
+            Box(Modifier.size(6.dp, 11.dp).alpha(blink).background(c.blueHi))
+        }
+    }
+}
+
+@Composable
+private fun LogLine(entry: LogEntry) {
+    val c = Glass.colors
+    val kind = remember(entry) { kindOf(entry) }
+    val summary = remember(entry) { summaryOf(entry, kind) }
+    var expanded by remember { mutableStateOf(false) }
+    val hasDetails = !entry.details.isNullOrBlank()
+    val clipboard = LocalClipboardManager.current
+    val (tagColour, textColour, wash) = when (kind) {
+        LogKind.IN -> Triple(c.blueHi, c.muted, Color.Transparent)
+        LogKind.RUN -> Triple(c.text, c.text, Color.Transparent)
+        LogKind.OUT -> Triple(c.tealHi, c.text, c.outWash)
+        LogKind.ERR -> Triple(c.redHi, c.redHi, c.errWash)
+        LogKind.WARN -> Triple(c.amberHi, c.amberHi, Color.Transparent)
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(wash)
+            .clickable(enabled = hasDetails, indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) { expanded = !expanded }
+            .padding(horizontal = 5.dp, vertical = 4.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Text(stampOf(entry.timestamp), style = Glass.type.log, color = c.faint, modifier = Modifier.width(42.dp))
+            Text(kind.tag, style = Glass.type.log.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.06.em), color = tagColour, modifier = Modifier.width(34.dp))
+            Text(
+                buildAnnotatedString {
+                    if (kind == LogKind.OUT || kind == LogKind.ERR) withStyle(SpanStyle(color = tagColour, fontWeight = FontWeight.Medium)) { append(entry.message); append("  ") }
+                    append(summary)
+                },
+                style = Glass.type.log, color = textColour,
+                maxLines = if (expanded) Int.MAX_VALUE else 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+            )
+        }
+        if (expanded && hasDetails) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).background(c.insetBoxBg).border(1.dp, c.insetBoxBorder, RoundedCornerShape(10.dp)).padding(horizontal = 11.dp, vertical = 10.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("DETAILS", style = Glass.type.path, color = c.faint)
+                    Spacer(Modifier.weight(1f))
+                    GhostIcon(Icons.Default.ContentCopy, "Copy details", size = 20.dp) { clipboard.setText(AnnotatedString(entry.details ?: "")) }
+                }
+                Spacer(Modifier.height(6.dp))
+                SelectionContainer { Text(entry.details ?: "", style = Glass.type.details, color = c.muted) }
+            }
+        }
+    }
+}
