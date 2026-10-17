@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.primitives.Tdes
@@ -151,6 +155,15 @@ object CMACService {
 
 @Composable
 fun CMACScreen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                CMACGenerationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "CMAC Calculator", onBack = onBack, log = ToolLog(CMACLogManager.logEntries, onClear = { CMACLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "CMAC Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -162,8 +175,8 @@ fun CMACScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
             ) {
-                CMACGenerationCard()
-            }
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

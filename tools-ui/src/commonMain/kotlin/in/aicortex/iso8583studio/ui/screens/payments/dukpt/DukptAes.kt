@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.dukpt
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.toHexLower
@@ -387,6 +393,30 @@ fun DUKPTAESScreen(onBack: () -> Unit) {
     val macState = remember { AesMacState() }
     val dataState = remember { AesDataState() }
 
+    val body: @Composable () -> Unit = {
+                    AnimatedContent(
+                        targetState = selectedTab,
+                        transitionSpec = {
+                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
+                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
+                                    SizeTransform(clip = false)
+                        },
+                        label = "dukpt_aes_tab_transition"
+                    ) { tab ->
+                        when (tab) {
+                            DUKPTAESTabs.KEY_DERIVATION -> KeyDerivationCard(keyDerivState)
+                            DUKPTAESTabs.DUKPT_PIN -> DukptPinCard(pinState)
+                            DUKPTAESTabs.DUKPT_MAC -> DukptMacCard(macState)
+                            DUKPTAESTabs.DUKPT_DATA -> DukptDataCard(dataState)
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "DUKPT AES Utilities", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(DUKPTAESLogManager.logEntries, onClear = { DUKPTAESLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "DUKPT AES Utilities", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -416,23 +446,8 @@ fun DUKPTAESScreen(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
-                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                        },
-                        label = "dukpt_aes_tab_transition"
-                    ) { tab ->
-                        when (tab) {
-                            DUKPTAESTabs.KEY_DERIVATION -> KeyDerivationCard(keyDerivState)
-                            DUKPTAESTabs.DUKPT_PIN -> DukptPinCard(pinState)
-                            DUKPTAESTabs.DUKPT_MAC -> DukptMacCard(macState)
-                            DUKPTAESTabs.DUKPT_DATA -> DukptDataCard(dataState)
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

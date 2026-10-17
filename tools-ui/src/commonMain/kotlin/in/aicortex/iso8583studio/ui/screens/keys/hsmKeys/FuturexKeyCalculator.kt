@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.hsmKeys
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.hsm.VendorKeys
@@ -122,6 +128,23 @@ fun FuturexKeysScreen( onBack: () -> Unit) {
     val tabList = FuturexKeysTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            FuturexKeysTabs.ENCRYPT_DECRYPT -> EncryptDecryptTab()
+                            FuturexKeysTabs.KEY_LOOKUP -> KeyLookupTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Futurex Keys Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(FuturexLogManager.logEntries, onClear = { FuturexLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Futurex Keys Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -151,16 +174,8 @@ fun FuturexKeysScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            FuturexKeysTabs.ENCRYPT_DECRYPT -> EncryptDecryptTab()
-                            FuturexKeysTabs.KEY_LOOKUP -> KeyLookupTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

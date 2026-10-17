@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import kotlinx.coroutines.withContext
@@ -123,6 +129,26 @@ fun SslUtilityScreen( onBack: () -> Unit) {
     val tabList = SslTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            SslTabs.KEYS -> KeysTab()
+                            SslTabs.CSR -> CsrTab()
+                            SslTabs.READ_CSR -> ReadCsrTab()
+                            SslTabs.SELF_SIGNED -> SelfSignedCertTab()
+                            SslTabs.READ_CERT -> ReadCertTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "SSL Certificate (X.509) Utility", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(SslLogManager.logEntries, onClear = { SslLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "SSL Certificate (X.509) Utility", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -150,19 +176,8 @@ fun SslUtilityScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            SslTabs.KEYS -> KeysTab()
-                            SslTabs.CSR -> CsrTab()
-                            SslTabs.READ_CSR -> ReadCsrTab()
-                            SslTabs.SELF_SIGNED -> SelfSignedCertTab()
-                            SslTabs.READ_CERT -> ReadCertTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

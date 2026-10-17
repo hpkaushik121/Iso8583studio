@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.types.PaddingMethods
@@ -135,6 +139,15 @@ object MDCHashService {
 
 @Composable
 fun MDCHashScreen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                MDCHashGenerationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "MDC Hash Calculator", onBack = onBack, log = ToolLog(MDCHashLogManager.logEntries, onClear = { MDCHashLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "MDC Hash Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -146,8 +159,8 @@ fun MDCHashScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
             ) {
-                MDCHashGenerationCard()
-            }
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

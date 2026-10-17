@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.codec.Codecs
@@ -162,6 +166,15 @@ object CheckDigitService {
 
 @Composable
 fun CheckDigitScreen( onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                CheckDigitCalculatorCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Check Digit Calculator", onBack = onBack, log = ToolLog(CheckDigitLogManager.logEntries, onClear = { CheckDigitLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Check Digit Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -169,8 +182,8 @@ fun CheckDigitScreen( onBack: () -> Unit) {
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Input
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                CheckDigitCalculatorCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

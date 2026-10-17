@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.toHexLower
@@ -688,15 +694,7 @@ fun PinBlockGeneralScreen(onBack: () -> Unit) {
     val tabList = PinBlockTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
-    Scaffold(
-        topBar = { AppBarWithBack(title = "PIN Block Calculator", onBackClick = onBack) },
-        backgroundColor = MaterialTheme.colors.background
-    ) { paddingValues ->
-        Row(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+    val body: @Composable () -> Unit = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -723,7 +721,24 @@ fun PinBlockGeneralScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-            }
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "PIN Block Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(PinBlockLogManager.logEntries, onClear = { PinBlockLogManager.clearLogs() })), content = body)
+        return
+    }
+    Scaffold(
+        topBar = { AppBarWithBack(title = "PIN Block Calculator", onBackClick = onBack) },
+        backgroundColor = MaterialTheme.colors.background
+    ) { paddingValues ->
+        Row(
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

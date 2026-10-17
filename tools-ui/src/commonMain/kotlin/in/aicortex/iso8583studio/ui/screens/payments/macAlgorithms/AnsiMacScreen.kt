@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.primitives.Des
@@ -137,6 +141,15 @@ object ANSIMACService {
 
 @Composable
 fun ANSIMACScreen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                ANSIMacGenerationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "ANSI MAC Calculator", onBack = onBack, log = ToolLog(ANSIMACLogManager.logEntries, onClear = { ANSIMACLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "ANSI MAC Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -148,8 +161,8 @@ fun ANSIMACScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
             ) {
-                ANSIMacGenerationCard()
-            }
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

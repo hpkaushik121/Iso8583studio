@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.primitives.secureRandomBytes
@@ -170,6 +176,20 @@ fun KeyshareGeneratorScreen( onBack: () -> Unit) {
     val tabList = KeyshareTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        KeyshareTabContent(isSecure = tab == KeyshareTabs.SECURE)
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Keyshare Generator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(KeyshareLogManager.logEntries, onClear = { KeyshareLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Keyshare Generator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -199,13 +219,8 @@ fun KeyshareGeneratorScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        KeyshareTabContent(isSecure = tab == KeyshareTabs.SECURE)
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

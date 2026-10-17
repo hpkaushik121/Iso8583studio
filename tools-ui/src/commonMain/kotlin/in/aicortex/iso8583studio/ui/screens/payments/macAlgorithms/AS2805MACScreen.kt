@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.primitives.Tdes
@@ -139,6 +143,15 @@ object AS2805MACService {
 
 @Composable
 fun AS2805MACScreen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                AS2805MacGenerationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "AS2805.4.1 MAC Calculator", onBack = onBack, log = ToolLog(AS2805MACLogManager.logEntries, onClear = { AS2805MACLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "AS2805.4.1 MAC Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -150,8 +163,8 @@ fun AS2805MACScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
             ) {
-                AS2805MacGenerationCard()
-            }
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

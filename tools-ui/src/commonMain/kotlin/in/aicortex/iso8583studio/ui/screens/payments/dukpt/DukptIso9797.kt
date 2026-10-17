@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.dukpt
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.toHexLower
@@ -404,6 +410,31 @@ fun DukptIso9797Screen(onBack: () -> Unit) {
     val macState = remember { DukptMacState() }
     val dataState = remember { DukptDataState() }
 
+    val body: @Composable () -> Unit = {
+                    AnimatedContent(
+                        targetState = selectedTab,
+                        transitionSpec = {
+                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
+                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
+                                    SizeTransform(clip = false)
+                        },
+                        label = "dukpt_tab_transition"
+                    ) { tab ->
+                        when (tab) {
+                            DUKPTTabs.PEK_DERIVATION -> PekDerivationCard(pekDerivState)
+                            DUKPTTabs.DEK_DERIVATION -> DekDerivationCard(dekDerivState)
+                            DUKPTTabs.DUKPT_PIN -> DukptPinCard(pinState)
+                            DUKPTTabs.DUKPT_MAC -> DukptMacCard(macState)
+                            DUKPTTabs.DUKPT_DATA -> DukptDataCard(dataState)
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "DUKPT Utilities", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(DUKPTLogManager.logEntries, onClear = { DUKPTLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "DUKPT Utilities", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -436,24 +467,8 @@ fun DukptIso9797Screen(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    AnimatedContent(
-                        targetState = selectedTab,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> if (targetState.ordinal > initialState.ordinal) width else -width } + fadeIn()) with
-                                    (slideOutHorizontally { width -> if (targetState.ordinal > initialState.ordinal) -width else width } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                        },
-                        label = "dukpt_tab_transition"
-                    ) { tab ->
-                        when (tab) {
-                            DUKPTTabs.PEK_DERIVATION -> PekDerivationCard(pekDerivState)
-                            DUKPTTabs.DEK_DERIVATION -> DekDerivationCard(dekDerivState)
-                            DUKPTTabs.DUKPT_PIN -> DukptPinCard(pinState)
-                            DUKPTTabs.DUKPT_MAC -> DukptMacCard(macState)
-                            DUKPTTabs.DUKPT_DATA -> DukptDataCard(dataState)
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

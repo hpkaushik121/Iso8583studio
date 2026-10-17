@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.dsPartialKey
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.emv.EmvDataStorage
@@ -143,6 +149,24 @@ fun DsPartialKeyScreen(
     val tabList = DsPartialKeyTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            DsPartialKeyTabs.DSPK -> DspkTab()
+                            DsPartialKeyTabs.DS_SUMMARY_OWHF1 -> DsSummaryOwhf1Tab()
+                            DsPartialKeyTabs.DS_DIGEST_OWHF2 -> DsDigestOwhf2Tab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Data Storage Partial Key - MasterCard", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(DsLogManager.getLogEntries(selectedTab.title), onClear = { DsLogManager.clearLogs(selectedTab.title) })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -179,17 +203,8 @@ fun DsPartialKeyScreen(
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            DsPartialKeyTabs.DSPK -> DspkTab()
-                            DsPartialKeyTabs.DS_SUMMARY_OWHF1 -> DsSummaryOwhf1Tab()
-                            DsPartialKeyTabs.DS_DIGEST_OWHF2 -> DsDigestOwhf2Tab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

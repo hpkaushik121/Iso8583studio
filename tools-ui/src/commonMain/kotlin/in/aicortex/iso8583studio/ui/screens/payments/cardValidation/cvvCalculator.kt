@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.card.CardVerification
@@ -129,6 +135,23 @@ fun CvvCalculatorScreen( onBack: () -> Unit) {
     val tabList = CvvTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            CvvTabs.GENERATE -> CvvGeneratorTab(isValidation = false)
+                            CvvTabs.VALIDATE -> CvvGeneratorTab(isValidation = true)
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Card Validation Values (CVV)", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(CvvLogManager.logEntries, onClear = { CvvLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Card Validation Values (CVV)", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -156,16 +179,8 @@ fun CvvCalculatorScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            CvvTabs.GENERATE -> CvvGeneratorTab(isValidation = false)
-                            CvvTabs.VALIDATE -> CvvGeneratorTab(isValidation = true)
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

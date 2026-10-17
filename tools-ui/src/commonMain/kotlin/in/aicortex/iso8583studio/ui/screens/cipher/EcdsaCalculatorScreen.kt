@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import kotlinx.coroutines.withContext
@@ -126,6 +132,24 @@ fun EcdsaCalculatorScreen( onBack: () -> Unit) {
     val tabList = EcdsaTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            EcdsaTabs.KEYS -> KeysTab()
+                            EcdsaTabs.SIGN -> SignTab()
+                            EcdsaTabs.VERIFY -> VerifyTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "ECDSA Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(EcdsaLogManager.logEntries, onClear = { EcdsaLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "ECDSA Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -155,17 +179,8 @@ fun EcdsaCalculatorScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            EcdsaTabs.KEYS -> KeysTab()
-                            EcdsaTabs.SIGN -> SignTab()
-                            EcdsaTabs.VERIFY -> VerifyTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

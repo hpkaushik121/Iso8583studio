@@ -1,5 +1,13 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.keyBlocks
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import io.cryptocalc.crypto.engines.encryption.TdesCalculatorEngine
 
 import io.cryptocalc.crypto.primitives.secureRandomBytes
@@ -478,16 +486,7 @@ fun ThalesKeyBlockScreen(onBack: () -> Unit) {
     val tabList = ThalesKeyBlockTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
-    Scaffold(
-        topBar = { AppBarWithBack(title = "Thales Key Block", onBackClick = onBack) },
-        backgroundColor = MaterialTheme.colors.background
-    ) { paddingValues ->
-        Row(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // ── Left: Encode / Decode form ──
-            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+    val body: @Composable () -> Unit = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -532,7 +531,25 @@ fun ThalesKeyBlockScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-            }
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Thales Key Block", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(ThalesKbLogManager.logEntries, onClear = { ThalesKbLogManager.clearLogs() })), content = body)
+        return
+    }
+    Scaffold(
+        topBar = { AppBarWithBack(title = "Thales Key Block", onBackClick = onBack) },
+        backgroundColor = MaterialTheme.colors.background
+    ) { paddingValues ->
+        Row(
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // ── Left: Encode / Decode form ──
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            body()
+        }
 
             // ── Right: Log panel ──
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {

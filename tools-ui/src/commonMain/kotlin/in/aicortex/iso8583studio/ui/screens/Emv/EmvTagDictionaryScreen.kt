@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.EmvTags
@@ -90,6 +94,15 @@ fun EmvTagDictionaryScreen(
     
     onBack: () -> Unit
 ) {
+    val body: @Composable () -> Unit = {
+                TagSearchCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "EMV Tag Dictionary", onBack = onBack, log = ToolLog(TagDictionaryLogManager.logEntries, onClear = { TagDictionaryLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -102,8 +115,8 @@ fun EmvTagDictionaryScreen(
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Search and Filter
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                TagSearchCard()
-            }
+            body()
+        }
             // Right Panel: Results
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

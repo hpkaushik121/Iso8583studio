@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.dda
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.rsa.RsaPublicKey
@@ -156,6 +162,24 @@ fun DdaScreen(
     val tabList = DdaTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            DdaTabs.RETRIEVE_ISSUER_PK -> RetrieveIssuerPkTabDda()
+                            DdaTabs.RETRIEVE_ICC_PK -> RetrieveIccPkTab()
+                            DdaTabs.VERIFY_SDAD -> VerifySdadTabDda()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "DDA - Dynamic Data Authentication", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(DdaLogManager.getLogEntries(selectedTab.title), onClear = { DdaLogManager.clearLogs(selectedTab.title) })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -192,17 +216,8 @@ fun DdaScreen(
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            DdaTabs.RETRIEVE_ISSUER_PK -> RetrieveIssuerPkTabDda()
-                            DdaTabs.RETRIEVE_ICC_PK -> RetrieveIccPkTab()
-                            DdaTabs.VERIFY_SDAD -> VerifySdadTabDda()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

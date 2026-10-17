@@ -1,5 +1,13 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import ai.cortex.core.toHex
 
 import `in`.aicortex.iso8583studio.platform.nowLogTimestamp
@@ -323,6 +331,18 @@ fun Track2Screen(onBack: () -> Unit) {
     var selectedIndex by remember { mutableStateOf(0) }
     val tabs = Track2Tab.values().toList()
 
+    val body: @Composable () -> Unit = {
+                    when (tabs[selectedIndex]) {
+                        Track2Tab.DECODE -> Track2DecodeCard()
+                        Track2Tab.ENCODE -> Track2EncodeCard()
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Track 2 Encoder / Decoder", onBack = onBack, tabs = tabs.map { ToolTab(it.title, it.icon) }, selectedTab = selectedIndex, onTabSelected = { selectedIndex = it }, log = ToolLog(Track2LogManager.logEntries, onClear = { Track2LogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Track 2 Encoder / Decoder", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -349,11 +369,8 @@ fun Track2Screen(onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    when (tabs[selectedIndex]) {
-                        Track2Tab.DECODE -> Track2DecodeCard()
-                        Track2Tab.ENCODE -> Track2EncodeCard()
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

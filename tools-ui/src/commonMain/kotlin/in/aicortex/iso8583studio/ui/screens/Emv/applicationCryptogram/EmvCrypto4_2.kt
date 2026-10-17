@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.engines.encryption.TdesCalculatorEngine
@@ -177,6 +183,26 @@ fun EmvCrypto4_2(
     val tabList = Emv42CryptoTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            Emv42CryptoTabs.UDK_DERIVATION -> UdkDerivationTab42()
+                            Emv42CryptoTabs.SESSION_KEYS -> SessionKeysTab42()
+                            Emv42CryptoTabs.CRYPTOGRAM -> CryptogramTab42()
+                            Emv42CryptoTabs.ARPC -> ArpcTab42()
+                            Emv42CryptoTabs.UTILITIES -> UtilitiesTab42()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "EMV 4.2 Crypto Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(Emv42LogManager.getLogEntries(selectedTab.title), onClear = { Emv42LogManager.clearLogs(selectedTab.title) })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -213,19 +239,8 @@ fun EmvCrypto4_2(
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            Emv42CryptoTabs.UDK_DERIVATION -> UdkDerivationTab42()
-                            Emv42CryptoTabs.SESSION_KEYS -> SessionKeysTab42()
-                            Emv42CryptoTabs.CRYPTOGRAM -> CryptogramTab42()
-                            Emv42CryptoTabs.ARPC -> ArpcTab42()
-                            Emv42CryptoTabs.UTILITIES -> UtilitiesTab42()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

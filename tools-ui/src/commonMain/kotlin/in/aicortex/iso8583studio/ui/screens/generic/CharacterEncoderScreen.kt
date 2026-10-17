@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.codec.Codecs
@@ -134,6 +138,15 @@ object CharacterEncodingService {
 
 @Composable
 fun CharacterEncodingScreen( onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                EncodingCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Character Encoding Converter", onBack = onBack, log = ToolLog(EncodingLogManager.logEntries, onClear = { EncodingLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Character Encoding Converter", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -141,8 +154,8 @@ fun CharacterEncodingScreen( onBack: () -> Unit) {
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Input
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                EncodingCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

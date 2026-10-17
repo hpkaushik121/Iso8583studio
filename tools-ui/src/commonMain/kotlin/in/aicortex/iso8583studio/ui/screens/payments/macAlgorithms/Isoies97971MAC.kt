@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.primitives.BlockCipher
@@ -152,6 +156,15 @@ object ISO9797Service {
 
 @Composable
 fun ISO9797Screen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                MacGenerationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "ISO/IEC 9797-1 MAC Calculator", onBack = onBack, log = ToolLog(ISO9797LogManager.logEntries, onClear = { ISO9797LogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "ISO/IEC 9797-1 MAC Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -163,8 +176,8 @@ fun ISO9797Screen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
             ) {
-                MacGenerationCard()
-            }
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

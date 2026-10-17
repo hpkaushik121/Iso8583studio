@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import `in`.aicortex.iso8583studio.platform.nowLogTimestamp
@@ -192,6 +196,15 @@ fun ApduResponseQueryScreen(
     
     onBack: () -> Unit
 ) {
+    val body: @Composable () -> Unit = {
+                ApduQueryCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "APDU Response Query", onBack = onBack, log = ToolLog(ApduLogManager.logEntries, onClear = { ApduLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -204,8 +217,8 @@ fun ApduResponseQueryScreen(
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Input
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                ApduQueryCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

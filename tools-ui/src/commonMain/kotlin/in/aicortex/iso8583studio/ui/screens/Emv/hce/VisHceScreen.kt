@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.hce
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.engines.encryption.TdesCalculatorEngine
@@ -130,6 +136,25 @@ fun VisaHceCryptoScreen( onBack: () -> Unit) {
     val tabList = VisaHceCryptoTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            VisaHceCryptoTabs.UDK -> UdkTabVisaHce()
+                            VisaHceCryptoTabs.LUK_KEY -> LukKeyTab()
+                            VisaHceCryptoTabs.MSD -> MsdTab()
+                            VisaHceCryptoTabs.QVSDC -> QvsdcTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Visa HCE Crypto Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(VisaHceLogManager.getLogEntries(selectedTab.title), onClear = { VisaHceLogManager.clearLogs(selectedTab.title) })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Visa HCE Crypto Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -159,18 +184,8 @@ fun VisaHceCryptoScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            VisaHceCryptoTabs.UDK -> UdkTabVisaHce()
-                            VisaHceCryptoTabs.LUK_KEY -> LukKeyTab()
-                            VisaHceCryptoTabs.MSD -> MsdTab()
-                            VisaHceCryptoTabs.QVSDC -> QvsdcTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

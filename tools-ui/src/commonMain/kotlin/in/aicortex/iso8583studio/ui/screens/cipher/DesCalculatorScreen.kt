@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import androidx.compose.ui.text.AnnotatedString
@@ -180,6 +184,15 @@ fun DesCalculatorScreen(onBack: () -> Unit) {
         onDispose { DesCryptoService.logger = null }
     }
 
+    val body: @Composable () -> Unit = {
+                DesCalculatorCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "DES/3DES Calculator", onBack = onBack, log = ToolLog(DesLogManager.logEntries, onClear = { DesLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "DES/3DES Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -190,8 +203,8 @@ fun DesCalculatorScreen(onBack: () -> Unit) {
         ) {
             // Left Panel: Calculator
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                DesCalculatorCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

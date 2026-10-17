@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.emv.EmvCap
@@ -111,6 +115,15 @@ fun CapTokenComputationScreen(
     
     onBack: () -> Unit
 ) {
+    val body: @Composable () -> Unit = {
+                CapCalculationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "CAP Token Computation", onBack = onBack, log = ToolLog(CapLogManager.logEntries, onClear = { CapLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -123,8 +136,8 @@ fun CapTokenComputationScreen(
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Calculation
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                CapCalculationCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

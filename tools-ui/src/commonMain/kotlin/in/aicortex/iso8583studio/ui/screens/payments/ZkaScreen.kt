@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.CryptoUtils
@@ -130,6 +136,24 @@ fun ZKAScreen(onBack: () -> Unit) {
     val tabList = ZKATabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            ZKATabs.SK_DERIVATION -> SKDerivationCard()
+                            ZKATabs.PIN -> PINCard()
+                            ZKATabs.MAC -> MACCard()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "ZKA (Deutsche Kreditwirtschaft)", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(ZKALogManager.logEntries, onClear = { ZKALogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "ZKA (Deutsche Kreditwirtschaft)", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -160,17 +184,8 @@ fun ZKAScreen(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            ZKATabs.SK_DERIVATION -> SKDerivationCard()
-                            ZKATabs.PIN -> PINCard()
-                            ZKATabs.MAC -> MACCard()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

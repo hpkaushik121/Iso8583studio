@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.hsmKeys
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.hsm.VendorKeys
@@ -115,6 +121,23 @@ fun SafenetKeysScreen( onBack: () -> Unit) {
     val tabList = SafenetKeysTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            SafenetKeysTabs.ENCRYPT_DECRYPT -> EncryptDecryptTab()
+                            SafenetKeysTabs.KEY_LOOKUP -> KeyLookupTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Safenet Keys Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(SafenetLogManager.logEntries, onClear = { SafenetLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Safenet Keys Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -144,16 +167,8 @@ fun SafenetKeysScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            SafenetKeysTabs.ENCRYPT_DECRYPT -> EncryptDecryptTab()
-                            SafenetKeysTabs.KEY_LOOKUP -> KeyLookupTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

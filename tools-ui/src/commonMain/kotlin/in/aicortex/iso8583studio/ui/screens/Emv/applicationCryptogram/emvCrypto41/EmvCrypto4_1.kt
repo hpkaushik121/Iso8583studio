@@ -1,5 +1,15 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41
 
+import `in`.aicortex.iso8583studio.ui.screens.components.CalculatorLogManager
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +58,30 @@ fun EmvCrypto4_1(
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabList = EmvCryptoTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
+
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        val calculatorTabs = remember {
+            listOf(
+                CalculatorTab("UDK Derivation", Icons.Default.Key) { m, t -> UdkDerivationTab(m, t) },
+                CalculatorTab("Session Keys", Icons.Default.VpnKey) { m, t -> SessionKeysTab(m, t) },
+                CalculatorTab("Cryptogram", Icons.Default.Security) { m, t -> CryptogramTab(m, t) },
+                CalculatorTab("ARPC", Icons.Default.Reply) { m, t -> ArpcTab(m, t) },
+                CalculatorTab("Utilities", Icons.Default.Build) { m, t -> UtilitiesTab(m, t) },
+            )
+        }
+        val manager = remember(calculatorTabs) { CalculatorLogManager(calculatorTabs) }
+        val current = calculatorTabs[selectedTabIndex]
+        chrome.Screen(
+            ToolScreenSpec(
+                title = "EMV 4.1 Crypto Calculator", onBack = onBack,
+                tabs = calculatorTabs.map { ToolTab(it.title, it.icon) },
+                selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it },
+                log = ToolLog(manager.getLogEntries(current), onClear = { manager.clearLogs(current) }),
+            )
+        ) { current.content(manager, current) }
+        return
+    }
 
     Scaffold(
         topBar = {

@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.pin.PinCrypto
@@ -122,6 +126,15 @@ object AESPinBlockService {
 
 @Composable
 fun AESPinBlockScreen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                AESPinBlockCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "AES PIN Block (Format 4)", onBack = onBack, log = ToolLog(AESPinBlockLogManager.logEntries, onClear = { AESPinBlockLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "AES PIN Block (Format 4)", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -133,8 +146,8 @@ fun AESPinBlockScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
             ) {
-                AESPinBlockCard()
-            }
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import kotlinx.coroutines.withContext
@@ -142,6 +148,24 @@ fun ThalesRsaScreen( onBack: () -> Unit) {
     val tabList = ThalesRsaTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            ThalesRsaTabs.GENERATE -> GenerateTab()
+                            ThalesRsaTabs.KEY_BLOCK -> KeyBlockTab()
+                            ThalesRsaTabs.LMK_VARIANT -> LmkVariantTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Thales RSA Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(ThalesRsaLogManager.logEntries, onClear = { ThalesRsaLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Thales RSA Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -171,17 +195,8 @@ fun ThalesRsaScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            ThalesRsaTabs.GENERATE -> GenerateTab()
-                            ThalesRsaTabs.KEY_BLOCK -> KeyBlockTab()
-                            ThalesRsaTabs.LMK_VARIANT -> LmkVariantTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

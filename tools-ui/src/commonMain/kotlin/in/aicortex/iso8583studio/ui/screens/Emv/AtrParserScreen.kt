@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.emv.Atr
@@ -89,6 +93,15 @@ fun AtrParserScreen(
     
     onBack: () -> Unit
 ) {
+    val body: @Composable () -> Unit = {
+                DataInputCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Atr Parser", onBack = onBack, log = ToolLog(AtrParserLogManager.logEntries, onClear = { AtrParserLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -101,8 +114,8 @@ fun AtrParserScreen(
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Input
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                DataInputCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

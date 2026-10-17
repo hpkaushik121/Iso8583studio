@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.xorWith
@@ -257,6 +263,25 @@ fun DeaKeysScreen( onBack: () -> Unit) {
     val tabList = DeaKeysTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            DeaKeysTabs.KEY_GENERATOR -> KeyGeneratorTab()
+                            DeaKeysTabs.KEY_COMBINATION -> KeyCombinationTab()
+                            DeaKeysTabs.PARITY_ENFORCEMENT -> ParityEnforcementTab()
+                            DeaKeysTabs.KEY_VALIDATION -> KeyValidationTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "DEA Keys Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(DeaKeysLogManager.logEntries, onClear = { DeaKeysLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "DEA Keys Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -286,18 +311,8 @@ fun DeaKeysScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            DeaKeysTabs.KEY_GENERATOR -> KeyGeneratorTab()
-                            DeaKeysTabs.KEY_COMBINATION -> KeyCombinationTab()
-                            DeaKeysTabs.PARITY_ENFORCEMENT -> ParityEnforcementTab()
-                            DeaKeysTabs.KEY_VALIDATION -> KeyValidationTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

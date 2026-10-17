@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.EMVTagParser
@@ -96,6 +100,15 @@ fun EmvDataParserScreen(
     
     onBack: () -> Unit
 ) {
+    val body: @Composable () -> Unit = {
+                DataParserCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "EMV Data Parser", onBack = onBack, log = ToolLog(EmvParserLogManager.logEntries, onClear = { EmvParserLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -108,8 +121,8 @@ fun EmvDataParserScreen(
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Input
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                DataParserCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

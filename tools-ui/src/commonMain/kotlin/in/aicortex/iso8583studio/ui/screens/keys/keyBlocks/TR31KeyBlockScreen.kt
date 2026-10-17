@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.tr31keyblock
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.types.CipherMode
@@ -368,6 +374,23 @@ fun Tr31KeyBlockScreen( onBack: () -> Unit) {
     val tabList = Tr31KeyBlockTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            Tr31KeyBlockTabs.ENCODE -> EncodeTab()
+                            Tr31KeyBlockTabs.DECODE -> DecodeTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "TR-31 Key block", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(Tr31LogManager.logEntries, onClear = { Tr31LogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "TR-31 Key block", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -395,16 +418,8 @@ fun Tr31KeyBlockScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            Tr31KeyBlockTabs.ENCODE -> EncodeTab()
-                            Tr31KeyBlockTabs.DECODE -> DecodeTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

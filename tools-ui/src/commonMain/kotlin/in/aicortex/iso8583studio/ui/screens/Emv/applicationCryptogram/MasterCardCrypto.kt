@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.CryptoUtils
@@ -158,6 +164,26 @@ fun MastercardCryptoScreen(
     val tabList = MastercardCryptoTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            MastercardCryptoTabs.UDK -> UdkTab()
+                            MastercardCryptoTabs.SESSION_KEY_EMV_2000 -> SessionKeyEmv2000Tab()
+                            MastercardCryptoTabs.SESSION_KEYS -> SessionKeysTab()
+                            MastercardCryptoTabs.CRYPTOGRAM -> CryptogramTab()
+                            MastercardCryptoTabs.ARPC -> ArpcTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "MasterCard M/Chip Crypto Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(MastercardLogManager.getLogEntries(selectedTab.title), onClear = { MastercardLogManager.clearLogs(selectedTab.title) })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -194,19 +220,8 @@ fun MastercardCryptoScreen(
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            MastercardCryptoTabs.UDK -> UdkTab()
-                            MastercardCryptoTabs.SESSION_KEY_EMV_2000 -> SessionKeyEmv2000Tab()
-                            MastercardCryptoTabs.SESSION_KEYS -> SessionKeysTab()
-                            MastercardCryptoTabs.CRYPTOGRAM -> CryptogramTab()
-                            MastercardCryptoTabs.ARPC -> ArpcTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

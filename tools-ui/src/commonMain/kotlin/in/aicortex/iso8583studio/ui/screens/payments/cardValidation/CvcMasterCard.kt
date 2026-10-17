@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.card.CardVerification
@@ -137,6 +143,23 @@ fun CVC3Screen(onBack: () -> Unit) {
     val tabList = CVC3Tabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            CVC3Tabs.GENERATE -> GenerateCard()
+                            CVC3Tabs.VALIDATE -> ValidateCard()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "MasterCard CVC3", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(CVC3LogManager.logEntries, onClear = { CVC3LogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "MasterCard CVC3", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -169,16 +192,8 @@ fun CVC3Screen(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            CVC3Tabs.GENERATE -> GenerateCard()
-                            CVC3Tabs.VALIDATE -> ValidateCard()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

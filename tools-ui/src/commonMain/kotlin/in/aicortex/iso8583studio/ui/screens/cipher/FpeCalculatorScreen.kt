@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.fpe
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.fpe.Fpe
@@ -118,6 +124,26 @@ fun FpeCalculatorScreen( onBack: () -> Unit) {
     val tabList = FpeTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            FpeTabs.FF1 -> FpeTab(title = "FPE-FF1")
+                            FpeTabs.FF2 -> FpeTab(title = "FPE-FF2 (VAES3)", hasTweakRadix = true)
+                            FpeTabs.FF3 -> FpeTab(title = "FPE-FF3")
+                            FpeTabs.FF3_1 -> FpeTab(title = "FPE-FF3-1")
+                            FpeTabs.DFF -> FpeTab(title = "FPE-DFF[OFF-2]", hasTweakRadix = true)
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Format-Preserving Encryption", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(FpeLogManager.logEntries, onClear = { FpeLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Format-Preserving Encryption", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -147,19 +173,8 @@ fun FpeCalculatorScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            FpeTabs.FF1 -> FpeTab(title = "FPE-FF1")
-                            FpeTabs.FF2 -> FpeTab(title = "FPE-FF2 (VAES3)", hasTweakRadix = true)
-                            FpeTabs.FF3 -> FpeTab(title = "FPE-FF3")
-                            FpeTabs.FF3_1 -> FpeTab(title = "FPE-FF3-1")
-                            FpeTabs.DFF -> FpeTab(title = "FPE-DFF[OFF-2]", hasTweakRadix = true)
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
 import androidx.compose.ui.text.AnnotatedString
 
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -86,28 +90,7 @@ fun BitmapScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            AppBarWithBack(
-                title = "Bitmap Calculator",
-                onBackClick = onBack,
-                actions = {
-                    IconButton(onClick = ::clearAll) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Clear All")
-                    }
-                }
-            )
-        },
-        backgroundColor = MaterialTheme.colors.background
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()), // Keep scroll for smaller window sizes
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+    val body: @Composable () -> Unit = {
             // --- Output Card ---
             SectionHeader(title = "Calculated Bitmap", icon = Icons.Default.DataObject)
             FixedOutlinedTextField(
@@ -177,6 +160,43 @@ fun BitmapScreen(
                     )
                 }
             }
+        
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(
+            ToolScreenSpec(
+                title = "Bitmap Calculator", onBack = onBack, log = null,
+                actions = { IconButton(onClick = ::clearAll) { Icon(Icons.Default.Refresh, contentDescription = "Clear All") } },
+            )
+        ) {
+            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) { body() }
+        }
+        return
+    }
+    Scaffold(
+        topBar = {
+            AppBarWithBack(
+                title = "Bitmap Calculator",
+                onBackClick = onBack,
+                actions = {
+                    IconButton(onClick = ::clearAll) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Clear All")
+                    }
+                }
+            )
+        },
+        backgroundColor = MaterialTheme.colors.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()), // Keep scroll for smaller window sizes
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            body()
         }
     }
 }

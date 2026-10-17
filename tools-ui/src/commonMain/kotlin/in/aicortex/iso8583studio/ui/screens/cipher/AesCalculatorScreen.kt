@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.types.PaddingMethods
@@ -138,6 +142,15 @@ private enum class AesTabs(val title: String, val icon: ImageVector) {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AesCalculatorScreen( onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                AesCalculatorCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "AES Calculator", onBack = onBack, log = ToolLog(AesLogManager.logEntries, onClear = { AesLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "AES Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -145,8 +158,8 @@ fun AesCalculatorScreen( onBack: () -> Unit) {
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Input
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                AesCalculatorCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

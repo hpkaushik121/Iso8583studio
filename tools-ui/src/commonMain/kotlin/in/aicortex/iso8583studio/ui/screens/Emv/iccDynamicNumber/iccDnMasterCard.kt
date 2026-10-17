@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.iccDynamicNumber
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.emv.EmvCap
@@ -122,6 +126,15 @@ fun IccDynamicNumberScreen(
     
     onBack: () -> Unit
 ) {
+    val body: @Composable () -> Unit = {
+                IccDnCalculationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "ICC Dynamic Number - MasterCard", onBack = onBack, log = ToolLog(IccDnLogManager.logEntries, onClear = { IccDnLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -134,8 +147,8 @@ fun IccDynamicNumberScreen(
         Row(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Left Panel: Calculation
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                IccDnCalculationCard()
-            }
+            body()
+        }
             // Right Panel: Logs
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {

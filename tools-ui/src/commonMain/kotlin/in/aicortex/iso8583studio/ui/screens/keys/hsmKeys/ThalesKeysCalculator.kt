@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.thaleskeys
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.hsm.ThalesLmk
@@ -119,6 +125,23 @@ fun ThalesKeysScreen( onBack: () -> Unit) {
     val tabList = ThalesKeysTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            ThalesKeysTabs.ENCRYPT_DECRYPT -> EncryptDecryptTab()
+                            ThalesKeysTabs.KEY_LOOKUP -> KeyLookupTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Thales Keys Encryption/Decoding", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(ThalesLogManager.logEntries, onClear = { ThalesLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Thales Keys Encryption/Decoding", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -146,16 +169,8 @@ fun ThalesKeysScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            ThalesKeysTabs.ENCRYPT_DECRYPT -> EncryptDecryptTab()
-                            ThalesKeysTabs.KEY_LOOKUP -> KeyLookupTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

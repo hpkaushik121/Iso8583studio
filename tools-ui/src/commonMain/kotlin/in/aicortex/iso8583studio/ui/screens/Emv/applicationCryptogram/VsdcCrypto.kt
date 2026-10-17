@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.crypto.engines.encryption.TdesCalculatorEngine
@@ -157,6 +163,25 @@ fun VsdcCryptoScreen(
     val tabList = VsdcCryptoTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            VsdcCryptoTabs.UDK -> UdkTabVsdc()
+                            VsdcCryptoTabs.SESSION_KEYS -> SessionKeysTabVsdc()
+                            VsdcCryptoTabs.CRYPTOGRAM -> CryptogramTabVsdc()
+                            VsdcCryptoTabs.ARPC -> ArpcTabVsdc()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "VSDC Crypto Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(VsdcLogManager.getLogEntries(selectedTab.title), onClear = { VsdcLogManager.clearLogs(selectedTab.title) })), content = body)
+        return
+    }
     Scaffold(
         topBar = {
             AppBarWithBack(
@@ -193,18 +218,8 @@ fun VsdcCryptoScreen(
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            VsdcCryptoTabs.UDK -> UdkTabVsdc()
-                            VsdcCryptoTabs.SESSION_KEYS -> SessionKeysTabVsdc()
-                            VsdcCryptoTabs.CRYPTOGRAM -> CryptogramTabVsdc()
-                            VsdcCryptoTabs.ARPC -> ArpcTabVsdc()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

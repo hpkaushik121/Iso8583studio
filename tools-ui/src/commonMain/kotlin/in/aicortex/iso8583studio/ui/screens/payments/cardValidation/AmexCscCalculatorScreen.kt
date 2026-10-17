@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.card.CardVerification
@@ -137,6 +143,23 @@ fun AmexCvvScreen( onBack: () -> Unit) {
     val tabList = AmexCvvTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            AmexCvvTabs.GENERATE -> CvvForm(isValidation = false)
+                            AmexCvvTabs.VALIDATE -> CvvForm(isValidation = true)
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Amex CSC Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(AmexCvvLogManager.logEntries, onClear = { AmexCvvLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Amex CSC Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -164,16 +187,8 @@ fun AmexCvvScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            AmexCvvTabs.GENERATE -> CvvForm(isValidation = false)
-                            AmexCvvTabs.VALIDATE -> CvvForm(isValidation = true)
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(

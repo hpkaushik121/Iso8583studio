@@ -1,5 +1,9 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import ai.cortex.core.toHexUpper
@@ -112,6 +116,15 @@ object HMACService {
 
 @Composable
 fun HMACScreen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                HMACGenerationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "HMAC Calculator", onBack = onBack, log = ToolLog(HMACLogManager.logEntries, onClear = { HMACLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "HMAC Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -123,8 +136,8 @@ fun HMACScreen(onBack: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
             ) {
-                HMACGenerationCard()
-            }
+            body()
+        }
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Panel {
                     LogPanelWithAutoScroll(

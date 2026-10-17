@@ -1,5 +1,11 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.hsmKeys
 
+import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 
 import io.cryptocalc.hsm.VendorKeys
@@ -120,6 +126,23 @@ fun AtallaKeysScreen( onBack: () -> Unit) {
     val tabList = AtallaKeysTabs.values().toList()
     val selectedTab = tabList[selectedTabIndex]
 
+    val body: @Composable () -> Unit = {
+                    PersistentTabContent(
+                        selectedTab = selectedTab,
+                        tabs = tabList
+                    ) { tab ->
+                        when (tab) {
+                            AtallaKeysTabs.KEY_ENCRYPTION -> KeyEncryptionTab()
+                            AtallaKeysTabs.AKB_DECODE -> AkbDecodeTab()
+                        }
+                    }
+                
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "Atalla Keys Calculator", onBack = onBack, tabs = tabList.map { ToolTab(it.title, it.icon) }, selectedTab = selectedTabIndex, onTabSelected = { selectedTabIndex = it }, log = ToolLog(AtallaLogManager.logEntries, onClear = { AtallaLogManager.clearLogs() })), content = body)
+        return
+    }
     Scaffold(
         topBar = { AppBarWithBack(title = "Atalla Keys Calculator", onBackClick = onBack) },
         backgroundColor = MaterialTheme.colors.background
@@ -149,16 +172,8 @@ fun AtallaKeysScreen( onBack: () -> Unit) {
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    PersistentTabContent(
-                        selectedTab = selectedTab,
-                        tabs = tabList
-                    ) { tab ->
-                        when (tab) {
-                            AtallaKeysTabs.KEY_ENCRYPTION -> KeyEncryptionTab()
-                            AtallaKeysTabs.AKB_DECODE -> AkbDecodeTab()
-                        }
-                    }
-                }
+            body()
+        }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     Panel {
                         LogPanelWithAutoScroll(
