@@ -160,3 +160,13 @@ compose.desktop {
         }
     }
 }
+// Golden screenshots of every tool screen (ToolScreenGoldenTest). Record with
+// -Pgolden=record, compare with -Pgolden=compare; without the property the test is a no-op so
+// CI never depends on this machine's font rasterisation.
+tasks.withType<Test>().configureEach {
+    systemProperty("golden.mode", (project.findProperty("golden") ?: "").toString())
+    systemProperty("golden.dir", project.file("src/desktopTest/resources/golden").absolutePath)
+    systemProperty("golden.report", project.layout.buildDirectory.dir("reports/golden").get().asFile.absolutePath)
+    jvmArgs("-Dskiko.renderApi=SOFTWARE", "-Djava.awt.headless=true")
+    maxHeapSize = "3g"
+}
