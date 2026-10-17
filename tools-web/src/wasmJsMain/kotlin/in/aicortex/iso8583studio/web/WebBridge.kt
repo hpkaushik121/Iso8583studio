@@ -12,6 +12,10 @@ import kotlinx.browser.window
 private fun postToParent(json: String): Unit =
     js("{ try { if (window.parent && window.parent !== window) { window.parent.postMessage(JSON.parse(json), window.location.origin); } } catch (e) {} }")
 
+@Suppress("UNUSED_PARAMETER")
+private fun postToSelf(json: String): Unit =
+    js("{ try { window.postMessage(JSON.parse(json), window.location.origin); } catch (e) {} }")
+
 object WebBridge {
     private const val SOURCE = "iso8583-tools"
 
@@ -34,7 +38,11 @@ object WebBridge {
         postToParent(body)
     }
 
-    fun postReady() = post("app_ready")
+    /** Posted to the embedding page and to this window itself, so the page's own loader can hide when the app runs standalone. */
+    fun postReady() {
+        post("app_ready")
+        postToSelf("{\"source\":\"$SOURCE\",\"type\":\"app_ready\"}")
+    }
 
     fun postRoute(toolId: String?) = post("route", mapOf("tool" to (toolId ?: "")))
 

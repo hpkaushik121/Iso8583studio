@@ -33,8 +33,16 @@ kotlin {
             implementation(compose.ui)
             implementation(libs.material.icons)
             implementation(libs.kotlinx.browser)
+            implementation(compose.components.resources)
         }
     }
+}
+
+// Bundled IBM Plex fonts (tools-web/fonts/README.md). The generated class lives outside the
+// backticked `in` package so the generator emits plain Kotlin.
+compose.resources {
+    packageOfResClass = "iso8583studio.web.res"
+    generateResClass = org.jetbrains.compose.resources.ResourcesExtension.ResourceClassGeneration.Always
 }
 
 // Production bundle -> web/public/app (gitignored). Angular copies public/** into its dist,

@@ -73,13 +73,13 @@ const EVENT_TYPES = new Set(['calculation_run', 'tool_open', 'tool_close', 'app_
   styles: `
     :host { display: block; }
     .ta-intro { padding: calc(var(--nav-h, 72px) + var(--sp-8, 2rem)) var(--gutter, 1rem) var(--sp-4, 1rem); max-width: var(--nav-max, 1300px); margin: 0 auto; }
-    .ta-eyebrow { font-family: var(--font-mono, monospace); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-accent, inherit); margin: 0 0 0.5rem; }
+    .ta-eyebrow { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue-hi); margin: 0 0 0.5rem; }
     .ta-title { font-size: clamp(1.6rem, 3vw, 2.4rem); line-height: 1.15; margin: 0 0 0.75rem; }
     .ta-lede { font-size: 1.05rem; line-height: 1.6; margin: 0 0 0.5rem; max-width: 60ch; }
     .ta-meta { font-size: 0.9rem; opacity: 0.8; margin: 0; }
-    .ta-frame-wrap { position: relative; width: 100%; height: calc(100dvh - var(--header-h, 64px)); min-height: 560px; }
-    .ta-frame { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
-    .ta-notice { display: flex; gap: 0.75rem; align-items: flex-start; margin: 0 var(--gutter, 1rem) 1rem; padding: 1rem; border-radius: 12px; border: 1px solid var(--c-border, currentColor); }
+    .ta-frame-wrap { position: relative; width: 100%; height: calc(100dvh - var(--nav-h, 72px)); min-height: 560px; background: var(--canvas); }
+    .ta-frame { display: block; width: 100%; height: 100%; border: 0; background: var(--canvas); }
+    .ta-notice { display: flex; gap: 0.75rem; align-items: flex-start; margin: 0 var(--gutter, 1rem) 1rem; padding: 1rem; border-radius: 12px; border: 1px solid var(--amber-line); background: var(--amber-wash); color: var(--amber-hi); }
     .ta-notice ui-icon { flex: none; width: 22px; height: 22px; }
   `,
 })

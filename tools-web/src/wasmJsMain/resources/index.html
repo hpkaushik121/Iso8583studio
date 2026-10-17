@@ -6,6 +6,10 @@
   <!-- The app has no crawlable content; the site's /tools/app page is the indexable entry. -->
   <meta name="robots" content="noindex">
   <title>ISO8583Studio Tools</title>
+  <meta name="theme-color" content="#0f1017">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -50,14 +54,11 @@
           if (l) l.hidden = true;
         }
       });
-      var hideLoader = function () {
+      // Fallback: if app_ready never arrives (an old build, a stalled font), do not hide the app forever.
+      setTimeout(function () {
         var l = document.getElementById('loader');
         if (l) l.hidden = true;
-      };
-      // Fallback: once a canvas exists Compose is drawing; the loader can go.
-      var poll = setInterval(function () {
-        if (document.querySelector('canvas')) { hideLoader(); clearInterval(poll); }
-      }, 250);
+      }, 8000);
 
       var s = document.createElement('script');
       s.type = 'application/javascript';

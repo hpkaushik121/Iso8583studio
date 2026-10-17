@@ -44,15 +44,14 @@ import `in`.aicortex.iso8583studio.platform.epochMillis
 import `in`.aicortex.iso8583studio.tools.ToolCatalog
 import `in`.aicortex.iso8583studio.tools.ToolCategory
 import `in`.aicortex.iso8583studio.tools.WebTool
-import `in`.aicortex.iso8583studio.ui.DarkColorPalette
-import `in`.aicortex.iso8583studio.ui.LightColorPalette
-import `in`.aicortex.iso8583studio.ui.Shapes
-import `in`.aicortex.iso8583studio.ui.Typography
 import `in`.aicortex.iso8583studio.ui.WarningYellow
+import androidx.compose.runtime.CompositionLocalProvider
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+import `in`.aicortex.iso8583studio.web.chrome.GlassChrome
+import `in`.aicortex.iso8583studio.web.theme.GlassTheme
+import `in`.aicortex.iso8583studio.web.theme.rememberGlassFonts
 import kotlinx.browser.window
 import org.w3c.dom.events.Event
-
-private fun prefersDark(): Boolean = js("window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches")
 
 /** Minimum width a two-column calculator layout needs before it squashes. */
 private const val MIN_TOOL_WIDTH_DP = 720
@@ -78,16 +77,19 @@ fun ToolsWebApp() {
     val tool = ToolCatalog.byId(route)
     LaunchedEffect(tool?.id) { WebBridge.postRoute(tool?.id) }
 
-    MaterialTheme(
-        colors = if (prefersDark()) DarkColorPalette else LightColorPalette,
-        typography = Typography,
-        shapes = Shapes,
-    ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
-            if (tool == null) {
-                HomeGrid(onOpen = { navigate(it.id) })
-            } else {
-                ToolHost(tool, onBack = { navigate(null) })
+    // Nothing draws until the bundled fonts are in, so no text ever appears in the fallback face;
+    // the page's DOM loader stays up until app_ready.
+    val fonts = rememberGlassFonts() ?: return
+    LaunchedEffect(Unit) { WebBridge.postReady() }
+
+    GlassTheme(fonts) {
+        CompositionLocalProvider(LocalToolChrome provides GlassChrome) {
+            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
+                if (tool == null) {
+                    HomeGrid(onOpen = { navigate(it.id) })
+                } else {
+                    ToolHost(tool, onBack = { navigate(null) })
+                }
             }
         }
     }

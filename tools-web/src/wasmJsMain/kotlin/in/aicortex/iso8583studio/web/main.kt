@@ -14,5 +14,5 @@ fun main() {
     ComposeViewport(document.body!!) {
         ToolsWebApp()
     }
-    WebBridge.postReady()
+    // app_ready is posted by ToolsWebApp once the bundled fonts are loaded and the first frame can draw.
 }
