@@ -22,7 +22,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import kotlinx.coroutines.delay
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -96,7 +110,14 @@ private fun lineColours(kind: LogKind, c: `in`.aicortex.iso8583studio.web.theme.
 
 private fun stampOf(timestamp: String): String = if (timestamp.length >= 8 && timestamp[2] == ':' && timestamp[5] == ':') timestamp.substring(3, 8) else timestamp.take(5)
 
-/** The `.gp-log` activity log: stamp | tag | text rows, expandable details, idle caret. */
+/**
+ * The `.gp-log` activity log: stamp | tag | text rows with their details inline.
+ *
+ * Compose for Web cannot copy a drag selection (the selection manager skips the copy key on web
+ * and the toolbar only appears in touch mode), so copying is explicit here: click a value in the
+ * details to copy it, click a row and press Ctrl/Cmd+C to copy the whole entry, or use the copy
+ * icon. The header confirms what was copied.
+ */
 @Composable
 fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier, onCollapse: (() -> Unit)? = null) {
     val c = Glass.colors
@@ -113,13 +134,34 @@ fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier, onCollapse: (() -
     }
     LaunchedEffect(entries.isEmpty()) { if (entries.isEmpty()) autoScroll = true }
 
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf<String?>(null) }
+    var copyTick by remember { mutableStateOf(0) }
+    LaunchedEffect(copyTick) { if (copyTick > 0) { delay(1600); copied = null } }
+    val copy: (String, String) -> Unit = { label, text -> clipboard.setText(AnnotatedString(text)); copied = label; copyTick++ }
+    var activeId by remember { mutableStateOf<String?>(null) }
+    val focusRequester = remember { FocusRequester() }
+
     Column(
-        modifier = modifier.clip(GlassShapes.tile).background(c.logBg).border(1.dp, c.logBorder, GlassShapes.tile).insetTop(c.boxInset.copy(alpha = 0.35f)),
+        modifier = modifier.clip(GlassShapes.tile).background(c.logBg).border(1.dp, c.logBorder, GlassShapes.tile).insetTop(c.boxInset.copy(alpha = 0.35f))
+            .focusRequester(focusRequester).focusable()
+            .onKeyEvent { event ->
+                val isCopy = event.type == KeyEventType.KeyDown && event.key == Key.C && (event.isCtrlPressed || event.isMetaPressed)
+                val entry = entries.firstOrNull { it.id == activeId } ?: entries.lastOrNull()
+                if (isCopy && entry != null) { copy("entry", entryText(entry)); true } else false
+            },
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text((log.label ?: "Activity log").uppercase(), style = MaterialTheme.typography.overline, color = c.faint)
             Spacer(Modifier.weight(1f))
-            Text(when (entries.size) { 0 -> "idle"; 1 -> "1 entry"; else -> "${entries.size} entries" }, style = Glass.type.small, color = c.faint)
+            val note = copied
+            if (note != null) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = c.tealHi, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("copied $note", style = Glass.type.small, color = c.tealHi)
+            } else {
+                Text(when (entries.size) { 0 -> "idle"; 1 -> "1 entry"; else -> "${entries.size} entries" }, style = Glass.type.small, color = c.faint)
+            }
             if (entries.isNotEmpty()) {
                 Spacer(Modifier.width(8.dp))
                 GhostIcon(Icons.Default.Delete, "Clear log", size = 20.dp, onClick = log.onClear)
@@ -134,11 +176,21 @@ fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier, onCollapse: (() -
             IdleLines()
         } else {
             LazyColumn(state = listState, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                items(entries, key = { it.id }) { entry -> LogLine(entry) }
+                items(entries, key = { it.id }) { entry ->
+                    LogLine(
+                        entry = entry,
+                        active = entry.id == activeId,
+                        onActivate = { activeId = entry.id; focusRequester.requestFocus() },
+                        onCopy = copy,
+                    )
+                }
             }
         }
     }
 }
+
+/** What Ctrl/Cmd+C and the copy icon put on the clipboard for an entry. */
+private fun entryText(entry: LogEntry): String = entry.details?.takeIf { it.isNotBlank() } ?: entry.message
 
 /** The collapsed activity log on stacked layouts: one row with the newest result that opens the drawer. */
 @Composable
@@ -191,17 +243,18 @@ private fun IdleLines() {
 }
 
 @Composable
-private fun LogLine(entry: LogEntry) {
+private fun LogLine(entry: LogEntry, active: Boolean, onActivate: () -> Unit, onCopy: (String, String) -> Unit) {
     val c = Glass.colors
     val kind = remember(entry) { kindOf(entry) }
     val summary = remember(entry) { summaryOf(entry, kind) }
-    var expanded by remember { mutableStateOf(false) }
     val hasDetails = !entry.details.isNullOrBlank()
-    val clipboard = LocalClipboardManager.current
+    var expanded by remember { mutableStateOf(true) }
     val (tagColour, textColour, wash) = lineColours(kind, c)
+    val shape = RoundedCornerShape(6.dp)
     Column(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(wash)
-            .clickable(enabled = hasDetails, indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) { expanded = !expanded }
+        modifier = Modifier.fillMaxWidth().clip(shape).background(wash)
+            .then(if (active) Modifier.border(1.dp, c.lineHi, shape) else Modifier)
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }, onClick = onActivate)
             .padding(horizontal = 5.dp, vertical = 4.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
@@ -215,6 +268,10 @@ private fun LogLine(entry: LogEntry) {
                 style = Glass.type.log, color = textColour,
                 maxLines = if (expanded) Int.MAX_VALUE else 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
             )
+            if (hasDetails) {
+                Spacer(Modifier.width(4.dp))
+                GhostIcon(if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, if (expanded) "Hide details" else "Show details", size = 18.dp) { expanded = !expanded }
+            }
         }
         if (expanded && hasDetails) {
             Column(
@@ -223,10 +280,44 @@ private fun LogLine(entry: LogEntry) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("DETAILS", style = Glass.type.path, color = c.faint)
                     Spacer(Modifier.weight(1f))
-                    GhostIcon(Icons.Default.ContentCopy, "Copy details", size = 20.dp) { clipboard.setText(AnnotatedString(entry.details ?: "")) }
+                    Text("click a value to copy it", style = Glass.type.small, color = c.faint)
+                    Spacer(Modifier.width(8.dp))
+                    GhostIcon(Icons.Default.ContentCopy, "Copy all details", size = 20.dp) { onCopy("details", entry.details ?: "") }
                 }
                 Spacer(Modifier.height(6.dp))
-                SelectionContainer { Text(entry.details ?: "", style = Glass.type.details, color = c.muted) }
+                entry.details.orEmpty().lines().forEach { line -> DetailLine(line, onCopy) }
+            }
+        }
+    }
+}
+
+private val KEY_VALUE = Regex("""^(\s*)([^:]{1,40}):\s+(\S.*)$""")
+
+/** One line of an entry's details: `Key: value` lines get a click-to-copy value, others stay plain text. */
+@Composable
+private fun DetailLine(line: String, onCopy: (String, String) -> Unit) {
+    val c = Glass.colors
+    val match = KEY_VALUE.find(line)
+    if (match == null) {
+        Text(line, style = Glass.type.details, color = c.muted)
+        return
+    }
+    val (indent, key, value) = match.destructured
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    Row(verticalAlignment = Alignment.Top) {
+        Text("$indent$key: ", style = Glass.type.details, color = c.muted)
+        Row(
+            modifier = Modifier.weight(1f, fill = false).clip(RoundedCornerShape(4.dp)).background(if (hovered) c.ghostBg else Color.Transparent)
+                .hoverable(interaction).pointerHoverIcon(PointerIcon.Hand)
+                .clickable(interactionSource = interaction, indication = null) { onCopy(key.trim(), value) }
+                .padding(horizontal = 3.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text(value, style = Glass.type.details, color = if (hovered) c.text else c.muted, modifier = Modifier.weight(1f, fill = false))
+            if (hovered) {
+                Spacer(Modifier.width(5.dp))
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy $key", tint = c.faint, modifier = Modifier.size(11.dp).padding(top = 1.dp))
             }
         }
     }
