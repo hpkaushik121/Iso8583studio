@@ -33,6 +33,7 @@ import `in`.aicortex.iso8583studio.domain.ImportResult
 import `in`.aicortex.iso8583studio.domain.utils.ExportResult
 import `in`.aicortex.iso8583studio.domain.utils.FileExporter
 import `in`.aicortex.iso8583studio.ui.AppTheme
+import `in`.aicortex.iso8583studio.ui.screens.components.LocalBackNavigationAvailable
 import `in`.aicortex.iso8583studio.ui.ErrorRed
 import `in`.aicortex.iso8583studio.ui.Studio.appState
 import `in`.aicortex.iso8583studio.ui.SuccessGreen
@@ -610,8 +611,12 @@ private fun SessionContent(
                     // Fix: call saveableState with a session-unique suffix instead of the fixed
                     // "currentScreen" used by CurrentScreen(). This keeps all lifecycle/state
                     // management intact while guaranteeing key uniqueness in the shared holder.
-                    nav.saveableState("session_${session.id}") {
-                        nav.lastItem.Content()
+                    // A tool tab starts at the bottom of its own stack: until the tool pushes a
+                    // screen of its own, the back arrow has nowhere to go, so it is not shown.
+                    CompositionLocalProvider(LocalBackNavigationAvailable provides nav.canPop) {
+                        nav.saveableState("session_${session.id}") {
+                            nav.lastItem.Content()
+                        }
                     }
                 }
             } else {

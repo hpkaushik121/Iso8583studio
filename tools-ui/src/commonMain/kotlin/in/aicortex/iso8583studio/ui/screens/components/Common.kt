@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -313,12 +314,20 @@ fun IconActionButton(
 }
 
 // App bar with back button
+/**
+ * Whether a screen's back arrow leads anywhere. A host that shows a screen at the bottom of its
+ * own stack (a tool tab in the desktop app) sets this false and [AppBarWithBack] drops the arrow
+ * instead of showing one that does nothing.
+ */
+val LocalBackNavigationAvailable = staticCompositionLocalOf { true }
+
 @Composable
 fun AppBarWithBack(
     title: String,
     onBackClick: () -> Unit,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    val canGoBack = LocalBackNavigationAvailable.current
     TopAppBar(
         title = {
             Text(
@@ -326,9 +335,11 @@ fun AppBarWithBack(
                 style = MaterialTheme.typography.h6
             )
         },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Go Back")
+        navigationIcon = if (!canGoBack) null else {
+            {
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Go Back")
+                }
             }
         },
         actions = actions,
