@@ -48,6 +48,7 @@ import `in`.aicortex.iso8583studio.ui.WarningYellow
 import androidx.compose.runtime.CompositionLocalProvider
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 import `in`.aicortex.iso8583studio.web.chrome.GlassChrome
+import `in`.aicortex.iso8583studio.web.home.ToolHub
 import `in`.aicortex.iso8583studio.web.theme.GlassTheme
 import `in`.aicortex.iso8583studio.web.theme.rememberGlassFonts
 import kotlinx.browser.window
@@ -67,12 +68,13 @@ fun ToolsWebApp() {
         onDispose { window.removeEventListener("hashchange", listener) }
     }
 
-    fun navigate(toolId: String?) {
-        window.location.hash = if (toolId == null) "/" else "/$toolId"
+    fun navigate(target: String?) {
+        window.location.hash = if (target == null) "/" else "/$target"
     }
 
     val tool = ToolCatalog.byId(route)
-    LaunchedEffect(tool?.id) { WebBridge.postRoute(tool?.id) }
+    val category = if (route.startsWith("c/")) ToolCategory.entries.firstOrNull { it.slug == route.removePrefix("c/") } else null
+    LaunchedEffect(route) { WebBridge.postRoute(tool?.id ?: route.takeIf { category != null }) }
 
     // Nothing draws until the bundled fonts are in, so no text ever appears in the fallback face;
     // the page's DOM loader stays up until app_ready.
@@ -83,9 +85,9 @@ fun ToolsWebApp() {
         CompositionLocalProvider(LocalToolChrome provides GlassChrome) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
                 if (tool == null) {
-                    HomeGrid(onOpen = { navigate(it.id) })
+                    ToolHub(category = category, onCategory = { navigate(it?.let { c -> "c/${c.slug}" }) }, onOpen = { navigate(it.id) })
                 } else {
-                    ToolHost(tool, onBack = { navigate(null) })
+                    ToolHost(tool, onBack = { navigate(if (category != null) "c/${category.slug}" else null) })
                 }
             }
         }
@@ -102,65 +104,5 @@ private fun ToolHost(tool: WebTool, onBack: () -> Unit) {
     // The chrome draws the frame, breadcrumb, badge and the reference-implementation banner from this.
     CompositionLocalProvider(LocalToolContext provides tool) {
         Box(modifier = Modifier.fillMaxSize()) { tool.content(onBack) }
-    }
-}
-
-@Composable
-private fun HomeGrid(onOpen: (WebTool) -> Unit) {
-    val groups = ToolCategory.entries
-        .map { it to ToolCatalog.byCategory(it).filter { t -> t.webReady } }
-        .filter { it.second.isNotEmpty() }
-
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 220.dp),
-        contentPadding = PaddingValues(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Column {
-                Text("ISO8583Studio Tools", style = MaterialTheme.typography.h5, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Payment cryptography calculators running entirely in your browser. Keys and card data never leave this page.",
-                    style = MaterialTheme.typography.body2,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                )
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-        groups.forEach { (category, tools) ->
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
-                    Text(category.label, style = MaterialTheme.typography.subtitle1, fontWeight = FontWeight.SemiBold)
-                    Text(category.description, style = MaterialTheme.typography.caption, color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f))
-                }
-            }
-            items(tools, key = { it.id }) { tool -> ToolCard(tool, onOpen) }
-        }
-    }
-}
-
-@Composable
-private fun ToolCard(tool: WebTool, onOpen: (WebTool) -> Unit) {
-    Card(
-        shape = RoundedCornerShape(10.dp),
-        elevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().clickable { onOpen(tool) }
-    ) {
-        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(tool.icon, contentDescription = null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(26.dp))
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(tool.label, style = MaterialTheme.typography.subtitle2, fontWeight = FontWeight.SemiBold)
-                Text(
-                    tool.description,
-                    style = MaterialTheme.typography.caption,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.65f),
-                    maxLines = 2
-                )
-            }
-        }
     }
 }
