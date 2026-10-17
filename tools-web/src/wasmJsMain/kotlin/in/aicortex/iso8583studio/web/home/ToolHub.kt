@@ -118,7 +118,7 @@ fun ToolHub(category: ToolCategory?, onCategory: (ToolCategory?) -> Unit, onOpen
                     CategoryChips(categories, category, onCategory, ready)
                 }
                 Spacer(Modifier.height(18.dp))
-                TilesPanel(category, shown, categories, ready, onCategory, onOpen, showStages = stages)
+                TilesPanel(category, shown, categories, ready, onCategory, onOpen, showStages = stages, narrow = narrow)
             }
         }
     }
@@ -255,7 +255,7 @@ private fun SearchPill(query: String, onQuery: (String) -> Unit, modifier: Modif
 @Composable
 private fun TilesPanel(
     category: ToolCategory?, shown: List<WebTool>, categories: List<ToolCategory>, ready: List<WebTool>,
-    onCategory: (ToolCategory?) -> Unit, onOpen: (WebTool) -> Unit, showStages: Boolean,
+    onCategory: (ToolCategory?) -> Unit, onOpen: (WebTool) -> Unit, showStages: Boolean, narrow: Boolean,
 ) {
     val c = Glass.colors
     Column(
@@ -276,7 +276,7 @@ private fun TilesPanel(
                         Text(if (showStages) "Categories" else category?.label ?: "All tools", style = MaterialTheme.typography.subtitle1, color = c.text)
                         Text(if (showStages) "Pick a group, or search above" else "${shown.size} ${if (shown.size == 1) "tool" else "tools"} · every value stays in your browser", style = MaterialTheme.typography.caption, color = c.muted)
                     }
-                    Text("HEX-DRIVEN · AUDIT LOG", style = MaterialTheme.typography.overline, color = c.faint)
+                    if (!narrow) Text("HEX-DRIVEN · AUDIT LOG", style = MaterialTheme.typography.overline, color = c.faint)
                 }
             }
             if (showStages) {

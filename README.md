@@ -140,6 +140,8 @@ The calculator suites (EMV, cryptographic, key management, PIN/MAC/DUKPT, card v
 cd web && npm install && npm run build
 ```
 
+The browser version has its own look: `tools-web` renders the shared screens through a `ToolChrome` (`tools-ui/.../ui/chrome/`) that the desktop app never provides, so the desktop keeps its Material look pixel for pixel (guarded by `ToolScreenGoldenTest`, run with `./gradlew :composeApp:desktopTest -Pgolden=compare`) while the web gets the site's glass panels, IBM Plex and a responsive layout.
+
 Module layout: `iso-core-lib` and `cryptocalc` are Kotlin Multiplatform (JVM + Wasm) with pure-Kotlin DES/TDES/AES/RSA/EC/MAC primitives; `tools-ui` holds the Compose screens shared by the desktop app and the web shell in `tools-web`. Known-answer tests run on both targets with `./gradlew :cryptocalc:jvmTest :cryptocalc:wasmJsNodeTest`. Tools marked "reference implementation" in the UI (Futurex, Atalla, SafeNet, Amex CSC, ZKA, AS2805, Visa HCE, DS partial key, issuer scripting SM) follow public descriptions and are kept off the web list until verified against the vendor specification.
 
 ## 🏁 Quick Start

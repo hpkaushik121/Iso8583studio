@@ -56,6 +56,8 @@ import `in`.aicortex.iso8583studio.web.LocalToolContext
 import `in`.aicortex.iso8583studio.web.theme.Glass
 import `in`.aicortex.iso8583studio.web.theme.GlassShapes
 
+private fun prefersReducedMotion(): Boolean = js("!!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)")
+
 private enum class LogKind(val tag: String) { IN("IN"), RUN("RUN"), OUT("OUT"), ERR("ERR"), WARN("WARN") }
 
 private fun kindOf(entry: LogEntry): LogKind = when (entry.type.name) {
@@ -126,12 +128,14 @@ fun GlassLogPanel(log: ToolLog, modifier: Modifier = Modifier) {
 private fun IdleLines() {
     val c = Glass.colors
     val tool = LocalToolContext.current
+    val still = remember { prefersReducedMotion() }
     val transition = rememberInfiniteTransition(label = "caret")
-    val blink by transition.animateFloat(
+    val animated by transition.animateFloat(
         initialValue = 1f, targetValue = 1f,
         animationSpec = infiniteRepeatable(keyframes { durationMillis = 1000; 1f at 0 using LinearEasing; 1f at 499; 0f at 500; 0f at 999 }),
         label = "caret",
     )
+    val blink = if (still) 1f else animated
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
         Text("› session opened · ${tool?.label?.lowercase() ?: "calculator"}", style = Glass.type.log, color = c.faint)
         Row(verticalAlignment = Alignment.CenterVertically) {

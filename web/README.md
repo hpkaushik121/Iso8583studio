@@ -81,6 +81,11 @@ copies into the output. CI runs that Gradle task (JDK 21) before the Angular
 build. Without it the site still builds, but `/tools/app` shows the loader with
 no app behind it and `npm run check` skips the `app/` folder.
 
+The app draws the site's glass design itself (`tools-web/src/wasmJsMain/kotlin/.../web/chrome`),
+with the design tokens from `src/styles/_tokens.css` mirrored by hand in `web/theme/GlassTokens.kt`
+and subset IBM Plex fonts bundled as Compose resources (`tools-web/fonts/README.md`). Change a
+token in both places.
+
 The page embeds `/app/` in an iframe; the hash after `/tools/app/#` names the
 tool (`des-calculator`, `emv-4-1-crypto`, ...) and is mirrored both ways with
 `postMessage`. Tool docs pages link into it through the `app:` slug on their
