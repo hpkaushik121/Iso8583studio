@@ -29,6 +29,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,10 +52,16 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
+import `in`.aicortex.iso8583studio.web.LocalBrowseTools
 import `in`.aicortex.iso8583studio.web.LocalToolContext
+import `in`.aicortex.iso8583studio.web.home.hubPanel
 import `in`.aicortex.iso8583studio.web.badge
 import `in`.aicortex.iso8583studio.web.theme.Glass
 import `in`.aicortex.iso8583studio.web.theme.GlassShapes
@@ -63,70 +70,46 @@ import org.jetbrains.skia.MaskFilter
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.RRect
 
-/** The glass panel that frames a tool on the web: head, tabs, banner, form and activity log. */
+/**
+ * A tool on the web: a title row (back, browse when the tree is hidden, title, category and
+ * description, badge, actions) and one rounded panel holding the tabs, the form and the activity
+ * log, beside each other from 760dp and stacked with the log as a drawer below that.
+ */
 @Composable
 fun GlassScreen(spec: ToolScreenSpec, content: @Composable () -> Unit) {
     val c = Glass.colors
     val tool = LocalToolContext.current
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().background(c.canvas).drawBehind { drawBlobs(c.blobBlue, c.blobTeal, c.blobHi) }
-    ) {
-        val wide = maxWidth >= 900.dp
+    val browse = LocalBrowseTools.current
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(c.canvas)) {
+        val twoCol = maxWidth >= 760.dp
         val narrow = maxWidth < 600.dp
-        val pad = if (narrow) 12.dp else 16.dp
         val showBadge = maxWidth >= 480.dp
         val drawerHeight = minOf(260.dp, maxHeight * 0.42f)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(pad)
-                .clip(GlassShapes.panel)
-                .drawBehind {
-                    drawRoundRect(
-                        Brush.linearGradient(listOf(c.panelTop, c.panelBottom), start = Offset.Zero, end = Offset(size.width * 0.35f, size.height)),
-                        cornerRadius = CornerRadius(16.dp.toPx()),
-                    )
-                }
-                .dotGrid(c.dot)
-                .border(1.dp, c.panelBorder, GlassShapes.panel)
-                .drawWithContent {
-                    drawContent()
-                    drawRect(c.panelInsetHi, topLeft = Offset(0f, 1f), size = Size(size.width, 1f))
-                    drawRect(
-                        Brush.horizontalGradient(listOf(Color.Transparent, c.panelHighlight, Color.Transparent), startX = size.width * 0.1f, endX = size.width * 0.9f),
-                        size = Size(size.width, 1f),
-                    )
-                }
-        ) {
-            // Head: back, window lights, title, breadcrumb, badge, actions.
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Title row.
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 GhostIcon(Icons.Default.ArrowBack, "Back to all tools", onClick = spec.onBack)
-                Spacer(Modifier.width(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { repeat(3) { Box(Modifier.size(8.dp).clip(CircleShape).background(c.windowDot)) } }
-                Spacer(Modifier.width(10.dp))
-                Text(spec.title, style = MaterialTheme.typography.h6, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                Spacer(Modifier.weight(1f))
-                if (tool != null && !narrow) {
-                    val sub = spec.tabs?.getOrNull(spec.selectedTab)?.title ?: tool.description
-                    Text("${tool.category.slug} › $sub".uppercase(), style = Glass.type.path, color = c.faint, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(2f, fill = false))
-                    Spacer(Modifier.width(10.dp))
+                if (browse != null) GhostIcon(Icons.Default.Menu, "Browse tools", onClick = browse)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(spec.title, style = MaterialTheme.typography.h5.copy(fontSize = 20.sp, letterSpacing = TextUnit(-0.02f, TextUnitType.Em)), color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (tool != null && !narrow) {
+                        Spacer(Modifier.height(2.dp))
+                        Text("${tool.category.label} · ${tool.description}", style = MaterialTheme.typography.body2.copy(fontSize = 12.sp), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
+                spec.actions?.let { actions -> actions() }
                 if (tool != null && showBadge) {
                     Text(
-                        tool.category.badge(), style = MaterialTheme.typography.caption.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = c.blueHi,
-                        modifier = Modifier.clip(GlassShapes.pill).background(c.badgeBg).border(1.dp, c.badgeBorder, GlassShapes.pill).padding(horizontal = 9.dp, vertical = 3.dp),
+                        tool.category.badge(), style = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold), color = c.blueHi,
+                        modifier = Modifier.clip(GlassShapes.pill).background(c.badgeBg).border(1.dp, c.badgeBorder, GlassShapes.pill).padding(horizontal = 10.dp, vertical = 5.dp),
                     )
                 }
-                spec.actions?.let { actions -> Spacer(Modifier.width(6.dp)); actions() }
             }
             Hairline()
-            spec.tabs?.let { tabs ->
-                GlassTabs(tabs, spec.selectedTab, spec.onTabSelected)
-                Hairline()
-            }
             val banner: @Composable () -> Unit = {
                 if (tool?.referenceImpl == true) {
                     Row(
@@ -139,22 +122,29 @@ fun GlassScreen(spec: ToolScreenSpec, content: @Composable () -> Unit) {
                     }
                 }
             }
-            // Body: the form keeps a bounded height (as on desktop) so screens scroll themselves.
-            if (wide) {
-                Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) { banner(); content() }
-                    spec.log?.let { GlassLogPanel(it, Modifier.width(320.dp).fillMaxHeight()) }
+            // The panel: tabs, then the form beside the log or stacked over a log drawer.
+            Column(
+                modifier = Modifier.fillMaxSize().padding(start = if (narrow) 14.dp else 20.dp, end = if (narrow) 14.dp else 20.dp, top = if (narrow) 12.dp else 16.dp, bottom = if (narrow) 14.dp else 20.dp).hubPanel(c),
+            ) {
+                spec.tabs?.let { tabs ->
+                    GlassTabs(tabs, spec.selectedTab, spec.onTabSelected)
+                    Hairline()
                 }
-            } else {
-                // Stacked: the form keeps the height; the log is a drawer that opens when a result lands.
-                val count = spec.log?.entries?.size ?: 0
-                var logOpen by remember { mutableStateOf(false) }
-                LaunchedEffect(count) { if (count > 0) logOpen = true }
-                Column(modifier = Modifier.fillMaxSize().padding(if (narrow) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(modifier = Modifier.weight(1f).fillMaxWidth()) { banner(); content() }
-                    spec.log?.let { log ->
-                        if (logOpen) GlassLogPanel(log, Modifier.fillMaxWidth().height(drawerHeight), onCollapse = { logOpen = false })
-                        else GlassLogBar(log, onExpand = { logOpen = true })
+                if (twoCol) {
+                    Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Column(modifier = Modifier.weight(1f).fillMaxHeight()) { banner(); content() }
+                        spec.log?.let { GlassLogPanel(it, Modifier.width(320.dp).fillMaxHeight()) }
+                    }
+                } else {
+                    val count = spec.log?.entries?.size ?: 0
+                    var logOpen by remember { mutableStateOf(false) }
+                    LaunchedEffect(count) { if (count > 0) logOpen = true }
+                    Column(modifier = Modifier.fillMaxSize().padding(if (narrow) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.weight(1f).fillMaxWidth()) { banner(); content() }
+                        spec.log?.let { log ->
+                            if (logOpen) GlassLogPanel(log, Modifier.fillMaxWidth().height(drawerHeight), onCollapse = { logOpen = false })
+                            else GlassLogBar(log, onExpand = { logOpen = true })
+                        }
                     }
                 }
             }

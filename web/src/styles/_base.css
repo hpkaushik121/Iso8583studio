@@ -86,11 +86,6 @@ img { max-width: 100%; height: auto; }
     border: 0;
 }
 
-/* App-shell pages (/tools/app): the embedded app owns scrolling, so the document is locked
-   to the viewport and the footer stays out of the way. */
-html.app-shell, html.app-shell body { height: 100%; overflow: hidden; overscroll-behavior: none; }
-html.app-shell app-footer { display: none; }
-
 /* Skip link — the shell has a fixed header, so keyboard users need a way past
    the nav on every page. */
 .skip-link {

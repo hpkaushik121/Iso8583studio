@@ -2,61 +2,45 @@ package `in`.aicortex.iso8583studio.web
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.analytics.Analytics
 import `in`.aicortex.iso8583studio.platform.epochMillis
 import `in`.aicortex.iso8583studio.tools.ToolCatalog
 import `in`.aicortex.iso8583studio.tools.ToolCategory
 import `in`.aicortex.iso8583studio.tools.WebTool
-import `in`.aicortex.iso8583studio.ui.WarningYellow
-import androidx.compose.runtime.CompositionLocalProvider
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
 import `in`.aicortex.iso8583studio.web.chrome.GlassChrome
+import `in`.aicortex.iso8583studio.web.home.CategoryTree
+import `in`.aicortex.iso8583studio.web.home.TREE_WIDTH
 import `in`.aicortex.iso8583studio.web.home.ToolHub
+import `in`.aicortex.iso8583studio.web.theme.Glass
 import `in`.aicortex.iso8583studio.web.theme.GlassTheme
 import `in`.aicortex.iso8583studio.web.theme.rememberGlassFonts
 import kotlinx.browser.window
 import org.w3c.dom.events.Event
 
 /**
- * The browser shell: a home grid of the web-ready tools and a hash router (`#/<tool-id>`) so
- * the site's documentation pages can deep-link straight into a calculator.
+ * The browser shell: a hash router (`#/`, `#/c/<category-slug>`, `#/<tool-id>`) so the site's
+ * pages can deep-link straight into a calculator, with the category tree beside both the hub and
+ * an open tool from 900dp and reachable through a drawer below that.
  */
 @Composable
 fun ToolsWebApp() {
@@ -84,11 +68,51 @@ fun ToolsWebApp() {
     GlassTheme(fonts) {
         CompositionLocalProvider(LocalToolChrome provides GlassChrome) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
-                if (tool == null) {
-                    ToolHub(category = category, onCategory = { navigate(it?.let { c -> "c/${c.slug}" }) }, onOpen = { navigate(it.id) })
-                } else {
-                    ToolHost(tool, onBack = { navigate(if (category != null) "c/${category.slug}" else null) })
+                Shell(route, tool, category, ::navigate)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Shell(route: String, tool: WebTool?, category: ToolCategory?, navigate: (String?) -> Unit) {
+    val c = Glass.colors
+    val routeCategory = tool?.category ?: category
+    var expanded by remember { mutableStateOf(setOfNotNull(routeCategory)) }
+    var drawer by remember { mutableStateOf(false) }
+    LaunchedEffect(route) { routeCategory?.let { expanded = expanded + it }; drawer = false }
+    // The app's own brand row only when the site nav is not above it: full screen, or opened standalone.
+    val brand = WebBridge.fullscreen || WebBridge.standalone
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(c.canvas)) {
+        val wide = maxWidth >= 900.dp
+        val drawerWidth = minOf(300.dp, maxWidth * 0.86f)
+        LaunchedEffect(wide) { if (wide) drawer = false }
+        val tree: @Composable (onClose: (() -> Unit)?, Modifier) -> Unit = { onClose, m ->
+            CategoryTree(
+                route = route, expanded = expanded, onToggle = { cat -> expanded = if (cat in expanded) expanded - cat else expanded + cat },
+                onCategory = { navigate("c/${it.slug}") }, onOpen = { navigate(it.id) }, brand = brand, onClose = onClose, modifier = m,
+            )
+        }
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (wide) {
+                tree(null, Modifier)
+                Box(Modifier.width(1.dp).fillMaxHeight().background(c.line2))
+            }
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                CompositionLocalProvider(LocalBrowseTools provides if (wide) null else ({ drawer = true })) {
+                    if (tool == null) {
+                        ToolHub(category = category, onCategory = { navigate(it?.let { c -> "c/${c.slug}" }) }, onOpen = { navigate(it.id) }, wide = wide)
+                    } else {
+                        ToolHost(tool, onBack = { navigate(null) })
+                    }
                 }
+            }
+        }
+        if (drawer && !wide) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                tree({ drawer = false }, Modifier.width(drawerWidth))
+                Box(Modifier.weight(1f).fillMaxHeight().background(c.overlay).clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { drawer = false })
             }
         }
     }
@@ -101,7 +125,7 @@ private fun ToolHost(tool: WebTool, onBack: () -> Unit) {
         Analytics.toolOpened(tool.id, tool.label, tool.category.name)
         onDispose { Analytics.toolClosed(tool.id, (epochMillis() - openedAt) / 1000) }
     }
-    // The chrome draws the frame, breadcrumb, badge and the reference-implementation banner from this.
+    // The chrome draws the title row, badge and the reference-implementation banner from this.
     CompositionLocalProvider(LocalToolContext provides tool) {
         Box(modifier = Modifier.fillMaxSize()) { tool.content(onBack) }
     }

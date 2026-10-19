@@ -1,6 +1,10 @@
 package `in`.aicortex.iso8583studio.web
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import `in`.aicortex.iso8583studio.analytics.AnalyticsSink
+import `in`.aicortex.iso8583studio.tools.ToolCatalog
 import kotlinx.browser.window
 
 /**
@@ -38,9 +42,16 @@ object WebBridge {
         postToParent(body)
     }
 
+    /** True while the embedding page shows the frame full screen; the app then carries its own brand row. */
+    var fullscreen: Boolean by mutableStateOf(false)
+        private set
+
+    /** True when the app is the top document (opened at /app/ directly) rather than embedded in the site. */
+    val standalone: Boolean = isTopWindow()
+
     /** Posted to the embedding page and to this window itself, so the page's own loader can hide when the app runs standalone. */
     fun postReady() {
-        post("app_ready")
+        post("app_ready", mapOf("tools" to ToolCatalog.webReady.size))
         postToSelf("{\"source\":\"$SOURCE\",\"type\":\"app_ready\"}")
     }
 
@@ -60,9 +71,17 @@ object WebBridge {
                 val target = if (tool.isEmpty()) "/" else "/$tool"
                 if (currentHash() != tool) window.location.hash = target
             }
+            when (fullscreenFrom(event)) { 1 -> fullscreen = true; 0 -> fullscreen = false }
         })
     }
 }
+
+private fun isTopWindow(): Boolean = js("(function(){ try { return window.parent === window; } catch (e) { return true; } })()")
+
+/** 1 or 0 for a parent `{type:'fullscreen', on}` message, -1 when the event is not one. */
+@Suppress("UNUSED_PARAMETER")
+private fun fullscreenFrom(event: JsAny?): Int =
+    js("(function(){ try { var e = event; if (!e || e.origin !== window.location.origin) return -1; var d = e.data; if (!d || d.source !== 'iso8583-site' || d.type !== 'fullscreen') return -1; return d.on ? 1 : 0; } catch (x) { return -1; } })()")
 
 /** Returns the tool slug of a parent `navigate` message, "" for home, or null when the event is not one. */
 @Suppress("UNUSED_PARAMETER")
