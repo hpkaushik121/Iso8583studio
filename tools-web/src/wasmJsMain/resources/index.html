@@ -54,6 +54,19 @@
           if (l) l.hidden = true;
         }
       });
+      // Scroll chaining: the app flags a wheel event nothing inside it could use (see ToolsWebApp.kt);
+      // after the dispatch the page scrolls by the native amount, so a form scrolls first and the
+      // page takes over when it ends or when the pointer is over something static.
+      window.addEventListener('wheel', function (ev) {
+        var dy = ev.deltaY;
+        if (ev.deltaMode === 1) dy *= 16; else if (ev.deltaMode === 2) dy *= window.innerHeight;
+        setTimeout(function () {
+          if (!window.__iso8583UnusedWheel) return;
+          window.__iso8583UnusedWheel = false;
+          if (dy) tellParent({ type: 'scroll', dy: dy });
+        }, 0);
+      }, { passive: true });
+
       // Fallback: if app_ready never arrives (an old build, a stalled font), do not hide the app forever.
       setTimeout(function () {
         var l = document.getElementById('loader');

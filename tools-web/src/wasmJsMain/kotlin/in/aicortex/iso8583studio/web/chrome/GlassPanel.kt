@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -131,8 +132,10 @@ fun GlassScreen(spec: ToolScreenSpec, content: @Composable () -> Unit) {
                     Hairline()
                 }
                 if (twoCol) {
+                    // The form column scrolls itself: not every screen brings a scroll container, and a
+                    // screen that does nests harmlessly (its column just takes its content height).
                     Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Column(modifier = Modifier.weight(1f).fillMaxHeight()) { banner(); content() }
+                        Column(modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) { banner(); content() }
                         spec.log?.let { GlassLogPanel(it, Modifier.width(320.dp).fillMaxHeight()) }
                     }
                 } else {
@@ -140,7 +143,7 @@ fun GlassScreen(spec: ToolScreenSpec, content: @Composable () -> Unit) {
                     var logOpen by remember { mutableStateOf(false) }
                     LaunchedEffect(count) { if (count > 0) logOpen = true }
                     Column(modifier = Modifier.fillMaxSize().padding(if (narrow) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(modifier = Modifier.weight(1f).fillMaxWidth()) { banner(); content() }
+                        Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) { banner(); content() }
                         spec.log?.let { log ->
                             if (logOpen) GlassLogPanel(log, Modifier.fillMaxWidth().height(drawerHeight), onCollapse = { logOpen = false })
                             else GlassLogBar(log, onExpand = { logOpen = true })

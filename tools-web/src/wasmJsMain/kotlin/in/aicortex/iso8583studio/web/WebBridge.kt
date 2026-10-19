@@ -57,8 +57,8 @@ object WebBridge {
 
     fun postRoute(toolId: String?) = post("route", mapOf("tool" to (toolId ?: "")))
 
-    /** Wheel movement (CSS px, positive = down) that nothing in the app could scroll; the page scrolls by it instead. */
-    fun postScroll(dy: Double) = post("scroll", mapOf("dy" to dy))
+    /** Marks the wheel event being dispatched as unused by the app; the page's listener then scrolls the page by it. */
+    fun flagUnusedWheel() = flagUnusedWheelJs()
 
     /** The current hash without the leading "#/" (or "#"). */
     fun currentHash(): String = window.location.hash.removePrefix("#").removePrefix("/")
@@ -78,6 +78,8 @@ object WebBridge {
         })
     }
 }
+
+private fun flagUnusedWheelJs(): Unit = js("{ window.__iso8583UnusedWheel = true; }")
 
 private fun isTopWindow(): Boolean = js("(function(){ try { return window.parent === window; } catch (e) { return true; } })()")
 

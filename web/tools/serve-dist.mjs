@@ -48,6 +48,7 @@ createServer((req, res) => {
     const end = range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
     res.writeHead(206, {
       'content-type': type,
+      'cache-control': 'no-cache',
       'accept-ranges': 'bytes',
       'content-range': `bytes ${start}-${end}/${body.length}`,
       'content-length': end - start + 1,
@@ -55,6 +56,7 @@ createServer((req, res) => {
     res.end(body.subarray(start, end + 1));
     return;
   }
-  res.writeHead(200, { 'content-type': type, 'accept-ranges': 'bytes', 'content-length': body.length });
+  // The app bundle keeps its file names across builds, so a rebuild must never be served from cache.
+  res.writeHead(200, { 'content-type': type, 'accept-ranges': 'bytes', 'content-length': body.length, 'cache-control': 'no-cache' });
   res.end(body);
 }).listen(PORT, () => console.log(`serving ${DIST} on http://localhost:${PORT}`));
