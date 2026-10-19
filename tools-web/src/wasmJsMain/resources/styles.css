@@ -3,8 +3,6 @@ html, body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  /* The app owns its scrolling; a wheel at the end of a list must not scroll the embedding page. */
-  overscroll-behavior: none;
   background: #0f1017;
   color: #e9ecf5;
   font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;

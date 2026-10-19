@@ -15,6 +15,7 @@ interface ToolMessage {
   type?: string;
   tool?: string;
   tools?: number;
+  dy?: number;
   reason?: string;
   [key: string]: unknown;
 }
@@ -342,6 +343,10 @@ export class ToolsAppPage {
           this.analytics.toolRouteChanged(tool || 'home');
           return;
         }
+        case 'scroll':
+          // Wheel movement the app could not use: the page scrolls, as it would over any other element.
+          if (typeof msg.dy === 'number' && Number.isFinite(msg.dy) && !this.full()) window.scrollBy(0, msg.dy);
+          return;
         case 'unsupported':
           this.unsupported.set(true);
           this.analytics.reportToolEvent('app_error', { reason: 'wasm_gc' });

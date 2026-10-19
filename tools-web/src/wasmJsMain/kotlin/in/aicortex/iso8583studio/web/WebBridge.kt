@@ -57,6 +57,9 @@ object WebBridge {
 
     fun postRoute(toolId: String?) = post("route", mapOf("tool" to (toolId ?: "")))
 
+    /** Wheel movement (CSS px, positive = down) that nothing in the app could scroll; the page scrolls by it instead. */
+    fun postScroll(dy: Double) = post("scroll", mapOf("dy" to dy))
+
     /** The current hash without the leading "#/" (or "#"). */
     fun currentHash(): String = window.location.hash.removePrefix("#").removePrefix("/")
 

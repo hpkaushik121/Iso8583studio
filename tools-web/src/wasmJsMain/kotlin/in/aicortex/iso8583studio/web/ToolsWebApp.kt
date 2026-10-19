@@ -2,6 +2,9 @@ package `in`.aicortex.iso8583studio.web
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import `in`.aicortex.iso8583studio.analytics.Analytics
 import `in`.aicortex.iso8583studio.platform.epochMillis
@@ -84,7 +88,12 @@ private fun Shell(route: String, tool: WebTool?, category: ToolCategory?, naviga
     // The app's own brand row only when the site nav is not above it: full screen, or opened standalone.
     val brand = WebBridge.fullscreen || WebBridge.standalone
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(c.canvas)) {
+    // The canvas swallows wheel events, so scroll chaining is done by hand: whatever the lists and
+    // forms under the pointer leave unconsumed reaches this root scrollable, which hands it to the
+    // embedding page. Over a non-scrolling area the whole movement arrives here.
+    val density = LocalDensity.current.density
+    val chain = rememberScrollableState { delta -> WebBridge.postScroll((-delta / density).toDouble()); 0f }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(c.canvas).scrollable(chain, Orientation.Vertical)) {
         val wide = maxWidth >= 900.dp
         val drawerWidth = minOf(300.dp, maxWidth * 0.86f)
         LaunchedEffect(wide) { if (wide) drawer = false }
