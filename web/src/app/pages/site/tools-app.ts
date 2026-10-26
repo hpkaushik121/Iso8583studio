@@ -109,8 +109,12 @@ const HEADER_KEY = 'ta-header';
         </div>
       }
       @if (full()) {
-        <div class="ta-fsbar">
-          <span class="ta-fsdots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <div class="ta-fsbar" [class.ta-fsbar--min]="barMin()">
+          <span class="ta-fsdots">
+            <button type="button" class="ta-dot ta-dot--close" title="Show the page" aria-label="Show the page" (click)="exitFullscreen()"></button>
+            <button type="button" class="ta-dot ta-dot--min" [title]="barMin() ? 'Expand the bar' : 'Collapse the bar'" [attr.aria-label]="barMin() ? 'Expand the bar' : 'Collapse the bar'" (click)="barMin.set(!barMin())"></button>
+            <button type="button" class="ta-dot ta-dot--zoom" [title]="nativeFull() ? 'Exit full screen' : 'Full screen'" [attr.aria-label]="nativeFull() ? 'Exit full screen' : 'Full screen'" (click)="toggleNativeFullscreen()"></button>
+          </span>
           <span class="ta-fstitle">ISO8583Studio tools</span>
           <span class="ta-fsgrow"></span>
           @if (tool()) {
@@ -204,8 +208,23 @@ const HEADER_KEY = 'ta-header';
     /* The full layer: the frame and its bar over everything, the whole viewport. */
     .ta-frame-wrap--overlay { position: fixed; inset: 0; z-index: calc(var(--z-nav) + 1); height: 100dvh; width: 100%; border-top: 0; }
     .ta-fsbar { flex: none; height: 46px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 14px; background: var(--bg-deep); border-bottom: 1px solid var(--line2); }
-    .ta-fsdots { display: inline-flex; gap: 5px; flex: none; }
-    .ta-fsdots i { width: 8px; height: 8px; border-radius: 50%; background: #3c4256; }
+    /* The window lights: close (show the page), minimise (collapse the bar), zoom (true full screen). */
+    .ta-fsdots { display: inline-flex; gap: 3px; flex: none; margin-left: -4px; }
+    .ta-dot {
+      position: relative; width: 16px; height: 16px; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; border-radius: 50%;
+    }
+    .ta-dot::before {
+      content: ''; position: absolute; inset: 4px; border-radius: 50%; background: #3c4256;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25);
+      transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+    }
+    .ta-fsdots:hover .ta-dot--close::before, .ta-dot--close:focus-visible::before { background: #ff5f57; }
+    .ta-fsdots:hover .ta-dot--min::before, .ta-dot--min:focus-visible::before { background: #febc2e; }
+    .ta-fsdots:hover .ta-dot--zoom::before, .ta-dot--zoom:focus-visible::before { background: #28c840; }
+    .ta-dot:hover::before { transform: scale(1.18); }
+    .ta-dot:focus-visible { outline: 2px solid var(--blue-hi); outline-offset: 1px; }
+    .ta-fsbar--min { height: 18px; padding: 0 10px 0 14px; }
+    .ta-fsbar--min > :not(.ta-fsdots) { display: none; }
     .ta-fstitle { font-size: var(--fs-sm); font-weight: 500; letter-spacing: var(--ls-snug); white-space: nowrap; }
     .ta-fsgrow { flex: 1; }
     .ta-notice { flex: none; display: flex; gap: 12px; align-items: flex-start; margin: 12px var(--gutter, 1rem) 0; padding: 14px 16px; border-radius: var(--r-lg); border: 1px solid var(--amber-line); background: var(--amber-wash); color: var(--amber-hi); font-size: var(--fs-sm); line-height: 1.55; }
@@ -258,6 +277,10 @@ export class ToolsAppPage {
   protected readonly toast = signal<string | null>(null);
   /** The full layer: on by default, off while the visitor looks at the page around the frame. */
   protected readonly overlay = signal(true);
+  /** The layer's bar collapsed to a strip with just the window lights. */
+  protected readonly barMin = signal(false);
+  /** The browser's own full screen, only ever entered from the green light. */
+  protected readonly nativeFull = signal(false);
   protected readonly full = computed(() => this.overlay());
   /** The open tool's id, for the deep-link chip; empty on the hub and on a category view. */
   protected readonly tool = computed(() => { const r = this.route(); return r && !r.startsWith('c/') ? r : ''; });
@@ -306,6 +329,13 @@ export class ToolsAppPage {
   protected enterFullscreen(): void { this.setOverlay(true); }
 
   protected exitFullscreen(): void { this.setOverlay(false); }
+
+  /** The green light: the browser's real full screen, in and out. Escape leaves it like any full screen. */
+  protected toggleNativeFullscreen(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (document.fullscreenElement) { document.exitFullscreen().catch(() => { /* already left */ }); return; }
+    document.documentElement.requestFullscreen?.().catch(() => { /* not allowed here; the layer already fills the window */ });
+  }
 
   private setOverlay(on: boolean): void {
     this.overlay.set(on);
@@ -369,9 +399,12 @@ export class ToolsAppPage {
     window.addEventListener('popstate', onPop);
     window.addEventListener('hashchange', onPop);
 
-    // Escape leaves the full layer; the page under it does not scroll while it is up.
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && this.overlay()) this.setOverlay(false); };
+    // Escape leaves the full layer (the browser handles Escape for its own full screen first);
+    // the page under the layer does not scroll while it is up.
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && this.overlay() && !document.fullscreenElement) this.setOverlay(false); };
     window.addEventListener('keydown', onKey);
+    const onFs = () => this.nativeFull.set(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFs);
     document.body.style.overflow = this.overlay() ? 'hidden' : '';
 
     // The band's height sets the frame's: measure it, and again whenever it changes.
@@ -386,6 +419,7 @@ export class ToolsAppPage {
       window.removeEventListener('popstate', onPop);
       window.removeEventListener('hashchange', onPop);
       window.removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onFs);
       document.body.style.overflow = '';
       if (ro) ro.disconnect(); else window.removeEventListener('resize', fit);
       if (this.toastTimer) clearTimeout(this.toastTimer);

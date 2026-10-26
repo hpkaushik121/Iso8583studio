@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -44,7 +43,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +77,35 @@ internal fun ToolCategory.icon(): ImageVector = when (this) {
 internal val TREE_WIDTH = 268.dp
 
 /**
+ * The ISO8583Studio S on its gradient tile: the same two arcs as the site's logo mark
+ * (web/src/app/ui/logo-mark.ts, a 48-unit box), the top arc white and the bottom teal.
+ */
+@Composable
+fun BrandMark(size: androidx.compose.ui.unit.Dp) {
+    val c = Glass.colors
+    Canvas(
+        modifier = Modifier.size(size).glow(c.blue.copy(alpha = 0.4f), 8.dp, 14.dp).clip(RoundedCornerShape(size * 0.3f)).background(Brush.verticalGradient(listOf(c.blueHover, c.blue))),
+    ) {
+        val u = this.size.width / 48f
+        val stroke = Stroke(width = 5.5f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        // M35 14 H20 A6 6 0 0 0 20 26 H28
+        val top = Path().apply {
+            moveTo(35f * u, 14f * u); lineTo(20f * u, 14f * u)
+            arcTo(Rect(14f * u, 14f * u, 26f * u, 26f * u), -90f, -180f, false)
+            lineTo(28f * u, 26f * u)
+        }
+        // M28 26 A6 6 0 0 1 28 38 H13
+        val bottom = Path().apply {
+            moveTo(28f * u, 26f * u)
+            arcTo(Rect(22f * u, 26f * u, 34f * u, 38f * u), -90f, 180f, false)
+            lineTo(13f * u, 38f * u)
+        }
+        drawPath(top, c.onAccent, style = stroke)
+        drawPath(bottom, c.tealHi, style = stroke)
+    }
+}
+
+/**
  * The category tree in the left column. A row selects the category (its grid), the caret expands
  * the web-ready tools beneath it so another tool is one click away while one is open. Expansion
  * state is the shell's and survives hub ↔ tool.
@@ -96,10 +130,7 @@ fun CategoryTree(
     ) {
         if (brand) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(26.dp).glow(c.blue.copy(alpha = 0.4f), 8.dp, 14.dp).clip(RoundedCornerShape(8.dp)).background(Brush.verticalGradient(listOf(c.blueHover, c.blue))),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Default.Wifi, contentDescription = null, tint = c.onAccent, modifier = Modifier.size(14.dp)) }
+                BrandMark(26.dp)
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Text("ISO8583Studio", style = MaterialTheme.typography.subtitle1, color = c.text, fontWeight = FontWeight.SemiBold)
