@@ -15,6 +15,17 @@
   <link rel="icon" href="/images/favicon-192.png" type="image/png" sizes="192x192">
   <link rel="icon" href="/images/logo-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" sizes="180x180">
+  <!--
+    Home page boot gate. The hero's entrance animations are paused by this class (home.css)
+    until the home loader lifts it, so they never play half-hidden behind the curtain. Set
+    before first paint, and cleared on a timer in case the app never boots.
+  -->
+  <script>
+    if (location.pathname === '/' || location.pathname === '/index.html') {
+      document.documentElement.classList.add('is-booting');
+      setTimeout(function () { document.documentElement.classList.remove('is-booting'); }, 7000);
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
