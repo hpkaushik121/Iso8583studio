@@ -26,11 +26,13 @@ const HEADER_KEY = 'ta-header';
 /**
  * /tools/app — the calculators, running in the browser.
  *
- * An app shell: the nav, one header band (full, or compact at the user's choice) and the
- * Kotlin/Wasm build of the desktop tool screens, which lives at /app/ (copied there by
- * `npm run build:app`) and is embedded in an iframe taking the rest of the first viewport; the
- * site footer follows below. The band carries the engine status, a copyable deep link to the
- * open tool and a full-screen control for the frame alone. The hash of this page deep-links
+ * The Kotlin/Wasm build of the desktop tool screens lives at /app/ (copied there by
+ * `npm run build:app`) and is embedded in an iframe. By default it takes the whole viewport as
+ * a fixed layer over the page, with its own slim bar (status, deep link, exit); leaving that
+ * layer shows the page underneath: the nav, a header band (full, or compact at the user's
+ * choice) with the engine status, a copyable deep link and a control back into the full
+ * layer, the frame filling the rest of the first viewport, and the site footer. This is the
+ * page's own layer, never the browser's full-screen mode. The hash of this page deep-links
  * into a tool (`/tools/app#des-calculator`); the frame reports back every route change so the
  * address bar stays shareable, and forwards its usage events so they land in the site's GA4
  * stream under the site's consent rules.
@@ -84,7 +86,7 @@ const HEADER_KEY = 'ta-header';
           <span class="ta-status-text" role="status">{{ statusText() }}</span>
           <span class="ta-status-tag">WASM</span>
         </span>
-        <ui-icon-button icon="arrows-out" label="Full screen" [size]="30" (click)="enterFullscreen()" />
+        <ui-icon-button icon="arrows-out" label="Fill the window" [size]="30" (click)="enterFullscreen()" />
         @if (compact()) {
           <ui-icon-button icon="arrows-out-simple" label="Show header" [size]="30" (click)="setCompact(false)" />
         } @else {
@@ -93,7 +95,7 @@ const HEADER_KEY = 'ta-header';
       </div>
     </ng-template>
 
-    <section #wrap class="ta-frame-wrap" aria-label="ISO8583Studio tools"
+    <section class="ta-frame-wrap" aria-label="ISO8583Studio tools"
              [class.ta-frame-wrap--overlay]="overlay()" [class.ta-frame-wrap--ready]="ready()"
              [style.--ta-band.px]="bandHeight()">
       @if (unsupported()) {
@@ -123,12 +125,12 @@ const HEADER_KEY = 'ta-header';
             <span class="ta-status-tag">WASM</span>
           </span>
           <button type="button" class="btn btn--secondary btn--sm" (click)="exitFullscreen()">
-            <ui-icon name="arrows-in" [size]="14" /> Exit full screen
+            <ui-icon name="arrows-in" [size]="14" /> Show the page
           </button>
         </div>
       }
       <iframe #frame class="ta-frame" [src]="frameSrc" title="ISO8583Studio tools"
-              loading="eager" allow="clipboard-write; fullscreen"></iframe>
+              loading="eager" allow="clipboard-write"></iframe>
     </section>
 
     @if (toast()) {
@@ -199,9 +201,8 @@ const HEADER_KEY = 'ta-header';
       height: max(660px, calc(100dvh - var(--bar-h) - var(--ta-band, 120px)));
     }
     .ta-frame { display: block; flex: 1 1 auto; min-height: 0; width: 100%; border: 0; background: var(--canvas); }
-    .ta-frame-wrap:fullscreen { height: 100%; width: 100%; background: var(--canvas); border-top: 0; }
-    .ta-frame-wrap:fullscreen::backdrop { background: var(--canvas); }
-    .ta-frame-wrap--overlay { position: fixed; inset: 0; z-index: var(--z-modal); height: 100dvh; border-top: 0; }
+    /* The full layer: the frame and its bar over everything, the whole viewport. */
+    .ta-frame-wrap--overlay { position: fixed; inset: 0; z-index: calc(var(--z-nav) + 1); height: 100dvh; width: 100%; border-top: 0; }
     .ta-fsbar { flex: none; height: 46px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 14px; background: var(--bg-deep); border-bottom: 1px solid var(--line2); }
     .ta-fsdots { display: inline-flex; gap: 5px; flex: none; }
     .ta-fsdots i { width: 8px; height: 8px; border-radius: 50%; background: #3c4256; }
@@ -246,7 +247,6 @@ export class ToolsAppPage {
   private readonly analytics = inject(AnalyticsService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly frame = viewChild.required<ElementRef<HTMLIFrameElement>>('frame');
-  private readonly wrap = viewChild.required<ElementRef<HTMLElement>>('wrap');
   private readonly band = viewChild.required<ElementRef<HTMLElement>>('band');
 
   protected readonly ready = signal(false);
@@ -256,9 +256,9 @@ export class ToolsAppPage {
   protected readonly route = signal('');
   protected readonly bandHeight = signal(120);
   protected readonly toast = signal<string | null>(null);
-  private readonly native = signal(false);
-  protected readonly overlay = signal(false);
-  protected readonly full = computed(() => this.native() || this.overlay());
+  /** The full layer: on by default, off while the visitor looks at the page around the frame. */
+  protected readonly overlay = signal(true);
+  protected readonly full = computed(() => this.overlay());
   /** The open tool's id, for the deep-link chip; empty on the hub and on a category view. */
   protected readonly tool = computed(() => { const r = this.route(); return r && !r.startsWith('c/') ? r : ''; });
   protected readonly status = computed<'ready' | 'loading' | 'unsupported'>(() => this.unsupported() ? 'unsupported' : this.ready() ? 'ready' : 'loading');
@@ -302,16 +302,17 @@ export class ToolsAppPage {
     if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
   }
 
-  /** Full screen for the frame alone: the Fullscreen API where the host allows it, a fixed overlay otherwise. */
-  protected enterFullscreen(): void {
-    const el = this.wrap().nativeElement;
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => this.overlay.set(true));
-    else this.overlay.set(true);
-  }
+  /** The frame as a layer over the whole viewport: the page's own layer, never the browser's full-screen mode. */
+  protected enterFullscreen(): void { this.setOverlay(true); }
 
-  protected exitFullscreen(): void {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => { /* already left */ });
-    this.overlay.set(false);
+  protected exitFullscreen(): void { this.setOverlay(false); }
+
+  private setOverlay(on: boolean): void {
+    this.overlay.set(on);
+    if (isPlatformBrowser(this.platformId)) {
+      document.body.style.overflow = on ? 'hidden' : '';
+      this.frame().nativeElement.contentWindow?.postMessage({ source: 'iso8583-site', type: 'fullscreen', on }, location.origin);
+    }
   }
 
   private wire(): void {
@@ -368,14 +369,10 @@ export class ToolsAppPage {
     window.addEventListener('popstate', onPop);
     window.addEventListener('hashchange', onPop);
 
-    // Full screen state: the API's own events, Escape for the overlay fallback, and the app's brand row.
-    const wrap = this.wrap().nativeElement;
-    const onFs = () => { this.native.set(!!document.fullscreenElement && document.fullscreenElement === wrap); tell({ type: 'fullscreen', on: this.full() }); };
-    document.addEventListener('fullscreenchange', onFs);
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && this.overlay()) { this.overlay.set(false); tell({ type: 'fullscreen', on: false }); } };
+    // Escape leaves the full layer; the page under it does not scroll while it is up.
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && this.overlay()) this.setOverlay(false); };
     window.addEventListener('keydown', onKey);
-    const stopOverlayScroll = () => { document.body.style.overflow = this.overlay() ? 'hidden' : ''; };
-    const overlayWatch = setInterval(stopOverlayScroll, 150);
+    document.body.style.overflow = this.overlay() ? 'hidden' : '';
 
     // The band's height sets the frame's: measure it, and again whenever it changes.
     const band = this.band().nativeElement;
@@ -388,9 +385,7 @@ export class ToolsAppPage {
       window.removeEventListener('message', onMessage);
       window.removeEventListener('popstate', onPop);
       window.removeEventListener('hashchange', onPop);
-      document.removeEventListener('fullscreenchange', onFs);
       window.removeEventListener('keydown', onKey);
-      clearInterval(overlayWatch);
       document.body.style.overflow = '';
       if (ro) ro.disconnect(); else window.removeEventListener('resize', fit);
       if (this.toastTimer) clearTimeout(this.toastTimer);
