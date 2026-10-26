@@ -111,7 +111,7 @@ const HEADER_KEY = 'ta-header';
       @if (full()) {
         <div class="ta-fsbar" [class.ta-fsbar--min]="barMin()">
           <span class="ta-fsdots">
-            <button type="button" class="ta-dot ta-dot--close" title="Show the page" aria-label="Show the page" (click)="exitFullscreen()"></button>
+            <button type="button" class="ta-dot ta-dot--close" [title]="route() ? 'Back to all tools' : 'Show the page'" [attr.aria-label]="route() ? 'Back to all tools' : 'Show the page'" (click)="closeLight()"></button>
             <button type="button" class="ta-dot ta-dot--min" [title]="barMin() ? 'Expand the bar' : 'Collapse the bar'" [attr.aria-label]="barMin() ? 'Expand the bar' : 'Collapse the bar'" (click)="barMin.set(!barMin())"></button>
             <button type="button" class="ta-dot ta-dot--zoom" [title]="nativeFull() ? 'Exit full screen' : 'Full screen'" [attr.aria-label]="nativeFull() ? 'Exit full screen' : 'Full screen'" (click)="toggleNativeFullscreen()"></button>
           </span>
@@ -329,6 +329,18 @@ export class ToolsAppPage {
   protected enterFullscreen(): void { this.setOverlay(true); }
 
   protected exitFullscreen(): void { this.setOverlay(false); }
+
+  /** The red light closes what is open: a tool or category goes back to the app's home, the home shows the page. */
+  protected closeLight(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.route()) {
+      history.pushState(history.state, '', `${location.pathname}${location.search}`);
+      this.route.set('');
+      this.frame().nativeElement.contentWindow?.postMessage({ source: 'iso8583-site', type: 'navigate', tool: '' }, location.origin);
+      return;
+    }
+    this.exitFullscreen();
+  }
 
   /** The green light: the browser's real full screen, in and out. Escape leaves it like any full screen. */
   protected toggleNativeFullscreen(): void {
