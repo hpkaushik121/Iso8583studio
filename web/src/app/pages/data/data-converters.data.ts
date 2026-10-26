@@ -45,12 +45,12 @@ const PANELS: Record<string, GlassSpec> = {
 };
 
 const TOOLS: RawTool[] = [
-  { id: 'base64', stage: 0, icon: 'code', badge: 'Popular', name: 'Base64 Encoder', desc: 'Encode bytes to Base64 or decode a Base64 string back to hex.' },
-  { id: 'base94', stage: 0, icon: 'brackets-angle', name: 'Base94 Encoder', desc: 'The denser printable-ASCII variant, encoded and decoded the same way.' },
-  { id: 'bcd', stage: 1, icon: 'hash', badge: 'Popular', name: 'BCD Converter', desc: 'Pack a decimal string two digits per byte, or unpack one.' },
-  { id: 'encoding', stage: 1, icon: 'text-t', name: 'Character Encoder', desc: 'Convert between binary, hexadecimal, decimal and ASCII.' },
-  { id: 'check-digit', stage: 2, icon: 'check-circle', badge: 'Popular', name: 'Check Digit Calculator', desc: 'Generate or validate a Luhn (Mod 10) check digit.' },
-  { id: 'track2', stage: 2, icon: 'credit-card', badge: 'New', name: 'Track 2 Codec', desc: 'Build Track 2 from its parts, or decode any of its three shapes.' },
+  { id: 'base64', stage: 0, icon: 'code', badge: 'Popular', app: 'base64', name: 'Base64 Encoder', desc: 'Encode bytes to Base64 or decode a Base64 string back to hex.' },
+  { id: 'base94', stage: 0, icon: 'brackets-angle', app: 'base94', name: 'Base94 Encoder', desc: 'The denser printable-ASCII variant, encoded and decoded the same way.' },
+  { id: 'bcd', stage: 1, icon: 'hash', badge: 'Popular', app: 'bcd-converter', name: 'BCD Converter', desc: 'Pack a decimal string two digits per byte, or unpack one.' },
+  { id: 'encoding', stage: 1, icon: 'text-t', app: 'character-encoder', name: 'Character Encoder', desc: 'Convert between binary, hexadecimal, EBCDIC, ATM decimal, ASCII and Unicode encodings.' },
+  { id: 'check-digit', stage: 2, icon: 'check-circle', badge: 'Popular', app: 'check-digit', name: 'Check Digit Calculator', desc: 'Generate or validate Luhn, Verhoeff, Damm, Mod 11, Mod 97 and IBAN check digits.' },
+  { id: 'track2', stage: 2, icon: 'credit-card', badge: 'New', app: 'track2-codec', name: 'Track 2 Codec', desc: 'Build Track 2 from its parts, or decode any of its three shapes.' },
 ];
 const STAGES: HubStage[] = [['01', 'Text-safe encodings', 'Base64 · Base94'], ['02', 'Wire representations', 'BCD · binary · hex · ASCII'], ['03', 'Card data', 'Luhn · Track 2 / tag 57']];
 const SHAPES: [string, string, string][] = [

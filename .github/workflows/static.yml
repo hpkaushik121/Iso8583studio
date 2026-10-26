@@ -10,6 +10,17 @@ on:
     branches: ["main"]
     paths:
       - 'web/**'
+      # The in-browser tools are a Kotlin/Wasm build of these modules, bundled into the site.
+      - 'tools-ui/**'
+      - 'tools-web/**'
+      - 'cryptocalc/**'
+      - 'iso-core-lib/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - 'kotlin-js-store/**'
       - '.github/workflows/static.yml'
   workflow_dispatch:
 
@@ -37,6 +48,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # The calculators run in the browser as a Kotlin/Wasm build of the same tool screens
+      # the desktop app uses (:tools-ui). The bundle lands in web/public/app, which Angular
+      # copies into its output, so it has to exist before `npm run build`.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build in-browser tools (Kotlin/Wasm)
+        working-directory: .
+        run: ./gradlew :tools-web:copyWebDist --no-daemon --stacktrace
 
       - name: Setup Node
         uses: actions/setup-node@v4

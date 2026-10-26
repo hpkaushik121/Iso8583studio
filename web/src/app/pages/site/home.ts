@@ -8,6 +8,7 @@ import { EXTERNAL } from '../../core/site-nav';
 import {
   AccordionItem, UiAccordion, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
 } from '../../ui';
+import { HomeBootLoader } from '../home/boot-loader';
 import { HomeHeroDashboard } from '../home/hero-dashboard';
 import { HomeJourney } from '../home/journey';
 import { HomePrismBeam } from '../home/prism-beam';
@@ -94,12 +95,13 @@ const LIGHT_RADIUS = 210;
   selector: 'page-home',
   imports: [
     RouterLink, UiAccordion, UiCtaPanel, UiIcon, UiReveal, UiSectionHeading, UiWords,
-    HomeHeroDashboard, HomeJourney, HomePrismBeam, HomeScrollDots, ProReserve,
+    HomeBootLoader, HomeHeroDashboard, HomeJourney, HomePrismBeam, HomeScrollDots, ProReserve,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [SitePage],
   host: { class: 'static-page page-home' },
   template: `
+    <home-boot-loader />
     <section #hero class="hero" data-sect="hero">
       <div #dots class="hp-dots" aria-hidden="true">
         <div class="hp-dots-glow"></div>

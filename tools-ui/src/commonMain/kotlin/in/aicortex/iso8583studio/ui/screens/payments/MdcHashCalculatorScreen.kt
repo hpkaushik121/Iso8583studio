@@ -1,0 +1,380 @@
+package `in`.aicortex.iso8583studio.ui.screens.payments
+
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
+
+import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
+
+import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
+
+import ai.cortex.core.types.PaddingMethods
+
+import io.cryptocalc.crypto.primitives.Modes
+
+import io.cryptocalc.mac.MdcHash
+
+import ai.cortex.core.toHexUpper
+
+import ai.cortex.core.hexToBytes
+
+import io.cryptocalc.crypto.primitives.Digests
+
+import ai.cortex.core.toHexLower
+
+import `in`.aicortex.iso8583studio.platform.nowLogTimestamp
+
+import `in`.aicortex.iso8583studio.analytics.Analytics
+import ai.cortex.core.ValidationResult
+import ai.cortex.core.ValidationState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.*
+import `in`.aicortex.iso8583studio.ui.screens.components.FixedOutlinedTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import `in`.aicortex.iso8583studio.logging.LogEntry
+import `in`.aicortex.iso8583studio.logging.LogType
+import `in`.aicortex.iso8583studio.ui.screens.components.AppBarWithBack
+import `in`.aicortex.iso8583studio.ui.screens.components.Panel
+import `in`.aicortex.iso8583studio.ui.screens.components.LogPanelWithAutoScroll
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+// --- COMMON UI & VALIDATION FOR THIS SCREEN ---
+
+object MDCHashValidationUtils {
+    fun validate(value: String, fieldName: String, inputType: String): ValidationResult {
+        if (value.isEmpty()) return ValidationResult(ValidationState.EMPTY, "$fieldName cannot be empty.")
+
+        if (inputType == "Hexadecimal") {
+            if (value.any { it !in '0'..'9' && it !in 'a'..'f' && it !in 'A'..'F' }) {
+                return ValidationResult(ValidationState.ERROR, "$fieldName must be valid hexadecimal.")
+            }
+            if (value.length % 2 != 0) {
+                return ValidationResult(ValidationState.ERROR, "$fieldName must have an even number of characters.")
+            }
+        }
+        return ValidationResult(ValidationState.VALID)
+    }
+}
+
+
+// --- MDC HASH SCREEN ---
+
+object MDCHashLogManager {
+    private val _logEntries = mutableStateListOf<LogEntry>()
+    val logEntries: SnapshotStateList<LogEntry> get() = _logEntries
+
+    fun clearLogs() {
+        _logEntries.clear()
+    }
+
+    private fun addLog(entry: LogEntry) {
+        _logEntries.add(entry)
+        if (_logEntries.size > 500) _logEntries.removeRange(400, _logEntries.size)
+    }
+
+    fun logOperation(operation: String, inputs: Map<String, String>, result: String? = null, error: String? = null, executionTime: Long = 0L) {
+        if (result == null && error == null) return
+        Analytics.calculationRun(operation, success = result != null, durationMs = executionTime)
+
+        val timestamp = nowLogTimestamp()
+        val details = buildString {
+            append("Inputs:\n")
+            inputs.forEach { (key, value) ->
+                if (value.isNotBlank()) append("  $key: $value\n")
+            }
+            result?.let { append("\nResult:\n  $it") }
+            error?.let { append("\nError:\n  Message: $it") }
+            if (executionTime > 0) append("\n\nExecution time: ${executionTime}ms")
+        }
+
+        val (logType, message) = if (result != null) (LogType.TRANSACTION to "$operation Result") else (LogType.ERROR to "$operation Failed")
+        addLog(LogEntry(timestamp = timestamp, type = logType, message = message, details = details))
+    }
+}
+
+object MDCHashService {
+    /** MDC-1/2/4 (ISO/IEC 10118-2, DES based) over the input padded with the selected scheme. */
+    fun generateMdcHash(
+        hashType: String,
+        padding: String,
+        data: String,
+        isModified: Boolean,
+        inputType: String = "Hexadecimal",
+    ): String {
+        val raw = if (inputType == "ASCII") data.encodeToByteArray() else data.hexToBytes()
+        val padded = when (padding) {
+            "None" -> raw.also { require(it.isNotEmpty() && it.size % 8 == 0) { "Without padding the data must be a multiple of 8 bytes" } }
+            "Zeros", "ISO9797-1 (Padding method 1)", "ISO9807 (SafeNet)" -> Modes.pad(raw, 8, PaddingMethods.METHOD_1_ISO_9797)
+            "ISO9797-1 (Padding method 2)", "ISO 7816-4", "Rijndael" -> Modes.pad(raw, 8, PaddingMethods.METHOD_2_ISO_9797)
+            "ISO9797-1 (Padding method 3)" -> Modes.pad(raw, 8, PaddingMethods.METHOD_3_ISO_9797)
+            "PKCS#5", "PKCS#7" -> Modes.pad(raw, 8, PaddingMethods.PKCS7)
+            "ANSI X9.23", "Mod. ANSI X9.23 (n 0xFF + 0xLL)" -> Modes.pad(raw, 8, PaddingMethods.ANSI_X923)
+            "ISO 10126" -> Modes.pad(raw, 8, PaddingMethods.ISO_10126)
+            "Spaces" -> raw + ByteArray((8 - raw.size % 8) % 8) { 0x20 }
+            else -> Modes.pad(raw, 8, PaddingMethods.METHOD_1_ISO_9797)
+        }
+        val variant = when (hashType) {
+            "MDC-1" -> MdcHash.Variant.MDC1
+            "MDC-4" -> MdcHash.Variant.MDC4
+            else -> MdcHash.Variant.MDC2
+        }
+        return MdcHash.compute(padded, variant, isModified).toHexUpper()
+    }
+
+    private fun ByteArray.toHex(): String = toHexLower()
+}
+
+@Composable
+fun MDCHashScreen(onBack: () -> Unit) {
+    val body: @Composable () -> Unit = {
+                MDCHashGenerationCard()
+            
+    }
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) {
+        chrome.Screen(ToolScreenSpec(title = "MDC Hash Calculator", onBack = onBack, log = ToolLog(MDCHashLogManager.logEntries, onClear = { MDCHashLogManager.clearLogs() })), content = body)
+        return
+    }
+    Scaffold(
+        topBar = { AppBarWithBack(title = "MDC Hash Calculator", onBackClick = onBack) },
+        backgroundColor = MaterialTheme.colors.background
+    ) { paddingValues ->
+        Row(
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f).fillMaxHeight().toolScroll(rememberScrollState())
+            ) {
+            body()
+        }
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Panel {
+                    LogPanelWithAutoScroll(
+                        onClearClick = { MDCHashLogManager.clearLogs() },
+                        logEntries = MDCHashLogManager.logEntries
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MDCHashGenerationCard() {
+    // --- State Management ---
+    val algorithm = "DES"
+    val dataInputTypes = remember { listOf("ASCII", "Hexadecimal") }
+    var selectedDataInputType by remember { mutableStateOf(dataInputTypes.first()) }
+
+    val hashTypes = remember { listOf("MDC-1", "MDC-2", "MDC-4") }
+    var selectedHashType by remember { mutableStateOf(hashTypes.first()) }
+
+    val paddingMethods = remember {
+        listOf(
+            "None", "Zeros", "Spaces", "ANSI X9.23", "ISO 10126", "PKCS#5", "PKCS#7",
+            "ISO 7816-4", "Rijndael", "ISO9797-1 (Padding method 1)", "ISO9797-1 (Padding method 2)",
+            "ISO9797-1 (Padding method 3)", "ISO9807 (SafeNet)", "Mod. ANSI X9.23 (n 0xFF + 0xLL)"
+        )
+    }
+    var selectedPadding by remember { mutableStateOf(paddingMethods.first()) }
+
+    var inputData by remember { mutableStateOf("") }
+    var isModified by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    // --- Validation ---
+    val dataValidation = MDCHashValidationUtils.validate(inputData, "Input Data", selectedDataInputType)
+
+    val isFormValid = remember(inputData, dataValidation) {
+        inputData.isNotBlank() && dataValidation.state != ValidationState.ERROR
+    }
+
+    ModernCryptoCard(
+        title = "MDC Hash Generation",
+        subtitle = "Generate a Modification Detection Code",
+        icon = Icons.Default.Password
+    ) {
+        FixedOutlinedTextField(
+            value = algorithm,
+            onValueChange = {},
+            label = { Text("Algorithm") },
+            modifier = Modifier.fillMaxWidth(),
+            readOnly = true
+        )
+        Spacer(Modifier.height(12.dp))
+
+        ModernDropdownField("Data Input", selectedDataInputType, dataInputTypes) {
+            selectedDataInputType = dataInputTypes[it]
+        }
+        Spacer(Modifier.height(12.dp))
+
+        ModernDropdownField("Hash Type", selectedHashType, hashTypes) {
+            selectedHashType = hashTypes[it]
+        }
+        Spacer(Modifier.height(12.dp))
+
+        EnhancedTextField(inputData, { inputData = it }, "Input Data", validation = dataValidation, maxLines = 5)
+        Spacer(Modifier.height(12.dp))
+
+        ModernDropdownField("Padding", selectedPadding, paddingMethods) {
+            selectedPadding = paddingMethods[it]
+        }
+        Spacer(Modifier.height(12.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { isModified = !isModified }
+        ) {
+            Checkbox(checked = isModified, onCheckedChange = { isModified = it })
+            Text("Modified?", style = MaterialTheme.typography.body1)
+        }
+        Spacer(Modifier.height(16.dp))
+
+        ModernButton(
+            text = "Generate Hash",
+            onClick = {
+                isLoading = true
+                val inputs = mapOf(
+                    "Algorithm" to algorithm,
+                    "Data Input" to selectedDataInputType,
+                    "Hash Type" to selectedHashType,
+                    "Input Data" to inputData,
+                    "Padding" to selectedPadding,
+                    "Modified?" to isModified.toString()
+                )
+                GlobalScope.launch {
+                    delay(150)
+                    try {
+                        val result = MDCHashService.generateMdcHash(selectedHashType, selectedPadding, inputData, isModified, selectedDataInputType)
+                        MDCHashLogManager.logOperation("MDC Hash Generation", inputs, "Generated Hash: $result", executionTime = 155)
+                    } catch (e: Exception) {
+                        MDCHashLogManager.logOperation("MDC Hash Generation", inputs, error = e.message, executionTime = 155)
+                    }
+                    isLoading = false
+                }
+            },
+            isLoading = isLoading,
+            enabled = isFormValid,
+            icon = Icons.Default.CheckCircle,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// --- SHARED UI COMPONENTS ---
+
+@Composable
+private fun EnhancedTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, maxLines: Int = 1, validation: ValidationResult) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.TextField(value, onValueChange, label, modifier, maxLines, validation, ""); return }
+    Column(modifier = modifier) {
+        FixedOutlinedTextField(
+            value = value, onValueChange = onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), maxLines = maxLines,
+            isError = validation.state == ValidationState.ERROR,
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = when (validation.state) {
+                    ValidationState.VALID -> MaterialTheme.colors.primary
+                    ValidationState.EMPTY -> MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                    else -> MaterialTheme.colors.error
+                },
+                unfocusedBorderColor = when (validation.state) {
+                    ValidationState.VALID -> MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                    ValidationState.EMPTY -> MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                    else -> MaterialTheme.colors.error
+                }
+            )
+        )
+        if (validation.message.isNotEmpty()) {
+            Text(
+                text = validation.message,
+                color = if (validation.state == ValidationState.ERROR) MaterialTheme.colors.error else MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.caption,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernCryptoCard(title: String, subtitle: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Card(title, subtitle, icon, null, content); return }
+    Card(modifier = Modifier.fillMaxWidth(), elevation = 2.dp, shape = RoundedCornerShape(12.dp), backgroundColor = MaterialTheme.colors.surface) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(28.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = title, style = MaterialTheme.typography.h6, fontWeight = FontWeight.SemiBold)
+                    Text(text = subtitle, style = MaterialTheme.typography.caption, color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), maxLines = 1)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ModernDropdownField(label: String, value: String, options: List<String>, onSelectionChanged: (Int) -> Unit) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Dropdown(label, value, options, onSelectionChanged, Modifier); return }
+    var expanded by remember { mutableStateOf(false) }
+    var textFieldWidth by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier = Modifier.onGloballyPositioned { textFieldWidth = it.size.width }) {
+        FixedOutlinedTextField(
+            value = value, onValueChange = {}, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), readOnly = true,
+            trailingIcon = { Icon(imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, contentDescription = null) },
+        )
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = !expanded })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(with(density) { textFieldWidth.toDp() }).heightIn(max = 300.dp)) {
+            options.forEachIndexed { index, option ->
+                DropdownMenuItem(onClick = { onSelectionChanged(index); expanded = false }) {
+                    Text(text = option, style = MaterialTheme.typography.body2)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, enabled: Boolean = true, icon: ImageVector? = null) {
+    val chrome = LocalToolChrome.current
+    if (!chrome.isDesktop) { chrome.Button(text, onClick, modifier, isLoading, enabled, icon); return }
+    Button(onClick = onClick, modifier = modifier.height(48.dp), enabled = enabled && !isLoading, elevation = ButtonDefaults.elevation(defaultElevation = 2.dp, pressedElevation = 4.dp, disabledElevation = 0.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Processing...")
+            } else {
+                icon?.let {
+                    Icon(imageVector = it, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(text, fontWeight = FontWeight.Medium)
+            }
+        }
+    }
+}

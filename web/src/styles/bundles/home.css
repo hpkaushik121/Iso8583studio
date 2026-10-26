@@ -933,6 +933,13 @@
     animation-delay: calc(var(--d, 0) * 1ms);
 }
 
+/* While the home loader is up (html.is-booting, set by index.html before first paint), the
+   hero's entrance holds at its first frame; the loader lifts the class and the choreography
+   starts from the top, in front of the visitor. */
+html.is-booting .page-home .hero :is(.ds-word, .ds-item, .ds-hold, .ds-fade, .ds-rise, .ds-beam, .ds-glow, .ds-frame, .ds-shot, .ds-layer, .ds-tile, .ds-in) {
+    animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .page-home .scroll-dot--stage { animation: none; }
 }

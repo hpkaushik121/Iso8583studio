@@ -311,6 +311,19 @@ export const siteRoutes: Routes = [
     } },
   },
   {
+    path: "tools/app",
+    loadComponent: () => import('./tools-app').then((c) => c.ToolsAppPage),
+    resolve: { styles: styleBundles('guide', 'tools') },
+    data: { seo: {
+      "title": "Payment Crypto Calculators in Your Browser - ISO8583Studio",
+      "description": "Run ISO8583Studio's DES/3DES, DUKPT, TR-31, key component, PIN block, MAC and EMV parser calculators in the browser. Same Kotlin code as the desktop app, compiled to WebAssembly; keys never leave your machine.",
+      "keywords": "online DUKPT calculator, pin block calculator online, 3DES calculator, TR-31 key block calculator, key check value calculator, payment crypto tools browser",
+      "path": "/tools/app",
+      "ogType": "website",
+      "robots": "index, follow"
+    } },
+  },
+  {
     path: "tools/card-validation",
     loadComponent: () => import('./docs-card-validation').then((c) => c.DocsCardValidationPage),
     resolve: { styles: styleBundles('guide', 'docs') },

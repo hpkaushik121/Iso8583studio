@@ -1,6 +1,6 @@
 package `in`.aicortex.iso8583studio.ui.navigation.stateConfigs
 
-import `in`.aicortex.iso8583studio.analytics.Analytics
+import `in`.aicortex.iso8583studio.analytics.StudioAnalytics
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.awt.ComposeWindow
@@ -571,7 +571,7 @@ data class UnifiedSimulatorState(
      */
     fun exportProfile(config: SimulatorConfig): ProfileTransferResult =
         exportProfileInternal(config).also {
-            Analytics.configExported(config.simulatorType.name, it is ProfileTransferResult.Success)
+            StudioAnalytics.configExported(config.simulatorType.name, it is ProfileTransferResult.Success)
         }
 
     private fun exportProfileInternal(config: SimulatorConfig): ProfileTransferResult {
@@ -615,7 +615,7 @@ data class UnifiedSimulatorState(
      */
     fun importProfile(file: File): ProfileTransferResult =
         importProfileInternal(file).also { result ->
-            Analytics.configImported(
+            StudioAnalytics.configImported(
                 (result as? ProfileTransferResult.Success)?.simulatorType?.name ?: "UNKNOWN",
                 result is ProfileTransferResult.Success,
             )

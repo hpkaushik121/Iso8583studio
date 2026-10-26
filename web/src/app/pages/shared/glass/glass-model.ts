@@ -59,6 +59,8 @@ export interface HubTool {
   icon: string;
   name: string;
   desc: string;
+  /** Slug of the tool in the in-browser app (/tools/app#<app>); set once it runs there. */
+  app?: string;
 }
 
 /** [code, name, sub] — e.g. ['01', 'Offline authentication', 'SDA · DDA']. */

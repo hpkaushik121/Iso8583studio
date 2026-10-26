@@ -38,7 +38,6 @@ kotlin {
             implementation(libs.serializer)
             implementation(libs.kotlinx.serializer)
             implementation(libs.material.icons)
-            implementation(libs.material)
             implementation(libs.serial.comms)
             implementation("org.jetbrains.kotlin:kotlin-script-util:1.8.22")
             implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:2.1.21")
@@ -56,6 +55,7 @@ kotlin {
             implementation("cafe.adriel.voyager:voyager-screenmodel:1.1.0-beta02")
             implementation("com.google.code.gson:gson:2.13.2")
             implementation(libs.google.analytics.kmp)
+            implementation(project(":tools-ui"))
             implementation(project(":cryptocalc"))
             implementation(project(":iso-core-lib"))
         }
@@ -159,4 +159,14 @@ compose.desktop {
             }
         }
     }
+}
+// Golden screenshots of every tool screen (ToolScreenGoldenTest). Record with
+// -Pgolden=record, compare with -Pgolden=compare; without the property the test is a no-op so
+// CI never depends on this machine's font rasterisation.
+tasks.withType<Test>().configureEach {
+    systemProperty("golden.mode", (project.findProperty("golden") ?: "").toString())
+    systemProperty("golden.dir", project.file("src/desktopTest/resources/golden").absolutePath)
+    systemProperty("golden.report", project.layout.buildDirectory.dir("reports/golden").get().asFile.absolutePath)
+    jvmArgs("-Dskiko.renderApi=SOFTWARE", "-Djava.awt.headless=true")
+    maxHeapSize = "3g"
 }

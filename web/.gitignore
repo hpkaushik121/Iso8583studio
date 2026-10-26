@@ -49,3 +49,6 @@ Thumbs.db
 
 # Built from the Phosphor set by tools/build-icons.mjs on every build.
 /public/icons.svg
+
+# Kotlin/Wasm build of the tools, produced by `npm run build:app` (./gradlew :tools-web:copyWebDist)
+/public/app

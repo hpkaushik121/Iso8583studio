@@ -121,6 +121,9 @@ function lastRowSpan(i: number, total: number, columns: number): number {
                   <span class="th-tile-n">{{ stages()[tool.stage][0] }}</span>
                 </div>
                 @if (!dense()) { <div class="th-tile-desc">{{ tool.desc }}</div> }
+                @if (tool.app) {
+                  <a class="th-tile-app hub-app-link" href="/tools/app#{{ tool.app }}" [attr.data-tool]="tool.app">Open in browser <ui-icon name="arrow-up-right" /></a>
+                }
               </div>
             }
           </div>

@@ -40,7 +40,8 @@ function walk(dir, out = []) {
 }
 
 const files = new Set(walk(DIST));
-const pages = [...files].filter((f) => f.endsWith('index.html') && f !== 'index.csr.html');
+// app/** is the Kotlin/Wasm bundle (noindex, no canonical), not a site page.
+const pages = [...files].filter((f) => f.endsWith('index.html') && f !== 'index.csr.html' && !f.startsWith('app/'));
 const routes = new Set(pages.map((f) => `/${f.replace(/index\.html$/, '').replace(/\/$/, '')}`.replace(/^\/$/, '/')));
 
 /** Does a site-absolute URL resolve to something in the output? */
@@ -69,13 +70,14 @@ const EXPECTED_PAGES = [
     'payment-switch', 'pos'].map((s) => `/simulator/${s}`),
   ...['card-validation', 'cipher-tools', 'dukpt-tools', 'emv-tools', 'key-tools',
     'mac-tools', 'pin-tools', 'utility-tools'].map((s) => `/tools/${s}`),
+  '/tools/app',
 ];
 
 const expected = [...EXPECTED_PAGES, ...EXPECTED_BLOG];
 for (const route of expected) {
   if (!routes.has(route)) fail(`route not emitted: ${route}`);
 }
-if (expected.length !== 87) fail(`expected 87 routes, the checker knows about ${expected.length}`);
+if (expected.length !== 88) fail(`expected 88 routes, the checker knows about ${expected.length}`);
 
 // ---- 2/3. internal links resolve, and nothing keeps .html ------------------
 

@@ -45,6 +45,8 @@ export const TOOLS: NavLink[] = [
   { label: 'Card Validation', link: '/tools/card-validation', icon: 'identification-card', chip: '4', desc: 'PAN, Luhn, IIN and check digits' },
   { label: 'DUKPT Tools', link: '/tools/dukpt-tools', icon: 'tree-structure', chip: '6', desc: 'BDK, IPEK and transaction keys' },
   { label: 'MAC Tools', link: '/tools/mac-tools', icon: 'seal-check', chip: '5', desc: 'ISO 9797, X9.9/X9.19, retail MAC' },
+  // The calculators themselves, running in the browser (Kotlin/Wasm build of the desktop tools).
+  { label: 'Run in browser', link: '/tools/app', icon: 'play', desc: 'Use the calculators without installing' },
 ];
 
 export const SOLUTIONS: NavLink[] = [

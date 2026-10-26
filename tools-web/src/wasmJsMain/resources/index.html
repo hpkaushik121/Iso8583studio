@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The app has no crawlable content; the site's /tools/app page is the indexable entry. -->
+  <meta name="robots" content="noindex">
+  <title>ISO8583Studio Tools</title>
+  <meta name="theme-color" content="#0f1017">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="loader" class="loader" role="status" aria-live="polite">
+    <div class="loader-mark">S</div>
+    <div class="loader-text">Loading ISO8583Studio tools…</div>
+    <div class="loader-sub" id="loader-sub">Downloading the calculator engine</div>
+  </div>
+  <div id="unsupported" class="unsupported" hidden>
+    <h1>Your browser cannot run the in-browser tools yet</h1>
+    <p>They need WebAssembly garbage collection, available in Chrome and Edge 119+, Firefox 120+ and Safari 18.2+.</p>
+    <p>Update your browser, or <a href="/download" target="_top">download the desktop app</a>.</p>
+  </div>
+  <script>
+    (function () {
+      // WasmGC feature detection, the same probe Kotlin/Wasm's own template uses.
+      var supported = false;
+      try {
+        supported = typeof WebAssembly === 'object' &&
+          WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0]));
+      } catch (e) { supported = false; }
+
+      function tellParent(msg) {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(Object.assign({ source: 'iso8583-tools' }, msg), window.location.origin);
+          }
+        } catch (e) {}
+      }
+
+      if (!supported) {
+        document.getElementById('loader').hidden = true;
+        document.getElementById('unsupported').hidden = false;
+        tellParent({ type: 'unsupported', reason: 'wasm_gc' });
+        return;
+      }
+
+      // Hide the loader once the app has posted app_ready (it does so from main()).
+      window.addEventListener('message', function (ev) {
+        if (ev.source === window && ev.data && ev.data.source === 'iso8583-tools' && ev.data.type === 'app_ready') {
+          var l = document.getElementById('loader');
+          if (l) l.hidden = true;
+        }
+      });
+      // Scroll chaining. Compose consumes a wheel event only when the list or form under the
+      // pointer can move; the app flags the ones that reach its root unused (ToolsWebApp.kt),
+      // synchronously, inside this same dispatch. A used event is cancelled here so the browser
+      // does not also scroll the embedding page; an unused one is left alone, and the browser
+      // chains it to the page natively, at native speed.
+      window.addEventListener('wheel', function (ev) {
+        if (!ev.target || ev.target.tagName !== 'CANVAS') return;
+        if (window.__iso8583UnusedWheel) { window.__iso8583UnusedWheel = false; return; }
+        if (ev.cancelable) ev.preventDefault();
+      }, { passive: false });
+
+      // Fallback: if app_ready never arrives (an old build, a stalled font), do not hide the app forever.
+      setTimeout(function () {
+        var l = document.getElementById('loader');
+        if (l) l.hidden = true;
+      }, 8000);
+
+      var s = document.createElement('script');
+      s.type = 'application/javascript';
+      s.src = 'iso8583-tools.js';
+      s.onerror = function () {
+        document.getElementById('loader-sub').textContent = 'The calculator engine failed to load. Reload the page to try again.';
+        tellParent({ type: 'app_error', reason: 'script_load' });
+      };
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

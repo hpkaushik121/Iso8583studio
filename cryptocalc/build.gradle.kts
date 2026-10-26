@@ -1,22 +1,39 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+// Payment cryptography engines. Pure Kotlin on every platform: the block ciphers, MACs and
+// digests live in io.cryptocalc.crypto.primitives, so the desktop app and the browser tools
+// compute identical results. javax.crypto is only referenced from jvmTest as a test oracle.
 plugins {
-    id("java-library")
-    alias(libs.plugins.jvm)
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.pluginSerialization)
 }
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
+
 kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+    jvm {
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_11) }
     }
-    dependencies {
-        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-        implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
-        implementation("org.bouncycastle:bcpkix-jdk15to18:1.68")
-        implementation("org.bouncycastle:bcprov-jdk15to18:1.68")
-        testImplementation(kotlin("test"))
-        implementation(project(":iso-core-lib"))
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        nodejs()
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            api(project(":iso-core-lib"))
+            implementation(libs.kotlinx.serializationJson)
+            implementation(libs.kotlincrypto.hash.sha1)
+            implementation(libs.kotlincrypto.hash.sha2)
+            implementation(libs.kotlincrypto.hash.md)
+            implementation(libs.kotlincrypto.macs.hmac.sha1)
+            implementation(libs.kotlincrypto.macs.hmac.sha2)
+            implementation(libs.kotlincrypto.macs.hmac.md)
+            api(libs.bignum)
+            implementation(libs.kotlinx.coroutinesCore)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
 }
