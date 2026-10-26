@@ -93,7 +93,7 @@ fun GlassScreen(spec: ToolScreenSpec, content: @Composable () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 GhostIcon(Icons.Default.ArrowBack, "Back to all tools", onClick = spec.onBack)
-                if (browse != null) GhostIcon(Icons.Default.Menu, "Browse tools", onClick = browse)
+                if (browse != null) GhostIcon(Icons.Default.Menu, if (browse.shown) "Hide tool categories" else "Show tool categories", onClick = browse.toggle)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(spec.title, style = MaterialTheme.typography.h5.copy(fontSize = 20.sp, letterSpacing = TextUnit(-0.02f, TextUnitType.Em)), color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (tool != null && !narrow) {

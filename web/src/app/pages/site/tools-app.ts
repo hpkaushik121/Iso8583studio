@@ -362,9 +362,11 @@ export class ToolsAppPage {
     };
     window.addEventListener('message', onMessage);
 
-    // Browser back/forward on this page: push the new hash down into the frame.
+    // Browser back/forward on this page, and any in-page hash change (a site link to a tool
+    // while this page is already open): push the new hash down into the frame.
     const onPop = () => pushHash();
     window.addEventListener('popstate', onPop);
+    window.addEventListener('hashchange', onPop);
 
     // Full screen state: the API's own events, Escape for the overlay fallback, and the app's brand row.
     const wrap = this.wrap().nativeElement;
@@ -385,6 +387,7 @@ export class ToolsAppPage {
     this.destroyRef.onDestroy(() => {
       window.removeEventListener('message', onMessage);
       window.removeEventListener('popstate', onPop);
+      window.removeEventListener('hashchange', onPop);
       document.removeEventListener('fullscreenchange', onFs);
       window.removeEventListener('keydown', onKey);
       clearInterval(overlayWatch);

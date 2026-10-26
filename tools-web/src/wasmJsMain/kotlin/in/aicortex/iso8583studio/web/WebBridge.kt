@@ -60,6 +60,10 @@ object WebBridge {
     /** Marks the wheel event being dispatched as unused by the app; the page's listener then scrolls the page by it. */
     fun flagUnusedWheel() = flagUnusedWheelJs()
 
+    /** Per-browser preferences (localStorage; absent or blocked storage reads as null). */
+    fun readPref(key: String): String? = readPrefJs(key)
+    fun writePref(key: String, value: String) = writePrefJs(key, value)
+
     /** The current hash without the leading "#/" (or "#"). */
     fun currentHash(): String = window.location.hash.removePrefix("#").removePrefix("/")
 
@@ -78,6 +82,12 @@ object WebBridge {
         })
     }
 }
+
+@Suppress("UNUSED_PARAMETER")
+private fun readPrefJs(key: String): String? = js("(function(){ try { return localStorage.getItem(key); } catch (e) { return null; } })()")
+
+@Suppress("UNUSED_PARAMETER")
+private fun writePrefJs(key: String, value: String): Unit = js("{ try { localStorage.setItem(key, value); } catch (e) {} }")
 
 private fun flagUnusedWheelJs(): Unit = js("{ window.__iso8583UnusedWheel = true; }")
 

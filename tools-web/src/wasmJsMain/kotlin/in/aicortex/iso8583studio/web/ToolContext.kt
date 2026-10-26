@@ -7,11 +7,11 @@ import `in`.aicortex.iso8583studio.tools.WebTool
 /** The tool being shown, for the chrome's title row, badge and banner. Null on the home screen. */
 val LocalToolContext = staticCompositionLocalOf<WebTool?> { null }
 
-/**
- * Opens the category tree as a drawer. Non-null only while the shell is too narrow to keep the
- * tree beside the screen, so a tool's title row shows a "Browse tools" control exactly then.
- */
-val LocalBrowseTools = staticCompositionLocalOf<(() -> Unit)?> { null }
+/** The category tree control: shows or hides the tree beside the content, or opens it as a drawer when the shell is narrow. */
+data class BrowseTools(val shown: Boolean, val toggle: () -> Unit)
+
+/** Provided by the shell; null only outside it (tests). */
+val LocalBrowseTools = staticCompositionLocalOf<BrowseTools?> { null }
 
 /** Short badge for a category, as the site's panels show it. */
 fun ToolCategory.badge(): String = when (this) {

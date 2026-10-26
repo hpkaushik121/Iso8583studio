@@ -77,12 +77,15 @@ fun ToolsWebApp() {
     }
 }
 
+private const val TREE_PREF = "tools.tree"
+
 @Composable
 private fun Shell(route: String, tool: WebTool?, category: ToolCategory?, navigate: (String?) -> Unit) {
     val c = Glass.colors
     val routeCategory = tool?.category ?: category
     var expanded by remember { mutableStateOf(setOfNotNull(routeCategory)) }
     var drawer by remember { mutableStateOf(false) }
+    var treeShown by remember { mutableStateOf(WebBridge.readPref(TREE_PREF) != "hidden") }
     LaunchedEffect(route) { routeCategory?.let { expanded = expanded + it }; drawer = false }
     // The app's own brand row only when the site nav is not above it: full screen, or opened standalone.
     val brand = WebBridge.fullscreen || WebBridge.standalone
@@ -102,6 +105,10 @@ private fun Shell(route: String, tool: WebTool?, category: ToolCategory?, naviga
         },
     ) {
         val wide = maxWidth >= 900.dp
+        val treeBeside = wide && treeShown
+        val browse = BrowseTools(shown = treeBeside) {
+            if (wide) { treeShown = !treeShown; WebBridge.writePref(TREE_PREF, if (treeShown) "shown" else "hidden") } else drawer = true
+        }
         val drawerWidth = minOf(300.dp, maxWidth * 0.86f)
         LaunchedEffect(wide) { if (wide) drawer = false }
         val tree: @Composable (onClose: (() -> Unit)?, Modifier) -> Unit = { onClose, m ->
@@ -111,14 +118,14 @@ private fun Shell(route: String, tool: WebTool?, category: ToolCategory?, naviga
             )
         }
         Row(modifier = Modifier.fillMaxSize()) {
-            if (wide) {
+            if (treeBeside) {
                 tree(null, Modifier)
                 Box(Modifier.width(1.dp).fillMaxHeight().background(c.line2))
             }
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                CompositionLocalProvider(LocalBrowseTools provides if (wide) null else ({ drawer = true })) {
+                CompositionLocalProvider(LocalBrowseTools provides browse) {
                     if (tool == null) {
-                        ToolHub(category = category, onCategory = { navigate(it?.let { c -> "c/${c.slug}" }) }, onOpen = { navigate(it.id) }, wide = wide)
+                        ToolHub(category = category, onCategory = { navigate(it?.let { c -> "c/${c.slug}" }) }, onOpen = { navigate(it.id) }, wide = treeBeside)
                     } else {
                         ToolHost(tool, onBack = { navigate(null) })
                     }

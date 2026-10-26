@@ -33,6 +33,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,7 +61,9 @@ import androidx.compose.ui.unit.sp
 import `in`.aicortex.iso8583studio.tools.ToolCatalog
 import `in`.aicortex.iso8583studio.tools.ToolCategory
 import `in`.aicortex.iso8583studio.tools.WebTool
+import `in`.aicortex.iso8583studio.web.LocalBrowseTools
 import `in`.aicortex.iso8583studio.web.badge
+import `in`.aicortex.iso8583studio.web.chrome.GhostIcon
 import `in`.aicortex.iso8583studio.web.chrome.glow
 import `in`.aicortex.iso8583studio.web.chrome.insetTop
 import `in`.aicortex.iso8583studio.web.chrome.ring
@@ -102,6 +105,10 @@ fun ToolHub(category: ToolCategory?, onCategory: (ToolCategory?) -> Unit, onOpen
         val cols = when { innerW >= 620.dp -> 4; innerW >= 500.dp -> 3; innerW >= 360.dp -> 2; else -> 1 }
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = if (narrow) 14.dp else 24.dp, vertical = if (narrow) 16.dp else 22.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                LocalBrowseTools.current?.let { browse ->
+                    GhostIcon(Icons.Default.Menu, if (browse.shown) "Hide tool categories" else "Show tool categories", onClick = browse.toggle)
+                    Spacer(Modifier.width(10.dp))
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(category?.label ?: "Tool categories", style = MaterialTheme.typography.h5.copy(letterSpacing = TextUnit(-0.02f, TextUnitType.Em)), color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.height(4.dp))
