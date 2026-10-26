@@ -49,7 +49,11 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
@@ -77,17 +81,21 @@ internal fun ToolCategory.icon(): ImageVector = when (this) {
 internal val TREE_WIDTH = 268.dp
 
 /**
- * The ISO8583Studio S on its gradient tile: the same two arcs as the site's logo mark
- * (web/src/app/ui/logo-mark.ts, a 48-unit box), the top arc white and the bottom teal.
+ * The ISO8583Studio mark exactly as web/public/images/logo-mark.svg draws it: a 48-unit tile
+ * with an 11-unit corner radius and the blue → blue-deep diagonal gradient, and the two arcs of
+ * the S (a 48-unit glyph centred at (24, 26)) scaled by 0.66 about the tile centre, stroked 4.6
+ * units wide with round caps, the top arc white and the bottom teal.
  */
 @Composable
 fun BrandMark(size: androidx.compose.ui.unit.Dp) {
     val c = Glass.colors
-    Canvas(
-        modifier = Modifier.size(size).glow(c.blue.copy(alpha = 0.4f), 8.dp, 14.dp).clip(RoundedCornerShape(size * 0.3f)).background(Brush.verticalGradient(listOf(c.blueHover, c.blue))),
-    ) {
+    Canvas(modifier = Modifier.size(size).glow(c.blue.copy(alpha = 0.4f), 8.dp, 14.dp)) {
         val u = this.size.width / 48f
-        val stroke = Stroke(width = 5.5f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        drawRoundRect(
+            brush = Brush.linearGradient(listOf(c.blue, c.blueDeep), start = Offset.Zero, end = Offset(this.size.width, this.size.height)),
+            cornerRadius = CornerRadius(11f * u),
+        )
+        val stroke = Stroke(width = 4.6f * u, cap = StrokeCap.Round, join = StrokeJoin.Round)
         // M35 14 H20 A6 6 0 0 0 20 26 H28
         val top = Path().apply {
             moveTo(35f * u, 14f * u); lineTo(20f * u, 14f * u)
@@ -100,8 +108,15 @@ fun BrandMark(size: androidx.compose.ui.unit.Dp) {
             arcTo(Rect(22f * u, 26f * u, 34f * u, 38f * u), -90f, 180f, false)
             lineTo(13f * u, 38f * u)
         }
-        drawPath(top, c.onAccent, style = stroke)
-        drawPath(bottom, c.tealHi, style = stroke)
+        // transform="translate(24 24) scale(.66) translate(-24 -26)"
+        translate(24f * u, 24f * u) {
+            scale(0.66f, pivot = Offset.Zero) {
+                translate(-24f * u, -26f * u) {
+                    drawPath(top, c.onAccent, style = stroke)
+                    drawPath(bottom, c.tealHi, style = stroke)
+                }
+            }
+        }
     }
 }
 
