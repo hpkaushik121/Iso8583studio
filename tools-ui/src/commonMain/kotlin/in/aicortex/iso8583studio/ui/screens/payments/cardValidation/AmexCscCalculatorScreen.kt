@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -227,7 +229,7 @@ private fun CvvForm(isValidation: Boolean) {
         subtitle = "Generate or validate an Amex Card Security Code",
         icon = if (isValidation) Icons.Default.VerifiedUser else Icons.Default.CreditCard
     ) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernDropdownField("CSC Version", cscVersion, listOf("Version 1", "Version 2"), { cscVersion = if(it==0) "Version 1" else "Version 2" })
             EnhancedTextField(value = cscKey, onValueChange = { cscKey = it.uppercase() }, label = "CSC Key (Hex)", validation = AmexCvvValidationUtils.validateHex(cscKey, "CSC Key"))
             EnhancedTextField(value = pan, onValueChange = { pan = it }, label = "PAN", validation = AmexCvvValidationUtils.validateNumeric(pan, "PAN"))

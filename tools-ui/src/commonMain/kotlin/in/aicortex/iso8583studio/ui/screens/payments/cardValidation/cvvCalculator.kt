@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.cardValidation
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -217,7 +219,7 @@ private fun CvvGeneratorTab(isValidation: Boolean) {
         subtitle = "Generate or validate a card verification value",
         icon = if (isValidation) Icons.Default.VerifiedUser else Icons.Default.CreditCard
     ) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = cvkAB, onValueChange = { cvkAB = it.uppercase() }, label = if (selectedVerificationType == "dCVV") "Card unique key (32 Hex)" else "CVK A/B (32 Hex)", validation = CvvValidationUtils.validateHex(cvkAB, "CVK A/B", 32))
             EnhancedTextField(value = pan, onValueChange = { pan = it }, label = "PAN", validation = ValidationResult(ValidationState.VALID))
             EnhancedTextField(value = expDate, onValueChange = { expDate = it }, label = "Expiration Date (YYMM)", validation = ValidationResult(ValidationState.VALID))

@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -266,7 +268,7 @@ private fun ApduQueryCard() {
         icon = Icons.Default.HelpOutline,
         onInfoClick = { showInfoDialog = true }
     ) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(
                 value = apduResponseCode,
                 onValueChange = { if (it.length <= 4) apduResponseCode = it.uppercase() },
@@ -402,7 +404,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

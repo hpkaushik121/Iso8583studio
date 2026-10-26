@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -368,7 +370,7 @@ fun Track2Screen(onBack: () -> Unit) {
                 }
             }
             Row(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(modifier = Modifier.weight(1f).fillMaxHeight().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             body()
         }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
@@ -695,7 +697,7 @@ private fun Track2InfoDialog(onDismiss: () -> Unit) {
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     Text("Track 2 layout (ISO/IEC 7813):", fontWeight = FontWeight.Bold)
                     Text("PAN [SEP] YYMM SVC DISCRETIONARY", style = MaterialTheme.typography.caption)
                     Spacer(Modifier.height(8.dp))

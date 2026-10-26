@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.dda
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -248,7 +250,7 @@ fun RetrieveIssuerPkTabDda() {
 
     val isFormValid = listOf(caPkModulus, caPkExponent, issuerPkCert, issuerPkExponent).all { it.isNotBlank() }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ModernCryptoCard(title = "Retrieve Issuer Public Key", subtitle = "Recover the Issuer PK using the CA Public Key", icon = Icons.Default.VpnKey, onInfoClick = { showInfoDialog = true }) {
             EnhancedTextField(value = caPkModulus, onValueChange = { caPkModulus = it.uppercase() }, label = "CA PK Modulus (Hex)", validation = DdaValidationUtils.validateHexString(caPkModulus), maxLines = 4)
             Spacer(Modifier.height(4.dp))
@@ -298,7 +300,7 @@ fun RetrieveIccPkTab() {
 
     val isFormValid = listOf(issuerPkModulus, issuerPkExponent, iccPkCert, iccPkExponent).all { it.isNotBlank() }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ModernCryptoCard(title = "Retrieve ICC Public Key", subtitle = "Recover the card's unique public key", icon = Icons.Default.Contactless, onInfoClick = { showInfoDialog = true }) {
             EnhancedTextField(value = issuerPkModulus, onValueChange = { issuerPkModulus = it.uppercase() }, label = "Issuer PK Modulus (Hex)", validation = DdaValidationUtils.validateHexString(issuerPkModulus), maxLines = 4)
             Spacer(Modifier.height(4.dp))
@@ -350,7 +352,7 @@ fun VerifySdadTabDda() {
 
     val isFormValid = listOf(iccPkModulus, iccPkExponent, sdad).all { it.isNotBlank() }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ModernCryptoCard(title = "Verify SDAD (Dynamic Signature)", subtitle = "Verify the card's dynamic signature", icon = Icons.Default.VerifiedUser, onInfoClick = { showInfoDialog = true }) {
             EnhancedTextField(value = iccPkModulus, onValueChange = { iccPkModulus = it.uppercase() }, label = "ICC PK Modulus (Hex)", validation = DdaValidationUtils.validateHexString(iccPkModulus), maxLines = 4)
             Spacer(Modifier.height(4.dp))
@@ -542,7 +544,7 @@ fun InfoDialog(
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -153,7 +155,7 @@ private fun DataParserCard() {
     val isFormValid = hex.isNotEmpty() && hex.length % 2 == 0 && hex.all { it.isDigit() || it.uppercaseChar() in 'A'..'F' }
 
     ModernCryptoCard(title = "EMV Data Parser", subtitle = "Decode TLV, TVR, TSI, AIP, CVR and IAD", icon = Icons.Default.Plagiarism, onInfoClick = { showInfoDialog = true }) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernDropdownField(label = "EMV Tag / Data Type", value = selectedTag, options = tagTypes, onSelectionChanged = { index -> selectedTag = tagTypes[index] })
             EnhancedTextField(
                 value = data,
@@ -320,7 +322,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

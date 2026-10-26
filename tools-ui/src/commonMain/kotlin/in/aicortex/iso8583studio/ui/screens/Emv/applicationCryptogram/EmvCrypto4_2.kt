@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -280,7 +282,7 @@ private fun SessionKeysTab42() {
 
     val isFormValid = listOf(Emv42ValidationUtils.validateHexString(masterKey, 32), Emv42ValidationUtils.validateHexString(atc, 4)).none { it.state == ValidationState.ERROR }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ModernCryptoCard(title = "Session Key Derivation", subtitle = "EMV 4.2 Common Session Key Method", icon = Icons.Default.VpnKey, onInfoClick = { showInfoDialog = true }) {
             EnhancedTextField(value = masterKey, onValueChange = { masterKey = it.uppercase() }, label = "Master Key (UDK)", validation = Emv42ValidationUtils.validateHexString(masterKey, 32))
             Spacer(Modifier.height(4.dp))
@@ -613,7 +615,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -340,7 +342,7 @@ private fun KeyGeneratorTab() {
     val isFormValid = countValidation.state == ValidationState.VALID && (keysToGenerate.toIntOrNull() ?: 0) in 1..100
 
     ModernCryptoCard(title = "Key Generator", subtitle = "Generate one or more random TDES keys (single, double or triple length)", icon = Icons.Default.Autorenew) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(
                 value = keysToGenerate,
                 onValueChange = { keysToGenerate = it },
@@ -418,7 +420,7 @@ private fun KeyCombinationTab() {
         subtitle = "Combine TDES key components via XOR (KCV shown per component and for the result)",
         icon = Icons.Default.CallMerge
     ) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernDropdownField(
                 label = "Key Type / Length",
                 value = "TDES — ${keyLength.label}",
@@ -575,7 +577,7 @@ private fun ParityEnforcementTab() {
     val inputKcv = if (isFormValid) DeaKeysCryptoService.calculateTdesKcv(key) else ""
 
     ModernCryptoCard(title = "Parity Enforcement", subtitle = "Apply odd or even parity to a TDES key (16H / 32H / 48H)", icon = Icons.Default.Security) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.weight(1f)) {
                     EnhancedTextField(
@@ -647,7 +649,7 @@ private fun KeyValidationTab() {
     val isFormValid = validation.state == ValidationState.VALID
 
     ModernCryptoCard(title = "Key Validation", subtitle = "Check length, parity, KCV and component structure of a TDES key", icon = Icons.Default.VerifiedUser) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(
                 value = key,
                 onValueChange = { key = it.filterNot { ch -> ch.isWhitespace() }.uppercase(); report = null },

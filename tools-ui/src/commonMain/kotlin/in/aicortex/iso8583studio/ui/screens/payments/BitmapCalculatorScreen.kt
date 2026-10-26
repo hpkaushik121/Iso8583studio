@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.LocalToolChrome
@@ -170,7 +172,7 @@ fun BitmapScreen(
                 actions = { IconButton(onClick = ::clearAll) { Icon(Icons.Default.Refresh, contentDescription = "Clear All") } },
             )
         ) {
-            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) { body() }
+            Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) { body() }
         }
         return
     }
@@ -193,7 +195,7 @@ fun BitmapScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState()), // Keep scroll for smaller window sizes
+                .toolScroll(rememberScrollState()), // Keep scroll for smaller window sizes
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             body()

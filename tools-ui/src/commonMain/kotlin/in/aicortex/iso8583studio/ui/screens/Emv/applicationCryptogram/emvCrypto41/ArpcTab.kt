@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import io.cryptocalc.emv.EmvAc
 
 import ai.cortex.core.toHexUpper
@@ -78,7 +80,7 @@ fun ArpcTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Calculator
         if (arpcMethod == CryptogramType.ARPC.methods[0]) ValidationUtils.validateAlphanumeric(responseCode, 2) else ValidationUtils.validateHexString(responseCode, 8)
     ).none { it.state == ValidationState.ERROR }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ModernCryptoCard(
             title = "ARPC Generation",
             subtitle = "Generate Authorization Response Cryptogram",

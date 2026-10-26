@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.secureMessaging
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -512,7 +514,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

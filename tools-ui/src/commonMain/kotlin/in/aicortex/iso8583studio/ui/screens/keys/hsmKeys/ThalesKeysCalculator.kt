@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.thaleskeys
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -223,7 +225,7 @@ private fun EncryptDecryptTab() {
     }
 
     ModernCryptoCard(title = "Key Encryption / Decryption", subtitle = "Variant LMK: key under LMK pair ⊕ variant (⊕ scheme variant per component)", icon = Icons.Default.SyncAlt) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             EnhancedTextField(value = key, onValueChange = { key = it.uppercase().removePrefix("U").removePrefix("T").removePrefix("X").removePrefix("Y").removePrefix("Z") }, label = "Key (Hex, 16/32/48)", validation = ThalesValidationUtils.validateHex(key, "Key"))
             ModernDropdownField(label = "Key Scheme", value = keyScheme, options = schemes, onSelectionChanged = { keyScheme = schemes[it] })
             ModernDropdownField(label = "LMK Pair (payShield test LMK)", value = selectedLmkPair, options = lmkPairs, onSelectionChanged = { selectedLmkPair = lmkPairs[it] })
@@ -251,7 +253,7 @@ private fun KeyLookupTab() {
     val isFormValid = ThalesValidationUtils.validateHex(key, "Key").state == ValidationState.VALID
 
     ModernCryptoCard(title = "Key Lookup", subtitle = "KCV and parity of a clear key; optionally find which test LMK pair/variant deciphers a key to odd parity", icon = Icons.Default.Search) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             EnhancedTextField(value = key, onValueChange = { key = it.uppercase() }, label = "Key (Hex)", validation = ThalesValidationUtils.validateHex(key, "Key"), maxLines = 4)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = checkKcv, onCheckedChange = { checkKcv = it })

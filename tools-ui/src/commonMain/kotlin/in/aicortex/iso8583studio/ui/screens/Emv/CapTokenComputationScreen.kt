@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -171,7 +173,7 @@ private fun CapCalculationCard() {
     val isFormValid = listOf(ipb, cid, atc, ac, iad).all { CapValidationUtils.validateHexString(it).state == ValidationState.VALID } && cid.length == 2 && atc.length == 4 && ac.length == 16
 
     ModernCryptoCard(title = "CAP Token Computation", subtitle = "Mastercard Chip Authentication Program (IPB bit filter)", icon = Icons.Default.Token, onInfoClick = { showInfoDialog = true }) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = ipb, onValueChange = { ipb = it.uppercase() }, label = "IPB (Issuer Proprietary Bitmap, 9F56)", validation = CapValidationUtils.validateHexString(ipb))
             EnhancedTextField(value = iaf, onValueChange = { iaf = it.uppercase() }, label = "IAF (Issuer Authentication Flags, 9F55; bit 8 = prefix PSN)", validation = CapValidationUtils.validateHexString(iaf, allowEmpty = true))
             EnhancedTextField(value = panSn, onValueChange = { panSn = it.filter { c -> c.isDigit() } }, label = "PAN + Sequence Number (last 2 digits = PSN)", validation = ValidationResult(ValidationState.VALID))
@@ -303,7 +305,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

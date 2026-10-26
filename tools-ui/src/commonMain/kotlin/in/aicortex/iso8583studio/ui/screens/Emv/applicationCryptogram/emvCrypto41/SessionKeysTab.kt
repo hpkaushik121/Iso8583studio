@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import ai.cortex.core.IsoUtil
 import ai.cortex.core.ValidationState
 import ai.cortex.core.ValidationUtils
@@ -101,7 +103,7 @@ fun SessionKeysTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Cal
         heightValidation
     ).none { it.state == ValidationState.ERROR }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ModernCryptoCard(
             title = "Session Key Derivation",
             subtitle = "Generate session keys for EMV transactions",

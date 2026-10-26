@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -379,7 +381,7 @@ private fun DesCalculatorCard() {
         onInfoClick = null
     ) {
         Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
+            modifier = Modifier.toolScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Row 1: Algorithm + Mode
@@ -803,7 +805,7 @@ private fun InfoDialog(
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) { content() }
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) { content() }
             }
         },
         confirmButton = { Button(onClick = onDismissRequest) { Text("OK") } },

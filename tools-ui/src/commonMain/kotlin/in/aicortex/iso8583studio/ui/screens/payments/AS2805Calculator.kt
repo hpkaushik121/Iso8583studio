@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -300,7 +302,7 @@ private fun TranslatePinBlockTab() {
     val isFormValid = listOf(systemZpk, terminalTpk, stan, amount, incomingPinBlock, accountNumber).all { it.isNotBlank() }
 
     ModernCryptoCard(title = "Translate PIN Block", subtitle = "Translate a PIN block from TPK to ZPK", icon = Icons.Default.SyncAlt) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = systemZpk, onValueChange = { systemZpk = it.uppercase() }, label = "System ZPK (Hex)", validation = As2805ValidationUtils.validateHex(systemZpk, "System ZPK"))
             EnhancedTextField(value = terminalTpk, onValueChange = { terminalTpk = it.uppercase() }, label = "Terminal TPK (Hex)", validation = As2805ValidationUtils.validateHex(terminalTpk, "Terminal TPK"))
             EnhancedTextField(value = stan, onValueChange = { stan = it }, label = "STAN", validation = As2805ValidationUtils.validateNumeric(stan, "STAN"))

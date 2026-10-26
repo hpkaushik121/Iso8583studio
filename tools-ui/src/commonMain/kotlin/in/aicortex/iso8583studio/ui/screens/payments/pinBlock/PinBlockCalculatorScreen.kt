@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -696,7 +698,7 @@ fun PinBlockGeneralScreen(onBack: () -> Unit) {
 
     val body: @Composable () -> Unit = {
                 Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    modifier = Modifier.toolScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     ModernDropdownField("PIN block format", selectedFormat, pinBlockFormats) {

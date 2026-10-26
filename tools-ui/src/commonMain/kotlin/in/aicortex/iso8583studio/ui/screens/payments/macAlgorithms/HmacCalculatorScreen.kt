@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.payments.macAlgorithms
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -134,7 +136,7 @@ fun HMACScreen(onBack: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Column(
-                modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
+                modifier = Modifier.weight(1f).fillMaxHeight().toolScroll(rememberScrollState())
             ) {
             body()
         }

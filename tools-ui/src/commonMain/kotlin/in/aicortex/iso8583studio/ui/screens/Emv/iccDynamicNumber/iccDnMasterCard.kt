@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.iccDynamicNumber
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -183,7 +185,7 @@ private fun IccDnCalculationCard() {
     ).all { it.state == ValidationState.VALID } && panSeqNo.length >= 14 && panSeqNo.all { it.isDigit() }
 
     ModernCryptoCard(title = "ICC Dynamic Number", subtitle = "MasterCard M/Chip calculation - reference implementation", icon = Icons.Default.DynamicForm, onInfoClick = { showInfoDialog = true }) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = mkdn, onValueChange = { mkdn = it.uppercase() }, label = "MK-DN (Master Key for Dynamic Number)", validation = IccDnValidationUtils.validateHexString(mkdn, 32, friendlyName = "MK-DN"))
             EnhancedTextField(value = panSeqNo, onValueChange = { panSeqNo = it.filter { c -> c.isDigit() } }, label = "PAN + Seq No. (last 2 digits = PSN)", validation = ValidationResult(if (panSeqNo.length >= 14) ValidationState.VALID else ValidationState.ERROR, "PAN (12-19 digits) followed by 2-digit PSN"))
             EnhancedTextField(value = atc, onValueChange = { atc = it.uppercase() }, label = "Application Transaction Counter (ATC)", validation = IccDnValidationUtils.validateHexString(atc, 4, friendlyName = "ATC"))
@@ -312,7 +314,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

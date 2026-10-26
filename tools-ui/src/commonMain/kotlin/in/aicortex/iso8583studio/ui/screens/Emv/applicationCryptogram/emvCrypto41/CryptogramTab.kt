@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.platform.epochMillis
 
 import ai.cortex.core.IsoUtil
@@ -79,7 +81,7 @@ fun CryptogramTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Calc
         ValidationUtils.validateHexString(iccData, null)
     ).none { it.state == ValidationState.ERROR } && terminalData.length >= 8 && iccData.length >= 4
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ModernCryptoCard(
             title = "Application Cryptogram",
             subtitle = "Generate AAC, ARQC, or TC cryptograms",

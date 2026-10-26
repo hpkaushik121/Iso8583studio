@@ -54,18 +54,16 @@
           if (l) l.hidden = true;
         }
       });
-      // Scroll chaining: the app flags a wheel event nothing inside it could use (see ToolsWebApp.kt);
-      // after the dispatch the page scrolls by the native amount, so a form scrolls first and the
-      // page takes over when it ends or when the pointer is over something static.
+      // Scroll chaining. Compose consumes a wheel event only when the list or form under the
+      // pointer can move; the app flags the ones that reach its root unused (ToolsWebApp.kt),
+      // synchronously, inside this same dispatch. A used event is cancelled here so the browser
+      // does not also scroll the embedding page; an unused one is left alone, and the browser
+      // chains it to the page natively, at native speed.
       window.addEventListener('wheel', function (ev) {
-        var dy = ev.deltaY;
-        if (ev.deltaMode === 1) dy *= 16; else if (ev.deltaMode === 2) dy *= window.innerHeight;
-        setTimeout(function () {
-          if (!window.__iso8583UnusedWheel) return;
-          window.__iso8583UnusedWheel = false;
-          if (dy) tellParent({ type: 'scroll', dy: dy });
-        }, 0);
-      }, { passive: true });
+        if (!ev.target || ev.target.tagName !== 'CANVAS') return;
+        if (window.__iso8583UnusedWheel) { window.__iso8583UnusedWheel = false; return; }
+        if (ev.cancelable) ev.preventDefault();
+      }, { passive: false });
 
       // Fallback: if app_ready never arrives (an old build, a stalled font), do not hide the app forever.
       setTimeout(function () {

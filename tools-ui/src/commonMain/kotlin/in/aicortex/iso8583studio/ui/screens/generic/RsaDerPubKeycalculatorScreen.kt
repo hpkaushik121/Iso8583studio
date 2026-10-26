@@ -2,6 +2,8 @@
 
 package `in`.aicortex.iso8583studio.ui.screens.rsader
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -240,7 +242,7 @@ private fun EncoderCard() {
     val isFormValid = RsaDerValidationUtils.validate(modulus).state == ValidationState.VALID && RsaDerValidationUtils.validate(exponent).state == ValidationState.VALID
 
     ModernCryptoCard(title = "DER Public Key Encoder", subtitle = "Encode a public key into DER format", icon = Icons.Default.Lock) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = modulus, onValueChange = { modulus = it }, label = "Modulus", validation = RsaDerValidationUtils.validate(modulus), maxLines = 5)
             ModernDropdownField(label = "Modulus Encoding", value = modulusEncoding, options = encodingOptions, onSelectionChanged = { modulusEncoding = encodingOptions[it] })
 
@@ -300,7 +302,7 @@ private fun DecoderCard() {
     val isFormValid = RsaDerValidationUtils.validate(data).state == ValidationState.VALID
 
     ModernCryptoCard(title = "DER Public Key Decoder", subtitle = "Decode a DER key to view its components", icon = Icons.Default.LockOpen) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = data, onValueChange = { data = it }, label = "Encoded Data", validation = RsaDerValidationUtils.validate(data), maxLines = 10)
             ModernDropdownField(label = "Data Encoding", value = dataEncoding, options = encodingOptions, onSelectionChanged = { dataEncoding = encodingOptions[it] })
             ModernDropdownField(label = "DER Encoding", value = derEncoding, options = derEncodingOptions, onSelectionChanged = { derEncoding = derEncodingOptions[it] })
@@ -452,7 +454,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

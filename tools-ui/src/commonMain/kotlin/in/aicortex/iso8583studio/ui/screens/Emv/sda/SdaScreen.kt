@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.sda
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -243,7 +245,7 @@ fun RetrieveIssuerPkTab() {
 
     val isFormValid = listOf(caPkModulus, caPkExponent, issuerPkCert, issuerPkExponent).all { it.isNotBlank() }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ModernCryptoCard(title = "Retrieve Issuer Public Key", subtitle = "Recover the Issuer PK using the CA Public Key", icon = Icons.Default.VpnKey, onInfoClick = { showInfoDialog = true }) {
             EnhancedTextField(value = caPkModulus, onValueChange = { caPkModulus = it.uppercase() }, label = "CA PK Modulus (Hex)", validation = SdaValidationUtils.validateHexString(caPkModulus), maxLines = 4)
             Spacer(Modifier.height(4.dp))
@@ -290,7 +292,7 @@ fun VerifySsadTab() {
 
     val isFormValid = listOf(issuerPkModulus, issuerPkExponent, ssad).all { it.isNotBlank() }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ModernCryptoCard(title = "Verify SSAD", subtitle = "Verify Signed Static Application Data", icon = Icons.Default.VerifiedUser, onInfoClick = { showInfoDialog = true }) {
             EnhancedTextField(value = issuerPkModulus, onValueChange = { issuerPkModulus = it.uppercase() }, label = "Issuer PK Modulus (Hex)", validation = SdaValidationUtils.validateHexString(issuerPkModulus), maxLines = 4)
             Spacer(Modifier.height(4.dp))
@@ -481,7 +483,7 @@ fun InfoDialog(
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

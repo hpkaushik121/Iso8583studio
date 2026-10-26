@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.hsmKeys
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -251,7 +253,7 @@ private fun AkbDecodeTab() {
     val isFormValid = akb.count { it == ',' } == 2 && AtallaValidationUtils.validateHex(mfkKey, "MFK Key").state == ValidationState.VALID
 
     ModernCryptoCard(title = "AKB Decode", subtitle = "Decrypt an Atalla Key Block and verify its MAC", icon = Icons.Default.LockOpen) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             EnhancedTextField(value = akb, onValueChange = { akb = it.uppercase() }, label = "AKB (header,encryptedKey,mac)", maxLines = 4)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = checkKcv, onCheckedChange = { checkKcv = it })

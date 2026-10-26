@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.tr31keyblock
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -454,7 +456,7 @@ private fun EncodeTab() {
 
     val isFormValid = Tr31ValidationUtils.validateHex(plainKey, "Plain Key").state == ValidationState.VALID
 
-    Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ModernCryptoCard(title = "TR-31 Key Block", subtitle = "Create an encrypted key block", icon = Icons.Default.Lock) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 FormRow("KBPK:") { EnhancedTextField(value = kbpk, onValueChange = { kbpk = it.uppercase() }) }

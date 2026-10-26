@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -239,7 +241,7 @@ private fun KeysTab() {
     val scope = rememberCoroutineScope()
 
     ModernCryptoCard(title = "Key Pair Generation", subtitle = "RSA or EC key pair as SubjectPublicKeyInfo / PKCS#8 PEM", icon = Icons.Default.VpnKey) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernDropdownField(label = "Key Type", value = keyType, options = listOf("RSA", "ECC"), onSelectionChanged = { keyType = if(it==0) "RSA" else "ECC"})
             AnimatedContent(targetState = keyType, label = "key_type_options") { type ->
                 when(type) {
@@ -297,7 +299,7 @@ private fun CsrTab() {
     var country by remember { mutableStateOf("") }
 
     ModernCryptoCard(title = "Certificate Signing Request", subtitle = "PKCS#10 request signed with the private key", icon = Icons.Default.PostAdd) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = privateKey, onValueChange = { privateKey = it }, label = "Private Key (PEM: PKCS#8, PKCS#1 or EC)", maxLines = 5)
             ModernDropdownField("Signature Algorithm", signatureAlgorithm, SslSupport.signatureAlgorithms, { signatureAlgorithm = SslSupport.signatureAlgorithms[it] })
             Divider(Modifier.padding(vertical = 8.dp))
@@ -352,7 +354,7 @@ private fun SelfSignedCertTab() {
     var country by remember { mutableStateOf("") }
 
     ModernCryptoCard(title = "Self-Signed Certificate", subtitle = "X.509 v3 certificate with basicConstraints CA and a random serial", icon = Icons.Default.VerifiedUser) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = privateKey, onValueChange = { privateKey = it }, label = "Private Key (PEM Format)", maxLines = 5)
             ModernDropdownField("Signature Algorithm", signatureAlgorithm, SslSupport.signatureAlgorithms, { signatureAlgorithm = SslSupport.signatureAlgorithms[it] })
             EnhancedTextField(value = validityDays, onValueChange = { validityDays = it.filter { c -> c.isDigit() } }, label = "Validity (Days)")

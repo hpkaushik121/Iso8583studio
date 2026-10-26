@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys.hsmKeys
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -235,7 +237,7 @@ private fun EncryptDecryptTab() {
     }
 
     ModernCryptoCard(title = "Key Encryption / Decryption", subtitle = "Reference implementation: DES/TDES under KM ⊕ variant, ECB or CBC per format - verify against the SafeNet specification", icon = Icons.Default.SyncAlt) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             EnhancedTextField(value = key, onValueChange = { key = if (keyInputType == "Hexadecimal") it.uppercase() else it }, label = "Key", validation = if (keyInputType == "Hexadecimal") SafenetValidationUtils.validateHex(key, "Key") else ValidationResult(ValidationState.VALID))
             ModernDropdownField(label = "Key Format", value = keyFormat, options = keyFormats, onSelectionChanged = { keyFormat = keyFormats[it] })
             ModernDropdownField(label = "Variant (hex)", value = variant, options = variants, onSelectionChanged = { variant = variants[it] })
@@ -262,7 +264,7 @@ private fun KeyLookupTab() {
     val isFormValid = SafenetValidationUtils.validateHex(key, "Key").state == ValidationState.VALID
 
     ModernCryptoCard(title = "Key Lookup", subtitle = "KCV and parity of a clear key", icon = Icons.Default.Search) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             EnhancedTextField(value = key, onValueChange = { key = it.uppercase() }, label = "Key (Hex)", validation = SafenetValidationUtils.validateHex(key, "Key"), maxLines = 4)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = checkKcv, onCheckedChange = { checkKcv = it })

@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import ai.cortex.core.ValidationState
 import ai.cortex.core.ValidationUtils
 import ai.cortex.core.types.KeyParity
@@ -88,7 +90,7 @@ fun UdkDerivationTab(calculatorLogManager: CalculatorLogManager, calculatorTab: 
         .none { it.state == ValidationState.ERROR }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ModernCryptoCard(

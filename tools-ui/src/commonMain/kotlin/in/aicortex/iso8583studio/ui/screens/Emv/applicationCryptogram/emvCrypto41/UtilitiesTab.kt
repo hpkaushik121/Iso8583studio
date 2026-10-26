@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv.applicationCryptogram.emvCrypto41
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import io.cryptocalc.crypto.engines.encryption.TdesCalculatorEngine
 
 import ai.cortex.core.toHexUpper
@@ -66,7 +68,7 @@ fun UtilitiesTab(calculatorLogManager: CalculatorLogManager,calculatorTab: Calcu
     val keyValidation = ValidationUtils.validateHexString(inputKey, 32)
     val isFormValid = keyValidation.state != ValidationState.ERROR
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ModernCryptoCard(
             title = "Cryptographic Utilities",
             subtitle = "Key validation and utility functions",

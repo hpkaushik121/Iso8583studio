@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.keys
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -243,7 +245,7 @@ private fun KeyshareTabContent(isSecure: Boolean) {
     val innerTabTitles = listOf("2 Parts", "3 Parts")
     val lengthOptions = KeyshareCryptoService.keyLengthOptions(keyType)
 
-    Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         ModernCryptoCard(title = "Global Options", subtitle = if (isSecure) "Shares are PIN-protected (AES-128-CTR under a PIN-derived key)" else "Define settings for this operation", icon = Icons.Default.Tune) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 ModernDropdownField("Parity", parity, listOf("Ignore", "ForceOdd"), { parity = if (it == 0) "Ignore" else "ForceOdd" }, Modifier.weight(1f))

@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -228,7 +230,7 @@ private fun KeysTab() {
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     ModernCryptoCard(title = "RSA Key Pair", subtitle = "Generate or paste an RSA key pair (hex)", icon = Icons.Default.VpnKey) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernDropdownField("Key Length (bits)", keyLength, listOf("1024", "2048", "3072", "4096"), onSelectionChanged = { keyLength = listOf("1024", "2048", "3072", "4096")[it] })
             ModernButton(
                 text = "Generate Keys",

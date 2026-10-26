@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -209,7 +211,7 @@ private fun AesCalculatorCard() {
             (!showIvField || ivValidation.state == ValidationState.VALID)
 
     ModernCryptoCard(title = "AES Calculator", subtitle = "Encrypt, Decrypt, or get KCV", icon = Icons.Default.Lock) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 ModernDropdownField(label = "AES Type", value = selectedAesType, options = aesTypes, onSelectionChanged = { selectedAesType = aesTypes[it] }, modifier = Modifier.weight(1f))
                 ModernDropdownField(label = "Mode", value = selectedMode, options = modes, onSelectionChanged = { selectedMode = modes[it] }, modifier = Modifier.weight(1f))
@@ -409,7 +411,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

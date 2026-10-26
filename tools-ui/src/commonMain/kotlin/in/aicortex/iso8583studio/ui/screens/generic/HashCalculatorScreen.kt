@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.generic
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -176,7 +178,7 @@ private fun HashCalculatorCard() {
         icon = Icons.Default.Password,
         onInfoClick = { showInfoDialog = true }
     ) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 ModernDropdownField(label = "Data Input Type", value = selectedInputType, options = inputTypes, onSelectionChanged = { selectedInputType = inputTypes[it] }, modifier = Modifier.weight(1f))
                 ModernDropdownField(label = "Hash Type", value = selectedHashType, options = hashTypes, onSelectionChanged = { selectedHashType = hashTypes[it] }, modifier = Modifier.weight(1f))
@@ -352,7 +354,7 @@ private fun InfoDialog(title: String, onDismissRequest: () -> Unit, content: @Co
         },
         text = {
             SelectionContainer {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.toolScroll(rememberScrollState())) {
                     content()
                 }
             }

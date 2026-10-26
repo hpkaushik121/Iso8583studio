@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -237,7 +239,7 @@ private fun GenerateTab() {
         exponent1 = c.dP?.let { BigInt.toHexEven(it) } ?: ""; exponent2 = c.dQ?.let { BigInt.toHexEven(it) } ?: ""; coefficient = c.qInv?.let { BigInt.toHexEven(it) } ?: ""
     }
     ModernCryptoCard(title = "Generate RSA Key Components", subtitle = "Generate a random key or derive the CRT components from p and q", icon = Icons.Default.Autorenew) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = modulus, onValueChange = { modulus = it.uppercase() }, label = "Modulus (n)", validation = ThalesRsaValidationUtils.validateHex(modulus), maxLines = 4)
             EnhancedTextField(value = publicExp, onValueChange = { publicExp = it.uppercase() }, label = "Public Exp. (e)", validation = ThalesRsaValidationUtils.validateHex(publicExp))
             EnhancedTextField(value = privateExp, onValueChange = { privateExp = it.uppercase() }, label = "Private Exp. (d)", validation = ThalesRsaValidationUtils.validateHex(privateExp), maxLines = 4)
@@ -296,7 +298,7 @@ private fun KeyBlockTab() {
     var publicKey by remember { mutableStateOf("") }
     var privateKey by remember { mutableStateOf("") }
     ModernCryptoCard(title = "Thales Key Block", subtitle = "Wrap an RSA key into a TR-31 style key block under a KBPK (reference implementation)", icon = Icons.Default.ViewModule) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = desKbpk, onValueChange = { desKbpk = it.uppercase() }, label = "DES KBPK (Hex)", validation = ThalesRsaValidationUtils.validateHex(desKbpk))
             EnhancedTextField(value = aesKbpk, onValueChange = { aesKbpk = it.uppercase() }, label = "AES KBPK (Hex)", validation = ThalesRsaValidationUtils.validateHex(aesKbpk))
             EnhancedTextField(value = publicKeyHeader, onValueChange = { publicKeyHeader = it.uppercase() }, label = "Public Key Header (16 ASCII chars, version B=TDES / D=AES)")
@@ -349,7 +351,7 @@ private fun LmkVariantTab() {
     var publicKey by remember { mutableStateOf("") }
     var privateKey by remember { mutableStateOf("") }
     ModernCryptoCard(title = "Thales LMK Variant", subtitle = "Private key under LMK 34-35, public key MAC under LMK 36-37 (payShield EI/EM semantics)", icon = Icons.Default.VpnKey) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(value = lmk3435, onValueChange = { lmk3435 = it.uppercase() }, label = "LMK Pair 34-35 (Hex)", validation = ThalesRsaValidationUtils.validateHex(lmk3435))
             EnhancedTextField(value = lmk3637, onValueChange = { lmk3637 = it.uppercase() }, label = "LMK Pair 36-37 (Hex)", validation = ThalesRsaValidationUtils.validateHex(lmk3637))
             EnhancedTextField(value = authData, onValueChange = { authData = it.uppercase() }, label = "Authentication Data (Hex, optional)", validation = ThalesRsaValidationUtils.validateHex(authData))

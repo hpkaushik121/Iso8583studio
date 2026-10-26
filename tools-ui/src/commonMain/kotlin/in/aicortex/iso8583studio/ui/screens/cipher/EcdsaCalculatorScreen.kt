@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.cipher
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -220,7 +222,7 @@ private fun KeysTab() {
     fun log(op: String, result: String? = null, error: String? = null) =
         EcdsaLogManager.logOperation(op, mapOf("Curve" to EcKeyState.selectedCurve, "Private Key" to EcKeyState.privateKey, "Public Key" to EcKeyState.publicKey), result, error)
     ModernCryptoCard(title = "ECDSA Key Management", subtitle = "Generate and validate elliptic curve keys", icon = Icons.Default.VpnKey) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernDropdownField(label = "ECC Curve Name", value = EcKeyState.selectedCurve, options = EcKeyState.curveNames, onSelectionChanged = { EcKeyState.selectedCurve = EcKeyState.curveNames[it] })
             EnhancedTextField(value = EcKeyState.privateKey, onValueChange = { EcKeyState.privateKey = it.uppercase() }, label = "Private Key (Hex)", validation = EcdsaValidationUtils.validateHex(EcKeyState.privateKey), maxLines = 3)
             EnhancedTextField(value = EcKeyState.publicKey, onValueChange = { EcKeyState.publicKey = it.uppercase() }, label = "Public Key (Hex, SEC1)", validation = EcdsaValidationUtils.validateHex(EcKeyState.publicKey), maxLines = 5)

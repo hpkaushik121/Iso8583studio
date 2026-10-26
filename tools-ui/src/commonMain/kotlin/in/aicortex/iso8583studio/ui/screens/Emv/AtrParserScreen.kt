@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.Emv
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolLog
@@ -136,7 +138,7 @@ private fun DataInputCard() {
     val isFormValid = hex.length >= 4 && hex.length % 2 == 0 && hex.all { it.isDigit() || it.uppercaseChar() in 'A'..'F' }
 
     ModernCryptoCard(title = "Answer to Reset (ATR)", subtitle = "ISO/IEC 7816-3: convention, interface bytes TA/TB/TC/TD, protocols, historical bytes (COMPACT-TLV) and TCK", icon = Icons.Default.DataObject) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.fillMaxSize().toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             EnhancedTextField(
                 value = data,
                 onValueChange = { data = it.uppercase() },

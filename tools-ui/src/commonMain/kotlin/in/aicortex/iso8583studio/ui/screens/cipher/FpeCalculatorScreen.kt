@@ -1,5 +1,7 @@
 package `in`.aicortex.iso8583studio.ui.screens.fpe
 
+import `in`.aicortex.iso8583studio.ui.chrome.toolScroll
+
 import `in`.aicortex.iso8583studio.ui.chrome.ToolTab
 
 import `in`.aicortex.iso8583studio.ui.chrome.ToolScreenSpec
@@ -228,7 +230,7 @@ private fun FpeTab(title: String, hasTweakRadix: Boolean = false) {
     }
 
     ModernCryptoCard(title = title, subtitle = if (supported) "NIST SP 800-38G format-preserving encryption" else "Not standardised by NIST; not available in this calculator", icon = Icons.Default.EnhancedEncryption) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.toolScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 ModernDropdownField("Radix", radix, radixOptions, { radix = radixOptions[it] }, Modifier.weight(1f))
                 if (hasTweakRadix) {
