@@ -29,7 +29,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
@@ -176,17 +175,16 @@ internal fun GhostIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, de
     }
 }
 
-/** The tab strip: selected tab underlined in blue with a glow, earlier tabs ticked in teal. */
+/** The tab strip: the selected tab underlined in blue with a glow, the others muted. */
 @Composable
 fun GlassTabs(tabs: List<ToolTab>, selected: Int, onSelected: (Int) -> Unit) {
     val c = Glass.colors
     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         tabs.forEachIndexed { index, tab ->
             val isOn = index == selected
-            val done = index < selected
             val interaction = remember { MutableInteractionSource() }
             val hovered by interaction.collectIsHoveredAsState()
-            val colour = when { isOn -> c.text; done -> c.tealHi; hovered -> c.text; else -> c.muted }
+            val colour = if (isOn || hovered) c.text else c.muted
             Row(
                 modifier = Modifier
                     .then(if (isOn) Modifier.drawBehind {
@@ -201,7 +199,6 @@ fun GlassTabs(tabs: List<ToolTab>, selected: Int, onSelected: (Int) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                if (done) Icon(Icons.Default.Check, contentDescription = null, tint = colour, modifier = Modifier.size(10.dp))
                 Icon(tab.icon, contentDescription = null, tint = colour, modifier = Modifier.size(12.dp))
                 Text(tab.title, style = MaterialTheme.typography.body2, color = colour, maxLines = 1)
             }
