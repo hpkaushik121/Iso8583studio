@@ -59,6 +59,7 @@ const CRUMB_LABELS: Record<string, string> = {
   '/tools/card-validation': 'Card Validation', '/tools/cipher-tools': 'Cryptographic Tools',
   '/tools/dukpt-tools': 'DUKPT Tools', '/tools/emv-tools': 'EMV Tools', '/tools/key-tools': 'Key Management Tools',
   '/tools/mac-tools': 'MAC Tools', '/tools/pin-tools': 'Payment Utilities', '/tools/utility-tools': 'Data Converters',
+  '/tools/app': 'Tools in the browser',
 };
 
 const DOC_PREFIX = /^\/(simulator|tools|docs)\//;
