@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { styleBundles } from '../../core/route-styles';
+import { TOOLS_APP_TOOLS, toolsAppSeo } from './tools-app.data';
 
 /** One lazy component per page. */
 export const siteRoutes: Routes = [
@@ -323,6 +324,13 @@ export const siteRoutes: Routes = [
       "robots": "index, follow"
     } },
   },
+  // One crawlable page per web-ready tool: the same component, opened on that tool.
+  ...TOOLS_APP_TOOLS.map((tool) => ({
+    path: `tools/app/${tool.id}`,
+    loadComponent: () => import('./tools-app').then((c) => c.ToolsAppPage),
+    resolve: { styles: styleBundles('guide', 'tools') },
+    data: { seo: toolsAppSeo(tool) },
+  })),
   {
     path: "tools/card-validation",
     loadComponent: () => import('./docs-card-validation').then((c) => c.DocsCardValidationPage),

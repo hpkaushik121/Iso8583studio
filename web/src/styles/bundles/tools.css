@@ -778,3 +778,26 @@
     .gp-layer, .gp-tile { opacity: 1; filter: none; animation: none; }
     .gp-sheen, .gp-caret { display: none; }
 }
+
+/* ---- /tools/app: crawlable copy under the frame (page-tools-app) ---------- */
+.page-tools-app .ta-about, .ta-dir { padding: var(--sp-10, 2.5rem) var(--gutter, 1rem); }
+.page-tools-app .ta-about { border-top: 1px solid var(--line2); }
+.page-tools-app .ta-dir { border-top: 1px solid var(--line2); background: var(--bg-deep); }
+.page-tools-app .ta-about-in { max-width: var(--nav-max, 1300px); margin: 0 auto; }
+.page-tools-app .ta-about-title { margin: 0.3rem 0 0.75rem; font-size: var(--fs-xl); font-weight: 500; letter-spacing: var(--ls-snug); line-height: 1.25; text-wrap: balance; }
+.page-tools-app .ta-about-blurb { margin: 0; max-width: 78ch; font-size: var(--fs-base); line-height: 1.6; color: var(--muted); }
+.page-tools-app .ta-about-known { margin: 1.25rem 0 0.5rem; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.page-tools-app .ta-keywords { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.page-tools-app .ta-keywords li { padding: 0.3rem 0.7rem; border-radius: var(--r-pill); background: var(--neutral-wash); box-shadow: inset 0 0 0 1px var(--line2); font-size: var(--fs-sm); color: var(--text); }
+.page-tools-app .ta-about-links { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.25rem 0 0; font-size: var(--fs-sm); color: var(--faint); }
+.page-tools-app .ta-about-links a { color: var(--blue-hi); text-decoration: none; }
+.page-tools-app .ta-about-links a:hover { color: var(--teal-hi); text-decoration: underline; text-underline-offset: 3px; }
+.page-tools-app .ta-about-sub { margin: 1.75rem 0 0.6rem; font-size: var(--fs-md); font-weight: 500; letter-spacing: var(--ls-snug); }
+.page-tools-app .ta-about-sub a { color: var(--text); text-decoration: none; }
+.page-tools-app .ta-about-sub a:hover { color: var(--blue-hi); }
+.page-tools-app .ta-siblings { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.35rem 1.5rem; margin: 0; padding: 0; list-style: none; }
+.page-tools-app .ta-siblings li { display: flex; flex-direction: column; padding: 0.45rem 0; border-bottom: 1px solid var(--line2); font-size: var(--fs-sm); }
+.page-tools-app .ta-siblings a { color: var(--blue-hi); text-decoration: none; font-weight: 500; }
+.page-tools-app .ta-siblings a:hover { color: var(--teal-hi); text-decoration: underline; text-underline-offset: 3px; }
+.page-tools-app .ta-siblings span { color: var(--muted); font-size: var(--fs-xs); line-height: 1.5; }
+.page-tools-app .ta-dir-cat + .ta-dir-cat { margin-top: 0.5rem; }

@@ -4,8 +4,11 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet, isPlatformBrowser } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { SitePage } from './site-page';
+import {
+  TOOLS_APP_CATEGORIES, TOOLS_APP_TOOLS, ToolsAppTool, toolsAppCategory, toolsAppPath, toolsAppSeo, toolsAppTool,
+} from './tools-app.data';
 import { UiIcon, UiIconButton } from '../../ui';
 import { AnalyticsService } from '../../core/analytics';
 
@@ -135,6 +138,51 @@ const HEADER_KEY = 'ta-header';
       }
       <iframe #frame class="ta-frame" [src]="frameSrc" title="ISO8583Studio tools"
               loading="eager" allow="clipboard-write"></iframe>
+    </section>
+
+    <!-- Crawlable copy. The app itself is a canvas, so this is what search engines and screen
+         readers get: the open tool's words, then every tool with its own page. -->
+    @if (pageTool(); as t) {
+      <section class="ta-about">
+        <div class="ta-about-in">
+          <p class="ta-eyebrow">{{ pageCategory()!.label }}</p>
+          <h2 class="ta-about-title">{{ t.label }}: {{ t.desc }}</h2>
+          <p class="ta-about-blurb">{{ t.blurb }}</p>
+          <p class="ta-about-known">Also searched for as</p>
+          <ul class="ta-keywords">
+            @for (k of t.keywords; track k) { <li>{{ k }}</li> }
+          </ul>
+          <p class="ta-about-links">
+            <a [routerLink]="pageCategory()!.docs">{{ pageCategory()!.label }} documentation</a>
+            <span aria-hidden="true">·</span>
+            <a routerLink="/tools/app">All tools in the browser</a>
+          </p>
+          @if (siblings().length) {
+            <h3 class="ta-about-sub">More {{ pageCategory()!.label }}</h3>
+            <ul class="ta-siblings">
+              @for (s of siblings(); track s.id) {
+                <li><a class="hub-app-link" [routerLink]="toolPath(s.id)" [attr.data-tool]="s.id">{{ s.label }}</a><span>{{ s.desc }}</span></li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    }
+    <section class="ta-dir" aria-labelledby="ta-dir-title">
+      <div class="ta-about-in">
+        <h2 id="ta-dir-title" class="ta-about-title">{{ tools.length }} payment cryptography tools, free in your browser</h2>
+        <p class="ta-about-blurb">Every calculator below is the desktop app's own Kotlin code compiled to WebAssembly. Each has its own page; open one and the app starts on it.</p>
+        @for (c of categories; track c.id) {
+          <div class="ta-dir-cat">
+            <h3 class="ta-about-sub"><a [routerLink]="c.docs">{{ c.label }}</a></h3>
+            <ul class="ta-siblings">
+              @for (t of toolsIn(c.id); track t.id) {
+                <li><a class="hub-app-link" [routerLink]="toolPath(t.id)" [attr.data-tool]="t.id">{{ t.label }}</a><span>{{ t.keywords[0] }} · {{ t.desc }}</span></li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
     </section>
 
     @if (toast()) {
@@ -284,6 +332,14 @@ export class ToolsAppPage {
   protected readonly full = computed(() => this.overlay());
   /** The open tool's id, for the deep-link chip; empty on the hub and on a category view. */
   protected readonly tool = computed(() => { const r = this.route(); return r && !r.startsWith('c/') ? r : ''; });
+  protected readonly tools = TOOLS_APP_TOOLS;
+  protected readonly categories = TOOLS_APP_CATEGORIES;
+  /** The open tool's entry in the catalog, for the crawlable copy. */
+  protected readonly pageTool = computed(() => toolsAppTool(this.tool()));
+  protected readonly pageCategory = computed(() => { const t = this.pageTool(); return t ? toolsAppCategory(t.category) : undefined; });
+  protected readonly siblings = computed(() => { const t = this.pageTool(); return t ? TOOLS_APP_TOOLS.filter((o) => o.category === t.category && o.id !== t.id) : []; });
+  protected toolPath(id: string): string { return toolsAppPath(id); }
+  protected toolsIn(category: string): ToolsAppTool[] { return TOOLS_APP_TOOLS.filter((t) => t.category === category); }
   protected readonly status = computed<'ready' | 'loading' | 'unsupported'>(() => this.unsupported() ? 'unsupported' : this.ready() ? 'ready' : 'loading');
   protected readonly statusText = computed(() => {
     switch (this.status()) {
@@ -300,7 +356,9 @@ export class ToolsAppPage {
 
   constructor() {
     const browser = isPlatformBrowser(this.platformId);
-    const initial = browser ? location.hash.replace(/^#\/?/, '') : '';
+    // The page's own path names the tool (/tools/app/<id>); a hash (#<id>, #c/<slug>) is the older link form.
+    const fromPath = /^\/tools\/app\/([a-z0-9-]+)/.exec(inject(Router).url)?.[1] ?? '';
+    const initial = fromPath || (browser ? location.hash.replace(/^#\/?/, '') : '');
     this.route.set(initial);
     // Same-origin, fixed prefix and a slug that only ever reaches the hash: safe to trust.
     this.frameSrc = this.sanitizer.bypassSecurityTrustResourceUrl(initial ? `/app/#/${initial}` : '/app/');
@@ -316,7 +374,7 @@ export class ToolsAppPage {
   }
 
   protected copyLink(): void {
-    const url = `${location.origin}${location.pathname}#${this.tool()}`;
+    const url = `${location.origin}${toolsAppPath(this.tool())}`;
     const done = () => {
       this.toast.set(url);
       if (this.toastTimer) clearTimeout(this.toastTimer);
@@ -334,7 +392,7 @@ export class ToolsAppPage {
   protected closeLight(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     if (this.route()) {
-      history.pushState(history.state, '', `${location.pathname}${location.search}`);
+      history.pushState(history.state, '', `/tools/app${location.search}`);
       this.route.set('');
       this.frame().nativeElement.contentWindow?.postMessage({ source: 'iso8583-site', type: 'navigate', tool: '' }, location.origin);
       return;
@@ -363,9 +421,16 @@ export class ToolsAppPage {
     const tell = (msg: Record<string, unknown>) =>
       frame.contentWindow?.postMessage({ source: 'iso8583-site', ...msg }, location.origin);
     const pushHash = () => {
-      const tool = location.hash.replace(/^#\/?/, '');
+      const tool = /^\/tools\/app\/([a-z0-9-]+)/.exec(location.pathname)?.[1] ?? location.hash.replace(/^#\/?/, '');
       this.route.set(tool);
       tell({ type: 'navigate', tool });
+    };
+    // The address bar follows the app: a tool gets its own path, a category the hash, home neither.
+    const reflect = (tool: string) => {
+      const target = tool && !tool.startsWith('c/') ? toolsAppPath(tool) : `/tools/app${tool ? `#${tool}` : ''}`;
+      if (`${location.pathname}${location.hash}` !== target) history.replaceState(history.state, '', `${target.split('#')[0]}${location.search}${target.includes('#') ? `#${target.split('#')[1]}` : ''}`);
+      const entry = toolsAppTool(tool);
+      document.title = entry ? toolsAppSeo(entry).title : 'Payment Crypto Calculators in Your Browser - ISO8583Studio';
     };
 
     const onMessage = (ev: MessageEvent<ToolMessage>) => {
@@ -377,10 +442,7 @@ export class ToolsAppPage {
         case 'route': {
           if (!this.synced) return;
           const tool = typeof msg.tool === 'string' ? msg.tool : '';
-          const hash = tool ? `#${tool}` : '';
-          if (location.hash !== hash) {
-            history.replaceState(history.state, '', `${location.pathname}${location.search}${hash}`);
-          }
+          reflect(tool);
           this.route.set(tool);
           this.analytics.toolRouteChanged(tool || 'home');
           return;
